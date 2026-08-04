@@ -374,6 +374,7 @@ class _TaskShellState extends State<TaskShell> {
         showDate: parsed.showDate?.toString(),
         timeMinutes: parsed.timeMinutes,
         timeZone: timeZone,
+        recurrence: parsed.recurrence,
       );
       controller.clear();
       return true;
@@ -409,6 +410,7 @@ class _TaskShellState extends State<TaskShell> {
           '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
         );
       }
+      if (draft.recurrence != null) parts.add('ricorrente');
       return parts.isEmpty
           ? 'Invio per salvare senza data'
           : 'Pianificata: ${parts.join(' · ')}';

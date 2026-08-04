@@ -65,6 +65,7 @@ class TaskRepository {
     String? showDate,
     int? timeMinutes,
     String? timeZone,
+    String? recurrence,
   }) async {
     final title = rawTitle.trim();
     if (title.isEmpty) throw const FormatException('Il titolo è obbligatorio');
@@ -81,6 +82,9 @@ class TaskRepository {
       showDate: Value(showDate),
       timeMinutes: Value(timeMinutes),
       timeZone: Value(timeZone),
+      recurrence: Value(recurrence),
+      seriesId: Value(recurrence == null ? null : id),
+      occurrenceKey: Value(recurrence == null ? null : showDate),
       position: (maxPosition ?? 0) + 1024,
       createdAt: now,
       updatedAt: now,
@@ -111,13 +115,25 @@ class TaskRepository {
       ),
     );
     final rule = RecurrenceRule.decode(task.recurrence);
-    if (completed && rule?.type == RecurrenceType.afterCompletion) {
-      final completedOn = CivilDate.fromDateTime(DateTime.now());
-      final next = afterCompletionOccurrence(
-        completedOn: completedOn,
-        rule: rule!,
-      );
-      await _insertOccurrence(task, next);
+    if (completed && rule != null) {
+      final today = CivilDate.fromDateTime(DateTime.now());
+      if (rule.type == RecurrenceType.afterCompletion) {
+        await _insertOccurrence(
+          task,
+          afterCompletionOccurrence(completedOn: today, rule: rule),
+        );
+      } else if (task.showDate != null) {
+        final anchor = await _seriesAnchor(task);
+        var next = nextOccurrence(
+          anchor,
+          CivilDate.parse(task.showDate!),
+          rule,
+        );
+        while (next.compareTo(today) < 0) {
+          next = nextOccurrence(anchor, next, rule);
+        }
+        await _insertOccurrence(task, next);
+      }
     }
     if (completed) await _notifications?.cancel(task.id);
   }
@@ -205,12 +221,17 @@ class TaskRepository {
     final companion = TasksCompanion.insert(
       id: id,
       title: source.title,
-      status: TaskStatus.scheduled.name,
+      status: date.compareTo(CivilDate.fromDateTime(DateTime.now())) <= 0
+          ? TaskStatus.available.name
+          : TaskStatus.scheduled.name,
       showDate: Value(date.toString()),
       dueDate: Value(source.dueDate == null ? null : date.toString()),
       timeMinutes: Value(source.timeMinutes),
       timeZone: Value(source.timeZone),
       notes: Value(source.notes),
+      priority: Value(source.priority),
+      projectId: Value(source.projectId),
+      sectionId: Value(source.sectionId),
       position: source.position,
       recurrence: Value(source.recurrence),
       seriesId: Value(seriesId),
@@ -228,6 +249,23 @@ class TaskRepository {
       }
       return inserted == null ? 0 : 1;
     });
+  }
+
+  Future<CivilDate> _seriesAnchor(Task task) async {
+    final seriesId = task.seriesId;
+    if (seriesId == null) return CivilDate.parse(task.showDate!);
+    final rows =
+        await (db.select(db.tasks)
+              ..where(
+                (row) =>
+                    row.seriesId.equals(seriesId) & row.showDate.isNotNull(),
+              )
+              ..orderBy([(row) => OrderingTerm(expression: row.showDate)])
+              ..limit(1))
+            .get();
+    return CivilDate.parse(
+      rows.isEmpty ? task.showDate! : rows.first.showDate!,
+    );
   }
 
   Future<void> reorder(List<Task> ordered) async {

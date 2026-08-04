@@ -2,7 +2,7 @@ enum TaskStatus { inbox, available, scheduled, waiting, completed }
 
 enum RecurrenceType { calendar, afterCompletion }
 
-enum RecurrenceUnit { day, week, month }
+enum RecurrenceUnit { day, week, month, year }
 
 class RecurrenceRule {
   const RecurrenceRule({
@@ -90,6 +90,10 @@ CivilDate nextOccurrence(
     RecurrenceUnit.week => current.addDays(7 * rule.interval),
     RecurrenceUnit.month => current.addMonths(
       rule.interval,
+      anchorDay: anchor.day,
+    ),
+    RecurrenceUnit.year => current.addMonths(
+      12 * rule.interval,
       anchorDay: anchor.day,
     ),
   };

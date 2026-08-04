@@ -22,6 +22,29 @@ void main() {
     expect(draft.timeMinutes, 9 * 60 + 30);
   });
 
+  test('riconosce ogni giorno e lo rimuove dal titolo', () {
+    final draft = parser.parse('Vitamine ogni giorno', now: monday);
+
+    expect(draft.title, 'Vitamine');
+    expect(draft.showDate.toString(), '2026-08-03');
+    expect(draft.recurrence, 'calendar:day:1');
+  });
+
+  test('riconosce ogni martedì con la prima data utile', () {
+    final draft = parser.parse('Allenamento ogni martedì', now: monday);
+
+    expect(draft.title, 'Allenamento');
+    expect(draft.showDate.toString(), '2026-08-04');
+    expect(draft.recurrence, 'calendar:week:1');
+  });
+
+  test('riconosce intervalli ogni quattro giorni', () {
+    final draft = parser.parse('Controllo ogni 4 giorni', now: monday);
+
+    expect(draft.title, 'Controllo');
+    expect(draft.recurrence, 'calendar:day:4');
+  });
+
   test('riconosce il prossimo giorno della settimana', () {
     final draft = parser.parse('Chiamare Luca venerdì', now: monday);
 

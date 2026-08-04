@@ -101,6 +101,33 @@ void main() {
     expect(dates, ['2024-01-31', '2024-02-29', '2024-03-31']);
   });
 
+  test('completare una ricorrenza giornaliera crea il giorno dopo', () async {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final id = await repository.create(
+      'Vitamine',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(current, true);
+
+    final tasks = await db.select(db.tasks).get();
+    expect(tasks, hasLength(2));
+    expect(
+      tasks
+          .singleWhere((task) => task.status != TaskStatus.completed.name)
+          .showDate,
+      today.addDays(1).toString(),
+    );
+  });
+
   test('le viste attive e completate non caricano record inutili', () async {
     final activeId = await repository.create('Attiva');
     final completedId = await repository.create('Completata');

@@ -1,11 +1,17 @@
 import 'task.dart';
 
 class QuickTaskDraft {
-  const QuickTaskDraft({required this.title, this.showDate, this.timeMinutes});
+  const QuickTaskDraft({
+    required this.title,
+    this.showDate,
+    this.timeMinutes,
+    this.recurrence,
+  });
 
   final String title;
   final CivilDate? showDate;
   final int? timeMinutes;
+  final String? recurrence;
 
   bool get isScheduled => showDate != null;
 }
@@ -14,7 +20,7 @@ class QuickAddParser {
   const QuickAddParser();
 
   static final RegExp _recognizedSyntax = RegExp(
-    r'\b(?:dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)\b',
+    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
     caseSensitive: false,
   );
 
@@ -26,6 +32,60 @@ class QuickAddParser {
     var title = input.trim();
     CivilDate? date;
     int? minutes;
+    String? recurrence;
+
+    const weekdayNames = <String>[
+      'lunedi',
+      'martedi',
+      'mercoledi',
+      'giovedi',
+      'venerdi',
+      'sabato',
+      'domenica',
+    ];
+
+    final recurringWeekday = RegExp(
+      r'\bogni\s+(lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (recurringWeekday != null) {
+      final normalized = recurringWeekday
+          .group(1)!
+          .toLowerCase()
+          .replaceAll('ì', 'i');
+      final target = weekdayNames.indexOf(normalized) + 1;
+      final delta = (target - reference.weekday) % 7;
+      date = CivilDate.fromDateTime(reference).addDays(delta);
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.week,
+      ).encode();
+      title = _removeMatch(title, recurringWeekday);
+    }
+
+    final recurringUnit = RegExp(
+      r'\bogni\s+(?:(\d+)\s+)?(giorno|giorni|settimana|settimane|mese|mesi|anno|anni)(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (recurringUnit != null) {
+      final interval = int.parse(recurringUnit.group(1) ?? '1');
+      if (interval < 1) throw const FormatException('Ricorrenza non valida');
+      final unitWord = recurringUnit.group(2)!.toLowerCase();
+      final unit = unitWord.startsWith('giorn')
+          ? RecurrenceUnit.day
+          : unitWord.startsWith('settiman')
+          ? RecurrenceUnit.week
+          : unitWord.startsWith('mes')
+          ? RecurrenceUnit.month
+          : RecurrenceUnit.year;
+      recurrence = RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: unit,
+        interval: interval,
+      ).encode();
+      date ??= CivilDate.fromDateTime(reference);
+      title = _removeMatch(title, recurringUnit);
+    }
 
     final timeMatch = RegExp(
       r'\b(?:alle|ore)\s+([01]?\d|2[0-3])(?:[\.:]([0-5]\d))?\b',
@@ -110,22 +170,13 @@ class QuickAddParser {
     }
 
     if (date == null) {
-      const names = <String>[
-        'lunedi',
-        'martedi',
-        'mercoledi',
-        'giovedi',
-        'venerdi',
-        'sabato',
-        'domenica',
-      ];
       final weekday = RegExp(
         r'\b(?:prossimo\s+)?(lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?=\s|$)',
         caseSensitive: false,
       ).firstMatch(title);
       if (weekday != null) {
         final normalized = weekday.group(1)!.toLowerCase().replaceAll('ì', 'i');
-        final target = names.indexOf(normalized) + 1;
+        final target = weekdayNames.indexOf(normalized) + 1;
         var delta = (target - reference.weekday) % 7;
         if (delta == 0 ||
             weekday.group(0)!.toLowerCase().startsWith('prossimo')) {
@@ -144,7 +195,12 @@ class QuickAddParser {
     if (title.isEmpty) {
       throw const FormatException('Il titolo è obbligatorio');
     }
-    return QuickTaskDraft(title: title, showDate: date, timeMinutes: minutes);
+    return QuickTaskDraft(
+      title: title,
+      showDate: date,
+      timeMinutes: minutes,
+      recurrence: recurrence,
+    );
   }
 
   CivilDate _validatedDate(int year, int month, int day) {

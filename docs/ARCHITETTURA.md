@@ -24,6 +24,8 @@ Le viste attive osservano uno stream SQLite che esclude completate e tombstone; 
 
 Il controller del composer usa gli stessi pattern del parser per costruire gli span evidenziati, mantenendo feedback visivo e salvataggio coerenti. L'agenda genera pigramente soltanto i giorni visibili, fino a dieci anni, e usa un date picker per i salti lunghi: non apre stream, timer o richieste di rete aggiuntivi.
 
+Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. Al completamento l'occorrenza corrente diventa storica e il repository inserisce atomicamente la successiva con la stessa serie; l'indice `(series_id, occurrence_key)` rende l'operazione idempotente. Giorni e settimane avanzano come date civili, mesi e anni mantengono il giorno ancora con clamp deterministico per mesi corti e anni bisestili.
+
 ## Budget runtime e aggiornamenti
 
 Il bootstrap non carica il database dei fusi orari né richiede permessi di notifica: entrambi sono differiti alla prima pianificazione. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Android è il primo canale di collaudo: ogni push funzionale con versione monotona produce automaticamente APK per ABI, download interno, progresso e verifica SHA-256; il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
