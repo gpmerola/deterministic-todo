@@ -83,7 +83,7 @@ Le ricorrenze rapide accettano `ogni giorno`, `ogni martedì`, `ogni 4 giorni`, 
 
 In elenco, le attività ricorrenti mostrano la frase riconosciuta, per esempio **↻ ogni giorno**, **↻ ogni domenica** o **↻ ogni terzo martedì del mese**. Il completamento conferma visivamente la spunta con colore, impulso e testo barrato, quindi dissolve la riga; non introduce timer quando l'app è inattiva. Le bandierine P1 rossa, P2 arancione, P3 blu e P4 neutra sono modificabili sia dalla riga sia dall'editor. L'import Todoist conserva lo stesso mapping (`priority: 4` nel JSON corrisponde a P1).
 
-Toccando un'attività su Android si apre un foglio compatto dal fondo: titolo, data, ora, priorità e ripetizione restano immediatamente raggiungibili; note, scadenza, progetto e stato sono raccolti nella sezione comprimibile **Altri dettagli**.
+Toccando un'attività su Android si apre un foglio minimale dal fondo, alto al massimo 460 px: titolo e una barra compatta per data, ora, priorità e ripetizione restano immediatamente raggiungibili; note, scadenza, progetto e stato sono raccolti nella sezione comprimibile **Altri dettagli**. La lista non ripete più “Mostra” quando il giorno è già espresso dalla vista Oggi o Prossime. Il colore della priorità è applicato direttamente al cerchio di completamento, senza una bandierina separata.
 
 Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ultimo giorno del mese`, `ogni ultimo venerdì del mese`, `ogni 3 giorni dopo il completamento`, `stasera` (20:00), `questo weekend`, `inizio settimana prossima`, `fine mese`, `tra 3 giorni` e `fra 2 settimane`.
 
@@ -91,7 +91,7 @@ Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ulti
 
 Su telefono, il pulsante `+` apre un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Le espressioni comprese — per esempio `oggi`, `domani`, `venerdì` e `alle 18:30` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
 
-La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Completate è raggiungibile dalle Impostazioni senza occupare la navigazione primaria; Inbox e In attesa restano stati compatibili nel database e nella versione desktop. Le attività Inbox senza data compaiono in Oggi. Prossime genera pigramente giorni fino a dieci anni, segnala i cambi di mese/anno e offre **Vai a data** per saltare immediatamente lontano nel calendario. Progetti appare come vista dedicata, mantiene sezioni e raggruppa le attività attive importate.
+La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Completate è raggiungibile dalle Impostazioni senza occupare la navigazione primaria; Inbox e In attesa restano stati compatibili nel database e nella versione desktop. Le attività Inbox senza data compaiono in Oggi, ma l'eventuale progetto tecnico “Inbox” importato da Todoist non viene mostrato come progetto autonomo. Prossime genera pigramente giorni fino a dieci anni, senza contatori ridondanti nei riquadri, e offre **Vai a data** per saltare immediatamente lontano nel calendario. Progetti appare come vista dedicata e mantiene sezioni e attività attive importate.
 
 Il tasto **Indietro** di Android chiude prima dialoghi e menu, poi ripercorre le sezioni visitate; in Prossime rimuove prima l'eventuale filtro sul giorno. Soltanto dalla radice Oggi, esaurita la cronologia interna, lascia chiudere normalmente l'app.
 

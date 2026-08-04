@@ -59,6 +59,8 @@ Il Galaxy S21 usa un processore ARM a 64 bit e riceve quindi `android-arm64-v8a`
 
 L'animazione di completamento della 2.3.1 dura complessivamente 480 ms ed è avviata esclusivamente dal tocco dell'utente: prima conferma spunta, colore e testo barrato, poi dissolve e sposta la riga. Usa transizioni implicite Flutter, non mantiene ticker o timer a riposo e applica la scrittura SQLite al termine. Le frasi di ricorrenza e le priorità derivano dai campi già caricati nella riga e non aggiungono query.
 
+La 2.4.0 riduce inoltre il numero di widget per riga: priorità sul bordo del checkbox, nessuna azione calendario ripetuta nell'elenco e nessun contatore nei chip dei giorni. L'export calendario resta nell'editor. La risoluzione del contenitore Todoist Inbox esegue una singola query locale all'avvio e non introduce polling.
+
 Il fuso IANA viene letto tramite un singolo platform channel soltanto quando si salva una task con ora o si crea una notifica. L’accesso al calendario avviene esclusivamente premendo “Salva + calendario”; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale

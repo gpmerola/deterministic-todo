@@ -1,5 +1,6 @@
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
+import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/main.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -130,7 +131,9 @@ void main() {
     await tester.pump();
 
     expect(find.textContaining('ogni domenica'), findsOneWidget);
-    expect(find.byTooltip('Priorità P1'), findsOneWidget);
+    expect(find.textContaining('Mostra'), findsNothing);
+    final checkbox = tester.widget<Checkbox>(find.byType(Checkbox).first);
+    expect(checkbox.side!.color, Colors.red);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
@@ -196,10 +199,68 @@ void main() {
     expect(find.byKey(const ValueKey('task-editor-save')), findsOneWidget);
     expect(find.text('Altri dettagli'), findsOneWidget);
     expect(find.text('Note'), findsNothing);
+    expect(
+      tester.getSize(find.byType(TaskEditor)).height,
+      lessThanOrEqualTo(460),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
   });
+
+  testWidgets('Inbox Todoist non appare come progetto separato', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final inboxId = await repository.createProject('Inbox');
+    await repository.create('Dal contenitore Inbox', projectId: inboxId);
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dal contenitore Inbox'), findsOneWidget);
+    await tester.tap(find.text('Progetti'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inbox'), findsNothing);
+    expect(find.text('Nessun progetto attivo'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets(
+    'Prossime resta compatta con molte attività nello stesso giorno',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final repository = TaskRepository(db, deviceId: 'test-device');
+      final tomorrow = CivilDate.fromDateTime(
+        DateTime.now().add(const Duration(days: 1)),
+      ).toString();
+      for (var index = 0; index < 12; index++) {
+        await repository.create('Attività $index', showDate: tomorrow);
+      }
+      await tester.pumpWidget(TodoApp(repository: repository));
+      await tester.pump();
+      await tester.tap(find.text('Prossime'));
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      final dateChip = tester.widget<ChoiceChip>(find.byType(ChoiceChip).at(1));
+      final label = dateChip.label as Column;
+      expect(label.children, hasLength(2));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await db.close();
+    },
+  );
 
   testWidgets('indietro Android torna alla vista precedente senza uscire', (
     tester,

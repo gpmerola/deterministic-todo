@@ -256,6 +256,7 @@ class TaskShell extends StatefulWidget {
 class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   AppSection section = AppSection.today;
   final List<AppSection> sectionHistory = [];
+  final Set<String> inboxProjectIds = {};
   String? selectedUpcomingDate;
   String? selectedProjectId;
   final quickAdd = SmartDateTextController();
@@ -269,12 +270,27 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadInboxProjectIds();
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkForUpdates();
       await _showDailyPerformanceReminder();
     });
+  }
+
+  Future<void> _loadInboxProjectIds() async {
+    final projects = await widget.repository.db
+        .select(widget.repository.db.projects)
+        .get();
+    inboxProjectIds
+      ..clear()
+      ..addAll(
+        projects
+            .where((project) => project.name.trim().toLowerCase() == 'inbox')
+            .map((project) => project.id),
+      );
+    if (mounted) setState(() {});
   }
 
   Future<void> _showDailyPerformanceReminder() async {
@@ -817,7 +833,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       return switch (section) {
         AppSection.inbox => task.status == TaskStatus.inbox.name,
         AppSection.today =>
-          (task.status == TaskStatus.inbox.name && task.projectId == null) ||
+          (task.status == TaskStatus.inbox.name &&
+                  (task.projectId == null ||
+                      inboxProjectIds.contains(task.projectId))) ||
               task.status == TaskStatus.available.name ||
               task.showDate == today ||
               (task.dueDate != null && task.dueDate!.compareTo(today) <= 0),
@@ -880,7 +898,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               ),
             ),
           ),
-        if (section == AppSection.upcoming) _futureDateStrip(all),
+        if (section == AppSection.upcoming) _futureDateStrip(),
         Expanded(
           child: section == AppSection.upcoming
               ? _upcomingList(visible)
@@ -898,6 +916,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                     key: ValueKey(visible[index].id),
                     task: visible[index],
                     repository: widget.repository,
+                    showDateMetadata:
+                        section != AppSection.today &&
+                        section != AppSection.upcoming,
                   ),
                 ),
         ),
@@ -924,8 +945,20 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             child: Text('Nessun progetto. Puoi importarli da Todoist.'),
           );
         }
+        inboxProjectIds
+          ..clear()
+          ..addAll(
+            projects
+                .where(
+                  (project) => project.name.trim().toLowerCase() == 'inbox',
+                )
+                .map((project) => project.id),
+          );
         final activeProjects = projects
-            .where((item) => !item.isArchived)
+            .where(
+              (item) =>
+                  !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
+            )
             .toList();
         if (activeProjects.isEmpty) {
           return const Center(child: Text('Nessun progetto attivo'));
@@ -960,9 +993,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           Icons.tag,
                           color: _projectColor(project.color),
                         ),
-                        label: Text(
-                          '${project.name}  ${tasks.where((task) => task.projectId == project.id).length}',
-                        ),
+                        label: Text(project.name),
                         selected: project.id == selected.id,
                         onSelected: (_) =>
                             setState(() => selectedProjectId = project.id),
@@ -1302,16 +1333,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     _ => Colors.grey,
   };
 
-  Widget _futureDateStrip(List<Task> all) {
+  Widget _futureDateStrip() {
     final today = CivilDate.fromDateTime(DateTime.now());
-    final counts = <String, int>{};
-    for (final task in all) {
-      if (task.showDate != null &&
-          task.status == TaskStatus.scheduled.name &&
-          task.showDate!.compareTo(today.toString()) > 0) {
-        counts.update(task.showDate!, (value) => value + 1, ifAbsent: () => 1);
-      }
-    }
     final lastDate = CivilDate(today.year + 10, 12, 31);
     final dayCount = lastDate.asLocalDate.difference(today.asLocalDate).inDays;
     return Column(
@@ -1343,7 +1366,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ),
         ),
         SizedBox(
-          height: 76,
+          height: 68,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1351,7 +1374,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             itemBuilder: (context, index) {
               final date = today.addDays(index + 1);
               final key = date.toString();
-              final count = counts[key] ?? 0;
               final startsMonth = date.day == 1;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -1373,7 +1395,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         '${date.day}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      if (count > 0) Text('$count'),
                     ],
                   ),
                 ),
@@ -1426,6 +1447,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               key: ValueKey(task.id),
               task: task,
               repository: widget.repository,
+              showDateMetadata: false,
             ),
         ],
       ],
@@ -1528,10 +1550,16 @@ class _TodoistLinkTextState extends State<TodoistLinkText> {
 }
 
 class TaskTile extends StatefulWidget {
-  const TaskTile({required this.task, required this.repository, super.key});
+  const TaskTile({
+    required this.task,
+    required this.repository,
+    this.showDateMetadata = true,
+    super.key,
+  });
 
   final Task task;
   final TaskRepository repository;
+  final bool showDateMetadata;
 
   @override
   State<TaskTile> createState() => _TaskTileState();
@@ -1551,35 +1579,6 @@ class _TaskTileState extends State<TaskTile> {
     if (mounted) setState(() => leavingAfterCompletion = true);
     await Future<void>.delayed(const Duration(milliseconds: 290));
     await widget.repository.setCompleted(widget.task, true);
-  }
-
-  Future<void> _setPriority(int priority) => widget.repository.updateDetails(
-    widget.task,
-    title: widget.task.title,
-    notes: widget.task.notes,
-    showDate: widget.task.showDate,
-    dueDate: widget.task.dueDate,
-    timeMinutes: widget.task.timeMinutes,
-    timeZone: widget.task.timeZone,
-    recurrence: widget.task.recurrence,
-    priority: priority,
-  );
-
-  Future<void> _addToCalendar() async {
-    try {
-      final result = await CalendarService(
-        widget.repository.db,
-      ).exportTask(widget.task);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Aggiunta a ${result.calendarName}')),
-      );
-    } on Object {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossibile aggiungere al calendario.')),
-      );
-    }
   }
 
   @override
@@ -1636,6 +1635,10 @@ class _TaskTileState extends State<TaskTile> {
                         value: widget.task.status == TaskStatus.completed.name,
                         onChanged: (value) => _setCompleted(value ?? false),
                         activeColor: Colors.green,
+                        side: BorderSide(
+                          color: _priorityColor(widget.task.priority),
+                          width: widget.task.priority == 1 ? 1.5 : 2.5,
+                        ),
                       ),
               ),
             ),
@@ -1650,43 +1653,6 @@ class _TaskTileState extends State<TaskTile> {
               child: TodoistLinkText(widget.task.title),
             ),
             subtitle: _subtitle(widget.task),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PopupMenuButton<int>(
-                  tooltip: 'Priorità P${5 - widget.task.priority}',
-                  icon: Icon(
-                    widget.task.priority == 1
-                        ? Icons.flag_outlined
-                        : Icons.flag,
-                    color: _priorityColor(widget.task.priority),
-                  ),
-                  onSelected: _setPriority,
-                  itemBuilder: (context) => [
-                    for (var raw = 4; raw >= 1; raw--)
-                      PopupMenuItem(
-                        value: raw,
-                        child: Row(
-                          children: [
-                            Icon(
-                              raw == 1 ? Icons.flag_outlined : Icons.flag,
-                              color: _priorityColor(raw),
-                            ),
-                            const SizedBox(width: 10),
-                            Text('P${5 - raw}'),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                if (Platform.isAndroid && widget.task.showDate != null)
-                  IconButton(
-                    tooltip: 'Mostra in Google Calendar',
-                    onPressed: _addToCalendar,
-                    icon: const Icon(Icons.event_available_outlined),
-                  ),
-              ],
-            ),
             onTap: confirmingCompletion ? null : _showEditor,
           ),
         ),
@@ -1696,7 +1662,11 @@ class _TaskTileState extends State<TaskTile> {
 
   Widget? _subtitle(Task task) {
     final values = [
-      if (task.showDate != null) 'Mostra ${task.showDate}',
+      if (widget.showDateMetadata && task.showDate != null)
+        DateFormat(
+          'd MMM',
+          'it',
+        ).format(CivilDate.parse(task.showDate!).asLocalDate),
       if (task.dueDate != null) 'Scade ${task.dueDate}',
       if (task.recurrence != null)
         '↻ ${recurrenceSmartLabel(task.recurrence, task.showDate)}',
@@ -1810,24 +1780,12 @@ class _TaskEditorState extends State<TaskEditor> {
     duration: const Duration(milliseconds: 160),
     padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
     child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 620),
+      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 460),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                'Modifica attività',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              trailing: IconButton(
-                tooltip: 'Chiudi',
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-              ),
-            ),
             Flexible(
               child: SingleChildScrollView(
                 child: Column(
@@ -1845,31 +1803,11 @@ class _TaskEditorState extends State<TaskEditor> {
                         prefixIcon: Icon(Icons.check_circle_outline),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    _responsivePair(
-                      TextField(
-                        controller: showDate,
-                        keyboardType: TextInputType.datetime,
-                        decoration: const InputDecoration(
-                          labelText: 'Data',
-                          hintText: 'AAAA-MM-GG',
-                          prefixIcon: Icon(Icons.calendar_today_outlined),
-                        ),
-                      ),
-                      TextField(
-                        controller: time,
-                        keyboardType: TextInputType.datetime,
-                        decoration: const InputDecoration(
-                          labelText: 'Ora',
-                          hintText: 'HH:MM',
-                          prefixIcon: Icon(Icons.schedule),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _responsivePair(_priorityField(), _recurrenceField()),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    _compactActions(),
                     ExpansionTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
                       tilePadding: EdgeInsets.zero,
                       childrenPadding: const EdgeInsets.only(bottom: 8),
                       leading: const Icon(Icons.tune),
@@ -1940,45 +1878,7 @@ class _TaskEditorState extends State<TaskEditor> {
     ),
   );
 
-  Widget _responsivePair(Widget first, Widget second) => LayoutBuilder(
-    builder: (context, constraints) {
-      if (constraints.maxWidth < 440) {
-        return Column(children: [first, const SizedBox(height: 8), second]);
-      }
-      return Row(
-        children: [
-          Expanded(child: first),
-          const SizedBox(width: 8),
-          Expanded(child: second),
-        ],
-      );
-    },
-  );
-
-  Widget _priorityField() => DropdownButtonFormField<int>(
-    initialValue: priority,
-    isExpanded: true,
-    decoration: const InputDecoration(labelText: 'Priorità'),
-    items: [
-      for (var raw = 4; raw >= 1; raw--)
-        DropdownMenuItem(
-          value: raw,
-          child: Row(
-            children: [
-              Icon(
-                raw == 1 ? Icons.flag_outlined : Icons.flag,
-                color: _priorityColor(raw),
-              ),
-              const SizedBox(width: 6),
-              Text('P${5 - raw}'),
-            ],
-          ),
-        ),
-    ],
-    onChanged: (value) => setState(() => priority = value ?? 1),
-  );
-
-  Widget _recurrenceField() {
+  Widget _compactActions() {
     const basic = <String>[
       'none',
       'calendar:day:1',
@@ -1991,24 +1891,119 @@ class _TaskEditorState extends State<TaskEditor> {
     final values = basic.contains(recurrence)
         ? basic
         : <String>[recurrence, ...basic];
-    return DropdownButtonFormField<String>(
-      initialValue: recurrence,
-      isExpanded: true,
-      decoration: const InputDecoration(labelText: 'Ripeti'),
-      items: [
-        for (final value in values)
-          DropdownMenuItem(
-            value: value,
-            child: Text(
-              value == 'none'
-                  ? 'Mai'
-                  : recurrenceSmartLabel(value, showDate.text),
-              overflow: TextOverflow.ellipsis,
-            ),
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          ActionChip(
+            avatar: const Icon(Icons.calendar_today_outlined, size: 18),
+            label: Text(_compactDateLabel()),
+            onPressed: _pickShowDate,
           ),
-      ],
-      onChanged: (value) => setState(() => recurrence = value ?? 'none'),
+          if (showDate.text.isNotEmpty)
+            IconButton(
+              tooltip: 'Rimuovi data',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => setState(showDate.clear),
+              icon: const Icon(Icons.close, size: 18),
+            ),
+          ActionChip(
+            avatar: const Icon(Icons.schedule, size: 18),
+            label: Text(time.text.isEmpty ? 'Ora' : time.text),
+            onPressed: _pickTaskTime,
+          ),
+          PopupMenuButton<int>(
+            tooltip: 'Priorità P${5 - priority}',
+            icon: Icon(Icons.circle, color: _priorityColor(priority), size: 20),
+            onSelected: (value) => setState(() => priority = value),
+            itemBuilder: (context) => [
+              for (var raw = 4; raw >= 1; raw--)
+                PopupMenuItem(
+                  value: raw,
+                  child: Row(
+                    children: [
+                      Icon(Icons.circle, color: _priorityColor(raw), size: 18),
+                      const SizedBox(width: 10),
+                      Text('P${5 - raw}'),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Ripetizione',
+            icon: Icon(
+              Icons.repeat,
+              color: recurrence == 'none'
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : Theme.of(context).colorScheme.primary,
+            ),
+            onSelected: (value) => setState(() => recurrence = value),
+            itemBuilder: (context) => [
+              for (final value in values)
+                PopupMenuItem(
+                  value: value,
+                  child: Text(
+                    value == 'none'
+                        ? 'Mai'
+                        : recurrenceSmartLabel(value, showDate.text),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
+            tooltip: 'Chiudi',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.keyboard_arrow_down),
+          ),
+        ],
+      ),
     );
+  }
+
+  String _compactDateLabel() {
+    if (showDate.text.isEmpty) return 'Data';
+    try {
+      return DateFormat(
+        'd MMM',
+        'it',
+      ).format(CivilDate.parse(showDate.text).asLocalDate);
+    } on FormatException {
+      return 'Data';
+    }
+  }
+
+  Future<void> _pickShowDate() async {
+    final current = showDate.text.isEmpty
+        ? DateTime.now()
+        : CivilDate.parse(showDate.text).asLocalDate;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && mounted) {
+      setState(() => showDate.text = CivilDate.fromDateTime(picked).toString());
+    }
+  }
+
+  Future<void> _pickTaskTime() async {
+    final minutes = _parseTime(time.text);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: minutes == null
+          ? TimeOfDay.now()
+          : TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+    );
+    if (picked != null && mounted) {
+      setState(
+        () => time.text =
+            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}',
+      );
+    }
   }
 
   Widget _projectFields() => StreamBuilder<List<Project>>(
