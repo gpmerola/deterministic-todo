@@ -105,7 +105,7 @@ Incremento critico da implementare prima degli altri:
 
 1. ~~aggiungere tabelle/colonne locali per progetti, sezioni, priorità e `external_source`/`external_id`, con migrazione Drift e indici;~~ completato nello schema locale 3;
 2. estendere schema, funzione `merge_task` e RLS Supabase senza interrompere i client precedenti;
-3. parser Todoist dedicato: anteprima read-only di conteggi, priorità e ricorrenze implementata; restano mapping completo di progetti/sezioni/task, date/fusi/descrizioni e ID deterministici;
+3. parser Todoist dedicato: anteprima e piano tipizzato read-only implementati, inclusi progetti/sezioni/task, date/fusi/descrizioni, priorità, ricorrenze supportate e UUID v5 deterministici; resta collegare il piano alla transazione SQLite;
 4. import transazionale e idempotente: ripetere lo stesso file non crea duplicati;
 5. mostrare Progetti nell'interfaccia soltanto quando ne esiste almeno uno, preservando Inbox Todoist come progetto importato e non come destinazione mobile principale;
 6. test fixture anonima minima; mai committare l'export reale;

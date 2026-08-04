@@ -45,6 +45,46 @@ void main() {
         const CivilDate(2026, 9, 15),
       );
     });
+
+    test('giorni feriali saltano il weekend', () {
+      const rule = RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.weekday,
+      );
+      expect(
+        nextOccurrence(
+          const CivilDate(2026, 8, 7),
+          const CivilDate(2026, 8, 7),
+          rule,
+        ),
+        const CivilDate(2026, 8, 10),
+      );
+    });
+
+    test('ultimo giorno e ultimo venerdì seguono il mese', () {
+      expect(
+        nextOccurrence(
+          const CivilDate(2026, 8, 31),
+          const CivilDate(2026, 8, 31),
+          const RecurrenceRule(
+            type: RecurrenceType.calendar,
+            unit: RecurrenceUnit.monthEnd,
+          ),
+        ),
+        const CivilDate(2026, 9, 30),
+      );
+      expect(
+        nextOccurrence(
+          const CivilDate(2026, 8, 28),
+          const CivilDate(2026, 8, 28),
+          const RecurrenceRule(
+            type: RecurrenceType.calendar,
+            unit: RecurrenceUnit.monthLastWeekday,
+          ),
+        ),
+        const CivilDate(2026, 9, 25),
+      );
+    });
   });
 
   test('il conflitto usa deviceId soltanto a parità di contatore', () {

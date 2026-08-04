@@ -69,6 +69,41 @@ void main() {
     expect(draft.recurrence, 'calendar:year:1');
   });
 
+  test('riconosce giorni feriali e ultimo venerdì', () {
+    final weekday = parser.parse('Email ogni giorno feriale', now: monday);
+    final lastFriday = parser.parse(
+      'Report ogni ultimo venerdì del mese',
+      now: monday,
+    );
+
+    expect(weekday.recurrence, 'calendar:weekday:1');
+    expect(lastFriday.showDate.toString(), '2026-08-28');
+    expect(lastFriday.recurrence, 'calendar:monthLastWeekday:1');
+  });
+
+  test('riconosce fine mese e ricorrenza dopo completamento', () {
+    final end = parser.parse('Chiudi conti fine mese', now: monday);
+    final after = parser.parse(
+      'Cambiare filtro ogni 3 giorni dopo il completamento',
+      now: monday,
+    );
+
+    expect(end.title, 'Chiudi conti');
+    expect(end.showDate.toString(), '2026-08-31');
+    expect(after.title, 'Cambiare filtro');
+    expect(after.recurrence, 'afterCompletion:day:3');
+  });
+
+  test('riconosce stasera e distanze relative', () {
+    final tonight = parser.parse('Film stasera', now: monday);
+    final later = parser.parse('Richiama fra 2 settimane', now: monday);
+
+    expect(tonight.showDate.toString(), '2026-08-03');
+    expect(tonight.timeMinutes, 20 * 60);
+    expect(later.title, 'Richiama');
+    expect(later.showDate.toString(), '2026-08-17');
+  });
+
   test('riconosce il prossimo giorno della settimana', () {
     final draft = parser.parse('Chiamare Luca venerdì', now: monday);
 

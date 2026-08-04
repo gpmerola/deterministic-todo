@@ -20,7 +20,7 @@ class QuickAddParser {
   const QuickAddParser();
 
   static final RegExp _recognizedSyntax = RegExp(
-    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)|[0-3]?\d\s+del\s+mese|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
+    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)(?:\s+dopo\s+il\s+completamento)?|giorno\s+feriale|weekend|ultimo\s+giorno\s+del\s+mese|ultimo\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|[0-3]?\d\s+del\s+mese|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|stasera|questo\s+weekend|inizio\s+settimana\s+prossima|fine\s+mese|(?:tra|fra)\s+\d+\s+(?:giorni?|settimane?)|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
     caseSensitive: false,
   );
 
@@ -57,6 +57,158 @@ class QuickAddParser {
       'novembre': 11,
       'dicembre': 12,
     };
+
+    final afterCompletion = RegExp(
+      r'\bogni\s+(?:(\d+)\s+)?(giorno|giorni|settimana|settimane|mese|mesi|anno|anni)\s+dopo\s+il\s+completamento(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (afterCompletion != null) {
+      final interval = int.parse(afterCompletion.group(1) ?? '1');
+      final word = afterCompletion.group(2)!.toLowerCase();
+      final unit = word.startsWith('giorn')
+          ? RecurrenceUnit.day
+          : word.startsWith('settiman')
+          ? RecurrenceUnit.week
+          : word.startsWith('mes')
+          ? RecurrenceUnit.month
+          : RecurrenceUnit.year;
+      recurrence = RecurrenceRule(
+        type: RecurrenceType.afterCompletion,
+        unit: unit,
+        interval: interval,
+      ).encode();
+      date = CivilDate.fromDateTime(reference);
+      title = _removeMatch(title, afterCompletion);
+    }
+
+    final everyWeekday = RegExp(
+      r'\bogni\s+giorno\s+feriale(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (everyWeekday != null) {
+      var candidate = CivilDate.fromDateTime(reference);
+      while (candidate.asLocalDate.weekday > DateTime.friday) {
+        candidate = candidate.addDays(1);
+      }
+      date = candidate;
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.weekday,
+      ).encode();
+      title = _removeMatch(title, everyWeekday);
+    }
+
+    final everyWeekend = RegExp(
+      r'\bogni\s+weekend(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (everyWeekend != null) {
+      final delta = (DateTime.saturday - reference.weekday) % 7;
+      date = CivilDate.fromDateTime(reference).addDays(delta);
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.week,
+      ).encode();
+      title = _removeMatch(title, everyWeekend);
+    }
+
+    final everyMonthEnd = RegExp(
+      r'\bogni\s+ultimo\s+giorno\s+del\s+mese(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (everyMonthEnd != null) {
+      date = CivilDate(
+        reference.year,
+        reference.month,
+        DateTime(reference.year, reference.month + 1, 0).day,
+      );
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.monthEnd,
+      ).encode();
+      title = _removeMatch(title, everyMonthEnd);
+    }
+
+    final everyLastWeekday = RegExp(
+      r'\bogni\s+ultimo\s+(lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (everyLastWeekday != null) {
+      final normalized = everyLastWeekday
+          .group(1)!
+          .toLowerCase()
+          .replaceAll('ì', 'i');
+      final weekday = weekdayNames.indexOf(normalized) + 1;
+      var candidate = _lastWeekday(reference.year, reference.month, weekday);
+      if (candidate.asLocalDate.isBefore(
+        DateTime(reference.year, reference.month, reference.day),
+      )) {
+        final next = CivilDate(reference.year, reference.month, 1).addMonths(1);
+        candidate = _lastWeekday(next.year, next.month, weekday);
+      }
+      date = candidate;
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.monthLastWeekday,
+      ).encode();
+      title = _removeMatch(title, everyLastWeekday);
+    }
+
+    final relativeDistance = RegExp(
+      r'\b(?:tra|fra)\s+(\d+)\s+(giorno|giorni|settimana|settimane)(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (relativeDistance != null) {
+      final amount = int.parse(relativeDistance.group(1)!);
+      final multiplier =
+          relativeDistance.group(2)!.toLowerCase().startsWith('settiman')
+          ? 7
+          : 1;
+      date = CivilDate.fromDateTime(reference).addDays(amount * multiplier);
+      title = _removeMatch(title, relativeDistance);
+    }
+
+    final tonight = RegExp(
+      r'\bstasera\b',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (tonight != null) {
+      date = CivilDate.fromDateTime(reference);
+      minutes = 20 * 60;
+      title = _removeMatch(title, tonight);
+    }
+
+    final thisWeekend = RegExp(
+      r'\bquesto\s+weekend(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (thisWeekend != null) {
+      final delta = (DateTime.saturday - reference.weekday) % 7;
+      date = CivilDate.fromDateTime(reference).addDays(delta);
+      title = _removeMatch(title, thisWeekend);
+    }
+
+    final nextWeekStart = RegExp(
+      r'\binizio\s+settimana\s+prossima(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (nextWeekStart != null) {
+      date = CivilDate.fromDateTime(reference).addDays(8 - reference.weekday);
+      title = _removeMatch(title, nextWeekStart);
+    }
+
+    final monthEnd = RegExp(
+      r'\bfine\s+mese(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (monthEnd != null) {
+      date = CivilDate(
+        reference.year,
+        reference.month,
+        DateTime(reference.year, reference.month + 1, 0).day,
+      );
+      title = _removeMatch(title, monthEnd);
+    }
 
     final recurringAnnualDate = RegExp(
       r'\bogni\s+([0-3]?\d)\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?=\s|$)',
@@ -334,6 +486,14 @@ class QuickAddParser {
     final lastDay = DateTime(year, month + 1, 0).day;
     if (day > lastDay) day -= 7;
     return CivilDate(year, month, day);
+  }
+
+  CivilDate _lastWeekday(int year, int month, int weekday) {
+    var value = DateTime(year, month + 1, 0);
+    while (value.weekday != weekday) {
+      value = value.subtract(const Duration(days: 1));
+    }
+    return CivilDate.fromDateTime(value);
   }
 
   String _removeMatch(String source, RegExpMatch match) =>

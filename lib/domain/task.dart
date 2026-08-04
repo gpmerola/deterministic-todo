@@ -2,7 +2,16 @@ enum TaskStatus { inbox, available, scheduled, waiting, completed }
 
 enum RecurrenceType { calendar, afterCompletion }
 
-enum RecurrenceUnit { day, week, month, monthWeekday, year }
+enum RecurrenceUnit {
+  day,
+  weekday,
+  week,
+  month,
+  monthEnd,
+  monthWeekday,
+  monthLastWeekday,
+  year,
+}
 
 class RecurrenceRule {
   const RecurrenceRule({
@@ -87,6 +96,7 @@ CivilDate nextOccurrence(
 ) {
   return switch (rule.unit) {
     RecurrenceUnit.day => current.addDays(rule.interval),
+    RecurrenceUnit.weekday => _nextWeekday(current, rule.interval),
     RecurrenceUnit.week => current.addDays(7 * rule.interval),
     RecurrenceUnit.month => current.addMonths(
       rule.interval,
@@ -97,11 +107,50 @@ CivilDate nextOccurrence(
       current,
       rule.interval,
     ),
+    RecurrenceUnit.monthEnd => _nextMonthEnd(current, rule.interval),
+    RecurrenceUnit.monthLastWeekday => _nextMonthlyLastWeekday(
+      anchor,
+      current,
+      rule.interval,
+    ),
     RecurrenceUnit.year => current.addMonths(
       12 * rule.interval,
       anchorDay: anchor.day,
     ),
   };
+}
+
+CivilDate _nextWeekday(CivilDate current, int interval) {
+  var result = current;
+  var remaining = interval;
+  while (remaining > 0) {
+    result = result.addDays(1);
+    if (result.asLocalDate.weekday <= DateTime.friday) remaining--;
+  }
+  return result;
+}
+
+CivilDate _nextMonthEnd(CivilDate current, int interval) {
+  final month = CivilDate(current.year, current.month, 1).addMonths(interval);
+  return CivilDate(
+    month.year,
+    month.month,
+    DateTime(month.year, month.month + 1, 0).day,
+  );
+}
+
+CivilDate _nextMonthlyLastWeekday(
+  CivilDate anchor,
+  CivilDate current,
+  int interval,
+) {
+  final month = CivilDate(current.year, current.month, 1).addMonths(interval);
+  final weekday = anchor.asLocalDate.weekday;
+  var date = DateTime(month.year, month.month + 1, 0);
+  while (date.weekday != weekday) {
+    date = date.subtract(const Duration(days: 1));
+  }
+  return CivilDate.fromDateTime(date);
 }
 
 CivilDate _nextMonthlyWeekday(
