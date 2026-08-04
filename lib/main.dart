@@ -1827,7 +1827,7 @@ class SettingsView extends StatelessWidget {
         (index) => 'P${4 - index}: ${preview.priorityCounts[index + 1] ?? 0}',
       ).join(' · ');
       final unsupported = preview.unsupportedRecurrences;
-      final confirmed = await showDialog<bool>(
+      final mode = await showDialog<TodoistImportMode>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Anteprima Todoist'),
@@ -1842,24 +1842,60 @@ class SettingsView extends StatelessWidget {
               '${unsupported.isEmpty ? '' : '\n\nDa verificare: '
                         '${unsupported.join(', ')}'}\n\n'
               'Le attività completate non saranno importate. '
-              'Ripetere lo stesso import non crea duplicati.',
+              '“Aggiorna” aggiunge e aggiorna senza duplicati e conserva le '
+              'attività completate nell’app. “Sostituisci” ricostruisce da '
+              'zero solo i dati Todoist; le attività create nell’app non '
+              'vengono toccate.',
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(context),
               child: const Text('Annulla'),
+            ),
+            TextButton(
+              onPressed: unsupported.isEmpty
+                  ? () async {
+                      final replace = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Sostituire i dati Todoist?'),
+                          content: const Text(
+                            'Le vecchie attività, sezioni e progetti importati '
+                            'da Todoist che non compaiono nel nuovo JSON '
+                            'saranno rimossi. Quelli presenti saranno '
+                            'ripristinati dal file. I dati creati direttamente '
+                            'nell’app resteranno invariati.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('No, annulla'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Sostituisci da zero'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (replace == true && context.mounted) {
+                        Navigator.pop(context, TodoistImportMode.replace);
+                      }
+                    }
+                  : null,
+              child: const Text('Sostituisci'),
             ),
             FilledButton(
               onPressed: unsupported.isEmpty
-                  ? () => Navigator.pop(context, true)
+                  ? () => Navigator.pop(context, TodoistImportMode.incremental)
                   : null,
-              child: const Text('Importa'),
+              child: const Text('Aggiorna'),
             ),
           ],
         ),
       );
-      if (confirmed != true) return;
+      if (mode == null) return;
       if (syncClient?.auth.currentUser != null) {
         await syncClient!.from('projects').select('id').limit(1);
         await syncClient!.from('project_sections').select('id').limit(1);
@@ -1868,6 +1904,7 @@ class SettingsView extends StatelessWidget {
         plan: service.plan(source),
         db: repository.db,
         deviceId: repository.deviceId,
+        mode: mode,
       );
       await DiagnosticLogService.instance.event(
         'todoist_import_completed',
@@ -1875,6 +1912,8 @@ class SettingsView extends StatelessWidget {
           'tasks': result.addedTasks,
           'projects': result.addedProjects,
           'sections': result.addedSections,
+          'updated': result.updatedTasks,
+          'removed': result.removedTasks,
         },
       );
       await syncService?.sync();
@@ -1882,7 +1921,9 @@ class SettingsView extends StatelessWidget {
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Import completato: ${result.addedTasks} attività, '
+              'Import completato: ${result.addedTasks} nuove, '
+              '${result.updatedTasks} aggiornate, '
+              '${result.removedTasks} rimosse; '
               '${result.addedProjects} progetti e '
               '${result.addedSections} sezioni aggiunti.',
             ),
@@ -1992,8 +2033,8 @@ class SettingsView extends StatelessWidget {
         leading: const Icon(Icons.task_alt_outlined),
         title: const Text('Importa da Todoist'),
         subtitle: const Text(
-          'Anteprima obbligatoria; importa attività attive, progetti, sezioni, '
-          'priorità, date e ricorrenze.',
+          'Aggiornamento incrementale oppure sostituzione completa dei soli '
+          'dati Todoist, sempre con anteprima.',
         ),
         onTap: () => _importTodoist(context),
       ),

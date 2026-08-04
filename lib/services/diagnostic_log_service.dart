@@ -64,6 +64,8 @@ class DiagnosticLogService {
     'projects',
     'sections',
     'tasks',
+    'updated',
+    'removed',
     'version',
     'build',
     'error_type',

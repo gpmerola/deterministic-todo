@@ -11,12 +11,18 @@ class TodoistImportResult {
     required this.addedProjects,
     required this.addedSections,
     required this.addedTasks,
+    this.updatedTasks = 0,
+    this.removedTasks = 0,
   });
 
   final int addedProjects;
   final int addedSections;
   final int addedTasks;
+  final int updatedTasks;
+  final int removedTasks;
 }
+
+enum TodoistImportMode { incremental, replace }
 
 class TodoistProjectDraft {
   const TodoistProjectDraft({
@@ -27,6 +33,8 @@ class TodoistProjectDraft {
     this.color,
     this.parentId,
     this.isFavorite = false,
+    this.updatedAt,
+    this.viewStyle,
   });
   final String id;
   final String externalId;
@@ -35,6 +43,8 @@ class TodoistProjectDraft {
   final String? color;
   final String? parentId;
   final bool isFavorite;
+  final String? updatedAt;
+  final String? viewStyle;
 }
 
 class TodoistSectionDraft {
@@ -44,12 +54,14 @@ class TodoistSectionDraft {
     required this.projectId,
     required this.name,
     required this.position,
+    this.updatedAt,
   });
   final String id;
   final String externalId;
   final String projectId;
   final String name;
   final int position;
+  final String? updatedAt;
 }
 
 class TodoistTaskDraft {
@@ -66,6 +78,7 @@ class TodoistTaskDraft {
     this.timeMinutes,
     this.timeZone,
     this.recurrence,
+    this.updatedAt,
   });
   final String id;
   final String externalId;
@@ -79,6 +92,7 @@ class TodoistTaskDraft {
   final int? timeMinutes;
   final String? timeZone;
   final String? recurrence;
+  final String? updatedAt;
 }
 
 class TodoistImportPlan {
@@ -195,6 +209,8 @@ class TodoistImportService {
         color: row['color'] as String?,
         parentId: parentExternal == null ? null : projectIds[parentExternal],
         isFavorite: row['is_favorite'] == true,
+        updatedAt: row['updated_at'] as String?,
+        viewStyle: row['view_style'] as String?,
       );
     }).toList();
 
@@ -220,6 +236,7 @@ class TodoistImportService {
           projectId: projectId,
           name: _requiredText(row, 'name'),
           position: row['section_order'] as int? ?? 0,
+          updatedAt: row['updated_at'] as String?,
         ),
       );
     }
@@ -285,6 +302,7 @@ class TodoistImportService {
           timeMinutes: timeMinutes,
           timeZone: timeZone,
           recurrence: recurrence,
+          updatedAt: row['updated_at'] as String?,
         ),
       );
     }
@@ -302,19 +320,52 @@ class TodoistImportService {
     required TodoistImportPlan plan,
     required AppDatabase db,
     required String deviceId,
+    TodoistImportMode mode = TodoistImportMode.incremental,
   }) => db.transaction(() async {
     var addedProjects = 0;
     var addedSections = 0;
     var addedTasks = 0;
+    var updatedTasks = 0;
+    var removedTasks = 0;
     final now = DateTime.now();
-    final timestamp = now.toUtc().millisecondsSinceEpoch;
+    final timestamp = now.toUtc().microsecondsSinceEpoch;
     final today = _dateOnly(now);
+    final importedProjectIds = plan.projects.map((item) => item.id).toSet();
+    final importedSectionIds = plan.sections.map((item) => item.id).toSet();
+    final importedTaskIds = plan.tasks.map((item) => item.id).toSet();
 
     for (final draft in plan.projects) {
       final existing = await (db.select(
         db.projects,
       )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
-      if (existing != null) continue;
+      final changed =
+          mode == TodoistImportMode.replace ||
+          (draft.updatedAt != null &&
+              await _checkpoint(db, 'project', draft.externalId) !=
+                  draft.updatedAt);
+      if (existing != null) {
+        if (changed) {
+          await (db.update(
+            db.projects,
+          )..where((row) => row.id.equals(draft.id))).write(
+            ProjectsCompanion(
+              name: Value(draft.name),
+              position: Value(draft.position * 1024),
+              color: Value(draft.color),
+              parentId: Value(draft.parentId),
+              isFavorite: Value(draft.isFavorite),
+              isArchived: const Value(false),
+              logicalVersion: Value(existing.logicalVersion + 1),
+              deviceId: Value(deviceId),
+            ),
+          );
+        }
+        await _saveCheckpoint(db, 'project', draft.externalId, draft.updatedAt);
+        if (changed && draft.viewStyle != null) {
+          await _saveSetting(db, 'project_view:${draft.id}', draft.viewStyle!);
+        }
+        continue;
+      }
       await db
           .into(db.projects)
           .insert(
@@ -332,13 +383,39 @@ class TodoistImportService {
             mode: InsertMode.insertOrIgnore,
           );
       addedProjects++;
+      await _saveCheckpoint(db, 'project', draft.externalId, draft.updatedAt);
+      if (draft.viewStyle != null) {
+        await _saveSetting(db, 'project_view:${draft.id}', draft.viewStyle!);
+      }
     }
 
     for (final draft in plan.sections) {
       final existing = await (db.select(
         db.projectSections,
       )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
-      if (existing != null) continue;
+      final changed =
+          mode == TodoistImportMode.replace ||
+          (draft.updatedAt != null &&
+              await _checkpoint(db, 'section', draft.externalId) !=
+                  draft.updatedAt);
+      if (existing != null) {
+        if (changed) {
+          await (db.update(
+            db.projectSections,
+          )..where((row) => row.id.equals(draft.id))).write(
+            ProjectSectionsCompanion(
+              projectId: Value(draft.projectId),
+              name: Value(draft.name),
+              position: Value(draft.position * 1024),
+              isArchived: const Value(false),
+              logicalVersion: Value(existing.logicalVersion + 1),
+              deviceId: Value(deviceId),
+            ),
+          );
+        }
+        await _saveCheckpoint(db, 'section', draft.externalId, draft.updatedAt);
+        continue;
+      }
       await db
           .into(db.projectSections)
           .insert(
@@ -354,18 +431,66 @@ class TodoistImportService {
             mode: InsertMode.insertOrIgnore,
           );
       addedSections++;
+      await _saveCheckpoint(db, 'section', draft.externalId, draft.updatedAt);
     }
 
     for (final draft in plan.tasks) {
       final existing = await (db.select(
         db.tasks,
       )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
-      if (existing != null) continue;
       final status = draft.showDate == null
           ? 'inbox'
           : draft.showDate!.compareTo(today) <= 0
           ? 'available'
           : 'scheduled';
+      final changed =
+          mode == TodoistImportMode.replace ||
+          (draft.updatedAt != null &&
+              await _checkpoint(db, 'task', draft.externalId) !=
+                  draft.updatedAt);
+      if (existing != null) {
+        if (changed) {
+          final version = existing.logicalVersion + 1;
+          await (db.update(
+            db.tasks,
+          )..where((row) => row.id.equals(draft.id))).write(
+            TasksCompanion(
+              title: Value(draft.title),
+              notes: Value(draft.notes),
+              showDate: Value(draft.showDate),
+              timeMinutes: Value(draft.timeMinutes),
+              timeZone: Value(draft.timeZone),
+              priority: Value(draft.priority),
+              projectId: Value(draft.projectId),
+              sectionId: Value(draft.sectionId),
+              position: Value(draft.position * 1024),
+              recurrence: Value(draft.recurrence),
+              seriesId: Value(
+                draft.recurrence == null ? null : existing.seriesId ?? draft.id,
+              ),
+              occurrenceKey: Value(
+                draft.recurrence == null ? null : draft.showDate,
+              ),
+              status: mode == TodoistImportMode.replace
+                  ? Value(status)
+                  : const Value.absent(),
+              completedAt: mode == TodoistImportMode.replace
+                  ? const Value(null)
+                  : const Value.absent(),
+              deletedAt: mode == TodoistImportMode.replace
+                  ? const Value(null)
+                  : const Value.absent(),
+              updatedAt: Value(timestamp),
+              logicalVersion: Value(version),
+              deviceId: Value(deviceId),
+            ),
+          );
+          await _enqueue(db, draft.id, 'upsert', version, timestamp);
+          updatedTasks++;
+        }
+        await _saveCheckpoint(db, 'task', draft.externalId, draft.updatedAt);
+        continue;
+      }
       await db
           .into(db.tasks)
           .insert(
@@ -395,25 +520,121 @@ class TodoistImportService {
             mode: InsertMode.insertOrIgnore,
           );
       addedTasks++;
-      await db
-          .into(db.outboxEntries)
-          .insert(
-            OutboxEntriesCompanion.insert(
-              operationId: _uuid.v4(),
-              entityId: draft.id,
-              operation: 'upsert',
-              payload: jsonEncode({'id': draft.id, 'version': 1}),
-              createdAt: timestamp,
-            ),
-          );
+      await _enqueue(db, draft.id, 'upsert', 1, timestamp);
+      await _saveCheckpoint(db, 'task', draft.externalId, draft.updatedAt);
+    }
+
+    if (mode == TodoistImportMode.replace) {
+      final oldProjects = await (db.select(
+        db.projects,
+      )..where((row) => row.externalSource.equals('todoist'))).get();
+      for (final project in oldProjects) {
+        if (importedProjectIds.contains(project.id) || project.isArchived) {
+          continue;
+        }
+        await (db.update(
+          db.projects,
+        )..where((row) => row.id.equals(project.id))).write(
+          ProjectsCompanion(
+            isArchived: const Value(true),
+            logicalVersion: Value(project.logicalVersion + 1),
+            deviceId: Value(deviceId),
+          ),
+        );
+      }
+      final oldSections = await (db.select(
+        db.projectSections,
+      )..where((row) => row.externalSource.equals('todoist'))).get();
+      for (final section in oldSections) {
+        if (importedSectionIds.contains(section.id) || section.isArchived) {
+          continue;
+        }
+        await (db.update(
+          db.projectSections,
+        )..where((row) => row.id.equals(section.id))).write(
+          ProjectSectionsCompanion(
+            isArchived: const Value(true),
+            logicalVersion: Value(section.logicalVersion + 1),
+            deviceId: Value(deviceId),
+          ),
+        );
+      }
+      final oldTasks = await (db.select(
+        db.tasks,
+      )..where((row) => row.externalSource.equals('todoist'))).get();
+      for (final task in oldTasks) {
+        if (importedTaskIds.contains(task.id) || task.deletedAt != null) {
+          continue;
+        }
+        final version = task.logicalVersion + 1;
+        await (db.update(
+          db.tasks,
+        )..where((row) => row.id.equals(task.id))).write(
+          TasksCompanion(
+            deletedAt: Value(timestamp),
+            updatedAt: Value(timestamp),
+            logicalVersion: Value(version),
+            deviceId: Value(deviceId),
+          ),
+        );
+        await _enqueue(db, task.id, 'delete', version, timestamp);
+        removedTasks++;
+      }
     }
 
     return TodoistImportResult(
       addedProjects: addedProjects,
       addedSections: addedSections,
       addedTasks: addedTasks,
+      updatedTasks: updatedTasks,
+      removedTasks: removedTasks,
     );
   });
+
+  Future<String?> _checkpoint(
+    AppDatabase db,
+    String type,
+    String externalId,
+  ) async =>
+      (await (db.select(db.appSettings)..where(
+                (row) => row.key.equals('todoist_updated:$type:$externalId'),
+              ))
+              .getSingleOrNull())
+          ?.value;
+
+  Future<void> _saveCheckpoint(
+    AppDatabase db,
+    String type,
+    String externalId,
+    String? value,
+  ) async {
+    if (value == null) return;
+    await _saveSetting(db, 'todoist_updated:$type:$externalId', value);
+  }
+
+  Future<void> _saveSetting(AppDatabase db, String key, String value) => db
+      .into(db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(key: key, value: value),
+      );
+
+  Future<void> _enqueue(
+    AppDatabase db,
+    String id,
+    String operation,
+    int version,
+    int timestamp,
+  ) => db
+      .into(db.outboxEntries)
+      .insert(
+        OutboxEntriesCompanion.insert(
+          operationId: _uuid.v4(),
+          entityId: id,
+          operation: operation,
+          payload: jsonEncode({'id': id, 'version': version}),
+          createdAt: timestamp,
+        ),
+      );
 
   String _dateOnly(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'

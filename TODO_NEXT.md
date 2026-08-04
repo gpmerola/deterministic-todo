@@ -191,3 +191,8 @@ gh release list --repo gpmerola/deterministic-todo-releases
 ```
 
 La documentazione autorevole è: `AGENTS.md` per le regole, README per l’uso, `docs/ARCHITETTURA.md` per il dominio, `docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md` per distribuzione/performance e `COMPLETATO.md` per ciò che è stato verificato.
+# Dopo il reimport Todoist 2.1
+
+- Aggiungere ordinamento per nome, data e priorità all'interno delle sezioni progetto.
+- Valutare una barra progetti gerarchica su schermi larghi, mantenendo il selettore compatto su Android.
+- Estendere l'import a commenti e allegati solo dopo aver definito modello dati, privacy e costi di archiviazione.

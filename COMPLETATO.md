@@ -59,3 +59,9 @@ Aggiornato il 4 agosto 2026.
 ## Non dichiarate complete
 
 Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync live, recupero cestino, selezione multipla/undo, scheduler automatico dell'orizzonte calendario e backup cifrato. Notifiche, calendario e aggiornamento OTA superano build/test, ma i flussi completi non sono ancora stati provati fisicamente sul Galaxy S21; Supabase non è stato provato contro un progetto reale.
+# Versione 2.1.0
+
+- Reimport Todoist incrementale tramite checkpoint `updated_at`: nuovi record aggiunti, record cambiati aggiornati, nessun duplicato.
+- Opzione “Sostituisci da zero” con doppia conferma, limitata ai dati Todoist e compatibile con la sincronizzazione Android/macOS.
+- Import del layout elenco/bacheca indicato dal progetto Todoist.
+- Log diagnostico con conteggi separati per aggiunte, aggiornamenti e rimozioni.

@@ -117,7 +117,7 @@ Su Android, “Salva + calendario” crea esplicitamente un evento nel calendari
 
 Impostazioni consente export JSON completo/versionato, export CSV e import JSON. Prima dell'import mostra conteggi di aggiunte, aggiornamenti e record invariati; vince solo una versione logica superiore, quindi non avvengono sovrascritture silenziose.
 
-“Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date, fusi e ricorrenze. L'operazione SQLite è atomica: un errore non lascia un import parziale. UUID deterministici e identificativi esterni rendono innocuo scegliere di nuovo lo stesso file. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
+“Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date, fusi e ricorrenze. **Aggiorna** esegue un reimport incrementale: aggiunge le novità e aggiorna solo i record Todoist modificati, senza duplicati e senza riaprire le attività già completate nell'app. **Sostituisci** richiede una seconda conferma e ricostruisce da zero esclusivamente i dati provenienti da Todoist, rimuovendo quelli assenti dal nuovo file; le attività native dell'app non vengono toccate. L'operazione SQLite è atomica. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
 
 I link Markdown inseriti da Todoist nei titoli vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco.
 
