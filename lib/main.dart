@@ -255,6 +255,7 @@ class TaskShell extends StatefulWidget {
 
 class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   AppSection section = AppSection.today;
+  final List<AppSection> sectionHistory = [];
   String? selectedUpcomingDate;
   String? selectedProjectId;
   final quickAdd = SmartDateTextController();
@@ -618,151 +619,184 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
   }
 
+  bool get _canExitFromBack =>
+      section == AppSection.today &&
+      selectedUpcomingDate == null &&
+      sectionHistory.isEmpty;
+
+  void _navigateTo(AppSection destination) {
+    if (destination == section) return;
+    setState(() {
+      sectionHistory.add(section);
+      if (sectionHistory.length > 20) sectionHistory.removeAt(0);
+      section = destination;
+    });
+  }
+
+  void _handleBack() {
+    setState(() {
+      if (section == AppSection.upcoming && selectedUpcomingDate != null) {
+        selectedUpcomingDate = null;
+      } else if (sectionHistory.isNotEmpty) {
+        section = sectionHistory.removeLast();
+      } else {
+        section = AppSection.today;
+      }
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => Shortcuts(
-    shortcuts: const {
-      SingleActivator(LogicalKeyboardKey.keyN, meta: true): _NewIntent(),
-      SingleActivator(LogicalKeyboardKey.keyN, control: true): _NewIntent(),
-      SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
-      SingleActivator(LogicalKeyboardKey.keyF, control: true): _SearchIntent(),
+  Widget build(BuildContext context) => PopScope(
+    canPop: _canExitFromBack,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) _handleBack();
     },
-    child: Actions(
-      actions: {
-        _NewIntent: CallbackAction<_NewIntent>(
-          onInvoke: (_) => quickFocus.requestFocus(),
-        ),
-        _SearchIntent: CallbackAction<_SearchIntent>(
-          onInvoke: (_) => showSearch<void>(
-            context: context,
-            delegate: TaskSearchDelegate(widget.repository),
-          ),
-        ),
+    child: Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.keyN, meta: true): _NewIntent(),
+        SingleActivator(LogicalKeyboardKey.keyN, control: true): _NewIntent(),
+        SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _SearchIntent(),
       },
-      child: StreamBuilder<List<Task>>(
-        stream: section == AppSection.completed ? completedTasks : activeTasks,
-        builder: (context, snapshot) {
-          final tasks = snapshot.data ?? const [];
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final desktop = constraints.maxWidth >= 720;
-              final content = _content(tasks);
-              const desktopSections = [
-                AppSection.inbox,
-                AppSection.today,
-                AppSection.upcoming,
-                AppSection.waiting,
-                AppSection.projects,
-                AppSection.settings,
-              ];
-              return Scaffold(
-                appBar: desktop
-                    ? null
-                    : AppBar(
-                        leading:
-                            section == AppSection.settings ||
-                                section == AppSection.completed
-                            ? IconButton(
-                                tooltip: 'Indietro',
-                                onPressed: () => setState(
-                                  () =>
-                                      section = section == AppSection.completed
-                                      ? AppSection.settings
-                                      : AppSection.today,
-                                ),
-                                icon: const Icon(Icons.arrow_back),
-                              )
-                            : null,
-                        title: Text(section.label),
-                        actions: [
-                          if (section != AppSection.settings) ...[
-                            IconButton(
-                              tooltip: 'Cerca',
-                              onPressed: () => showSearch<void>(
-                                context: context,
-                                delegate: TaskSearchDelegate(widget.repository),
-                              ),
-                              icon: const Icon(Icons.search),
-                            ),
-                            IconButton(
-                              tooltip: 'Impostazioni',
-                              onPressed: () =>
-                                  setState(() => section = AppSection.settings),
-                              icon: const Icon(Icons.settings_outlined),
-                            ),
-                          ],
-                        ],
-                      ),
-                body: desktop
-                    ? Row(
-                        children: [
-                          NavigationRail(
-                            extended: constraints.maxWidth >= 1000,
-                            selectedIndex: desktopSections.contains(section)
-                                ? desktopSections.indexOf(section)
-                                : desktopSections.indexOf(AppSection.settings),
-                            onDestinationSelected: (index) => setState(
-                              () => section = desktopSections[index],
-                            ),
-                            leading: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Icon(Icons.check_box_outlined, size: 32),
-                            ),
-                            destinations: [
-                              for (final item in desktopSections)
-                                NavigationRailDestination(
-                                  icon: Icon(item.icon),
-                                  label: Text(item.label),
-                                ),
-                            ],
-                          ),
-                          const VerticalDivider(width: 1),
-                          Expanded(child: content),
-                        ],
-                      )
-                    : content,
-                floatingActionButton:
-                    !desktop &&
-                        section != AppSection.settings &&
-                        section != AppSection.projects &&
-                        section != AppSection.completed
-                    ? FloatingActionButton(
-                        tooltip: 'Nuova attività',
-                        onPressed: _showQuickAddSheet,
-                        child: const Icon(Icons.add),
-                      )
-                    : null,
-                bottomNavigationBar: desktop
-                    ? null
-                    : section == AppSection.settings ||
-                          section == AppSection.completed
-                    ? null
-                    : Builder(
-                        builder: (context) {
-                          const mobileSections = [
-                            AppSection.today,
-                            AppSection.upcoming,
-                            AppSection.projects,
-                          ];
-                          return NavigationBar(
-                            selectedIndex: mobileSections
-                                .indexOf(section)
-                                .clamp(0, mobileSections.length - 1),
-                            onDestinationSelected: (index) =>
-                                setState(() => section = mobileSections[index]),
-                            destinations: [
-                              for (final item in mobileSections)
-                                NavigationDestination(
-                                  icon: Icon(item.icon),
-                                  label: item.label,
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-              );
-            },
-          );
+      child: Actions(
+        actions: {
+          _NewIntent: CallbackAction<_NewIntent>(
+            onInvoke: (_) => quickFocus.requestFocus(),
+          ),
+          _SearchIntent: CallbackAction<_SearchIntent>(
+            onInvoke: (_) => showSearch<void>(
+              context: context,
+              delegate: TaskSearchDelegate(widget.repository),
+            ),
+          ),
         },
+        child: StreamBuilder<List<Task>>(
+          stream: section == AppSection.completed
+              ? completedTasks
+              : activeTasks,
+          builder: (context, snapshot) {
+            final tasks = snapshot.data ?? const [];
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final desktop = constraints.maxWidth >= 720;
+                final content = _content(tasks);
+                const desktopSections = [
+                  AppSection.inbox,
+                  AppSection.today,
+                  AppSection.upcoming,
+                  AppSection.waiting,
+                  AppSection.projects,
+                  AppSection.settings,
+                ];
+                return Scaffold(
+                  appBar: desktop
+                      ? null
+                      : AppBar(
+                          leading:
+                              section == AppSection.settings ||
+                                  section == AppSection.completed
+                              ? IconButton(
+                                  tooltip: 'Indietro',
+                                  onPressed: _handleBack,
+                                  icon: const Icon(Icons.arrow_back),
+                                )
+                              : null,
+                          title: Text(section.label),
+                          actions: [
+                            if (section != AppSection.settings) ...[
+                              IconButton(
+                                tooltip: 'Cerca',
+                                onPressed: () => showSearch<void>(
+                                  context: context,
+                                  delegate: TaskSearchDelegate(
+                                    widget.repository,
+                                  ),
+                                ),
+                                icon: const Icon(Icons.search),
+                              ),
+                              IconButton(
+                                tooltip: 'Impostazioni',
+                                onPressed: () =>
+                                    _navigateTo(AppSection.settings),
+                                icon: const Icon(Icons.settings_outlined),
+                              ),
+                            ],
+                          ],
+                        ),
+                  body: desktop
+                      ? Row(
+                          children: [
+                            NavigationRail(
+                              extended: constraints.maxWidth >= 1000,
+                              selectedIndex: desktopSections.contains(section)
+                                  ? desktopSections.indexOf(section)
+                                  : desktopSections.indexOf(
+                                      AppSection.settings,
+                                    ),
+                              onDestinationSelected: (index) =>
+                                  _navigateTo(desktopSections[index]),
+                              leading: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Icon(Icons.check_box_outlined, size: 32),
+                              ),
+                              destinations: [
+                                for (final item in desktopSections)
+                                  NavigationRailDestination(
+                                    icon: Icon(item.icon),
+                                    label: Text(item.label),
+                                  ),
+                              ],
+                            ),
+                            const VerticalDivider(width: 1),
+                            Expanded(child: content),
+                          ],
+                        )
+                      : content,
+                  floatingActionButton:
+                      !desktop &&
+                          section != AppSection.settings &&
+                          section != AppSection.projects &&
+                          section != AppSection.completed
+                      ? FloatingActionButton(
+                          tooltip: 'Nuova attività',
+                          onPressed: _showQuickAddSheet,
+                          child: const Icon(Icons.add),
+                        )
+                      : null,
+                  bottomNavigationBar: desktop
+                      ? null
+                      : section == AppSection.settings ||
+                            section == AppSection.completed
+                      ? null
+                      : Builder(
+                          builder: (context) {
+                            const mobileSections = [
+                              AppSection.today,
+                              AppSection.upcoming,
+                              AppSection.projects,
+                            ];
+                            return NavigationBar(
+                              selectedIndex: mobileSections
+                                  .indexOf(section)
+                                  .clamp(0, mobileSections.length - 1),
+                              onDestinationSelected: (index) =>
+                                  _navigateTo(mobileSections[index]),
+                              destinations: [
+                                for (final item in mobileSections)
+                                  NavigationDestination(
+                                    icon: Icon(item.icon),
+                                    label: item.label,
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                );
+              },
+            );
+          },
+        ),
       ),
     ),
   );
@@ -774,7 +808,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         syncClient: widget.syncClient,
         syncService: widget.syncService,
         checkForUpdates: _checkForUpdates,
-        showCompleted: () => setState(() => section = AppSection.completed),
+        showCompleted: () => _navigateTo(AppSection.completed),
       );
     }
     if (section == AppSection.projects) return _projectsView(all);
@@ -1421,6 +1455,13 @@ int _stableCompare(Task a, Task b, String today) {
   return byCreation != 0 ? byCreation : a.id.compareTo(b.id);
 }
 
+Color _priorityColor(int rawPriority) => switch (rawPriority) {
+  4 => Colors.red,
+  3 => Colors.orange,
+  2 => Colors.blue,
+  _ => Colors.grey,
+};
+
 class TodoistLinkText extends StatefulWidget {
   const TodoistLinkText(this.value, {super.key});
 
@@ -1497,6 +1538,30 @@ class TaskTile extends StatefulWidget {
 }
 
 class _TaskTileState extends State<TaskTile> {
+  bool completing = false;
+
+  Future<void> _setCompleted(bool completed) async {
+    if (!completed) {
+      await widget.repository.setCompleted(widget.task, false);
+      return;
+    }
+    setState(() => completing = true);
+    await Future<void>.delayed(const Duration(milliseconds: 320));
+    await widget.repository.setCompleted(widget.task, true);
+  }
+
+  Future<void> _setPriority(int priority) => widget.repository.updateDetails(
+    widget.task,
+    title: widget.task.title,
+    notes: widget.task.notes,
+    showDate: widget.task.showDate,
+    dueDate: widget.task.dueDate,
+    timeMinutes: widget.task.timeMinutes,
+    timeZone: widget.task.timeZone,
+    recurrence: widget.task.recurrence,
+    priority: priority,
+  );
+
   Future<void> _addToCalendar() async {
     try {
       final result = await CalendarService(
@@ -1515,34 +1580,84 @@ class _TaskTileState extends State<TaskTile> {
   }
 
   @override
-  Widget build(BuildContext context) => Dismissible(
-    key: ValueKey('dismiss-${widget.task.id}'),
-    background: Container(color: Theme.of(context).colorScheme.errorContainer),
-    onDismissed: (_) {
-      widget.repository.softDelete(widget.task);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Spostata nel cestino')));
-    },
-    child: ListTile(
-      leading: Checkbox(
-        value: widget.task.status == TaskStatus.completed.name,
-        onChanged: (value) =>
-            widget.repository.setCompleted(widget.task, value ?? false),
-      ),
-      title: TodoistLinkText(widget.task.title),
-      subtitle: _subtitle(widget.task),
-      trailing: Platform.isAndroid && widget.task.showDate != null
-          ? IconButton(
-              tooltip: 'Mostra in Google Calendar',
-              onPressed: _addToCalendar,
-              icon: const Icon(Icons.event_available_outlined),
-            )
-          : const Icon(Icons.drag_handle),
-      onTap: () => showDialog<void>(
-        context: context,
-        builder: (_) =>
-            TaskEditor(task: widget.task, repository: widget.repository),
+  Widget build(BuildContext context) => AnimatedSlide(
+    key: ValueKey('completion-slide-${widget.task.id}'),
+    duration: const Duration(milliseconds: 320),
+    curve: Curves.easeInOutCubic,
+    offset: completing ? const Offset(0.08, 0) : Offset.zero,
+    child: AnimatedOpacity(
+      key: ValueKey('completion-opacity-${widget.task.id}'),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeInOut,
+      opacity: completing ? 0 : 1,
+      child: Dismissible(
+        key: ValueKey('dismiss-${widget.task.id}'),
+        background: Container(
+          color: Theme.of(context).colorScheme.errorContainer,
+        ),
+        onDismissed: (_) {
+          widget.repository.softDelete(widget.task);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Spostata nel cestino')));
+        },
+        child: ListTile(
+          leading: AnimatedScale(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutBack,
+            scale: completing ? 1.35 : 1,
+            child: Checkbox(
+              value:
+                  completing || widget.task.status == TaskStatus.completed.name,
+              onChanged: completing
+                  ? null
+                  : (value) => _setCompleted(value ?? false),
+              activeColor: Colors.green,
+            ),
+          ),
+          title: TodoistLinkText(widget.task.title),
+          subtitle: _subtitle(widget.task),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PopupMenuButton<int>(
+                tooltip: 'Priorità P${5 - widget.task.priority}',
+                icon: Icon(
+                  widget.task.priority == 1 ? Icons.flag_outlined : Icons.flag,
+                  color: _priorityColor(widget.task.priority),
+                ),
+                onSelected: _setPriority,
+                itemBuilder: (context) => [
+                  for (var raw = 4; raw >= 1; raw--)
+                    PopupMenuItem(
+                      value: raw,
+                      child: Row(
+                        children: [
+                          Icon(
+                            raw == 1 ? Icons.flag_outlined : Icons.flag,
+                            color: _priorityColor(raw),
+                          ),
+                          const SizedBox(width: 10),
+                          Text('P${5 - raw}'),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              if (Platform.isAndroid && widget.task.showDate != null)
+                IconButton(
+                  tooltip: 'Mostra in Google Calendar',
+                  onPressed: _addToCalendar,
+                  icon: const Icon(Icons.event_available_outlined),
+                ),
+            ],
+          ),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) =>
+                TaskEditor(task: widget.task, repository: widget.repository),
+          ),
+        ),
       ),
     ),
   );
@@ -1551,6 +1666,7 @@ class _TaskTileState extends State<TaskTile> {
     final values = [
       if (task.showDate != null) 'Mostra ${task.showDate}',
       if (task.dueDate != null) 'Scade ${task.dueDate}',
+      if (task.recurrence != null) '↻ Ricorrente',
     ];
     return values.isEmpty ? null : Text(values.join(' · '));
   }
@@ -1588,6 +1704,7 @@ class _TaskEditorState extends State<TaskEditor> {
   late String recurrence = widget.task.recurrence ?? 'none';
   late String? projectId = widget.task.projectId;
   late String? projectSectionId = widget.task.sectionId;
+  late int priority = widget.task.priority;
 
   Future<Task> _save() async {
     final parsedTime = _parseTime(time.text);
@@ -1606,6 +1723,7 @@ class _TaskEditorState extends State<TaskEditor> {
           ? null
           : await DeviceTimeZoneService.currentIana(),
       recurrence: recurrence == 'none' ? null : recurrence,
+      priority: priority,
       projectId: projectId,
       sectionId: projectSectionId,
       updateProject: true,
@@ -1679,6 +1797,28 @@ class _TaskEditorState extends State<TaskEditor> {
               decoration: const InputDecoration(
                 labelText: 'Scade il (AAAA-MM-GG)',
               ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              initialValue: priority,
+              decoration: const InputDecoration(labelText: 'Priorità'),
+              items: [
+                for (var raw = 4; raw >= 1; raw--)
+                  DropdownMenuItem(
+                    value: raw,
+                    child: Row(
+                      children: [
+                        Icon(
+                          raw == 1 ? Icons.flag_outlined : Icons.flag,
+                          color: _priorityColor(raw),
+                        ),
+                        const SizedBox(width: 10),
+                        Text('P${5 - raw}'),
+                      ],
+                    ),
+                  ),
+              ],
+              onChanged: (value) => setState(() => priority = value ?? 1),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<TaskStatus>(

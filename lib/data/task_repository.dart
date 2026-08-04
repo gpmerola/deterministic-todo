@@ -232,6 +232,7 @@ class TaskRepository {
     String? recurrence,
     String? projectId,
     String? sectionId,
+    int? priority,
     bool updateProject = false,
   }) async {
     if (title.trim().isEmpty) {
@@ -250,6 +251,7 @@ class TaskRepository {
         timeMinutes: Value(timeMinutes),
         timeZone: Value(timeZone),
         recurrence: Value(recurrence),
+        priority: priority == null ? const Value.absent() : Value(priority),
         projectId: updateProject ? Value(projectId) : const Value.absent(),
         sectionId: updateProject ? Value(sectionId) : const Value.absent(),
         seriesId: Value(seriesId),

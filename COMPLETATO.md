@@ -47,6 +47,7 @@ Aggiornato il 4 agosto 2026.
 - Vista Progetti Android con sezioni e attività attive, Completate spostata nelle Impostazioni e rendering cliccabile dei link Markdown Todoist senza URL estesi in elenco.
 - Progetti personalizzabili in stile Todoist: selettore con colori/conteggi, layout elenco o bacheca persistente per progetto, creazione di progetti/sezioni/task e spostamento task da editor.
 - Diagnostica locale strutturata e rotante su Android/macOS, esportabile su richiesta e priva di contenuti utente o credenziali.
+- Release 2.3.0: animazione breve al completamento, indicatore visibile delle ricorrenze, bandierine P1–P4 coerenti con le priorità importate da Todoist e navigazione gerarchica con il tasto Indietro Android.
 
 ## Verificate in questa macchina
 

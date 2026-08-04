@@ -113,4 +113,92 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
   });
+
+  testWidgets('ricorrenza e priorità sono riconoscibili nella lista', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create(
+      'Report settimanale',
+      showDate: '2026-08-09',
+      recurrence: 'calendar:week:1',
+      priority: 4,
+    );
+
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    expect(find.textContaining('Ricorrente'), findsOneWidget);
+    expect(find.byTooltip('Priorità P1'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('il completamento anima prima di aggiornare il database', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final taskId = await repository.create('Animami');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect((await db.select(db.tasks).getSingle()).status, 'inbox');
+    expect(
+      tester
+          .widget<AnimatedOpacity>(
+            find.byKey(ValueKey('completion-opacity-$taskId')),
+          )
+          .opacity,
+      0,
+    );
+
+    await tester.pumpAndSettle();
+    expect((await db.select(db.tasks).getSingle()).status, 'completed');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('indietro Android torna alla vista precedente senza uscire', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Prossime'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('jump-to-future-date')), findsOneWidget);
+    await tester.tap(find.text('Progetti'));
+    await tester.pump();
+    expect(
+      find.text('Nessun progetto. Puoi importarli da Todoist.'),
+      findsOneWidget,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('jump-to-future-date')), findsOneWidget);
+    expect(
+      find.text('Nessun progetto. Puoi importarli da Todoist.'),
+      findsNothing,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.text('Oggi'), findsWidgets);
+    expect(find.byKey(const ValueKey('jump-to-future-date')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
 }

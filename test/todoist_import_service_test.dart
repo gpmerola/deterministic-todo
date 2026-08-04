@@ -185,6 +185,7 @@ void main() {
       (await db.select(db.tasks).getSingle()).recurrence,
       'calendar:month:1',
     );
+    expect((await db.select(db.tasks).getSingle()).priority, 4);
   });
 
   test('reimport incrementale aggiorna solo record Todoist cambiati', () async {

@@ -57,6 +57,8 @@ Il riordino confronta la posizione desiderata con quella persistita e non scrive
 
 Il Galaxy S21 usa un processore ARM a 64 bit e riceve quindi `android-arm64-v8a`, non il fallback universale. Lo schermo adattivo può arrivare a 120 Hz: l’interfaccia evita timer di animazione decorativa e mantiene liste lazy, così Flutter produce frame solo in risposta a input o cambiamenti dati. Non viene forzato un refresh rate specifico, lasciando ad Android/Samsung la gestione energetica adattiva.
 
+L'animazione di completamento della 2.3.0 dura 320 ms ed è avviata esclusivamente dal tocco dell'utente: usa transizioni implicite Flutter, non mantiene ticker o timer a riposo e applica la scrittura SQLite al termine della transizione. Indicatori di ricorrenza e priorità derivano dai campi già caricati nella riga e non aggiungono query.
+
 Il fuso IANA viene letto tramite un singolo platform channel soltanto quando si salva una task con ora o si crea una notifica. L’accesso al calendario avviene esclusivamente premendo “Salva + calendario”; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale
