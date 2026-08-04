@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/task.dart' as domain;
+import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
@@ -79,6 +80,12 @@ class SyncService {
       db.outboxEntries,
     )..orderBy([(row) => OrderingTerm(expression: row.createdAt)])).get();
     _emit(SyncSnapshot(SyncPhase.syncing, pending: entries.length));
+    unawaited(
+      DiagnosticLogService.instance.event(
+        'sync_started',
+        fields: {'pending': entries.length},
+      ),
+    );
     try {
       await _syncProjects();
       final acknowledged = <OutboxEntry>[];
@@ -115,12 +122,29 @@ class SyncService {
       }
       final now = DateTime.now().toUtc();
       _emit(SyncSnapshot(SyncPhase.current, lastSuccess: now));
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'sync_completed',
+          fields: {'count': entries.length},
+        ),
+      );
     } catch (error) {
       _emit(
         SyncSnapshot(
           SyncPhase.error,
           pending: entries.length,
           error: error.runtimeType.toString(),
+        ),
+      );
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'sync_failed',
+          level: 'error',
+          fields: {
+            'pending': entries.length,
+            'error_type': error.runtimeType.toString(),
+            if (error is PostgrestException) 'error_code': error.code,
+          },
         ),
       );
     }

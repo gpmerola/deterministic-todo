@@ -25,6 +25,7 @@ import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'services/calendar_service.dart';
 import 'services/device_time_zone_service.dart';
+import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/notification_service.dart';
 import 'services/todoist_import_service.dart';
@@ -46,6 +47,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
   late final Future<_AppRuntime> initialization = _initialize();
 
   Future<_AppRuntime> _initialize() async {
+    try {
+      await DiagnosticLogService.instance.initialize();
+    } on Object {
+      // La diagnostica non deve mai impedire l'avvio offline.
+    }
     final database = AppDatabase();
     final storedDevice = await (database.select(
       database.appSettings,
@@ -239,6 +245,7 @@ class TaskShell extends StatefulWidget {
 class _TaskShellState extends State<TaskShell> {
   AppSection section = AppSection.today;
   String? selectedUpcomingDate;
+  String? selectedProjectId;
   final quickAdd = SmartDateTextController();
   final search = TextEditingController();
   final quickFocus = FocusNode();
@@ -774,52 +781,383 @@ class _TaskShellState extends State<TaskShell> {
             child: Text('Nessun progetto. Puoi importarli da Todoist.'),
           );
         }
-        return ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+        final activeProjects = projects
+            .where((item) => !item.isArchived)
+            .toList();
+        if (activeProjects.isEmpty) {
+          return const Center(child: Text('Nessun progetto attivo'));
+        }
+        final selected =
+            activeProjects.any((item) => item.id == selectedProjectId)
+            ? activeProjects.firstWhere((item) => item.id == selectedProjectId)
+            : activeProjects.first;
+        selectedProjectId = selected.id;
+        final projectSections = sections
+            .where((item) => item.projectId == selected.id && !item.isArchived)
+            .toList();
+        final projectTasks = tasks
+            .where((item) => item.projectId == selected.id)
+            .toList();
+        return Column(
           children: [
-            for (final project in projects.where((item) => !item.isArchived))
-              ExpansionTile(
-                leading: Icon(
-                  project.isFavorite ? Icons.folder_special : Icons.folder,
-                ),
-                title: Text(project.name),
-                subtitle: Text(
-                  '${tasks.where((task) => task.projectId == project.id).length} attività',
+            SizedBox(
+              height: 58,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
                 ),
                 children: [
-                  for (final projectSection in sections.where(
-                    (item) => item.projectId == project.id && !item.isArchived,
-                  )) ...[
-                    ListTile(
-                      dense: true,
-                      leading: const SizedBox(width: 24),
-                      title: Text(projectSection.name),
-                    ),
-                    for (final task in tasks.where(
-                      (item) => item.sectionId == projectSection.id,
-                    ))
-                      TaskTile(
-                        key: ValueKey('project-${task.id}'),
-                        task: task,
-                        repository: widget.repository,
+                  for (final project in activeProjects)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        avatar: Icon(
+                          Icons.tag,
+                          color: _projectColor(project.color),
+                        ),
+                        label: Text(
+                          '${project.name}  ${tasks.where((task) => task.projectId == project.id).length}',
+                        ),
+                        selected: project.id == selected.id,
+                        onSelected: (_) =>
+                            setState(() => selectedProjectId = project.id),
                       ),
-                  ],
-                  for (final task in tasks.where(
-                    (item) =>
-                        item.projectId == project.id && item.sectionId == null,
-                  ))
-                    TaskTile(
-                      key: ValueKey('project-${task.id}'),
-                      task: task,
-                      repository: widget.repository,
                     ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add),
+                    label: const Text('Progetto'),
+                    onPressed: _addProject,
+                  ),
                 ],
               ),
+            ),
+            Expanded(
+              child: StreamBuilder<AppSetting?>(
+                stream:
+                    (widget.repository.db.select(
+                          widget.repository.db.appSettings,
+                        )..where(
+                          (row) =>
+                              row.key.equals('project_view:${selected.id}'),
+                        ))
+                        .watchSingleOrNull(),
+                builder: (context, viewSnapshot) {
+                  final board = viewSnapshot.data?.value == 'board';
+                  return Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(
+                          Icons.tag,
+                          color: _projectColor(selected.color),
+                        ),
+                        title: Text(
+                          selected.name,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        subtitle: Text('${projectTasks.length} attività'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: board ? 'Vista elenco' : 'Vista bacheca',
+                              onPressed: () => widget.repository.setProjectView(
+                                selected.id,
+                                board ? 'list' : 'board',
+                              ),
+                              icon: Icon(
+                                board ? Icons.view_list : Icons.view_column,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Aggiungi sezione',
+                              onPressed: () => _addSection(selected.id),
+                              icon: const Icon(Icons.add_box_outlined),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: board
+                            ? _projectBoard(
+                                selected.id,
+                                projectSections,
+                                projectTasks,
+                              )
+                            : _projectList(
+                                selected.id,
+                                projectSections,
+                                projectTasks,
+                              ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ],
         );
       },
     ),
   );
+
+  Widget _projectList(
+    String projectId,
+    List<ProjectSection> sections,
+    List<Task> tasks,
+  ) => ListView(
+    padding: const EdgeInsets.only(bottom: 24),
+    children: [
+      for (final section in sections)
+        ExpansionTile(
+          initiallyExpanded: true,
+          title: Text(section.name),
+          subtitle: Text(
+            '${tasks.where((task) => task.sectionId == section.id).length}',
+          ),
+          children: [
+            for (final task in tasks.where(
+              (item) => item.sectionId == section.id,
+            ))
+              TaskTile(
+                key: ValueKey('project-${task.id}'),
+                task: task,
+                repository: widget.repository,
+              ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Aggiungi attività'),
+              onTap: () => _addProjectTask(projectId, section.id),
+            ),
+          ],
+        ),
+      if (tasks.any((item) => item.sectionId == null))
+        ExpansionTile(
+          initiallyExpanded: true,
+          title: const Text('Senza sezione'),
+          children: [
+            for (final task in tasks.where((item) => item.sectionId == null))
+              TaskTile(
+                key: ValueKey('project-${task.id}'),
+                task: task,
+                repository: widget.repository,
+              ),
+          ],
+        ),
+      ListTile(
+        leading: const Icon(Icons.add),
+        title: const Text('Aggiungi attività'),
+        onTap: () => _addProjectTask(projectId, null),
+      ),
+    ],
+  );
+
+  Widget _projectBoard(
+    String projectId,
+    List<ProjectSection> sections,
+    List<Task> tasks,
+  ) => ListView(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+    children: [
+      for (final section in sections)
+        SizedBox(
+          width: 300,
+          child: Card(
+            margin: const EdgeInsets.only(right: 12),
+            child: ListView(
+              padding: const EdgeInsets.all(8),
+              children: [
+                ListTile(
+                  title: Text(section.name),
+                  trailing: Text(
+                    '${tasks.where((task) => task.sectionId == section.id).length}',
+                  ),
+                ),
+                for (final task in tasks.where(
+                  (item) => item.sectionId == section.id,
+                ))
+                  Card(
+                    child: TaskTile(
+                      key: ValueKey('board-${task.id}'),
+                      task: task,
+                      repository: widget.repository,
+                    ),
+                  ),
+                TextButton.icon(
+                  onPressed: () => _addProjectTask(projectId, section.id),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Aggiungi attività'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      if (tasks.any((item) => item.sectionId == null))
+        SizedBox(
+          width: 300,
+          child: Card(
+            margin: const EdgeInsets.only(right: 12),
+            child: ListView(
+              padding: const EdgeInsets.all(8),
+              children: [
+                ListTile(
+                  title: const Text('Senza sezione'),
+                  trailing: Text(
+                    '${tasks.where((task) => task.sectionId == null).length}',
+                  ),
+                ),
+                for (final task in tasks.where(
+                  (item) => item.sectionId == null,
+                ))
+                  Card(
+                    child: TaskTile(
+                      key: ValueKey('board-${task.id}'),
+                      task: task,
+                      repository: widget.repository,
+                    ),
+                  ),
+                TextButton.icon(
+                  onPressed: () => _addProjectTask(projectId, null),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Aggiungi attività'),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
+
+  Future<String?> _askName(String title, String label) async {
+    final controller = TextEditingController();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: label),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Crea'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return value?.trim().isEmpty == true ? null : value?.trim();
+  }
+
+  Future<void> _addProject() async {
+    final controller = TextEditingController();
+    var color = 'green';
+    final result = await showDialog<(String, String)>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Nuovo progetto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Nome'),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final value in const [
+                    'red',
+                    'orange',
+                    'yellow',
+                    'green',
+                    'blue',
+                    'purple',
+                    'pink',
+                  ])
+                    ChoiceChip(
+                      avatar: CircleAvatar(
+                        backgroundColor: _projectColor(value),
+                      ),
+                      label: const SizedBox.shrink(),
+                      selected: color == value,
+                      onSelected: (_) => setDialogState(() => color = value),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, (controller.text, color)),
+              child: const Text('Crea'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (result == null || result.$1.trim().isEmpty) return;
+    final id = await widget.repository.createProject(
+      result.$1,
+      color: result.$2,
+    );
+    if (mounted) setState(() => selectedProjectId = id);
+    await widget.syncService?.sync();
+  }
+
+  Future<void> _addSection(String projectId) async {
+    final name = await _askName('Nuova sezione', 'Nome');
+    if (name == null) return;
+    await widget.repository.createProjectSection(projectId, name);
+    await widget.syncService?.sync();
+  }
+
+  Future<void> _addProjectTask(String projectId, String? sectionId) async {
+    final raw = await _askName('Nuova attività', 'Cosa devi fare?');
+    if (raw == null) return;
+    final parsed = const QuickAddParser().parse(raw);
+    final today = CivilDate.fromDateTime(DateTime.now());
+    await widget.repository.create(
+      parsed.title,
+      status: parsed.showDate == null
+          ? TaskStatus.inbox
+          : parsed.showDate!.compareTo(today) <= 0
+          ? TaskStatus.available
+          : TaskStatus.scheduled,
+      showDate: parsed.showDate?.toString(),
+      timeMinutes: parsed.timeMinutes,
+      recurrence: parsed.recurrence,
+      projectId: projectId,
+      sectionId: sectionId,
+    );
+  }
+
+  Color _projectColor(String? value) => switch (value) {
+    'red' || 'berry_red' => Colors.red,
+    'orange' => Colors.orange,
+    'yellow' => Colors.amber,
+    'blue' || 'sky_blue' => Colors.blue,
+    'purple' || 'violet' => Colors.purple,
+    'pink' || 'magenta' => Colors.pink,
+    'green' || 'lime_green' => Colors.green,
+    _ => Colors.grey,
+  };
 
   Widget _futureDateStrip(List<Task> all) {
     final today = CivilDate.fromDateTime(DateTime.now());
@@ -1139,6 +1477,8 @@ class _TaskEditorState extends State<TaskEditor> {
   );
   late TaskStatus status = TaskStatus.values.byName(widget.task.status);
   late String recurrence = widget.task.recurrence ?? 'none';
+  late String? projectId = widget.task.projectId;
+  late String? projectSectionId = widget.task.sectionId;
 
   Future<Task> _save() async {
     final parsedTime = _parseTime(time.text);
@@ -1157,6 +1497,9 @@ class _TaskEditorState extends State<TaskEditor> {
           ? null
           : await DeviceTimeZoneService.currentIana(),
       recurrence: recurrence == 'none' ? null : recurrence,
+      projectId: projectId,
+      sectionId: projectSectionId,
+      updateProject: true,
     );
     var refreshed = await (widget.repository.db.select(
       widget.repository.db.tasks,
@@ -1212,6 +1555,8 @@ class _TaskEditorState extends State<TaskEditor> {
               maxLines: 4,
               decoration: const InputDecoration(labelText: 'Note'),
             ),
+            const SizedBox(height: 12),
+            _projectFields(),
             const SizedBox(height: 12),
             TextField(
               controller: showDate,
@@ -1302,6 +1647,68 @@ class _TaskEditorState extends State<TaskEditor> {
         child: const Text('Salva'),
       ),
     ],
+  );
+
+  Widget _projectFields() => StreamBuilder<List<Project>>(
+    stream: widget.repository.db.select(widget.repository.db.projects).watch(),
+    builder: (context, projectSnapshot) => StreamBuilder<List<ProjectSection>>(
+      stream: widget.repository.db
+          .select(widget.repository.db.projectSections)
+          .watch(),
+      builder: (context, sectionSnapshot) {
+        final projects = projectSnapshot.data ?? const <Project>[];
+        final sections = (sectionSnapshot.data ?? const <ProjectSection>[])
+            .where((item) => item.projectId == projectId && !item.isArchived)
+            .toList();
+        return Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String?>(
+                initialValue: projects.any((item) => item.id == projectId)
+                    ? projectId
+                    : null,
+                decoration: const InputDecoration(labelText: 'Progetto'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Nessuno')),
+                  for (final project in projects.where(
+                    (item) => !item.isArchived,
+                  ))
+                    DropdownMenuItem(
+                      value: project.id,
+                      child: Text(project.name),
+                    ),
+                ],
+                onChanged: (value) => setState(() {
+                  projectId = value;
+                  projectSectionId = null;
+                }),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonFormField<String?>(
+                initialValue:
+                    sections.any((item) => item.id == projectSectionId)
+                    ? projectSectionId
+                    : null,
+                decoration: const InputDecoration(labelText: 'Sezione'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Nessuna')),
+                  for (final section in sections)
+                    DropdownMenuItem(
+                      value: section.id,
+                      child: Text(section.name),
+                    ),
+                ],
+                onChanged: projectId == null
+                    ? null
+                    : (value) => setState(() => projectSectionId = value),
+              ),
+            ),
+          ],
+        );
+      },
+    ),
   );
 }
 
@@ -1462,6 +1869,14 @@ class SettingsView extends StatelessWidget {
         db: repository.db,
         deviceId: repository.deviceId,
       );
+      await DiagnosticLogService.instance.event(
+        'todoist_import_completed',
+        fields: {
+          'tasks': result.addedTasks,
+          'projects': result.addedProjects,
+          'sections': result.addedSections,
+        },
+      );
       await syncService?.sync();
       if (context.mounted) {
         messenger.showSnackBar(
@@ -1492,6 +1907,17 @@ class SettingsView extends StatelessWidget {
         ),
       );
     }
+  }
+
+  Future<void> _exportDiagnostics(BuildContext context) async {
+    final file = await DiagnosticLogService.instance.exportFile();
+    if (file == null || !context.mounted) return;
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        title: 'Diagnostica Deterministic Todo',
+      ),
+    );
   }
 
   @override
@@ -1570,6 +1996,14 @@ class SettingsView extends StatelessWidget {
           'priorità, date e ricorrenze.',
         ),
         onTap: () => _importTodoist(context),
+      ),
+      ListTile(
+        leading: const Icon(Icons.bug_report_outlined),
+        title: const Text('Esporta diagnostica'),
+        subtitle: const Text(
+          'Log locale rotante senza titoli, note, email, token o URL.',
+        ),
+        onTap: () => _exportDiagnostics(context),
       ),
     ],
   );

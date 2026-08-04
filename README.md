@@ -121,6 +121,10 @@ Impostazioni consente export JSON completo/versionato, export CSV e import JSON.
 
 I link Markdown inseriti da Todoist nei titoli vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco.
 
+La vista Progetti riprende i due layout essenziali di Todoist: elenco verticale con sezioni comprimibili e bacheca orizzontale a colonne. Il layout viene ricordato per ciascun progetto. Si possono creare progetti con colore, aggiungere sezioni e attività direttamente nella destinazione, e spostare un'attività cambiando progetto/sezione dall'editor. Funzioni collaborative come condivisione e commenti restano intenzionalmente escluse.
+
+Android e macOS mantengono un log diagnostico locale JSONL con rotazione automatica a 512 KiB e una sola copia precedente. Registra soltanto eventi tecnici, conteggi, piattaforma e tipi/codici di errore; non registra titoli, note, email, token o URL. Il file può essere condiviso esplicitamente da Impostazioni → Esporta diagnostica.
+
 ## Limiti noti della prima versione
 
 - Il collegamento account è persistente, ma QR/codice monouso, revoca remota del singolo dispositivo e verifica end-to-end contro un progetto Supabase reale non sono ancora completati.

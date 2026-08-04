@@ -216,6 +216,26 @@ void main() {
     expect(notifications.scheduled.single.id, id);
     expect(notifications.scheduled.single.timeMinutes, 600);
   });
+
+  test('crea progetto, sezione e attività nella destinazione scelta', () async {
+    final projectId = await repository.createProject('Ricerca', color: 'blue');
+    final sectionId = await repository.createProjectSection(projectId, 'Idee');
+    final taskId = await repository.create(
+      'Nuovo studio',
+      projectId: projectId,
+      sectionId: sectionId,
+    );
+
+    final project = await db.select(db.projects).getSingle();
+    final section = await db.select(db.projectSections).getSingle();
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(taskId))).getSingle();
+    expect(project.color, 'blue');
+    expect(section.projectId, project.id);
+    expect(task.projectId, project.id);
+    expect(task.sectionId, section.id);
+  });
 }
 
 class RecordingNotificationService extends NotificationService {

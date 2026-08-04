@@ -66,6 +66,9 @@ class TaskRepository {
     int? timeMinutes,
     String? timeZone,
     String? recurrence,
+    String? projectId,
+    String? sectionId,
+    int priority = 1,
   }) async {
     final title = rawTitle.trim();
     if (title.isEmpty) throw const FormatException('Il titolo è obbligatorio');
@@ -83,6 +86,9 @@ class TaskRepository {
       timeMinutes: Value(timeMinutes),
       timeZone: Value(timeZone),
       recurrence: Value(recurrence),
+      projectId: Value(projectId),
+      sectionId: Value(sectionId),
+      priority: Value(priority),
       seriesId: Value(recurrence == null ? null : id),
       occurrenceKey: Value(recurrence == null ? null : showDate),
       position: (maxPosition ?? 0) + 1024,
@@ -102,6 +108,67 @@ class TaskRepository {
     }
     return id;
   }
+
+  Future<String> createProject(String rawName, {String? color}) async {
+    final name = rawName.trim();
+    if (name.isEmpty) throw const FormatException('Il nome è obbligatorio');
+    final id = _uuid.v4();
+    final rows = await db.select(db.projects).get();
+    final position =
+        rows.fold<int>(
+          0,
+          (max, row) => row.position > max ? row.position : max,
+        ) +
+        1024;
+    await db
+        .into(db.projects)
+        .insert(
+          ProjectsCompanion.insert(
+            id: id,
+            name: name,
+            color: Value(color),
+            position: position,
+            deviceId: deviceId,
+          ),
+        );
+    return id;
+  }
+
+  Future<String> createProjectSection(String projectId, String rawName) async {
+    final name = rawName.trim();
+    if (name.isEmpty) throw const FormatException('Il nome è obbligatorio');
+    final id = _uuid.v4();
+    final rows = await (db.select(
+      db.projectSections,
+    )..where((row) => row.projectId.equals(projectId))).get();
+    final position =
+        rows.fold<int>(
+          0,
+          (max, row) => row.position > max ? row.position : max,
+        ) +
+        1024;
+    await db
+        .into(db.projectSections)
+        .insert(
+          ProjectSectionsCompanion.insert(
+            id: id,
+            projectId: projectId,
+            name: name,
+            position: position,
+            deviceId: deviceId,
+          ),
+        );
+    return id;
+  }
+
+  Future<void> setProjectView(String projectId, String view) => db
+      .into(db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(
+          key: 'project_view:$projectId',
+          value: view,
+        ),
+      );
 
   Future<void> setCompleted(Task task, bool completed) async {
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
@@ -163,6 +230,9 @@ class TaskRepository {
     int? timeMinutes,
     String? timeZone,
     String? recurrence,
+    String? projectId,
+    String? sectionId,
+    bool updateProject = false,
   }) async {
     if (title.trim().isEmpty) {
       throw const FormatException('Il titolo è obbligatorio');
@@ -180,6 +250,8 @@ class TaskRepository {
         timeMinutes: Value(timeMinutes),
         timeZone: Value(timeZone),
         recurrence: Value(recurrence),
+        projectId: updateProject ? Value(projectId) : const Value.absent(),
+        sectionId: updateProject ? Value(sectionId) : const Value.absent(),
         seriesId: Value(seriesId),
         occurrenceKey: Value(
           recurrence == null ? null : task.occurrenceKey ?? showDate,
