@@ -45,6 +45,30 @@ void main() {
     expect(draft.recurrence, 'calendar:day:4');
   });
 
+  test('riconosce un giorno fisso di ogni mese', () {
+    final draft = parser.parse('Pagamento ogni 3 del mese', now: monday);
+
+    expect(draft.title, 'Pagamento');
+    expect(draft.showDate.toString(), '2026-08-03');
+    expect(draft.recurrence, 'calendar:month:1');
+  });
+
+  test('riconosce il terzo martedì di ogni mese', () {
+    final draft = parser.parse('Controllo ogni terzo martedì', now: monday);
+
+    expect(draft.title, 'Controllo');
+    expect(draft.showDate.toString(), '2026-08-18');
+    expect(draft.recurrence, 'calendar:monthWeekday:1');
+  });
+
+  test('riconosce una ricorrenza annuale con giorno e mese', () {
+    final draft = parser.parse('Rinnovo ogni 3 luglio', now: monday);
+
+    expect(draft.title, 'Rinnovo');
+    expect(draft.showDate.toString(), '2027-07-03');
+    expect(draft.recurrence, 'calendar:year:1');
+  });
+
   test('riconosce il prossimo giorno della settimana', () {
     final draft = parser.parse('Chiamare Luca venerdì', now: monday);
 

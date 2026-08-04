@@ -2,7 +2,7 @@ enum TaskStatus { inbox, available, scheduled, waiting, completed }
 
 enum RecurrenceType { calendar, afterCompletion }
 
-enum RecurrenceUnit { day, week, month, year }
+enum RecurrenceUnit { day, week, month, monthWeekday, year }
 
 class RecurrenceRule {
   const RecurrenceRule({
@@ -92,11 +92,31 @@ CivilDate nextOccurrence(
       rule.interval,
       anchorDay: anchor.day,
     ),
+    RecurrenceUnit.monthWeekday => _nextMonthlyWeekday(
+      anchor,
+      current,
+      rule.interval,
+    ),
     RecurrenceUnit.year => current.addMonths(
       12 * rule.interval,
       anchorDay: anchor.day,
     ),
   };
+}
+
+CivilDate _nextMonthlyWeekday(
+  CivilDate anchor,
+  CivilDate current,
+  int interval,
+) {
+  final target = current.addMonths(interval);
+  final ordinal = ((anchor.day - 1) ~/ 7) + 1;
+  final weekday = anchor.asLocalDate.weekday;
+  final first = DateTime(target.year, target.month);
+  var day = 1 + (weekday - first.weekday) % 7 + (ordinal - 1) * 7;
+  final lastDay = DateTime(target.year, target.month + 1, 0).day;
+  if (day > lastDay) day -= 7;
+  return CivilDate(target.year, target.month, day);
 }
 
 class LogicalVersion implements Comparable<LogicalVersion> {

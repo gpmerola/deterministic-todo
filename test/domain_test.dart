@@ -30,6 +30,21 @@ void main() {
         const CivilDate(2026, 3, 29),
       );
     });
+
+    test('il terzo martedì resta tale nel mese successivo', () {
+      const rule = RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.monthWeekday,
+      );
+      expect(
+        nextOccurrence(
+          const CivilDate(2026, 8, 18),
+          const CivilDate(2026, 8, 18),
+          rule,
+        ),
+        const CivilDate(2026, 9, 15),
+      );
+    });
   });
 
   test('il conflitto usa deviceId soltanto a parità di contatore', () {

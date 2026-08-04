@@ -79,7 +79,7 @@ Le policy RLS limitano entrambe le tabelle a `auth.uid() = user_id`. `merge_task
 
 La riga “Nuova attività” crea con Invio e interpreta localmente, senza rete, espressioni italiane comuni: `oggi`, `domani`, `dopodomani`, giorni della settimana, date `GG/MM`, mesi in lettere e orari con `alle` o `ore`. Per esempio `Dentista domani alle 9:30` salva titolo, giorno e ora in un solo gesto. Un orario senza data indica oggi. Prima di salvare, una riga di anteprima mostra la pianificazione riconosciuta. Il parser rimuove dal titolo soltanto le espressioni riconosciute e rifiuta date impossibili.
 
-Le ricorrenze rapide accettano `ogni giorno`, `ogni martedì`, `ogni 4 giorni`, `ogni settimana`, `ogni 2 mesi` e `ogni anno`. La frase viene evidenziata e rimossa dal titolo. Completare un'occorrenza la conserva nella cronologia e crea automaticamente la successiva, avanzando oltre eventuali date arretrate senza generare duplicati.
+Le ricorrenze rapide accettano `ogni giorno`, `ogni martedì`, `ogni 4 giorni`, `ogni 3 settimane`, `ogni 2 mesi`, `ogni 3 del mese`, `ogni terzo martedì`, `ogni 3 luglio` e `ogni anno`. La frase viene evidenziata e rimossa dal titolo. Completare un'occorrenza la conserva nella cronologia e crea automaticamente la successiva, avanzando oltre eventuali date arretrate senza generare duplicati.
 
 “Prossime” raggruppa le attività pianificate giorno per giorno. Su Android l'icona calendario di ogni attività datata consente di crearla o aggiornarla esplicitamente nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
 

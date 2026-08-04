@@ -20,7 +20,7 @@ class QuickAddParser {
   const QuickAddParser();
 
   static final RegExp _recognizedSyntax = RegExp(
-    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
+    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)|[0-3]?\d\s+del\s+mese|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
     caseSensitive: false,
   );
 
@@ -43,6 +43,123 @@ class QuickAddParser {
       'sabato',
       'domenica',
     ];
+    const monthNumbers = <String, int>{
+      'gennaio': 1,
+      'febbraio': 2,
+      'marzo': 3,
+      'aprile': 4,
+      'maggio': 5,
+      'giugno': 6,
+      'luglio': 7,
+      'agosto': 8,
+      'settembre': 9,
+      'ottobre': 10,
+      'novembre': 11,
+      'dicembre': 12,
+    };
+
+    final recurringAnnualDate = RegExp(
+      r'\bogni\s+([0-3]?\d)\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (recurringAnnualDate != null) {
+      final day = int.parse(recurringAnnualDate.group(1)!);
+      final month = monthNumbers[recurringAnnualDate.group(2)!.toLowerCase()]!;
+      var candidate = _validatedDate(reference.year, month, day);
+      if (candidate.asLocalDate.isBefore(
+        DateTime(reference.year, reference.month, reference.day),
+      )) {
+        candidate = _validatedDate(reference.year + 1, month, day);
+      }
+      date = candidate;
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.year,
+      ).encode();
+      title = _removeMatch(title, recurringAnnualDate);
+    }
+
+    final recurringMonthDay = RegExp(
+      r'\bogni\s+([0-3]?\d)\s+del\s+mese(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (recurringMonthDay != null) {
+      final day = int.parse(recurringMonthDay.group(1)!);
+      if (day < 1 || day > 31) {
+        throw const FormatException('Giorno mensile non valido');
+      }
+      var monthOffset = 0;
+      CivilDate? candidate;
+      while (candidate == null) {
+        final month = CivilDate(
+          reference.year,
+          reference.month,
+          1,
+        ).addMonths(monthOffset++);
+        final lastDay = DateTime(month.year, month.month + 1, 0).day;
+        if (day > lastDay) continue;
+        final value = CivilDate(month.year, month.month, day);
+        if (!value.asLocalDate.isBefore(
+          DateTime(reference.year, reference.month, reference.day),
+        )) {
+          candidate = value;
+        }
+      }
+      date = candidate;
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.month,
+      ).encode();
+      title = _removeMatch(title, recurringMonthDay);
+    }
+
+    final recurringOrdinalWeekday = RegExp(
+      r'\bogni\s+(primo|secondo|terzo|quarto|quinto)\s+(lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?(?=\s|$)',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (recurringOrdinalWeekday != null) {
+      const ordinals = {
+        'primo': 1,
+        'secondo': 2,
+        'terzo': 3,
+        'quarto': 4,
+        'quinto': 5,
+      };
+      final ordinal =
+          ordinals[recurringOrdinalWeekday.group(1)!.toLowerCase()]!;
+      final normalized = recurringOrdinalWeekday
+          .group(2)!
+          .toLowerCase()
+          .replaceAll('ì', 'i');
+      final weekday = weekdayNames.indexOf(normalized) + 1;
+      var candidate = _nthWeekday(
+        reference.year,
+        reference.month,
+        weekday,
+        ordinal,
+      );
+      if (candidate.asLocalDate.isBefore(
+        DateTime(reference.year, reference.month, reference.day),
+      )) {
+        final nextMonth = CivilDate(
+          reference.year,
+          reference.month,
+          1,
+        ).addMonths(1);
+        candidate = _nthWeekday(
+          nextMonth.year,
+          nextMonth.month,
+          weekday,
+          ordinal,
+        );
+      }
+      date = candidate;
+      recurrence = const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.monthWeekday,
+      ).encode();
+      title = _removeMatch(title, recurringOrdinalWeekday);
+    }
 
     final recurringWeekday = RegExp(
       r'\bogni\s+(lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?=\s|$)',
@@ -208,6 +325,14 @@ class QuickAddParser {
     if (value.year != year || value.month != month || value.day != day) {
       throw const FormatException('Data non valida');
     }
+    return CivilDate(year, month, day);
+  }
+
+  CivilDate _nthWeekday(int year, int month, int weekday, int ordinal) {
+    final first = DateTime(year, month);
+    var day = 1 + (weekday - first.weekday) % 7 + (ordinal - 1) * 7;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    if (day > lastDay) day -= 7;
     return CivilDate(year, month, day);
   }
 
