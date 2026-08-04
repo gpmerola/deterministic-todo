@@ -60,8 +60,10 @@ void main() {
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pump();
 
-    expect(find.text('Privacy'), findsOneWidget);
+    expect(find.text('Privacy'), findsNothing);
     expect(find.text('Attività completate'), findsOneWidget);
+    expect(find.text('Dati e manutenzione'), findsOneWidget);
+    expect(find.text('Importa da Todoist'), findsNothing);
     expect(find.byTooltip('Indietro'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -101,9 +103,11 @@ void main() {
       'Visita domani',
     );
     await tester.pump();
-    expect(find.textContaining('Pianificata:'), findsOneWidget);
-    tester.testTextInput.hide();
-    await tester.pumpAndSettle();
+    final composer = tester.widget<TextField>(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+    );
+    expect(composer.decoration?.helperText, isNotNull);
+    expect(composer.decoration?.helperText, isNot(contains('Pianificata')));
     await tester.tap(find.byKey(const ValueKey('mobile-quick-add-submit')));
     await tester.pumpAndSettle();
 
@@ -134,8 +138,89 @@ void main() {
     expect(find.textContaining('Mostra'), findsNothing);
     final checkbox = tester.widget<Checkbox>(find.byType(Checkbox).first);
     expect(checkbox.side!.color, Colors.red);
+    final surface = tester.widget<AnimatedContainer>(
+      find.byKey(
+        ValueKey('task-surface-${(await db.select(db.tasks).getSingle()).id}'),
+      ),
+    );
+    final decoration = surface.decoration! as BoxDecoration;
+    expect((decoration.border! as Border).left.width, 3);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('le attività sono ordinate automaticamente per priorità', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('P4', priority: 1);
+    await repository.create('P1', priority: 4);
+    await repository.create('P2', priority: 3);
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    expect(
+      tester.getTopLeft(find.text('P1')).dy,
+      lessThan(tester.getTopLeft(find.text('P2')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('P2')).dy,
+      lessThan(tester.getTopLeft(find.text('P4')).dy),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('Progetti usa una sola barra senza conteggi duplicati', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final projectId = await repository.createProject('Casa');
+    await repository.create('Pulizie', projectId: projectId);
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.text('Progetti'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.byTooltip('Azioni progetto'), findsOneWidget);
+    expect(find.textContaining('1 attività'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('chiudendo la tastiera il composer mobile si chiude subito', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      findsOneWidget,
+    );
+
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mobile-quick-add-field')), findsNothing);
     await db.close();
   });
 

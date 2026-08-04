@@ -81,7 +81,7 @@ La riga “Nuova attività” crea con Invio e interpreta localmente, senza rete
 
 Le ricorrenze rapide accettano `ogni giorno`, `ogni martedì`, `ogni 4 giorni`, `ogni 3 settimane`, `ogni 2 mesi`, `ogni 3 del mese`, `ogni terzo martedì`, `ogni 3 luglio` e `ogni anno`. La frase viene evidenziata e rimossa dal titolo. Completare un'occorrenza la conserva nella cronologia e crea automaticamente la successiva, avanzando oltre eventuali date arretrate senza generare duplicati.
 
-In elenco, le attività ricorrenti mostrano la frase riconosciuta, per esempio **↻ ogni giorno**, **↻ ogni domenica** o **↻ ogni terzo martedì del mese**. Il completamento conferma visivamente la spunta con colore, impulso e testo barrato, quindi dissolve la riga; non introduce timer quando l'app è inattiva. Le bandierine P1 rossa, P2 arancione, P3 blu e P4 neutra sono modificabili sia dalla riga sia dall'editor. L'import Todoist conserva lo stesso mapping (`priority: 4` nel JSON corrisponde a P1).
+In elenco, le attività ricorrenti mostrano la frase riconosciuta, per esempio **↻ ogni giorno**, **↻ ogni domenica** o **↻ ogni terzo martedì del mese**. Il completamento conferma visivamente la spunta con colore, impulso e testo barrato, quindi dissolve la riga; non introduce timer quando l'app è inattiva. P1, P2 e P3 usano una sottile banda e una tinta rispettivamente rossa, arancione e blu; P4 resta neutra. Le attività sono ordinate automaticamente dalla priorità più alta alla più bassa, mantenendo un ordine stabile a parità di livello. L'import Todoist conserva lo stesso mapping (`priority: 4` nel JSON corrisponde a P1).
 
 Toccando un'attività su Android si apre un foglio minimale dal fondo, alto al massimo 460 px: titolo e una barra compatta per data, ora, priorità e ripetizione restano immediatamente raggiungibili; note, scadenza, progetto e stato sono raccolti nella sezione comprimibile **Altri dettagli**. La lista non ripete più “Mostra” quando il giorno è già espresso dalla vista Oggi o Prossime. Il colore della priorità è applicato direttamente al cerchio di completamento, senza una bandierina separata.
 
@@ -95,7 +95,13 @@ La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Compl
 
 Il tasto **Indietro** di Android chiude prima dialoghi e menu, poi ripercorre le sezioni visitate; in Prossime rimuove prima l'eventuale filtro sul giorno. Soltanto dalla radice Oggi, esaurita la cronologia interna, lascia chiudere normalmente l'app.
 
+Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; la transizione inversa dura 90 ms. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
+
 Le Impostazioni mostrano lo stato reale del worker: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento o errore. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato. Modificare data/ora ripianifica la notifica; eliminare una task la annulla sempre.
+
+Progetti usa una sola intestazione: selettore del progetto, aggiunta sezione e menu per nuovo progetto o cambio elenco/bacheca. Nome, conteggio e azioni non vengono ripetuti. Anche le sezioni evitano contatori e usano un comando “Aggiungi” compatto.
+
+La schermata Impostazioni mantiene in primo piano soltanto collegamento, aggiornamenti e attività completate. Backup, CSV, import Todoist e diagnostica sono raccolti nella sezione comprimibile **Dati e manutenzione**; il testo Privacy ridondante è stato rimosso dall'interfaccia, senza cambiare le garanzie descritte in questo documento.
 
 ## Build installabili
 

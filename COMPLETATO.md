@@ -50,6 +50,7 @@ Aggiornato il 4 agosto 2026.
 - Release 2.3.0: animazione breve al completamento, indicatore visibile delle ricorrenze, bandierine P1–P4 coerenti con le priorità importate da Todoist e navigazione gerarchica con il tasto Indietro Android.
 - Release 2.3.1: descrizioni naturali delle ricorrenze in elenco, editor attività compatto come bottom sheet e completamento in due fasi con conferma verde prima della dissolvenza.
 - Release 2.4.0: densità visiva ridotta sulla base del confronto con Todoist, editor sotto i 460 px, date non duplicate, priorità integrate nel checkbox, contatori rimossi da Prossime e Inbox Todoist nascosta dai progetti.
+- Release 2.5.0: Progetti con intestazione unica, Impostazioni raccolte, guide testuali rimosse, priorità con tinta leggera e ordinamento automatico, chiusura tastiera/composer Android con una sola pressione e animazione inversa da 90 ms.
 
 ## Verificate in questa macchina
 

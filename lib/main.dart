@@ -537,10 +537,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     await _createFrom(quickAdd);
   }
 
-  String _quickAddHelper(String value) {
-    if (value.trim().isEmpty) {
-      return 'Es. “Dentista domani alle 9”';
-    }
+  String? _quickAddHelper(String value) {
+    if (value.trim().isEmpty) return null;
     try {
       final draft = const QuickAddParser().parse(value);
       final parts = <String>[];
@@ -556,77 +554,91 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
         );
       }
-      if (draft.recurrence != null) parts.add('ricorrente');
-      return parts.isEmpty
-          ? 'Invio per salvare senza data'
-          : 'Pianificata: ${parts.join(' · ')}';
+      if (draft.recurrence != null) {
+        parts.add(
+          recurrenceSmartLabel(draft.recurrence, draft.showDate?.toString()),
+        );
+      }
+      return parts.isEmpty ? null : parts.join(' · ');
     } on FormatException {
-      return 'Completa o correggi la data';
+      return null;
     }
   }
 
   Future<void> _showQuickAddSheet() async {
     final controller = SmartDateTextController();
+    var keyboardWasVisible = false;
+    var closing = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      sheetAnimationStyle: const AnimationStyle(
+        duration: Duration(milliseconds: 160),
+        reverseDuration: Duration(milliseconds: 90),
+      ),
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => AnimatedPadding(
-          duration: const Duration(milliseconds: 160),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            0,
-            16,
-            MediaQuery.viewInsetsOf(context).bottom + 16,
-          ),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('mobile-quick-add-field'),
-                    controller: controller,
-                    autofocus: true,
-                    minLines: 1,
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (_) => setSheetState(() {}),
-                    onSubmitted: (_) async {
-                      if (await _createFrom(controller) &&
-                          sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Nuova attività',
-                      hintText: 'Cosa devi fare?',
-                      helperText: _quickAddHelper(controller.text),
+        builder: (context, setSheetState) {
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          if (keyboardInset > 0) {
+            keyboardWasVisible = true;
+          } else if (keyboardWasVisible && !closing) {
+            closing = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (sheetContext.mounted) Navigator.pop(sheetContext);
+            });
+          }
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 100),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, keyboardInset + 12),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('mobile-quick-add-field'),
+                      controller: controller,
+                      autofocus: true,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) => setSheetState(() {}),
+                      onSubmitted: (_) async {
+                        if (await _createFrom(controller) &&
+                            sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Nuova attività',
+                        hintText: 'Cosa devi fare?',
+                        helperText: _quickAddHelper(controller.text),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: IconButton.filled(
-                    key: const ValueKey('mobile-quick-add-submit'),
-                    tooltip: 'Aggiungi attività',
-                    onPressed: () async {
-                      if (await _createFrom(controller) &&
-                          sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_upward),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: IconButton.filled(
+                      key: const ValueKey('mobile-quick-add-submit'),
+                      tooltip: 'Aggiungi attività',
+                      onPressed: () async {
+                        if (await _createFrom(controller) &&
+                            sheetContext.mounted) {
+                          Navigator.pop(sheetContext);
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_upward),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
     // The route completes while its exit animation can still own the field for
@@ -857,6 +869,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         final byDate = a.showDate!.compareTo(b.showDate!);
         if (byDate != 0) return byDate;
       }
+      final byPriority = b.priority.compareTo(a.priority);
+      if (byPriority != 0) return byPriority;
       return _stableCompare(a, b, today);
     });
     return Column(
@@ -887,7 +901,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               onSubmitted: (_) => _create(),
               decoration: InputDecoration(
                 labelText: 'Nuova attività',
-                hintText: 'Titolo e Invio',
                 helperText: _quickAddHelper(quickAdd.text),
                 prefixIcon: const Icon(Icons.add),
                 suffixIcon: IconButton(
@@ -904,14 +917,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               ? _upcomingList(visible)
               : visible.isEmpty
               ? const Center(child: Text('Nessuna attività'))
-              : ReorderableListView.builder(
+              : ListView.builder(
                   padding: const EdgeInsets.only(bottom: 24),
                   itemCount: visible.length,
-                  onReorderItem: (oldIndex, newIndex) {
-                    final item = visible.removeAt(oldIndex);
-                    visible.insert(newIndex, item);
-                    widget.repository.reorder(visible);
-                  },
                   itemBuilder: (context, index) => TaskTile(
                     key: ValueKey(visible[index].id),
                     task: visible[index],
@@ -974,39 +982,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         final projectTasks = tasks
             .where((item) => item.projectId == selected.id)
             .toList();
+        projectTasks.sort((a, b) {
+          final byPriority = b.priority.compareTo(a.priority);
+          return byPriority != 0 ? byPriority : _stableCompare(a, b, '');
+        });
         return Column(
           children: [
-            SizedBox(
-              height: 58,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                children: [
-                  for (final project in activeProjects)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        avatar: Icon(
-                          Icons.tag,
-                          color: _projectColor(project.color),
-                        ),
-                        label: Text(project.name),
-                        selected: project.id == selected.id,
-                        onSelected: (_) =>
-                            setState(() => selectedProjectId = project.id),
-                      ),
-                    ),
-                  ActionChip(
-                    avatar: const Icon(Icons.add),
-                    label: const Text('Progetto'),
-                    onPressed: _addProject,
-                  ),
-                ],
-              ),
-            ),
             Expanded(
               child: StreamBuilder<AppSetting?>(
                 stream:
@@ -1021,27 +1002,46 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   final board = viewSnapshot.data?.value == 'board';
                   return Column(
                     children: [
-                      ListTile(
-                        leading: Icon(
-                          Icons.tag,
-                          color: _projectColor(selected.color),
-                        ),
-                        title: Text(
-                          selected.name,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        subtitle: Text('${projectTasks.length} attività'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                        child: Row(
                           children: [
-                            IconButton(
-                              tooltip: board ? 'Vista elenco' : 'Vista bacheca',
-                              onPressed: () => widget.repository.setProjectView(
-                                selected.id,
-                                board ? 'list' : 'board',
-                              ),
-                              icon: Icon(
-                                board ? Icons.view_list : Icons.view_column,
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: selected.id,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.expand_more),
+                                  items: [
+                                    for (final project in activeProjects)
+                                      DropdownMenuItem(
+                                        value: project.id,
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.circle,
+                                              size: 12,
+                                              color: _projectColor(
+                                                project.color,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Flexible(
+                                              child: Text(
+                                                project.name,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.titleLarge,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                  onChanged: (value) =>
+                                      setState(() => selectedProjectId = value),
+                                ),
                               ),
                             ),
                             IconButton(
@@ -1049,9 +1049,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               onPressed: () => _addSection(selected.id),
                               icon: const Icon(Icons.add_box_outlined),
                             ),
+                            PopupMenuButton<String>(
+                              tooltip: 'Azioni progetto',
+                              onSelected: (value) {
+                                if (value == 'project') _addProject();
+                                if (value == 'view') {
+                                  widget.repository.setProjectView(
+                                    selected.id,
+                                    board ? 'list' : 'board',
+                                  );
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                const PopupMenuItem(
+                                  value: 'project',
+                                  child: Text('Nuovo progetto'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'view',
+                                  child: Text(
+                                    board ? 'Vista elenco' : 'Vista bacheca',
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
+                      const Divider(height: 1),
                       Expanded(
                         child: board
                             ? _projectBoard(
@@ -1087,9 +1112,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ExpansionTile(
           initiallyExpanded: true,
           title: Text(section.name),
-          subtitle: Text(
-            '${tasks.where((task) => task.sectionId == section.id).length}',
-          ),
           children: [
             for (final task in tasks.where(
               (item) => item.sectionId == section.id,
@@ -1100,8 +1122,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                 repository: widget.repository,
               ),
             ListTile(
-              leading: const Icon(Icons.add),
-              title: const Text('Aggiungi attività'),
+              dense: true,
+              leading: const Icon(Icons.add, size: 20),
+              title: const Text('Aggiungi'),
               onTap: () => _addProjectTask(projectId, section.id),
             ),
           ],
@@ -1120,8 +1143,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ],
         ),
       ListTile(
-        leading: const Icon(Icons.add),
-        title: const Text('Aggiungi attività'),
+        dense: true,
+        leading: const Icon(Icons.add, size: 20),
+        title: const Text('Aggiungi'),
         onTap: () => _addProjectTask(projectId, null),
       ),
     ],
@@ -1143,12 +1167,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             child: ListView(
               padding: const EdgeInsets.all(8),
               children: [
-                ListTile(
-                  title: Text(section.name),
-                  trailing: Text(
-                    '${tasks.where((task) => task.sectionId == section.id).length}',
-                  ),
-                ),
+                ListTile(title: Text(section.name)),
                 for (final task in tasks.where(
                   (item) => item.sectionId == section.id,
                 ))
@@ -1176,12 +1195,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             child: ListView(
               padding: const EdgeInsets.all(8),
               children: [
-                ListTile(
-                  title: const Text('Senza sezione'),
-                  trailing: Text(
-                    '${tasks.where((task) => task.sectionId == null).length}',
-                  ),
-                ),
+                ListTile(title: const Text('Senza sezione')),
                 for (final task in tasks.where(
                   (item) => item.sectionId == null,
                 ))
@@ -1604,56 +1618,72 @@ class _TaskTileState extends State<TaskTile> {
           ).showSnackBar(const SnackBar(content: Text('Spostata nel cestino')));
         },
         child: AnimatedContainer(
+          key: ValueKey('task-surface-${widget.task.id}'),
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
           decoration: BoxDecoration(
             color: confirmingCompletion
                 ? Colors.green.withValues(alpha: 0.10)
-                : Colors.transparent,
+                : widget.task.priority == 1
+                ? Colors.transparent
+                : _priorityColor(widget.task.priority).withValues(alpha: 0.035),
+            border: widget.task.priority == 1
+                ? null
+                : Border(
+                    left: BorderSide(
+                      color: _priorityColor(widget.task.priority),
+                      width: 3,
+                    ),
+                  ),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: ListTile(
-            leading: AnimatedScale(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutBack,
-              scale: confirmingCompletion ? 1.22 : 1,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: confirmingCompletion
-                    ? const Icon(
-                        Icons.check_circle_rounded,
-                        key: ValueKey('completed-check'),
-                        color: Colors.green,
-                        size: 30,
-                      )
-                    : Checkbox(
-                        key: const ValueKey('task-checkbox'),
-                        value: widget.task.status == TaskStatus.completed.name,
-                        onChanged: (value) => _setCompleted(value ?? false),
-                        activeColor: Colors.green,
-                        side: BorderSide(
-                          color: _priorityColor(widget.task.priority),
-                          width: widget.task.priority == 1 ? 1.5 : 2.5,
+          child: Material(
+            type: MaterialType.transparency,
+            borderRadius: BorderRadius.circular(14),
+            child: ListTile(
+              leading: AnimatedScale(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutBack,
+                scale: confirmingCompletion ? 1.22 : 1,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  transitionBuilder: (child, animation) => ScaleTransition(
+                    scale: animation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  ),
+                  child: confirmingCompletion
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          key: ValueKey('completed-check'),
+                          color: Colors.green,
+                          size: 30,
+                        )
+                      : Checkbox(
+                          key: const ValueKey('task-checkbox'),
+                          value:
+                              widget.task.status == TaskStatus.completed.name,
+                          onChanged: (value) => _setCompleted(value ?? false),
+                          activeColor: Colors.green,
+                          side: BorderSide(
+                            color: _priorityColor(widget.task.priority),
+                            width: widget.task.priority == 1 ? 1.5 : 2.5,
+                          ),
                         ),
-                      ),
+                ),
               ),
-            ),
-            title: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              style: DefaultTextStyle.of(context).style.copyWith(
-                color: confirmingCompletion ? Colors.green.shade700 : null,
-                decoration: confirmingCompletion
-                    ? TextDecoration.lineThrough
-                    : TextDecoration.none,
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                style: DefaultTextStyle.of(context).style.copyWith(
+                  color: confirmingCompletion ? Colors.green.shade700 : null,
+                  decoration: confirmingCompletion
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
+                ),
+                child: TodoistLinkText(widget.task.title),
               ),
-              child: TodoistLinkText(widget.task.title),
+              subtitle: _subtitle(widget.task),
+              onTap: confirmingCompletion ? null : _showEditor,
             ),
-            subtitle: _subtitle(widget.task),
-            onTap: confirmingCompletion ? null : _showEditor,
           ),
         ),
       ),
@@ -2320,10 +2350,13 @@ class SettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
     children: [
-      const Text('Impostazioni', style: TextStyle(fontSize: 28)),
-      const SizedBox(height: 24),
+      if (MediaQuery.sizeOf(context).width >= 720)
+        const ListTile(
+          title: Text('Impostazioni', style: TextStyle(fontSize: 28)),
+        ),
+      SyncAccountCard(client: syncClient, syncService: syncService),
       FutureBuilder<PackageInfo>(
         future: PackageInfo.fromPlatform(),
         builder: (context, snapshot) => ListTile(
@@ -2341,68 +2374,48 @@ class SettingsView extends StatelessWidget {
             await checkForUpdates();
             if (context.mounted) {
               messenger.showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Controllo completato. Se non appare una finestra, '
-                    'questa è la versione più recente.',
-                  ),
-                ),
+                const SnackBar(content: Text('Controllo completato')),
               );
             }
           },
         ),
       ),
-      SyncAccountCard(client: syncClient, syncService: syncService),
-      const ListTile(
-        leading: Icon(Icons.lock_outline),
-        title: Text('Privacy'),
-        subtitle: Text(
-          'Nessun tracciamento. Titoli e note non vengono scritti nei log.',
-        ),
-      ),
-      const Divider(),
       ListTile(
         leading: const Icon(Icons.check_circle_outline),
         title: const Text('Attività completate'),
-        subtitle: const Text('Cronologia fuori dalla navigazione principale.'),
         trailing: const Icon(Icons.chevron_right),
         onTap: showCompleted,
       ),
-      ListTile(
-        leading: const Icon(Icons.file_download_outlined),
-        title: const Text('Esporta backup JSON'),
-        onTap: () => _export(context, true),
-      ),
-      ListTile(
-        leading: const Icon(Icons.table_view_outlined),
-        title: const Text('Esporta attività CSV'),
-        onTap: () => _export(context, false),
-      ),
-      ListTile(
-        leading: const Icon(Icons.file_upload_outlined),
-        title: const Text('Importa backup JSON'),
-        subtitle: const Text(
-          'Mostra sempre un’anteprima prima di modificare i dati.',
-        ),
-        onTap: () => _import(context),
-      ),
-      ListTile(
-        leading: const Icon(Icons.task_alt_outlined),
-        title: const Text('Importa da Todoist'),
-        subtitle: const Text(
-          'Aggiornamento incrementale oppure sostituzione completa dei soli '
-          'dati Todoist, sempre con anteprima.',
-        ),
-        onTap: () => _importTodoist(context),
-      ),
-      ListTile(
-        leading: const Icon(Icons.bug_report_outlined),
-        title: const Text('Esporta diagnostica'),
-        subtitle: const Text(
-          'Avvio, RAM, database, sync e frame lenti; nessun titolo, nota, '
-          'email, token o URL.',
-        ),
-        onTap: () => _exportDiagnostics(context),
+      ExpansionTile(
+        leading: const Icon(Icons.storage_outlined),
+        title: const Text('Dati e manutenzione'),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.file_download_outlined),
+            title: const Text('Esporta backup'),
+            onTap: () => _export(context, true),
+          ),
+          ListTile(
+            leading: const Icon(Icons.table_view_outlined),
+            title: const Text('Esporta CSV'),
+            onTap: () => _export(context, false),
+          ),
+          ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: const Text('Importa backup'),
+            onTap: () => _import(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.task_alt_outlined),
+            title: const Text('Importa da Todoist'),
+            onTap: () => _importTodoist(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.bug_report_outlined),
+            title: const Text('Esporta diagnostica'),
+            onTap: () => _exportDiagnostics(context),
+          ),
+        ],
       ),
     ],
   );
