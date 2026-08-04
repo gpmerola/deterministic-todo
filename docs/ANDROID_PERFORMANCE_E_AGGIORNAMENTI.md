@@ -25,6 +25,8 @@ La build universale 1.0.3 era circa 59 MB perché conteneva tre copie delle libr
 | `x86_64` | emulatori e pochi dispositivi | 23 MB |
 | universale | solo ponte da updater vecchi | 59 MB |
 
+La 2.1.2 aggiunge `--split-debug-info`. La misura ARM64 è passata da 23.609.433 byte nella 2.1.1 a 22.364.249 byte: 1.245.184 byte, circa il 5,3%, rimossi dall’APK installato. Le symbol map compresse occupano circa 3,6 MB nell’artefatto CI privato con scadenza a 30 giorni e non vengono distribuite al dispositivo.
+
 Il client 1.0.4 interroga l’ABI tramite il plugin OTA e seleziona la voce esatta del manifest. L’asset universale non è scelto dai client nuovi e non viene più ricompilato a ogni release. I manifest futuri possono riferirsi al solo universale 1.0.4 come bootstrap per client 1.0.3: dopo quel passaggio il nuovo updater scarica l’ultima ABI specifica.
 
 ## Avvio e CPU
