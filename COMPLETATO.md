@@ -70,3 +70,5 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 
 - Polling di sincronizzazione ridotto da 5 a 15 minuti, sospeso quando l’app non è in primo piano e riattivato immediatamente al ritorno.
 - Upload di progetti e sezioni invariati eliminato tramite fingerprint Lamport locale; nessuna modifica allo schema Supabase.
+- Outbox compattata per attività e confronto del pull remoto eseguito in batch, eliminando RPC e query SQLite duplicate.
+- Simboli Dart separati dagli APK release e conservati privatamente per 30 giorni, riducendo lo storage sul dispositivo senza perdere la possibilità di diagnosticare crash.

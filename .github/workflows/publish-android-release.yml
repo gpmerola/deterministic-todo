@@ -88,12 +88,21 @@ jobs:
       - name: Build APKs per CPU
         run: >-
           flutter build apk --release --split-per-abi
+          --split-debug-info=build/private-symbols
           --dart-define-from-file=supabase/config.json
         env:
           ANDROID_KEYSTORE_PATH: release-key.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: deterministic-todo
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Preserve private Dart symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-symbols-${{ steps.version.outputs.version }}
+          path: build/private-symbols/
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Prepare manifest and stable asset names
         env:

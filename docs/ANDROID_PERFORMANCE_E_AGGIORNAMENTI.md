@@ -35,6 +35,8 @@ Il controllo aggiornamenti parte dopo il primo frame, non blocca la UI e memoriz
 
 Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione reagisce a modifica, riconnessione e ritorno in primo piano. Il controllo di sicurezza ogni 15 minuti esiste soltanto mentre l’app è visibile e viene sospeso in background. Progetti e sezioni già confermati dal server sono identificati tramite la coppia Lamport `(logical_version, device_id)` e non vengono reinviati finché non cambiano.
 
+Prima del push, l’outbox viene compattata logicamente per `entity_id`: più modifiche pendenti della stessa attività causano un solo `merge_task` della versione finale, mentre tutte le operazioni vengono comunque riconosciute e rimosse soltanto dopo il successo. Il pull carica le attività locali interessate con una sola query SQLite e applica poi il confronto Lamport in memoria, evitando una query per ogni riga remota.
+
 ## RAM e query SQLite
 
 `TaskShell` conserva due stream Drift creati una sola volta:
@@ -93,6 +95,7 @@ Per contenere i minuti GitHub Actions, `Verify`, `Build Android APK` e `Build ma
 - Paginare Completate se la cronologia supera diverse migliaia di record.
 - Spostare la ricerca a query SQL/FTS5 se dataset reali dimostrano latenza misurabile.
 - Valutare `--split-debug-info` e offuscamento conservando privatamente le symbol map.
+- ~~Valutare `--split-debug-info`~~ attivo dalla 2.1.2: i simboli Dart vengono separati dall’APK e conservati per 30 giorni come artefatto privato della build. L’offuscamento resta escluso finché non è necessario.
 - Rimuovere una dipendenza solo dopo aver verificato che la funzione non sia richiesta su macOS, Windows o Android.
 
 Non sacrificare firma, hash, persistenza, funzioni corrette o determinismo per guadagni teorici non misurati.

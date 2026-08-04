@@ -101,15 +101,17 @@ class SyncService {
     );
     try {
       await _syncProjects();
-      final acknowledged = <OutboxEntry>[];
-      for (final entry in entries) {
-        final task = await (db.select(
+      final acknowledged = <OutboxEntry>[...entries];
+      final pendingIds = distinctEntityIds(
+        entries.map((entry) => entry.entityId),
+      );
+      if (pendingIds.isNotEmpty) {
+        final pendingTasks = await (db.select(
           db.tasks,
-        )..where((row) => row.id.equals(entry.entityId))).getSingleOrNull();
-        if (task != null) {
+        )..where((row) => row.id.isIn(pendingIds))).get();
+        for (final task in pendingTasks) {
           await client.rpc('merge_task', params: {'record': _remoteTask(task)});
         }
-        acknowledged.add(entry);
       }
       if (acknowledged.isNotEmpty) {
         await client.from('sync_operations').upsert([
@@ -130,8 +132,17 @@ class SyncService {
         });
       }
       final remoteRows = await client.from('tasks').select();
+      final remoteIds = remoteRows
+          .map((raw) => raw['id'] as String)
+          .toList(growable: false);
+      final localTasks = remoteIds.isEmpty
+          ? const <Task>[]
+          : await (db.select(
+              db.tasks,
+            )..where((row) => row.id.isIn(remoteIds))).get();
+      final localById = {for (final task in localTasks) task.id: task};
       for (final raw in remoteRows) {
-        await _mergeRemote(raw);
+        await _mergeRemote(raw, localById[raw['id'] as String]);
       }
       final now = DateTime.now().toUtc();
       _emit(SyncSnapshot(SyncPhase.current, lastSuccess: now));
@@ -287,11 +298,8 @@ class SyncService {
             AppSettingsCompanion.insert(key: 'sync_$type:$id', value: value),
           );
 
-  Future<void> _mergeRemote(Map<String, dynamic> raw) async {
+  Future<void> _mergeRemote(Map<String, dynamic> raw, Task? local) async {
     final id = raw['id'] as String;
-    final local = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(id))).getSingleOrNull();
     final remoteVersion = domain.LogicalVersion(
       raw['logical_version'] as int,
       raw['device_id'] as String,
@@ -397,3 +405,5 @@ class SyncService {
     await _state.close();
   }
 }
+
+Set<String> distinctEntityIds(Iterable<String> ids) => ids.toSet();
