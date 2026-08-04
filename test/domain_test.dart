@@ -4,6 +4,29 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('date civili e ricorrenze', () {
+    test('descrive le ricorrenze con la frase intelligente', () {
+      expect(
+        recurrenceSmartLabel('calendar:day:1', '2026-08-04'),
+        'ogni giorno',
+      );
+      expect(
+        recurrenceSmartLabel('calendar:week:1', '2026-08-09'),
+        'ogni domenica',
+      );
+      expect(
+        recurrenceSmartLabel('calendar:monthWeekday:1', '2026-08-18'),
+        'ogni terzo martedì del mese',
+      );
+      expect(
+        recurrenceSmartLabel('calendar:year:1', '2026-07-03'),
+        'ogni 3 luglio',
+      );
+      expect(
+        recurrenceSmartLabel('afterCompletion:day:4', '2026-08-04'),
+        'ogni 4 giorni dopo il completamento',
+      );
+    });
+
     test('il mensile conserva l’ancora dopo febbraio bisestile', () {
       const anchor = CivilDate(2024, 1, 31);
       const rule = RecurrenceRule(

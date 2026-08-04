@@ -40,6 +40,83 @@ class RecurrenceRule {
   }
 }
 
+String recurrenceSmartLabel(String? encoded, String? showDate) {
+  final rule = RecurrenceRule.decode(encoded);
+  if (rule == null) return 'ricorrenza';
+  CivilDate? anchor;
+  if (showDate != null && showDate.isNotEmpty) {
+    try {
+      anchor = CivilDate.parse(showDate);
+    } on FormatException {
+      anchor = null;
+    }
+  }
+  final interval = rule.interval;
+  final unit = switch (rule.unit) {
+    RecurrenceUnit.day => interval == 1 ? 'giorno' : '$interval giorni',
+    RecurrenceUnit.weekday => 'giorno feriale',
+    RecurrenceUnit.week =>
+      interval == 1
+          ? anchor == null
+                ? 'settimana'
+                : _weekdayName(anchor.asLocalDate.weekday)
+          : '$interval settimane${anchor == null ? '' : ' · ${_weekdayName(anchor.asLocalDate.weekday)}'}',
+    RecurrenceUnit.month =>
+      interval == 1
+          ? anchor == null
+                ? 'mese'
+                : '${anchor.day} del mese'
+          : '$interval mesi${anchor == null ? '' : ' · giorno ${anchor.day}'}',
+    RecurrenceUnit.monthEnd => 'ultimo giorno del mese',
+    RecurrenceUnit.monthWeekday =>
+      anchor == null
+          ? 'mese'
+          : '${_ordinalName(((anchor.day - 1) ~/ 7) + 1)} ${_weekdayName(anchor.asLocalDate.weekday)} del mese',
+    RecurrenceUnit.monthLastWeekday =>
+      anchor == null
+          ? 'ultimo giorno feriale del mese'
+          : 'ultimo ${_weekdayName(anchor.asLocalDate.weekday)} del mese',
+    RecurrenceUnit.year =>
+      anchor == null ? 'anno' : '${anchor.day} ${_monthName(anchor.month)}',
+  };
+  return rule.type == RecurrenceType.afterCompletion
+      ? 'ogni $unit dopo il completamento'
+      : 'ogni $unit';
+}
+
+String _weekdayName(int weekday) => const [
+  'lunedì',
+  'martedì',
+  'mercoledì',
+  'giovedì',
+  'venerdì',
+  'sabato',
+  'domenica',
+][weekday - 1];
+
+String _monthName(int month) => const [
+  'gennaio',
+  'febbraio',
+  'marzo',
+  'aprile',
+  'maggio',
+  'giugno',
+  'luglio',
+  'agosto',
+  'settembre',
+  'ottobre',
+  'novembre',
+  'dicembre',
+][month - 1];
+
+String _ordinalName(int ordinal) => const [
+  'primo',
+  'secondo',
+  'terzo',
+  'quarto',
+  'quinto',
+][ordinal.clamp(1, 5) - 1];
+
 class CivilDate implements Comparable<CivilDate> {
   const CivilDate(this.year, this.month, this.day);
 

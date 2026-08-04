@@ -81,7 +81,9 @@ La riga “Nuova attività” crea con Invio e interpreta localmente, senza rete
 
 Le ricorrenze rapide accettano `ogni giorno`, `ogni martedì`, `ogni 4 giorni`, `ogni 3 settimane`, `ogni 2 mesi`, `ogni 3 del mese`, `ogni terzo martedì`, `ogni 3 luglio` e `ogni anno`. La frase viene evidenziata e rimossa dal titolo. Completare un'occorrenza la conserva nella cronologia e crea automaticamente la successiva, avanzando oltre eventuali date arretrate senza generare duplicati.
 
-In elenco, le attività ricorrenti mostrano l'indicatore **↻ Ricorrente**. Il completamento usa una breve animazione di spunta e dissolvenza prima di spostare l'attività; non introduce timer quando l'app è inattiva. Le bandierine P1 rossa, P2 arancione, P3 blu e P4 neutra sono modificabili sia dalla riga sia dall'editor. L'import Todoist conserva lo stesso mapping (`priority: 4` nel JSON corrisponde a P1).
+In elenco, le attività ricorrenti mostrano la frase riconosciuta, per esempio **↻ ogni giorno**, **↻ ogni domenica** o **↻ ogni terzo martedì del mese**. Il completamento conferma visivamente la spunta con colore, impulso e testo barrato, quindi dissolve la riga; non introduce timer quando l'app è inattiva. Le bandierine P1 rossa, P2 arancione, P3 blu e P4 neutra sono modificabili sia dalla riga sia dall'editor. L'import Todoist conserva lo stesso mapping (`priority: 4` nel JSON corrisponde a P1).
+
+Toccando un'attività su Android si apre un foglio compatto dal fondo: titolo, data, ora, priorità e ripetizione restano immediatamente raggiungibili; note, scadenza, progetto e stato sono raccolti nella sezione comprimibile **Altri dettagli**.
 
 Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ultimo giorno del mese`, `ogni ultimo venerdì del mese`, `ogni 3 giorni dopo il completamento`, `stasera` (20:00), `questo weekend`, `inizio settimana prossima`, `fine mese`, `tra 3 giorni` e `fra 2 settimane`.
 

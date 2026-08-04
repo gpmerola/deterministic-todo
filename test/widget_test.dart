@@ -129,7 +129,7 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    expect(find.textContaining('Ricorrente'), findsOneWidget);
+    expect(find.textContaining('ogni domenica'), findsOneWidget);
     expect(find.byTooltip('Priorità P1'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -148,6 +148,17 @@ void main() {
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 100));
     expect((await db.select(db.tasks).getSingle()).status, 'inbox');
+    expect(find.byKey(const ValueKey('completed-check')), findsOneWidget);
+    expect(
+      tester
+          .widget<AnimatedOpacity>(
+            find.byKey(ValueKey('completion-opacity-$taskId')),
+          )
+          .opacity,
+      1,
+    );
+
+    await tester.pump(const Duration(milliseconds: 150));
     expect(
       tester
           .widget<AnimatedOpacity>(
@@ -159,6 +170,32 @@ void main() {
 
     await tester.pumpAndSettle();
     expect((await db.select(db.tasks).getSingle()).status, 'completed');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('la modifica attività usa un foglio inferiore compatto', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Apri editor');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Apri editor'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byKey(const ValueKey('task-editor-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-editor-save')), findsOneWidget);
+    expect(find.text('Altri dettagli'), findsOneWidget);
+    expect(find.text('Note'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

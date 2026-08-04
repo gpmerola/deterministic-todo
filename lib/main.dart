@@ -1538,15 +1538,18 @@ class TaskTile extends StatefulWidget {
 }
 
 class _TaskTileState extends State<TaskTile> {
-  bool completing = false;
+  bool confirmingCompletion = false;
+  bool leavingAfterCompletion = false;
 
   Future<void> _setCompleted(bool completed) async {
     if (!completed) {
       await widget.repository.setCompleted(widget.task, false);
       return;
     }
-    setState(() => completing = true);
-    await Future<void>.delayed(const Duration(milliseconds: 320));
+    setState(() => confirmingCompletion = true);
+    await Future<void>.delayed(const Duration(milliseconds: 190));
+    if (mounted) setState(() => leavingAfterCompletion = true);
+    await Future<void>.delayed(const Duration(milliseconds: 290));
     await widget.repository.setCompleted(widget.task, true);
   }
 
@@ -1583,13 +1586,13 @@ class _TaskTileState extends State<TaskTile> {
   Widget build(BuildContext context) => AnimatedSlide(
     key: ValueKey('completion-slide-${widget.task.id}'),
     duration: const Duration(milliseconds: 320),
-    curve: Curves.easeInOutCubic,
-    offset: completing ? const Offset(0.08, 0) : Offset.zero,
+    curve: Curves.easeInCubic,
+    offset: leavingAfterCompletion ? const Offset(0.12, 0) : Offset.zero,
     child: AnimatedOpacity(
       key: ValueKey('completion-opacity-${widget.task.id}'),
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeInOut,
-      opacity: completing ? 0 : 1,
+      duration: const Duration(milliseconds: 290),
+      curve: Curves.easeInCubic,
+      opacity: leavingAfterCompletion ? 0 : 1,
       child: Dismissible(
         key: ValueKey('dismiss-${widget.task.id}'),
         background: Container(
@@ -1601,61 +1604,90 @@ class _TaskTileState extends State<TaskTile> {
             context,
           ).showSnackBar(const SnackBar(content: Text('Spostata nel cestino')));
         },
-        child: ListTile(
-          leading: AnimatedScale(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutBack,
-            scale: completing ? 1.35 : 1,
-            child: Checkbox(
-              value:
-                  completing || widget.task.status == TaskStatus.completed.name,
-              onChanged: completing
-                  ? null
-                  : (value) => _setCompleted(value ?? false),
-              activeColor: Colors.green,
-            ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: confirmingCompletion
+                ? Colors.green.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
           ),
-          title: TodoistLinkText(widget.task.title),
-          subtitle: _subtitle(widget.task),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              PopupMenuButton<int>(
-                tooltip: 'Priorità P${5 - widget.task.priority}',
-                icon: Icon(
-                  widget.task.priority == 1 ? Icons.flag_outlined : Icons.flag,
-                  color: _priorityColor(widget.task.priority),
+          child: ListTile(
+            leading: AnimatedScale(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutBack,
+              scale: confirmingCompletion ? 1.22 : 1,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: FadeTransition(opacity: animation, child: child),
                 ),
-                onSelected: _setPriority,
-                itemBuilder: (context) => [
-                  for (var raw = 4; raw >= 1; raw--)
-                    PopupMenuItem(
-                      value: raw,
-                      child: Row(
-                        children: [
-                          Icon(
-                            raw == 1 ? Icons.flag_outlined : Icons.flag,
-                            color: _priorityColor(raw),
-                          ),
-                          const SizedBox(width: 10),
-                          Text('P${5 - raw}'),
-                        ],
+                child: confirmingCompletion
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        key: ValueKey('completed-check'),
+                        color: Colors.green,
+                        size: 30,
+                      )
+                    : Checkbox(
+                        key: const ValueKey('task-checkbox'),
+                        value: widget.task.status == TaskStatus.completed.name,
+                        onChanged: (value) => _setCompleted(value ?? false),
+                        activeColor: Colors.green,
                       ),
-                    ),
-                ],
               ),
-              if (Platform.isAndroid && widget.task.showDate != null)
-                IconButton(
-                  tooltip: 'Mostra in Google Calendar',
-                  onPressed: _addToCalendar,
-                  icon: const Icon(Icons.event_available_outlined),
+            ),
+            title: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              style: DefaultTextStyle.of(context).style.copyWith(
+                color: confirmingCompletion ? Colors.green.shade700 : null,
+                decoration: confirmingCompletion
+                    ? TextDecoration.lineThrough
+                    : TextDecoration.none,
+              ),
+              child: TodoistLinkText(widget.task.title),
+            ),
+            subtitle: _subtitle(widget.task),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PopupMenuButton<int>(
+                  tooltip: 'Priorità P${5 - widget.task.priority}',
+                  icon: Icon(
+                    widget.task.priority == 1
+                        ? Icons.flag_outlined
+                        : Icons.flag,
+                    color: _priorityColor(widget.task.priority),
+                  ),
+                  onSelected: _setPriority,
+                  itemBuilder: (context) => [
+                    for (var raw = 4; raw >= 1; raw--)
+                      PopupMenuItem(
+                        value: raw,
+                        child: Row(
+                          children: [
+                            Icon(
+                              raw == 1 ? Icons.flag_outlined : Icons.flag,
+                              color: _priorityColor(raw),
+                            ),
+                            const SizedBox(width: 10),
+                            Text('P${5 - raw}'),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
-          onTap: () => showDialog<void>(
-            context: context,
-            builder: (_) =>
-                TaskEditor(task: widget.task, repository: widget.repository),
+                if (Platform.isAndroid && widget.task.showDate != null)
+                  IconButton(
+                    tooltip: 'Mostra in Google Calendar',
+                    onPressed: _addToCalendar,
+                    icon: const Icon(Icons.event_available_outlined),
+                  ),
+              ],
+            ),
+            onTap: confirmingCompletion ? null : _showEditor,
           ),
         ),
       ),
@@ -1666,10 +1698,20 @@ class _TaskTileState extends State<TaskTile> {
     final values = [
       if (task.showDate != null) 'Mostra ${task.showDate}',
       if (task.dueDate != null) 'Scade ${task.dueDate}',
-      if (task.recurrence != null) '↻ Ricorrente',
+      if (task.recurrence != null)
+        '↻ ${recurrenceSmartLabel(task.recurrence, task.showDate)}',
     ];
     return values.isEmpty ? null : Text(values.join(' · '));
   }
+
+  Future<void> _showEditor() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) =>
+        TaskEditor(task: widget.task, repository: widget.repository),
+  );
 }
 
 class TaskEditor extends StatefulWidget {
@@ -1764,139 +1806,210 @@ class _TaskEditorState extends State<TaskEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Modifica attività'),
-    content: SizedBox(
-      width: 480,
-      child: SingleChildScrollView(
+  Widget build(BuildContext context) => AnimatedPadding(
+    duration: const Duration(milliseconds: 160),
+    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 620),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: title,
-              decoration: const InputDecoration(labelText: 'Titolo'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: notes,
-              maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Note'),
-            ),
-            const SizedBox(height: 12),
-            _projectFields(),
-            const SizedBox(height: 12),
-            TextField(
-              controller: showDate,
-              decoration: const InputDecoration(
-                labelText: 'Mostra il (AAAA-MM-GG)',
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Modifica attività',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              trailing: IconButton(
+                tooltip: 'Chiudi',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: dueDate,
-              decoration: const InputDecoration(
-                labelText: 'Scade il (AAAA-MM-GG)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              initialValue: priority,
-              decoration: const InputDecoration(labelText: 'Priorità'),
-              items: [
-                for (var raw = 4; raw >= 1; raw--)
-                  DropdownMenuItem(
-                    value: raw,
-                    child: Row(
-                      children: [
-                        Icon(
-                          raw == 1 ? Icons.flag_outlined : Icons.flag,
-                          color: _priorityColor(raw),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      key: const ValueKey('task-editor-title'),
+                      controller: title,
+                      autofocus: true,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Cosa devi fare?',
+                        prefixIcon: Icon(Icons.check_circle_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _responsivePair(
+                      TextField(
+                        controller: showDate,
+                        keyboardType: TextInputType.datetime,
+                        decoration: const InputDecoration(
+                          labelText: 'Data',
+                          hintText: 'AAAA-MM-GG',
+                          prefixIcon: Icon(Icons.calendar_today_outlined),
                         ),
-                        const SizedBox(width: 10),
-                        Text('P${5 - raw}'),
+                      ),
+                      TextField(
+                        controller: time,
+                        keyboardType: TextInputType.datetime,
+                        decoration: const InputDecoration(
+                          labelText: 'Ora',
+                          hintText: 'HH:MM',
+                          prefixIcon: Icon(Icons.schedule),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _responsivePair(_priorityField(), _recurrenceField()),
+                    const SizedBox(height: 4),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(bottom: 8),
+                      leading: const Icon(Icons.tune),
+                      title: const Text('Altri dettagli'),
+                      children: [
+                        TextField(
+                          controller: notes,
+                          minLines: 2,
+                          maxLines: 4,
+                          decoration: const InputDecoration(labelText: 'Note'),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: dueDate,
+                          keyboardType: TextInputType.datetime,
+                          decoration: const InputDecoration(
+                            labelText: 'Scadenza',
+                            hintText: 'AAAA-MM-GG',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _projectFields(),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<TaskStatus>(
+                          initialValue: status,
+                          decoration: const InputDecoration(labelText: 'Stato'),
+                          items: [
+                            for (final value in TaskStatus.values)
+                              DropdownMenuItem(
+                                value: value,
+                                child: Text(_statusLabel(value)),
+                              ),
+                          ],
+                          onChanged: (value) =>
+                              setState(() => status = value ?? status),
+                        ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            OverflowBar(
+              alignment: MainAxisAlignment.end,
+              spacing: 8,
+              children: [
+                if (Platform.isAndroid)
+                  IconButton(
+                    tooltip: 'Salva e aggiungi a Google Calendar',
+                    onPressed: _saveAndExportToCalendar,
+                    icon: const Icon(Icons.event_available_outlined),
                   ),
-              ],
-              onChanged: (value) => setState(() => priority = value ?? 1),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<TaskStatus>(
-              initialValue: status,
-              decoration: const InputDecoration(labelText: 'Stato'),
-              items: [
-                for (final value in TaskStatus.values)
-                  DropdownMenuItem(
-                    value: value,
-                    child: Text(_statusLabel(value)),
-                  ),
-              ],
-              onChanged: (value) => setState(() => status = value ?? status),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: time,
-              keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(labelText: 'Ora (HH:MM)'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: recurrence,
-              decoration: const InputDecoration(labelText: 'Ricorrenza'),
-              items: const [
-                DropdownMenuItem(value: 'none', child: Text('Nessuna')),
-                DropdownMenuItem(
-                  value: 'calendar:day:1',
-                  child: Text('Da calendario · ogni giorno'),
-                ),
-                DropdownMenuItem(
-                  value: 'calendar:week:1',
-                  child: Text('Da calendario · ogni settimana'),
-                ),
-                DropdownMenuItem(
-                  value: 'calendar:month:1',
-                  child: Text('Da calendario · ogni mese'),
-                ),
-                DropdownMenuItem(
-                  value: 'afterCompletion:day:1',
-                  child: Text('Dal completamento · dopo 1 giorno'),
-                ),
-                DropdownMenuItem(
-                  value: 'afterCompletion:week:1',
-                  child: Text('Dal completamento · dopo 1 settimana'),
-                ),
-                DropdownMenuItem(
-                  value: 'afterCompletion:month:1',
-                  child: Text('Dal completamento · dopo 1 mese'),
+                FilledButton.icon(
+                  key: const ValueKey('task-editor-save'),
+                  onPressed: () async {
+                    await _save();
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Salva'),
                 ),
               ],
-              onChanged: (value) =>
-                  setState(() => recurrence = value ?? 'none'),
             ),
           ],
         ),
       ),
     ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Annulla'),
-      ),
-      if (Platform.isAndroid)
-        TextButton.icon(
-          onPressed: _saveAndExportToCalendar,
-          icon: const Icon(Icons.event_available_outlined),
-          label: const Text('Salva + calendario'),
-        ),
-      FilledButton(
-        onPressed: () async {
-          await _save();
-          if (context.mounted) Navigator.pop(context);
-        },
-        child: const Text('Salva'),
-      ),
-    ],
   );
+
+  Widget _responsivePair(Widget first, Widget second) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth < 440) {
+        return Column(children: [first, const SizedBox(height: 8), second]);
+      }
+      return Row(
+        children: [
+          Expanded(child: first),
+          const SizedBox(width: 8),
+          Expanded(child: second),
+        ],
+      );
+    },
+  );
+
+  Widget _priorityField() => DropdownButtonFormField<int>(
+    initialValue: priority,
+    isExpanded: true,
+    decoration: const InputDecoration(labelText: 'Priorità'),
+    items: [
+      for (var raw = 4; raw >= 1; raw--)
+        DropdownMenuItem(
+          value: raw,
+          child: Row(
+            children: [
+              Icon(
+                raw == 1 ? Icons.flag_outlined : Icons.flag,
+                color: _priorityColor(raw),
+              ),
+              const SizedBox(width: 6),
+              Text('P${5 - raw}'),
+            ],
+          ),
+        ),
+    ],
+    onChanged: (value) => setState(() => priority = value ?? 1),
+  );
+
+  Widget _recurrenceField() {
+    const basic = <String>[
+      'none',
+      'calendar:day:1',
+      'calendar:week:1',
+      'calendar:month:1',
+      'afterCompletion:day:1',
+      'afterCompletion:week:1',
+      'afterCompletion:month:1',
+    ];
+    final values = basic.contains(recurrence)
+        ? basic
+        : <String>[recurrence, ...basic];
+    return DropdownButtonFormField<String>(
+      initialValue: recurrence,
+      isExpanded: true,
+      decoration: const InputDecoration(labelText: 'Ripeti'),
+      items: [
+        for (final value in values)
+          DropdownMenuItem(
+            value: value,
+            child: Text(
+              value == 'none'
+                  ? 'Mai'
+                  : recurrenceSmartLabel(value, showDate.text),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      onChanged: (value) => setState(() => recurrence = value ?? 'none'),
+    );
+  }
 
   Widget _projectFields() => StreamBuilder<List<Project>>(
     stream: widget.repository.db.select(widget.repository.db.projects).watch(),
