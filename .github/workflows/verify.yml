@@ -1,0 +1,39 @@
+name: Verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Verify generated code is current
+        run: dart run build_runner build && git diff --exit-code
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test

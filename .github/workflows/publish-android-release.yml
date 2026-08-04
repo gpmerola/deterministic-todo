@@ -1,0 +1,133 @@
+name: Publish Android Release
+
+on:
+  push:
+    branches:
+      - 'agent/**'
+    paths:
+      - 'android/**'
+      - 'assets/**'
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'supabase/config.json'
+      - 'tools/generate_release_manifest.py'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Scrivi PUBBLICA per confermare la release latest'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-android-release
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.event_name == 'push' || inputs.confirmation == 'PUBBLICA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: android-release
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+      RELEASE_REPOSITORY: gpmerola/deterministic-todo-releases
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require dedicated release token
+        run: test -n "$GH_TOKEN"
+
+      - name: Read and validate version
+        id: version
+        run: |
+          PACKAGE_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)
+          VERSION=${PACKAGE_VERSION%%+*}
+          BUILD=${PACKAGE_VERSION##*+}
+          test -n "$VERSION"
+          test "$BUILD" -gt 0
+          if gh release view "v$VERSION" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - name: Dependencies and verification
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Prepare stable release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+
+      - name: Build APKs per CPU
+        run: >-
+          flutter build apk --release --split-per-abi
+          --dart-define-from-file=supabase/config.json
+        env:
+          ANDROID_KEYSTORE_PATH: release-key.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: deterministic-todo
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Prepare manifest and stable asset names
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD: ${{ steps.version.outputs.build }}
+        run: |
+          mkdir release-assets
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-assets/DeterministicTodo-Android-x86_64.apk
+          python3 tools/generate_release_manifest.py \
+            --version "$VERSION" \
+            --build "$BUILD" \
+            --release-base-url "https://github.com/$RELEASE_REPOSITORY/releases/download/v$VERSION" \
+            --arm64 release-assets/DeterministicTodo-Android-arm64-v8a.apk \
+            --arm32 release-assets/DeterministicTodo-Android-armeabi-v7a.apk \
+            --x86-64 release-assets/DeterministicTodo-Android-x86_64.apk \
+            --output release-assets/manifest.json
+
+      - name: Publish atomically as latest
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" release-assets/* \
+            --repo "$RELEASE_REPOSITORY" \
+            --title "Deterministic Todo $VERSION" \
+            --notes "Release Android verificata e firmata, con APK separati per CPU." \
+            --latest
+
+      - name: Verify public manifest
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          curl --fail --location --retry 5 --retry-delay 3 \
+            "https://github.com/$RELEASE_REPOSITORY/releases/download/v$VERSION/manifest.json" \
+            --output published-manifest.json
+          cmp release-assets/manifest.json published-manifest.json
