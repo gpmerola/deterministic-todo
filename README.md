@@ -91,13 +91,13 @@ Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ulti
 
 Su telefono, il pulsante `+` apre un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Le espressioni comprese — per esempio `oggi`, `domani`, `venerdì` e `alle 18:30` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
 
-La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Completate è raggiungibile dalle Impostazioni senza occupare la navigazione primaria; Inbox e In attesa restano stati compatibili nel database e nella versione desktop. Le attività Inbox senza data compaiono in Oggi, ma l'eventuale progetto tecnico “Inbox” importato da Todoist non viene mostrato come progetto autonomo. Prossime genera pigramente giorni fino a dieci anni, senza contatori ridondanti nei riquadri, e offre **Vai a data** per saltare immediatamente lontano nel calendario. Progetti appare come vista dedicata e mantiene sezioni e attività attive importate.
+La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Completate è raggiungibile dalle Impostazioni senza occupare la navigazione primaria; Inbox e In attesa restano stati compatibili nel database e nella versione desktop. Le attività Inbox senza data compaiono in Oggi, ma l'eventuale progetto tecnico “Inbox” importato da Todoist non viene mostrato come progetto autonomo. Prossime genera pigramente giorni fino a dieci anni, senza contatori o il filtro ridondante “Tutte”, e offre **Vai a data** per saltare immediatamente lontano nel calendario. Progetti appare come vista dedicata e mantiene sezioni e attività attive importate.
 
 Il tasto **Indietro** di Android chiude prima dialoghi e menu, poi ripercorre le sezioni visitate; in Prossime rimuove prima l'eventuale filtro sul giorno. Soltanto dalla radice Oggi, esaurita la cronologia interna, lascia chiudere normalmente l'app.
 
 Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; la transizione inversa dura 90 ms. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
 
-Le Impostazioni mostrano lo stato reale del worker: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento o errore. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato. Modificare data/ora ripianifica la notifica; eliminare una task la annulla sempre.
+Le Impostazioni mostrano lo stato reale del worker in una sola riga con icona: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento oppure errore. Account e comandi meno frequenti restano nel menu contestuale. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato. Modificare data/ora ripianifica la notifica; eliminare una task la annulla sempre.
 
 Progetti usa una sola intestazione: selettore del progetto, aggiunta sezione e menu per nuovo progetto o cambio elenco/bacheca. Nome, conteggio e azioni non vengono ripetuti. Anche le sezioni evitano contatori e usano un comando “Aggiungi” compatto.
 
@@ -131,7 +131,9 @@ Impostazioni consente export JSON completo/versionato, export CSV e import JSON.
 
 “Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date, fusi e ricorrenze. **Aggiorna** esegue un reimport incrementale: aggiunge le novità e aggiorna solo i record Todoist modificati, senza duplicati e senza riaprire le attività già completate nell'app. **Sostituisci** richiede una seconda conferma e ricostruisce da zero esclusivamente i dati provenienti da Todoist, rimuovendo quelli assenti dal nuovo file; le attività native dell'app non vengono toccate. L'operazione SQLite è atomica. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
 
-I link Markdown inseriti da Todoist nei titoli vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco.
+Titolo e descrizione sono importati separatamente da Todoist. La descrizione appare sotto il titolo, su un massimo di due righe. I link Markdown presenti in entrambi vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco. L'export attualmente supportato non contiene commenti, allegati o sotto-attività importabili.
+
+Lo swipe laterale sposta l'attività nel cestino e mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando sincronizzazione e notifiche.
 
 La vista Progetti riprende i due layout essenziali di Todoist: elenco verticale con sezioni comprimibili e bacheca orizzontale a colonne. Il layout viene ricordato per ciascun progetto. Si possono creare progetti con colore, aggiungere sezioni e attività direttamente nella destinazione, e spostare un'attività cambiando progetto/sezione dall'editor. Funzioni collaborative come condivisione e commenti restano intenzionalmente escluse.
 

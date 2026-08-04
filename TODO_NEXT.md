@@ -121,8 +121,8 @@ Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settima
 - Rendere Prossime una timeline verticale virtualizzata senza limite pratico, con separatori giornalieri e sezioni comprimibili; mostrare le task del giorno dall'SQLite dell'app. Google Calendar resta export esplicito e non diventa fonte di verità.
 - Estendere il linguaggio naturale evidenziato a ricorrenze: ogni giorno, ogni N giorni/settimane/mesi, ogni secondo martedì del mese, ogni giorno/mese annuale. La frase riconosciuta viene rimossa dal titolo.
 - Aggiungere bandierine priorità opzionali e pulite, coerenti con il mapping Todoist.
-- Aggiungere Undo per completamento, eliminazione, spostamento e ripianificazione.
-- Aggiungere swipe sperimentale con direzioni chiaramente colorate e sempre annullabile; se il test sul telefono non convince, rimuoverlo senza cambiare il dominio.
+- Aggiungere Undo per completamento, spostamento e ripianificazione; l'eliminazione via swipe è annullabile dalla 2.6.0.
+- Lo swipe sperimentale verso il cestino è annullabile dalla 2.6.0; se il test sul telefono continua a produrre errori, richiedere una conferma o rimuoverlo senza cambiare il dominio.
 - Non materializzare calendari infiniti: usare liste lazy e caricare finestre di date progressivamente.
 
 ## P1 — Funzioni originali ancora incomplete

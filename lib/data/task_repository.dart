@@ -218,6 +218,23 @@ class TaskRepository {
     await _notifications?.cancel(refreshed.id);
   }
 
+  Future<void> restore(Task task) async {
+    final deleted = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(task.id))).getSingle();
+    await _update(
+      deleted,
+      const TasksCompanion(deletedAt: Value(null)),
+      operation: 'upsert',
+    );
+    final restored = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(task.id))).getSingle();
+    if (restored.showDate != null && restored.timeMinutes != null) {
+      await _notifications?.schedule(restored);
+    }
+  }
+
   Future<void> move(Task task, TaskStatus status) async =>
       _update(task, TasksCompanion(status: Value(status.name)));
 

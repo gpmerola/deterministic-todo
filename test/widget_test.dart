@@ -86,6 +86,54 @@ void main() {
     expect(find.textContaining('https://example.com'), findsNothing);
   });
 
+  testWidgets('la descrizione Todoist appare sotto il titolo con link puliti', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final id = await repository.create('Update PhD');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await repository.updateDetails(
+      task,
+      title: task.title,
+      notes: 'Methods paper [Paper1](https://example.com/paper)',
+    );
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    expect(find.text('Update PhD'), findsOneWidget);
+    expect(find.textContaining('Methods paper Paper1'), findsOneWidget);
+    expect(find.textContaining('https://example.com'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('lo swipe nel cestino offre Annulla e ripristina la task', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Non eliminarmi');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.drag(find.text('Non eliminarmi'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Spostata nel cestino'), findsOneWidget);
+    expect(find.text('Annulla'), findsOneWidget);
+
+    await tester.tap(find.text('Annulla'));
+    await tester.pumpAndSettle();
+    expect(find.text('Non eliminarmi'), findsOneWidget);
+    expect((await db.select(db.tasks).getSingle()).deletedAt, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('il composer mobile crea dal foglio inferiore', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
@@ -338,7 +386,8 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      final dateChip = tester.widget<ChoiceChip>(find.byType(ChoiceChip).at(1));
+      expect(find.text('Tutte'), findsNothing);
+      final dateChip = tester.widget<ChoiceChip>(find.byType(ChoiceChip).first);
       final label = dateChip.label as Column;
       expect(label.children, hasLength(2));
       await tester.pumpWidget(const SizedBox.shrink());

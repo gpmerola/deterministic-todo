@@ -1358,11 +1358,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
           child: Row(
             children: [
-              ChoiceChip(
-                label: const Text('Tutte'),
-                selected: selectedUpcomingDate == null,
-                onSelected: (_) => setState(() => selectedUpcomingDate = null),
-              ),
               const Spacer(),
               TextButton.icon(
                 key: const ValueKey('jump-to-future-date'),
@@ -1499,9 +1494,18 @@ Color _priorityColor(int rawPriority) => switch (rawPriority) {
 };
 
 class TodoistLinkText extends StatefulWidget {
-  const TodoistLinkText(this.value, {super.key});
+  const TodoistLinkText(
+    this.value, {
+    this.style,
+    this.maxLines,
+    this.overflow = TextOverflow.clip,
+    super.key,
+  });
 
   final String value;
+  final TextStyle? style;
+  final int? maxLines;
+  final TextOverflow overflow;
 
   @override
   State<TodoistLinkText> createState() => _TodoistLinkTextState();
@@ -1559,7 +1563,11 @@ class _TodoistLinkTextState extends State<TodoistLinkText> {
     if (offset < widget.value.length) {
       spans.add(TextSpan(text: widget.value.substring(offset)));
     }
-    return Text.rich(TextSpan(children: spans));
+    return Text.rich(
+      TextSpan(style: widget.style, children: spans),
+      maxLines: widget.maxLines,
+      overflow: widget.overflow,
+    );
   }
 }
 
@@ -1611,11 +1619,20 @@ class _TaskTileState extends State<TaskTile> {
         background: Container(
           color: Theme.of(context).colorScheme.errorContainer,
         ),
-        onDismissed: (_) {
-          widget.repository.softDelete(widget.task);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Spostata nel cestino')));
+        onDismissed: (_) async {
+          final messenger = ScaffoldMessenger.of(context);
+          await widget.repository.softDelete(widget.task);
+          if (!mounted) return;
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Text('Spostata nel cestino'),
+              action: SnackBarAction(
+                label: 'Annulla',
+                onPressed: () => widget.repository.restore(widget.task),
+              ),
+            ),
+          );
         },
         child: AnimatedContainer(
           key: ValueKey('task-surface-${widget.task.id}'),
@@ -1691,7 +1708,7 @@ class _TaskTileState extends State<TaskTile> {
   );
 
   Widget? _subtitle(Task task) {
-    final values = [
+    final metadata = [
       if (widget.showDateMetadata && task.showDate != null)
         DateFormat(
           'd MMM',
@@ -1701,7 +1718,26 @@ class _TaskTileState extends State<TaskTile> {
       if (task.recurrence != null)
         '↻ ${recurrenceSmartLabel(task.recurrence, task.showDate)}',
     ];
-    return values.isEmpty ? null : Text(values.join(' · '));
+    final notes = task.notes?.trim();
+    if ((notes == null || notes.isEmpty) && metadata.isEmpty) return null;
+    final secondaryStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (notes != null && notes.isNotEmpty)
+          TodoistLinkText(
+            notes,
+            style: secondaryStyle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        if (metadata.isNotEmpty)
+          Text(metadata.join(' · '), style: secondaryStyle),
+      ],
+    );
   }
 
   Future<void> _showEditor() => showModalBottomSheet<void>(
@@ -2514,11 +2550,7 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
                   ? Icons.sync_problem_outlined
                   : Icons.cloud_done_outlined,
             ),
-            title: const Text('Collegamento permanente attivo'),
-            subtitle: Text(
-              '${user.email ?? 'Account personale'}\n${_syncLabel(sync)}',
-            ),
-            isThreeLine: true,
+            title: Text(_syncLabel(sync)),
             trailing: PopupMenuButton<String>(
               tooltip: 'Gestisci collegamento',
               onSelected: (value) async {
@@ -2589,16 +2621,14 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
   }
 
   String _syncLabel(SyncSnapshot? snapshot) => switch (snapshot?.phase) {
-    SyncPhase.syncing =>
-      'Sincronizzazione in corso (${snapshot!.pending} in attesa)',
+    SyncPhase.syncing => 'Sincronizzazione (${snapshot!.pending})…',
     SyncPhase.current =>
       snapshot!.lastSuccess == null
-          ? 'Sincronizzazione completata'
-          : 'Aggiornata alle ${DateFormat('HH:mm').format(snapshot.lastSuccess!.toLocal())}',
-    SyncPhase.error =>
-      'Errore di sincronizzazione; i dati locali sono al sicuro',
-    SyncPhase.offline => 'Offline; sincronizzerà alla riconnessione',
-    SyncPhase.disabled || null => 'Sessione permanente nel portachiavi',
+          ? 'Sincronizzato'
+          : 'Sincronizzato · ${DateFormat('HH:mm').format(snapshot.lastSuccess!.toLocal())}',
+    SyncPhase.error => 'Errore di sincronizzazione',
+    SyncPhase.offline => 'Offline',
+    SyncPhase.disabled || null => 'Collegato',
   };
 }
 

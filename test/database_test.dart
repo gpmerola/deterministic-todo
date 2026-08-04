@@ -59,6 +59,14 @@ void main() {
     )..where((row) => row.id.equals(id))).getSingle();
     expect(persisted.deletedAt, isNotNull);
     expect(await repository.watchAll().first, isEmpty);
+
+    await repository.restore(persisted);
+    final restored = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    expect(restored.deletedAt, isNull);
+    expect(restored.logicalVersion, persisted.logicalVersion + 1);
+    expect(await repository.watchAll().first, hasLength(1));
   });
 
   test('la generazione calendario ripetuta non duplica occorrenze', () async {
