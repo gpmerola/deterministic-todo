@@ -108,14 +108,14 @@ Incremento critico da implementare prima degli altri:
 3. eseguire la migrazione Supabase `202608040002_todoist_import.sql`;
 4. installare la release Android, scegliere `todoist.json` da Impostazioni e verificare il riepilogo 5/13/110 prima di confermare;
 5. dopo import sul telefono, verificare la convergenza sul Mac;
-6. mostrare Progetti nell'interfaccia soltanto quando ne esiste almeno uno, preservando Inbox Todoist come progetto importato e non come destinazione mobile principale;
+6. ~~mostrare Progetti con sezioni e attività attive~~ completato nella 1.9.0;
 7. non committare mai l'export reale.
 
 Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settimane/mesi, annuali e giorni fissi dell'anno. Le stringhe ambigue `ogni 1` e `ogni 26` vanno interpretate secondo il campo `due.date` e verificate in anteprima, non indovinate silenziosamente.
 
 ## P1 — UX Android richiesta
 
-- Spostare Completate dentro Impostazioni, lasciando nella barra primaria soltanto Oggi e Prossime.
+- ~~Spostare Completate dentro Impostazioni~~ completato; la barra primaria contiene Oggi, Prossime e Progetti.
 - Rendere Prossime una timeline verticale virtualizzata senza limite pratico, con separatori giornalieri e sezioni comprimibili; mostrare le task del giorno dall'SQLite dell'app. Google Calendar resta export esplicito e non diventa fonte di verità.
 - Estendere il linguaggio naturale evidenziato a ricorrenze: ogni giorno, ogni N giorni/settimane/mesi, ogni secondo martedì del mese, ogni giorno/mese annuale. La frase riconosciuta viene rimossa dal titolo.
 - Aggiungere bandierine priorità opzionali e pulite, coerenti con il mapping Todoist.

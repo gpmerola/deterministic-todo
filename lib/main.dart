@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -186,7 +188,15 @@ class TodoApp extends StatelessWidget {
   );
 }
 
-enum AppSection { inbox, today, upcoming, waiting, completed, settings }
+enum AppSection {
+  inbox,
+  today,
+  upcoming,
+  waiting,
+  projects,
+  completed,
+  settings,
+}
 
 extension on AppSection {
   String get label => switch (this) {
@@ -194,6 +204,7 @@ extension on AppSection {
     AppSection.today => 'Oggi',
     AppSection.upcoming => 'Prossime',
     AppSection.waiting => 'In attesa',
+    AppSection.projects => 'Progetti',
     AppSection.completed => 'Completate',
     AppSection.settings => 'Impostazioni',
   };
@@ -203,6 +214,7 @@ extension on AppSection {
     AppSection.today => Icons.today_outlined,
     AppSection.upcoming => Icons.event_outlined,
     AppSection.waiting => Icons.hourglass_empty,
+    AppSection.projects => Icons.folder_outlined,
     AppSection.completed => Icons.check_circle_outline,
     AppSection.settings => Icons.settings_outlined,
   };
@@ -518,15 +530,29 @@ class _TaskShellState extends State<TaskShell> {
             builder: (context, constraints) {
               final desktop = constraints.maxWidth >= 720;
               final content = _content(tasks);
+              const desktopSections = [
+                AppSection.inbox,
+                AppSection.today,
+                AppSection.upcoming,
+                AppSection.waiting,
+                AppSection.projects,
+                AppSection.settings,
+              ];
               return Scaffold(
                 appBar: desktop
                     ? null
                     : AppBar(
-                        leading: section == AppSection.settings
+                        leading:
+                            section == AppSection.settings ||
+                                section == AppSection.completed
                             ? IconButton(
                                 tooltip: 'Indietro',
-                                onPressed: () =>
-                                    setState(() => section = AppSection.today),
+                                onPressed: () => setState(
+                                  () =>
+                                      section = section == AppSection.completed
+                                      ? AppSection.settings
+                                      : AppSection.today,
+                                ),
                                 icon: const Icon(Icons.arrow_back),
                               )
                             : null,
@@ -555,16 +581,18 @@ class _TaskShellState extends State<TaskShell> {
                         children: [
                           NavigationRail(
                             extended: constraints.maxWidth >= 1000,
-                            selectedIndex: section.index,
+                            selectedIndex: desktopSections.contains(section)
+                                ? desktopSections.indexOf(section)
+                                : desktopSections.indexOf(AppSection.settings),
                             onDestinationSelected: (index) => setState(
-                              () => section = AppSection.values[index],
+                              () => section = desktopSections[index],
                             ),
                             leading: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 16),
                               child: Icon(Icons.check_box_outlined, size: 32),
                             ),
                             destinations: [
-                              for (final item in AppSection.values)
+                              for (final item in desktopSections)
                                 NavigationRailDestination(
                                   icon: Icon(item.icon),
                                   label: Text(item.label),
@@ -576,7 +604,11 @@ class _TaskShellState extends State<TaskShell> {
                         ],
                       )
                     : content,
-                floatingActionButton: !desktop && section != AppSection.settings
+                floatingActionButton:
+                    !desktop &&
+                        section != AppSection.settings &&
+                        section != AppSection.projects &&
+                        section != AppSection.completed
                     ? FloatingActionButton(
                         tooltip: 'Nuova attività',
                         onPressed: _showQuickAddSheet,
@@ -585,14 +617,15 @@ class _TaskShellState extends State<TaskShell> {
                     : null,
                 bottomNavigationBar: desktop
                     ? null
-                    : section == AppSection.settings
+                    : section == AppSection.settings ||
+                          section == AppSection.completed
                     ? null
                     : Builder(
                         builder: (context) {
                           const mobileSections = [
                             AppSection.today,
                             AppSection.upcoming,
-                            AppSection.completed,
+                            AppSection.projects,
                           ];
                           return NavigationBar(
                             selectedIndex: mobileSections
@@ -625,8 +658,10 @@ class _TaskShellState extends State<TaskShell> {
         syncClient: widget.syncClient,
         syncService: widget.syncService,
         checkForUpdates: _checkForUpdates,
+        showCompleted: () => setState(() => section = AppSection.completed),
       );
     }
+    if (section == AppSection.projects) return _projectsView(all);
     final today = CivilDate.fromDateTime(DateTime.now()).toString();
     final visible = all.where((task) {
       return switch (section) {
@@ -641,6 +676,7 @@ class _TaskShellState extends State<TaskShell> {
               task.showDate != null &&
               task.showDate!.compareTo(today) > 0,
         AppSection.waiting => task.status == TaskStatus.waiting.name,
+        AppSection.projects => false,
         AppSection.completed => task.status == TaskStatus.completed.name,
         AppSection.settings => false,
       };
@@ -718,6 +754,72 @@ class _TaskShellState extends State<TaskShell> {
       ],
     );
   }
+
+  Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(
+    stream:
+        (widget.repository.db.select(widget.repository.db.projects)..orderBy([
+              (row) => OrderingTerm(expression: row.position),
+              (row) => OrderingTerm(expression: row.name),
+            ]))
+            .watch(),
+    builder: (context, projectSnapshot) => StreamBuilder<List<ProjectSection>>(
+      stream: (widget.repository.db.select(
+        widget.repository.db.projectSections,
+      )..orderBy([(row) => OrderingTerm(expression: row.position)])).watch(),
+      builder: (context, sectionSnapshot) {
+        final projects = projectSnapshot.data ?? const <Project>[];
+        final sections = sectionSnapshot.data ?? const <ProjectSection>[];
+        if (projects.isEmpty) {
+          return const Center(
+            child: Text('Nessun progetto. Puoi importarli da Todoist.'),
+          );
+        }
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            for (final project in projects.where((item) => !item.isArchived))
+              ExpansionTile(
+                leading: Icon(
+                  project.isFavorite ? Icons.folder_special : Icons.folder,
+                ),
+                title: Text(project.name),
+                subtitle: Text(
+                  '${tasks.where((task) => task.projectId == project.id).length} attività',
+                ),
+                children: [
+                  for (final projectSection in sections.where(
+                    (item) => item.projectId == project.id && !item.isArchived,
+                  )) ...[
+                    ListTile(
+                      dense: true,
+                      leading: const SizedBox(width: 24),
+                      title: Text(projectSection.name),
+                    ),
+                    for (final task in tasks.where(
+                      (item) => item.sectionId == projectSection.id,
+                    ))
+                      TaskTile(
+                        key: ValueKey('project-${task.id}'),
+                        task: task,
+                        repository: widget.repository,
+                      ),
+                  ],
+                  for (final task in tasks.where(
+                    (item) =>
+                        item.projectId == project.id && item.sectionId == null,
+                  ))
+                    TaskTile(
+                      key: ValueKey('project-${task.id}'),
+                      task: task,
+                      repository: widget.repository,
+                    ),
+                ],
+              ),
+          ],
+        );
+      },
+    ),
+  );
 
   Widget _futureDateStrip(List<Task> all) {
     final today = CivilDate.fromDateTime(DateTime.now());
@@ -872,6 +974,71 @@ int _stableCompare(Task a, Task b, String today) {
   return byCreation != 0 ? byCreation : a.id.compareTo(b.id);
 }
 
+class TodoistLinkText extends StatefulWidget {
+  const TodoistLinkText(this.value, {super.key});
+
+  final String value;
+
+  @override
+  State<TodoistLinkText> createState() => _TodoistLinkTextState();
+}
+
+class _TodoistLinkTextState extends State<TodoistLinkText> {
+  static final linkPattern = RegExp(r'\[([^\]]+)\]\((https?://[^\s)]+)\)');
+  final recognizers = <TapGestureRecognizer>[];
+
+  @override
+  void didUpdateWidget(covariant TodoistLinkText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) _disposeRecognizers();
+  }
+
+  void _disposeRecognizers() {
+    for (final recognizer in recognizers) {
+      recognizer.dispose();
+    }
+    recognizers.clear();
+  }
+
+  @override
+  void dispose() {
+    _disposeRecognizers();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _disposeRecognizers();
+    final spans = <InlineSpan>[];
+    var offset = 0;
+    for (final match in linkPattern.allMatches(widget.value)) {
+      if (match.start > offset) {
+        spans.add(TextSpan(text: widget.value.substring(offset, match.start)));
+      }
+      final uri = Uri.parse(match.group(2)!);
+      final recognizer = TapGestureRecognizer()
+        ..onTap = () => launchUrl(uri, mode: LaunchMode.externalApplication);
+      recognizers.add(recognizer);
+      spans.add(
+        TextSpan(
+          text: match.group(1),
+          recognizer: recognizer,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            decoration: TextDecoration.underline,
+            decorationColor: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      );
+      offset = match.end;
+    }
+    if (offset < widget.value.length) {
+      spans.add(TextSpan(text: widget.value.substring(offset)));
+    }
+    return Text.rich(TextSpan(children: spans));
+  }
+}
+
 class TaskTile extends StatefulWidget {
   const TaskTile({required this.task, required this.repository, super.key});
 
@@ -916,7 +1083,7 @@ class _TaskTileState extends State<TaskTile> {
         onChanged: (value) =>
             widget.repository.setCompleted(widget.task, value ?? false),
       ),
-      title: Text(widget.task.title),
+      title: TodoistLinkText(widget.task.title),
       subtitle: _subtitle(widget.task),
       trailing: Platform.isAndroid && widget.task.showDate != null
           ? IconButton(
@@ -1162,6 +1329,7 @@ class SettingsView extends StatelessWidget {
   const SettingsView({
     required this.repository,
     required this.checkForUpdates,
+    required this.showCompleted,
     this.syncClient,
     this.syncService,
     super.key,
@@ -1169,6 +1337,7 @@ class SettingsView extends StatelessWidget {
 
   final TaskRepository repository;
   final Future<void> Function() checkForUpdates;
+  final VoidCallback showCompleted;
   final SupabaseClient? syncClient;
   final SyncService? syncService;
 
@@ -1368,6 +1537,13 @@ class SettingsView extends StatelessWidget {
         ),
       ),
       const Divider(),
+      ListTile(
+        leading: const Icon(Icons.check_circle_outline),
+        title: const Text('Attività completate'),
+        subtitle: const Text('Cronologia fuori dalla navigazione principale.'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: showCompleted,
+      ),
       ListTile(
         leading: const Icon(Icons.file_download_outlined),
         title: const Text('Esporta backup JSON'),

@@ -44,6 +44,7 @@ Aggiornato il 4 agosto 2026.
 - Frasi intelligenti per feriali, weekend, ultimo giorno/weekday mensile, intervalli dal completamento e date relative; piano Todoist tipizzato con progetti, sezioni, task, descrizioni, priorità, date, fusi, ricorrenze e UUID v5 deterministici.
 - Import Todoist attivo-only completo: anteprima obbligatoria, transazione SQLite atomica, reimportazione senza duplicati, outbox per tutti i task e sincronizzazione Supabase di progetti, sezioni, priorità e identificativi esterni.
 - Il vero export personale è stato simulato soltanto in memoria: 5 progetti, 13 sezioni, 110 task attivi, 46 pianificati e 25 ricorrenti; seconda esecuzione con zero duplicati. Il file personale non è stato copiato nel repository.
+- Vista Progetti Android con sezioni e attività attive, Completate spostata nelle Impostazioni e rendering cliccabile dei link Markdown Todoist senza URL estesi in elenco.
 
 ## Verificate in questa macchina
 

@@ -87,7 +87,7 @@ Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ulti
 
 Su telefono, il pulsante `+` apre un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Le espressioni comprese — per esempio `oggi`, `domani`, `venerdì` e `alle 18:30` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
 
-La navigazione Android è ridotta a **Oggi**, **Prossime** e **Completate**. Inbox e In attesa restano stati compatibili nel database e nella versione desktop, ma non occupano spazio nella barra mobile; le attività Inbox senza data compaiono in Oggi. Prossime genera pigramente giorni fino a dieci anni, segnala i cambi di mese/anno e offre **Vai a data** per saltare immediatamente lontano nel calendario.
+La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Completate è raggiungibile dalle Impostazioni senza occupare la navigazione primaria; Inbox e In attesa restano stati compatibili nel database e nella versione desktop. Le attività Inbox senza data compaiono in Oggi. Prossime genera pigramente giorni fino a dieci anni, segnala i cambi di mese/anno e offre **Vai a data** per saltare immediatamente lontano nel calendario. Progetti appare come vista dedicata, mantiene sezioni e raggruppa le attività attive importate.
 
 Le Impostazioni mostrano lo stato reale del worker: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento o errore. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato. Modificare data/ora ripianifica la notifica; eliminare una task la annulla sempre.
 
@@ -118,6 +118,8 @@ Su Android, “Salva + calendario” crea esplicitamente un evento nel calendari
 Impostazioni consente export JSON completo/versionato, export CSV e import JSON. Prima dell'import mostra conteggi di aggiunte, aggiornamenti e record invariati; vince solo una versione logica superiore, quindi non avvengono sovrascritture silenziose.
 
 “Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date, fusi e ricorrenze. L'operazione SQLite è atomica: un errore non lascia un import parziale. UUID deterministici e identificativi esterni rendono innocuo scegliere di nuovo lo stesso file. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
+
+I link Markdown inseriti da Todoist nei titoli vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco.
 
 ## Limiti noti della prima versione
 

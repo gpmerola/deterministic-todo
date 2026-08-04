@@ -81,23 +81,33 @@ class SyncService {
     _emit(SyncSnapshot(SyncPhase.syncing, pending: entries.length));
     try {
       await _syncProjects();
+      final acknowledged = <OutboxEntry>[];
       for (final entry in entries) {
-        final payload = jsonDecode(entry.payload) as Map<String, Object?>;
         final task = await (db.select(
           db.tasks,
         )..where((row) => row.id.equals(entry.entityId))).getSingleOrNull();
         if (task != null) {
           await client.rpc('merge_task', params: {'record': _remoteTask(task)});
         }
-        await client.from('sync_operations').upsert({
-          'operation_id': entry.operationId,
-          'entity_id': entry.entityId,
-          'operation': entry.operation,
-          'payload': payload,
-        }, onConflict: 'operation_id');
-        await (db.delete(
-          db.outboxEntries,
-        )..where((row) => row.operationId.equals(entry.operationId))).go();
+        acknowledged.add(entry);
+      }
+      if (acknowledged.isNotEmpty) {
+        await client.from('sync_operations').upsert([
+          for (final entry in acknowledged)
+            {
+              'operation_id': entry.operationId,
+              'entity_id': entry.entityId,
+              'operation': entry.operation,
+              'payload': jsonDecode(entry.payload) as Map<String, Object?>,
+            },
+        ], onConflict: 'operation_id');
+        await db.transaction(() async {
+          for (final entry in acknowledged) {
+            await (db.delete(
+              db.outboxEntries,
+            )..where((row) => row.operationId.equals(entry.operationId))).go();
+          }
+        });
       }
       final remoteRows = await client.from('tasks').select();
       for (final raw in remoteRows) {

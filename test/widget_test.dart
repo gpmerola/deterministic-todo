@@ -35,15 +35,33 @@ void main() {
     expect(find.text('Oggi'), findsWidgets);
     expect(find.text('Inbox'), findsNothing);
     expect(find.text('In attesa'), findsNothing);
+    expect(find.text('Progetti'), findsOneWidget);
+    expect(find.text('Completate'), findsNothing);
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pump();
 
     expect(find.text('Privacy'), findsOneWidget);
+    expect(find.text('Attività completate'), findsOneWidget);
     expect(find.byTooltip('Indietro'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
     await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('i link Todoist mostrano la parola senza URL esteso', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: TodoistLinkText('[Tracker](https://example.com/path)'),
+        ),
+      ),
+    );
+
+    expect(find.text('Tracker'), findsOneWidget);
+    expect(find.textContaining('https://example.com'), findsNothing);
   });
 
   testWidgets('il composer mobile crea dal foglio inferiore', (tester) async {
