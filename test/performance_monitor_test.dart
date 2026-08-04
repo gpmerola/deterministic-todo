@@ -8,4 +8,11 @@ void main() {
       const Duration(microseconds: 16667),
     );
   });
+
+  test('registra anche il budget frame del display a 120 Hz', () {
+    expect(
+      PerformanceMonitor.highRefreshSlowFrameThreshold,
+      const Duration(microseconds: 8334),
+    );
+  });
 }

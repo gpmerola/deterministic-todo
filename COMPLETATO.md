@@ -79,3 +79,6 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 - Profilazione locale event-driven di avvio, RAM RSS, dimensione SQLite, code di sync e frame build/raster.
 - Metriche del sync per durata, volume remoto, upload compattati e progetti/sezioni invariati saltati.
 - Nessun analytics, nuovo polling o contenuto utente nei log; esportazione manuale dalle Impostazioni.
+- Promemoria interno massimo una volta al giorno con esportazione diretta e prompt di analisi pronto da copiare.
+- Oggi esclude il backlog senza data appartenente ai progetti, mantenendo visibili le attività libere senza progetto.
+- Conteggio frame lenti sia sul budget 60 Hz sia sul budget 120 Hz del Galaxy S21.

@@ -270,7 +270,76 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdates());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkForUpdates();
+      await _showDailyPerformanceReminder();
+    });
+  }
+
+  Future<void> _showDailyPerformanceReminder() async {
+    if (!DiagnosticLogService.instance.isInitialized) return;
+    final today = CivilDate.fromDateTime(DateTime.now()).toString();
+    final setting =
+        await (widget.repository.db.select(widget.repository.db.appSettings)
+              ..where((row) => row.key.equals('performance_reminder_date')))
+            .getSingleOrNull();
+    if (setting?.value == today || !mounted) return;
+    await widget.repository.db
+        .into(widget.repository.db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: 'performance_reminder_date',
+            value: today,
+          ),
+        );
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Controllare le prestazioni?'),
+        content: const Text(
+          'Se hai usato abbastanza l’app, puoi esportare i log e inviarli a '
+          'Codex con questo prompt:\n\n“Analizza questi log prestazionali, '
+          'individua colli di bottiglia di RAM, CPU, storage, frame e sync e '
+          'implementa le ottimizzazioni sicure.”',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Non oggi'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(
+                const ClipboardData(
+                  text:
+                      'Analizza questi log prestazionali, individua colli di '
+                      'bottiglia di RAM, CPU, storage, frame e sync e '
+                      'implementa le ottimizzazioni sicure.',
+                ),
+              );
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: const Text('Copia prompt'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final file = await DiagnosticLogService.instance.exportFile();
+              if (file != null) {
+                await SharePlus.instance.share(
+                  ShareParams(
+                    files: [XFile(file.path)],
+                    title: 'Diagnostica Deterministic Todo',
+                  ),
+                );
+              }
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: const Text('Esporta log'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -714,7 +783,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       return switch (section) {
         AppSection.inbox => task.status == TaskStatus.inbox.name,
         AppSection.today =>
-          task.status == TaskStatus.inbox.name ||
+          (task.status == TaskStatus.inbox.name && task.projectId == null) ||
               task.status == TaskStatus.available.name ||
               task.showDate == today ||
               (task.dueDate != null && task.dueDate!.compareTo(today) <= 0),

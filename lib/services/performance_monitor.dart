@@ -15,6 +15,7 @@ class PerformanceMonitor {
 
   static final instance = PerformanceMonitor._();
   static const slowFrameThreshold = Duration(microseconds: 16667);
+  static const highRefreshSlowFrameThreshold = Duration(microseconds: 8334);
 
   final List<FrameTiming> _frames = [];
   bool _started = false;
@@ -45,11 +46,15 @@ class PerformanceMonitor {
     final build = sample.map((frame) => frame.buildDuration.inMicroseconds);
     final raster = sample.map((frame) => frame.rasterDuration.inMicroseconds);
     final slow = sample.where((frame) => frame.totalSpan > slowFrameThreshold);
+    final highRefreshSlow = sample.where(
+      (frame) => frame.totalSpan > highRefreshSlowFrameThreshold,
+    );
     await DiagnosticLogService.instance.event(
       'frame_sample',
       fields: {
         'frames': sample.length,
         'slow_frames': slow.length,
+        'slow_frames_8ms': highRefreshSlow.length,
         'build_us_avg': _average(build),
         'build_us_max': build.reduce(_max),
         'raster_us_avg': _average(raster),

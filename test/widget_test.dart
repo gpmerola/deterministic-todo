@@ -20,6 +20,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
+  testWidgets('Oggi esclude il backlog non pianificato dei progetti', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final projectId = await repository.createProject('Lavoro');
+    await repository.create('Backlog progetto', projectId: projectId);
+    await repository.create('Inbox personale');
+
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    expect(find.text('Backlog progetto'), findsNothing);
+    expect(find.text('Inbox personale'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('Impostazioni è raggiungibile su uno schermo Android', (
     tester,
   ) async {

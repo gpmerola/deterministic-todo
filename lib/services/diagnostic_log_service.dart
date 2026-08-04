@@ -14,6 +14,8 @@ class DiagnosticLogService {
   File? _file;
   Future<void> _pending = Future.value();
 
+  bool get isInitialized => _file != null;
+
   Future<void> initialize() async {
     final directory = await getApplicationSupportDirectory();
     _file = File('${directory.path}/diagnostics.jsonl');
@@ -82,6 +84,7 @@ class DiagnosticLogService {
     'outbox',
     'frames',
     'slow_frames',
+    'slow_frames_8ms',
     'build_us_avg',
     'build_us_max',
     'raster_us_avg',

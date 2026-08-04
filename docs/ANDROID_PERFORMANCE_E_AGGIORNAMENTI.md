@@ -68,7 +68,7 @@ Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii es
 - `sync_completed`: durata, righe remote, entità effettivamente caricate e progetti/sezioni saltati perché invariati;
 - `sync_failed`: tipo/codice tecnico e durata prima dell’errore.
 
-I dati restano nei due file rotanti da 512 KiB già previsti e si esportano esplicitamente da Impostazioni. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi.
+I dati restano nei due file rotanti da 512 KiB già previsti e si esportano esplicitamente da Impostazioni. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
 
 ## Flusso OTA
 
