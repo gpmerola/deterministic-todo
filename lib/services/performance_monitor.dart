@@ -1,0 +1,117 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:drift/drift.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import '../data/local/database.dart';
+import '../domain/task.dart';
+import 'diagnostic_log_service.dart';
+
+class PerformanceMonitor {
+  PerformanceMonitor._();
+
+  static final instance = PerformanceMonitor._();
+  static const slowFrameThreshold = Duration(microseconds: 16667);
+
+  final List<FrameTiming> _frames = [];
+  bool _started = false;
+
+  void start() {
+    if (_started) return;
+    _started = true;
+    SchedulerBinding.instance.addTimingsCallback(_onTimings);
+  }
+
+  void _onTimings(List<FrameTiming> timings) {
+    _frames.addAll(timings);
+    if (_frames.length >= 120) unawaited(flushFrames());
+  }
+
+  Future<void> flushFrames() async {
+    if (_frames.isEmpty) return;
+    final sample = List<FrameTiming>.of(_frames);
+    _frames.clear();
+    try {
+      await _writeFrames(sample);
+    } on Object {
+      // La profilazione non deve mai interferire con l'app.
+    }
+  }
+
+  Future<void> _writeFrames(List<FrameTiming> sample) async {
+    final build = sample.map((frame) => frame.buildDuration.inMicroseconds);
+    final raster = sample.map((frame) => frame.rasterDuration.inMicroseconds);
+    final slow = sample.where((frame) => frame.totalSpan > slowFrameThreshold);
+    await DiagnosticLogService.instance.event(
+      'frame_sample',
+      fields: {
+        'frames': sample.length,
+        'slow_frames': slow.length,
+        'build_us_avg': _average(build),
+        'build_us_max': build.reduce(_max),
+        'raster_us_avg': _average(raster),
+        'raster_us_max': raster.reduce(_max),
+      },
+    );
+  }
+
+  Future<void> snapshot(String phase, AppDatabase db, {int? durationMs}) async {
+    try {
+      await _writeSnapshot(phase, db, durationMs: durationMs);
+    } on Object {
+      // La profilazione non deve mai interferire con l'app.
+    }
+  }
+
+  Future<void> _writeSnapshot(
+    String phase,
+    AppDatabase db, {
+    int? durationMs,
+  }) async {
+    final activeCount = db.tasks.id.count(
+      filter:
+          db.tasks.deletedAt.isNull() &
+          db.tasks.status.equals(TaskStatus.completed.name).not(),
+    );
+    final completedCount = db.tasks.id.count(
+      filter:
+          db.tasks.deletedAt.isNull() &
+          db.tasks.status.equals(TaskStatus.completed.name),
+    );
+    final taskCounts = db.selectOnly(db.tasks)
+      ..addColumns([activeCount, completedCount]);
+    final counts = await taskCounts.getSingle();
+    final outboxCount = db.outboxEntries.operationId.count();
+    final outboxQuery = db.selectOnly(db.outboxEntries)
+      ..addColumns([outboxCount]);
+    final support = await getApplicationSupportDirectory();
+    final database = File(p.join(support.path, 'deterministic_todo.sqlite'));
+    await DiagnosticLogService.instance.event(
+      'performance_snapshot',
+      fields: {
+        'phase': phase,
+        'rss_bytes': ProcessInfo.currentRss,
+        'db_bytes': await database.exists() ? await database.length() : 0,
+        'active_tasks': counts.read(activeCount) ?? 0,
+        'completed_tasks': counts.read(completedCount) ?? 0,
+        'outbox': (await outboxQuery.getSingle()).read(outboxCount) ?? 0,
+        'duration_ms': ?durationMs,
+      },
+    );
+  }
+
+  int _average(Iterable<int> values) {
+    var count = 0;
+    var total = 0;
+    for (final value in values) {
+      count++;
+      total += value;
+    }
+    return count == 0 ? 0 : total ~/ count;
+  }
+
+  int _max(int left, int right) => left > right ? left : right;
+}

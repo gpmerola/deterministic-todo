@@ -99,12 +99,14 @@ class SyncService {
         fields: {'pending': entries.length},
       ),
     );
+    final timer = Stopwatch()..start();
     try {
-      await _syncProjects();
+      final projectMetrics = await _syncProjects();
       final acknowledged = <OutboxEntry>[...entries];
       final pendingIds = distinctEntityIds(
         entries.map((entry) => entry.entityId),
       );
+      var uploadedEntities = 0;
       if (pendingIds.isNotEmpty) {
         final pendingTasks = await (db.select(
           db.tasks,
@@ -112,6 +114,7 @@ class SyncService {
         for (final task in pendingTasks) {
           await client.rpc('merge_task', params: {'record': _remoteTask(task)});
         }
+        uploadedEntities = pendingTasks.length;
       }
       if (acknowledged.isNotEmpty) {
         await client.from('sync_operations').upsert([
@@ -145,14 +148,23 @@ class SyncService {
         await _mergeRemote(raw, localById[raw['id'] as String]);
       }
       final now = DateTime.now().toUtc();
+      timer.stop();
       _emit(SyncSnapshot(SyncPhase.current, lastSuccess: now));
       unawaited(
         DiagnosticLogService.instance.event(
           'sync_completed',
-          fields: {'count': entries.length},
+          fields: {
+            'count': entries.length,
+            'uploaded_entities': uploadedEntities,
+            'remote_rows': remoteRows.length,
+            'skipped_projects': projectMetrics.skippedProjects,
+            'skipped_sections': projectMetrics.skippedSections,
+            'duration_ms': timer.elapsedMilliseconds,
+          },
         ),
       );
     } catch (error) {
+      timer.stop();
       _emit(
         SyncSnapshot(
           SyncPhase.error,
@@ -168,13 +180,16 @@ class SyncService {
             'pending': entries.length,
             'error_type': error.runtimeType.toString(),
             if (error is PostgrestException) 'error_code': error.code,
+            'duration_ms': timer.elapsedMilliseconds,
           },
         ),
       );
     }
   }
 
-  Future<void> _syncProjects() async {
+  Future<({int skippedProjects, int skippedSections})> _syncProjects() async {
+    var skippedProjects = 0;
+    var skippedSections = 0;
     final projects = await db.select(db.projects).get();
     for (final project in projects) {
       final fingerprint = _fingerprint(
@@ -182,6 +197,7 @@ class SyncService {
         project.deviceId,
       );
       if (await _syncedFingerprint('project', project.id) == fingerprint) {
+        skippedProjects++;
         continue;
       }
       await client.rpc(
@@ -197,6 +213,7 @@ class SyncService {
         section.deviceId,
       );
       if (await _syncedFingerprint('section', section.id) == fingerprint) {
+        skippedSections++;
         continue;
       }
       await client.rpc(
@@ -281,6 +298,7 @@ class SyncService {
         _fingerprint(raw['logical_version'] as int, raw['device_id'] as String),
       );
     }
+    return (skippedProjects: skippedProjects, skippedSections: skippedSections);
   }
 
   String _fingerprint(int version, String deviceId) => '$version:$deviceId';

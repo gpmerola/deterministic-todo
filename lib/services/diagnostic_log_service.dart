@@ -29,15 +29,19 @@ class DiagnosticLogService {
       for (final entry in fields.entries)
         if (_allowedKeys.contains(entry.key)) entry.key: entry.value,
     };
-    _pending = _pending.then((_) async {
+    _pending = _pending.catchError((Object _) {}).then((_) async {
       final file = _file;
       if (file == null) return;
-      await _rotateIfNeeded(file);
-      await file.writeAsString(
-        '${jsonEncode({'timestamp': DateTime.now().toUtc().toIso8601String(), 'level': level, 'event': name, ...allowed})}\n',
-        mode: FileMode.append,
-        flush: true,
-      );
+      try {
+        await _rotateIfNeeded(file);
+        await file.writeAsString(
+          '${jsonEncode({'timestamp': DateTime.now().toUtc().toIso8601String(), 'level': level, 'event': name, ...allowed})}\n',
+          mode: FileMode.append,
+          flush: true,
+        );
+      } on Object {
+        // Un errore diagnostico non deve interrompere l'app né i log futuri.
+      }
     });
     return _pending;
   }
@@ -71,5 +75,20 @@ class DiagnosticLogService {
     'error_type',
     'error_code',
     'duration_ms',
+    'rss_bytes',
+    'db_bytes',
+    'active_tasks',
+    'completed_tasks',
+    'outbox',
+    'frames',
+    'slow_frames',
+    'build_us_avg',
+    'build_us_max',
+    'raster_us_avg',
+    'raster_us_max',
+    'remote_rows',
+    'uploaded_entities',
+    'skipped_projects',
+    'skipped_sections',
   };
 }

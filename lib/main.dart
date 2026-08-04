@@ -28,6 +28,7 @@ import 'services/device_time_zone_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/notification_service.dart';
+import 'services/performance_monitor.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
 
@@ -47,6 +48,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
   late final Future<_AppRuntime> initialization = _initialize();
 
   Future<_AppRuntime> _initialize() async {
+    final startup = Stopwatch()..start();
     try {
       await DiagnosticLogService.instance.initialize();
     } on Object {
@@ -103,6 +105,15 @@ class _BootstrapAppState extends State<BootstrapApp> {
       syncService = SyncService(database, syncClient)..start();
     }
     await repository.activateScheduled(CivilDate.fromDateTime(DateTime.now()));
+    PerformanceMonitor.instance.start();
+    startup.stop();
+    unawaited(
+      PerformanceMonitor.instance.snapshot(
+        'startup',
+        database,
+        durationMs: startup.elapsedMilliseconds,
+      ),
+    );
     return _AppRuntime(repository, syncClient, syncService);
   }
 
@@ -251,6 +262,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final quickFocus = FocusNode();
   late final Stream<List<Task>> activeTasks;
   late final Stream<List<Task>> completedTasks;
+  bool backgroundSnapshotTaken = false;
 
   @override
   void initState() {
@@ -264,12 +276,26 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      backgroundSnapshotTaken = false;
       widget.syncService?.resume();
+      unawaited(
+        PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
+      );
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
       widget.syncService?.pause();
+      if (!backgroundSnapshotTaken) {
+        backgroundSnapshotTaken = true;
+        unawaited(PerformanceMonitor.instance.flushFrames());
+        unawaited(
+          PerformanceMonitor.instance.snapshot(
+            'background',
+            widget.repository.db,
+          ),
+        );
+      }
     }
   }
 
@@ -2056,7 +2082,8 @@ class SettingsView extends StatelessWidget {
         leading: const Icon(Icons.bug_report_outlined),
         title: const Text('Esporta diagnostica'),
         subtitle: const Text(
-          'Log locale rotante senza titoli, note, email, token o URL.',
+          'Avvio, RAM, database, sync e frame lenti; nessun titolo, nota, '
+          'email, token o URL.',
         ),
         onTap: () => _exportDiagnostics(context),
       ),

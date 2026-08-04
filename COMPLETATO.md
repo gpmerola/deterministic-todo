@@ -73,3 +73,9 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 - Outbox compattata per attività e confronto del pull remoto eseguito in batch, eliminando RPC e query SQLite duplicate.
 - Simboli Dart separati dagli APK release e conservati privatamente per 30 giorni, riducendo lo storage sul dispositivo senza perdere la possibilità di diagnosticare crash.
 - APK ARM64 2.1.2 misurato a 22.364.249 byte: circa 1,25 MB (5,3%) in meno rispetto alla 2.1.1.
+
+# Versione 2.2.0
+
+- Profilazione locale event-driven di avvio, RAM RSS, dimensione SQLite, code di sync e frame build/raster.
+- Metriche del sync per durata, volume remoto, upload compattati e progetti/sezioni invariati saltati.
+- Nessun analytics, nuovo polling o contenuto utente nei log; esportazione manuale dalle Impostazioni.

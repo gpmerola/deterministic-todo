@@ -59,6 +59,17 @@ Il Galaxy S21 usa un processore ARM a 64 bit e riceve quindi `android-arm64-v8a`
 
 Il fuso IANA viene letto tramite un singolo platform channel soltanto quando si salva una task con ora o si crea una notifica. L’accesso al calendario avviene esclusivamente premendo “Salva + calendario”; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
+## Telemetria prestazionale locale
+
+Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:
+
+- `performance_snapshot`: millisecondi di avvio, RAM RSS, byte SQLite, attività attive/completate e outbox, raccolti ad avvio e cambio foreground/background;
+- `frame_sample`: media e massimo dei tempi build/raster e frame oltre 16,67 ms, emesso ogni 120 frame o andando in background;
+- `sync_completed`: durata, righe remote, entità effettivamente caricate e progetti/sezioni saltati perché invariati;
+- `sync_failed`: tipo/codice tecnico e durata prima dell’errore.
+
+I dati restano nei due file rotanti da 512 KiB già previsti e si esportano esplicitamente da Impostazioni. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi.
+
 ## Flusso OTA
 
 1. Il client scarica il piccolo `manifest.json` pubblico.
