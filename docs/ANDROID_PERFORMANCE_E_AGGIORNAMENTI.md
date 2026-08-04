@@ -33,7 +33,7 @@ Il bootstrap apre Drift su un isolate nativo in background e attiva WAL. Il data
 
 Il controllo aggiornamenti parte dopo il primo frame, non blocca la UI e memorizza `last_update_check_us` in `app_settings`. I controlli automatici successivi sono saltati per sei ore. Il controllo manuale nelle Impostazioni ignora intenzionalmente questo limite.
 
-Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione futura deve reagire a modifica e riconnessione, usando un intervallo prudente soltanto mentre l’app è aperta.
+Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione reagisce a modifica, riconnessione e ritorno in primo piano. Il controllo di sicurezza ogni 15 minuti esiste soltanto mentre l’app è visibile e viene sospeso in background. Progetti e sezioni già confermati dal server sono identificati tramite la coppia Lamport `(logical_version, device_id)` e non vengono reinviati finché non cambiano.
 
 ## RAM e query SQLite
 

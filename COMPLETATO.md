@@ -65,3 +65,8 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 - Opzione “Sostituisci da zero” con doppia conferma, limitata ai dati Todoist e compatibile con la sincronizzazione Android/macOS.
 - Import del layout elenco/bacheca indicato dal progetto Todoist.
 - Log diagnostico con conteggi separati per aggiunte, aggiornamenti e rimozioni.
+
+# Versione 2.1.1
+
+- Polling di sincronizzazione ridotto da 5 a 15 minuti, sospeso quando l’app non è in primo piano e riattivato immediatamente al ritorno.
+- Upload di progetti e sezioni invariati eliminato tramite fingerprint Lamport locale; nessuna modifica allo schema Supabase.

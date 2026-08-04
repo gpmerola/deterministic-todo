@@ -242,7 +242,7 @@ class TaskShell extends StatefulWidget {
   State<TaskShell> createState() => _TaskShellState();
 }
 
-class _TaskShellState extends State<TaskShell> {
+class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   AppSection section = AppSection.today;
   String? selectedUpcomingDate;
   String? selectedProjectId;
@@ -255,9 +255,22 @@ class _TaskShellState extends State<TaskShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted();
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdates());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      widget.syncService?.resume();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      widget.syncService?.pause();
+    }
   }
 
   Future<void> _checkForUpdates() async {
@@ -370,6 +383,7 @@ class _TaskShellState extends State<TaskShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     quickAdd.dispose();
     search.dispose();
     quickFocus.dispose();

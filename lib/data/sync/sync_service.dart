@@ -26,6 +26,7 @@ class SyncSnapshot {
 
 class SyncService {
   SyncService(this.db, this.client);
+  static const periodicInterval = Duration(minutes: 15);
   final AppDatabase db;
   final SupabaseClient client;
   final _state = StreamController<SyncSnapshot>.broadcast();
@@ -54,11 +55,23 @@ class SyncService {
     _connectivity = Connectivity().onConnectivityChanged.listen((result) {
       if (!result.contains(ConnectivityResult.none)) unawaited(sync());
     });
-    _timer = Timer.periodic(
-      const Duration(minutes: 5),
-      (_) => unawaited(sync()),
-    );
+    _startTimer();
     unawaited(sync());
+  }
+
+  void pause() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void resume() {
+    _startTimer();
+    unawaited(sync());
+  }
+
+  void _startTimer() {
+    if (_timer?.isActive == true) return;
+    _timer = Timer.periodic(periodicInterval, (_) => unawaited(sync()));
   }
 
   Future<void> sync() {
@@ -153,17 +166,33 @@ class SyncService {
   Future<void> _syncProjects() async {
     final projects = await db.select(db.projects).get();
     for (final project in projects) {
+      final fingerprint = _fingerprint(
+        project.logicalVersion,
+        project.deviceId,
+      );
+      if (await _syncedFingerprint('project', project.id) == fingerprint) {
+        continue;
+      }
       await client.rpc(
         'merge_project',
         params: {'record': _remoteProject(project)},
       );
+      await _saveSyncedFingerprint('project', project.id, fingerprint);
     }
     final sections = await db.select(db.projectSections).get();
     for (final section in sections) {
+      final fingerprint = _fingerprint(
+        section.logicalVersion,
+        section.deviceId,
+      );
+      if (await _syncedFingerprint('section', section.id) == fingerprint) {
+        continue;
+      }
       await client.rpc(
         'merge_project_section',
         params: {'record': _remoteSection(section)},
       );
+      await _saveSyncedFingerprint('section', section.id, fingerprint);
     }
     for (final raw in await client.from('projects').select()) {
       final local = await (db.select(
@@ -198,6 +227,11 @@ class SyncService {
               deviceId: Value(raw['device_id'] as String),
             ),
           );
+      await _saveSyncedFingerprint(
+        'project',
+        raw['id'] as String,
+        _fingerprint(raw['logical_version'] as int, raw['device_id'] as String),
+      );
     }
     for (final raw in await client.from('project_sections').select()) {
       final local = await (db.select(
@@ -230,8 +264,28 @@ class SyncService {
               deviceId: Value(raw['device_id'] as String),
             ),
           );
+      await _saveSyncedFingerprint(
+        'section',
+        raw['id'] as String,
+        _fingerprint(raw['logical_version'] as int, raw['device_id'] as String),
+      );
     }
   }
+
+  String _fingerprint(int version, String deviceId) => '$version:$deviceId';
+
+  Future<String?> _syncedFingerprint(String type, String id) async =>
+      (await (db.select(db.appSettings)
+                ..where((row) => row.key.equals('sync_$type:$id')))
+              .getSingleOrNull())
+          ?.value;
+
+  Future<void> _saveSyncedFingerprint(String type, String id, String value) =>
+      db
+          .into(db.appSettings)
+          .insertOnConflictUpdate(
+            AppSettingsCompanion.insert(key: 'sync_$type:$id', value: value),
+          );
 
   Future<void> _mergeRemote(Map<String, dynamic> raw) async {
     final id = raw['id'] as String;
