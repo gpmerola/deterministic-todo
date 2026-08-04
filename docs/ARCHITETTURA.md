@@ -10,6 +10,8 @@ Un solo client Flutter/Dart genera applicazioni native Android, macOS e Windows.
 
 Lo schema locale 3 prepara importazioni esterne complete: `projects` e `project_sections` conservano gerarchia e ordine, mentre `tasks` aggiunge priorità, riferimenti progetto/sezione e la coppia univoca `external_source`/`external_id`. Gli identificativi esterni servono soltanto a rendere l'import idempotente; gli UUID interni restano l'identità usata dall'app e dalla sincronizzazione.
 
+L'import Todoist separa tre fasi: parsing/anteprima senza scritture, piano tipizzato validato e applicazione in una singola transazione SQLite. Importa solo record attivi; progetti, sezioni e task ricevono UUID v5 stabili derivati dall'ID Todoist. Ogni task nuovo entra anche nell'outbox. Ripetere il file produce zero inserimenti e zero nuove operazioni. Il sync remoto applica lo stesso confronto Lamport a task, progetti e sezioni.
+
 La posizione è un intero a 64 bit. Il riordino assegna posizioni spaziate in una transazione atomica, ma salta righe che hanno già il valore desiderato per evitare scritture e outbox inutili. I pareggi sono risolti sempre da `created_at`, quindi UUID.
 
 ## Macchina degli stati

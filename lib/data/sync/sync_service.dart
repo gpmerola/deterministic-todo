@@ -80,6 +80,7 @@ class SyncService {
     )..orderBy([(row) => OrderingTerm(expression: row.createdAt)])).get();
     _emit(SyncSnapshot(SyncPhase.syncing, pending: entries.length));
     try {
+      await _syncProjects();
       for (final entry in entries) {
         final payload = jsonDecode(entry.payload) as Map<String, Object?>;
         final task = await (db.select(
@@ -115,6 +116,89 @@ class SyncService {
     }
   }
 
+  Future<void> _syncProjects() async {
+    final projects = await db.select(db.projects).get();
+    for (final project in projects) {
+      await client.rpc(
+        'merge_project',
+        params: {'record': _remoteProject(project)},
+      );
+    }
+    final sections = await db.select(db.projectSections).get();
+    for (final section in sections) {
+      await client.rpc(
+        'merge_project_section',
+        params: {'record': _remoteSection(section)},
+      );
+    }
+    for (final raw in await client.from('projects').select()) {
+      final local = await (db.select(
+        db.projects,
+      )..where((row) => row.id.equals(raw['id'] as String))).getSingleOrNull();
+      final remoteVersion = domain.LogicalVersion(
+        raw['logical_version'] as int,
+        raw['device_id'] as String,
+      );
+      if (local != null &&
+          remoteVersion.compareTo(
+                domain.LogicalVersion(local.logicalVersion, local.deviceId),
+              ) <=
+              0) {
+        continue;
+      }
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion(
+              id: Value(raw['id'] as String),
+              userId: Value(raw['user_id'] as String?),
+              name: Value(raw['name'] as String),
+              color: Value(raw['color'] as String?),
+              parentId: Value(raw['parent_id'] as String?),
+              position: Value(raw['position'] as int),
+              isFavorite: Value(raw['is_favorite'] as bool),
+              isArchived: Value(raw['is_archived'] as bool),
+              externalSource: Value(raw['external_source'] as String?),
+              externalId: Value(raw['external_id'] as String?),
+              logicalVersion: Value(raw['logical_version'] as int),
+              deviceId: Value(raw['device_id'] as String),
+            ),
+          );
+    }
+    for (final raw in await client.from('project_sections').select()) {
+      final local = await (db.select(
+        db.projectSections,
+      )..where((row) => row.id.equals(raw['id'] as String))).getSingleOrNull();
+      final remoteVersion = domain.LogicalVersion(
+        raw['logical_version'] as int,
+        raw['device_id'] as String,
+      );
+      if (local != null &&
+          remoteVersion.compareTo(
+                domain.LogicalVersion(local.logicalVersion, local.deviceId),
+              ) <=
+              0) {
+        continue;
+      }
+      await db
+          .into(db.projectSections)
+          .insertOnConflictUpdate(
+            ProjectSectionsCompanion(
+              id: Value(raw['id'] as String),
+              userId: Value(raw['user_id'] as String?),
+              projectId: Value(raw['project_id'] as String),
+              name: Value(raw['name'] as String),
+              position: Value(raw['position'] as int),
+              isArchived: Value(raw['is_archived'] as bool),
+              externalSource: Value(raw['external_source'] as String?),
+              externalId: Value(raw['external_id'] as String?),
+              logicalVersion: Value(raw['logical_version'] as int),
+              deviceId: Value(raw['device_id'] as String),
+            ),
+          );
+    }
+  }
+
   Future<void> _mergeRemote(Map<String, dynamic> raw) async {
     final id = raw['id'] as String;
     final local = await (db.select(
@@ -144,6 +228,11 @@ class SyncService {
             dueDate: Value(raw['due_date'] as String?),
             timeMinutes: Value(raw['time_minutes'] as int?),
             timeZone: Value(raw['time_zone'] as String?),
+            priority: Value(raw['priority'] as int? ?? 1),
+            projectId: Value(raw['project_id'] as String?),
+            sectionId: Value(raw['section_id'] as String?),
+            externalSource: Value(raw['external_source'] as String?),
+            externalId: Value(raw['external_id'] as String?),
             position: Value(raw['position'] as int),
             recurrence: Value(raw['recurrence'] as String?),
             seriesId: Value(raw['series_id'] as String?),
@@ -168,6 +257,11 @@ class SyncService {
     'due_date': task.dueDate,
     'time_minutes': task.timeMinutes,
     'time_zone': task.timeZone,
+    'priority': task.priority,
+    'project_id': task.projectId,
+    'section_id': task.sectionId,
+    'external_source': task.externalSource,
+    'external_id': task.externalId,
     'position': task.position,
     'recurrence': task.recurrence,
     'series_id': task.seriesId,
@@ -178,6 +272,34 @@ class SyncService {
     'deleted_at': task.deletedAt,
     'logical_version': task.logicalVersion,
     'device_id': task.deviceId,
+  };
+
+  Map<String, Object?> _remoteProject(Project project) => {
+    'id': project.id,
+    'user_id': client.auth.currentUser!.id,
+    'name': project.name,
+    'color': project.color,
+    'parent_id': project.parentId,
+    'position': project.position,
+    'is_favorite': project.isFavorite,
+    'is_archived': project.isArchived,
+    'external_source': project.externalSource,
+    'external_id': project.externalId,
+    'logical_version': project.logicalVersion,
+    'device_id': project.deviceId,
+  };
+
+  Map<String, Object?> _remoteSection(ProjectSection section) => {
+    'id': section.id,
+    'user_id': client.auth.currentUser!.id,
+    'project_id': section.projectId,
+    'name': section.name,
+    'position': section.position,
+    'is_archived': section.isArchived,
+    'external_source': section.externalSource,
+    'external_id': section.externalId,
+    'logical_version': section.logicalVersion,
+    'device_id': section.deviceId,
   };
 
   Future<void> dispose() async {

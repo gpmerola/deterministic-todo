@@ -25,6 +25,7 @@ import 'services/calendar_service.dart';
 import 'services/device_time_zone_service.dart';
 import 'services/export_service.dart';
 import 'services/notification_service.dart';
+import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
 
 void main() {
@@ -1229,6 +1230,101 @@ class SettingsView extends StatelessWidget {
     }
   }
 
+  Future<void> _importTodoist(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      if (picked == null || !context.mounted) return;
+      final bytes = picked.files.single.bytes;
+      final source = bytes == null
+          ? await File(picked.files.single.path!).readAsString()
+          : String.fromCharCodes(bytes);
+      const service = TodoistImportService();
+      final preview = service.preview(source);
+      if (!context.mounted) return;
+      final priorities = List.generate(
+        4,
+        (index) => 'P${4 - index}: ${preview.priorityCounts[index + 1] ?? 0}',
+      ).join(' · ');
+      final unsupported = preview.unsupportedRecurrences;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Anteprima Todoist'),
+          content: SingleChildScrollView(
+            child: Text(
+              '${preview.projects} progetti\n'
+              '${preview.sections} sezioni\n'
+              '${preview.activeTasks} attività attive '
+              '(${preview.scheduledTasks} pianificate, '
+              '${preview.recurringTasks} ricorrenti)\n'
+              '$priorities'
+              '${unsupported.isEmpty ? '' : '\n\nDa verificare: '
+                        '${unsupported.join(', ')}'}\n\n'
+              'Le attività completate non saranno importate. '
+              'Ripetere lo stesso import non crea duplicati.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: unsupported.isEmpty
+                  ? () => Navigator.pop(context, true)
+                  : null,
+              child: const Text('Importa'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      if (syncClient?.auth.currentUser != null) {
+        await syncClient!.from('projects').select('id').limit(1);
+        await syncClient!.from('project_sections').select('id').limit(1);
+      }
+      final result = await service.importPlan(
+        plan: service.plan(source),
+        db: repository.db,
+        deviceId: repository.deviceId,
+      );
+      await syncService?.sync();
+      if (context.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Import completato: ${result.addedTasks} attività, '
+              '${result.addedProjects} progetti e '
+              '${result.addedSections} sezioni aggiunti.',
+            ),
+          ),
+        );
+      }
+    } on FormatException catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } on PostgrestException {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Prima esegui in Supabase la migrazione '
+            '202608040002_todoist_import.sql. Nessun dato è stato importato.',
+          ),
+        ),
+      );
+    } on Object {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Import Todoist non riuscito: nessun dato modificato.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
@@ -1289,6 +1385,15 @@ class SettingsView extends StatelessWidget {
           'Mostra sempre un’anteprima prima di modificare i dati.',
         ),
         onTap: () => _import(context),
+      ),
+      ListTile(
+        leading: const Icon(Icons.task_alt_outlined),
+        title: const Text('Importa da Todoist'),
+        subtitle: const Text(
+          'Anteprima obbligatoria; importa attività attive, progetti, sezioni, '
+          'priorità, date e ricorrenze.',
+        ),
+        onTap: () => _importTodoist(context),
       ),
     ],
   );

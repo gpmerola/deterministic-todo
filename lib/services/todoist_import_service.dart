@@ -1,8 +1,22 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
+import '../data/local/database.dart';
 import '../domain/quick_add_parser.dart';
+
+class TodoistImportResult {
+  const TodoistImportResult({
+    required this.addedProjects,
+    required this.addedSections,
+    required this.addedTasks,
+  });
+
+  final int addedProjects;
+  final int addedSections;
+  final int addedTasks;
+}
 
 class TodoistProjectDraft {
   const TodoistProjectDraft({
@@ -228,8 +242,19 @@ class TodoistImportService {
         }
         timeZone = due['timezone'] as String?;
         if (due['is_recurring'] == true) {
+          final expression = (due['string'] as String).trim();
+          final parserExpression =
+              RegExp(
+                r'^ogni\s+[0-3]?\d$',
+                caseSensitive: false,
+              ).hasMatch(expression)
+              ? '$expression del mese'
+              : expression;
           recurrence = const QuickAddParser()
-              .parse('Attività ${due['string']}', now: DateTime.parse(showDate))
+              .parse(
+                'Attività $parserExpression',
+                now: DateTime.parse(showDate),
+              )
               .recurrence;
           if (recurrence == null) {
             throw FormatException(
@@ -271,6 +296,130 @@ class TodoistImportService {
     );
   }
 
+  /// Applica il piano in un'unica transazione. Gli UUID deterministici e gli
+  /// indici external_source/external_id rendono sicuro ripetere lo stesso import.
+  Future<TodoistImportResult> importPlan({
+    required TodoistImportPlan plan,
+    required AppDatabase db,
+    required String deviceId,
+  }) => db.transaction(() async {
+    var addedProjects = 0;
+    var addedSections = 0;
+    var addedTasks = 0;
+    final now = DateTime.now();
+    final timestamp = now.toUtc().millisecondsSinceEpoch;
+    final today = _dateOnly(now);
+
+    for (final draft in plan.projects) {
+      final existing = await (db.select(
+        db.projects,
+      )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
+      if (existing != null) continue;
+      await db
+          .into(db.projects)
+          .insert(
+            ProjectsCompanion.insert(
+              id: draft.id,
+              name: draft.name,
+              position: draft.position * 1024,
+              deviceId: deviceId,
+              color: Value(draft.color),
+              parentId: Value(draft.parentId),
+              isFavorite: Value(draft.isFavorite),
+              externalSource: const Value('todoist'),
+              externalId: Value(draft.externalId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      addedProjects++;
+    }
+
+    for (final draft in plan.sections) {
+      final existing = await (db.select(
+        db.projectSections,
+      )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
+      if (existing != null) continue;
+      await db
+          .into(db.projectSections)
+          .insert(
+            ProjectSectionsCompanion.insert(
+              id: draft.id,
+              projectId: draft.projectId,
+              name: draft.name,
+              position: draft.position * 1024,
+              deviceId: deviceId,
+              externalSource: const Value('todoist'),
+              externalId: Value(draft.externalId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      addedSections++;
+    }
+
+    for (final draft in plan.tasks) {
+      final existing = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
+      if (existing != null) continue;
+      final status = draft.showDate == null
+          ? 'inbox'
+          : draft.showDate!.compareTo(today) <= 0
+          ? 'available'
+          : 'scheduled';
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: draft.id,
+              title: draft.title,
+              status: status,
+              position: draft.position * 1024,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+              deviceId: deviceId,
+              notes: Value(draft.notes),
+              showDate: Value(draft.showDate),
+              timeMinutes: Value(draft.timeMinutes),
+              timeZone: Value(draft.timeZone),
+              priority: Value(draft.priority),
+              projectId: Value(draft.projectId),
+              sectionId: Value(draft.sectionId),
+              externalSource: const Value('todoist'),
+              externalId: Value(draft.externalId),
+              recurrence: Value(draft.recurrence),
+              seriesId: Value(draft.recurrence == null ? null : draft.id),
+              occurrenceKey: Value(
+                draft.recurrence == null ? null : draft.showDate,
+              ),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      addedTasks++;
+      await db
+          .into(db.outboxEntries)
+          .insert(
+            OutboxEntriesCompanion.insert(
+              operationId: _uuid.v4(),
+              entityId: draft.id,
+              operation: 'upsert',
+              payload: jsonEncode({'id': draft.id, 'version': 1}),
+              createdAt: timestamp,
+            ),
+          );
+    }
+
+    return TodoistImportResult(
+      addedProjects: addedProjects,
+      addedSections: addedSections,
+      addedTasks: addedTasks,
+    );
+  });
+
+  String _dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
+
   String _externalUuid(String type, String externalId) =>
       _uuid.v5(Namespace.url.value, 'todoist:$type:$externalId');
 
@@ -292,7 +441,7 @@ class TodoistImportService {
   }
 
   bool _isSupportedRecurrence(String value) => RegExp(
-    r'^ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|[0-3]?\d(?:\s+del\s+mese|\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)))$',
+    r'^ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|[0-3]?\d(?:\s+del\s+mese|\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))?)$',
     caseSensitive: false,
   ).hasMatch(value);
 }

@@ -42,11 +42,13 @@ Aggiornato il 4 agosto 2026.
 - Ricorrenze rapide Todoist-like per giorni, giorni della settimana, settimane, mesi e anni; completamento con creazione idempotente dell'occorrenza successiva.
 - Ricorrenze avanzate per giorno del mese, giorno/mese annuale e giorno ordinale mensile; parser Todoist avviato con anteprima read-only e blocco esplicito delle espressioni ambigue.
 - Frasi intelligenti per feriali, weekend, ultimo giorno/weekday mensile, intervalli dal completamento e date relative; piano Todoist tipizzato con progetti, sezioni, task, descrizioni, priorità, date, fusi, ricorrenze e UUID v5 deterministici.
+- Import Todoist attivo-only completo: anteprima obbligatoria, transazione SQLite atomica, reimportazione senza duplicati, outbox per tutti i task e sincronizzazione Supabase di progetti, sezioni, priorità e identificativi esterni.
+- Il vero export personale è stato simulato soltanto in memoria: 5 progetti, 13 sezioni, 110 task attivi, 46 pianificati e 25 ricorrenti; seconda esecuzione con zero duplicati. Il file personale non è stato copiato nel repository.
 
 ## Verificate in questa macchina
 
 - `flutter analyze`: nessun problema.
-- `flutter test`: 27 test superati, inclusi dominio, database, UI Android, parser italiano, notifiche, calendario idempotente e regressioni performance.
+- `flutter test`: suite completa superata, inclusi dominio, database, UI Android, parser italiano, notifiche, calendario idempotente e import Todoist ripetibile.
 - Build macOS tentata: non eseguibile perché `xcodebuild` non è installato/selezionato in questa macchina.
 - Build Android tentata: non eseguibile perché Android SDK/`ANDROID_HOME` non è presente.
 - Build Windows non eseguibile da macOS; va verificata su Windows come descritto nel README.

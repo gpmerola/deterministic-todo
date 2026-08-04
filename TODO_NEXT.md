@@ -86,9 +86,9 @@ Requisiti:
 
 Soluzioni ammissibili: fine-grained token limitato al repository release oppure workflow nel repository pubblico attivato in modo controllato. Non usare token amministrativi generici.
 
-## IN PAUSA — Import Todoist e dominio progetti
+## P0 — Applicare la migrazione e collaudare l'import Todoist
 
-Un export personale Todoist è stato verificato localmente il 4 agosto 2026. Non copiarlo nel repository perché contiene dati personali. L'implementazione è intenzionalmente in pausa durante la preparazione del repository pubblico.
+Un export personale Todoist è stato verificato localmente il 4 agosto 2026. Non copiarlo nel repository perché contiene dati personali. L'import attivo-only è implementato e validato in memoria sul file reale, senza modificare il database personale. Prima del collaudo Android resta obbligatorio eseguire nell'SQL Editor `supabase/migrations/202608040002_todoist_import.sql`.
 
 Contenuto disponibile:
 
@@ -103,13 +103,13 @@ Contenuto disponibile:
 
 Incremento critico da implementare prima degli altri:
 
-1. ~~aggiungere tabelle/colonne locali per progetti, sezioni, priorità e `external_source`/`external_id`, con migrazione Drift e indici;~~ completato nello schema locale 3;
-2. estendere schema, funzione `merge_task` e RLS Supabase senza interrompere i client precedenti;
-3. parser Todoist dedicato: anteprima e piano tipizzato read-only implementati, inclusi progetti/sezioni/task, date/fusi/descrizioni, priorità, ricorrenze supportate e UUID v5 deterministici; resta collegare il piano alla transazione SQLite;
-4. import transazionale e idempotente: ripetere lo stesso file non crea duplicati;
-5. mostrare Progetti nell'interfaccia soltanto quando ne esiste almeno uno, preservando Inbox Todoist come progetto importato e non come destinazione mobile principale;
-6. test fixture anonima minima; mai committare l'export reale;
-7. dopo import sul telefono, verificare i conteggi attesi e la convergenza sul Mac prima di dichiararlo completo.
+1. ~~schema locale e remoto per progetti, sezioni, priorità e ID esterni~~ completato;
+2. ~~parser, anteprima, piano tipizzato e transazione idempotente~~ completato;
+3. eseguire la migrazione Supabase `202608040002_todoist_import.sql`;
+4. installare la release Android, scegliere `todoist.json` da Impostazioni e verificare il riepilogo 5/13/110 prima di confermare;
+5. dopo import sul telefono, verificare la convergenza sul Mac;
+6. mostrare Progetti nell'interfaccia soltanto quando ne esiste almeno uno, preservando Inbox Todoist come progetto importato e non come destinazione mobile principale;
+7. non committare mai l'export reale.
 
 Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settimane/mesi, annuali e giorni fissi dell'anno. Le stringhe ambigue `ogni 1` e `ogni 26` vanno interpretate secondo il campo `due.date` e verificate in anteprima, non indovinate silenziosamente.
 

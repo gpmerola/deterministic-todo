@@ -66,7 +66,7 @@ La build configurata mostra in Impostazioni il collegamento a un account persona
 
 URL e publishable key Supabase sono configurazioni client pubbliche incluse in `supabase/config.json`; non concedono poteri amministrativi e le tabelle restano protette da RLS. Chi pubblica un fork deve collegarlo a un proprio progetto Supabase. Non usare mai `service_role` nel client.
 
-Prima di usare la sincronizzazione, eseguire una volta nell'SQL Editor, come proprietario del progetto, `supabase/migrations/202608040001_initial.sql`. I launcher e le build CI passano automaticamente la configurazione tramite `--dart-define-from-file=supabase/config.json`. Per una configurazione alternativa:
+Prima di usare la sincronizzazione, eseguire una volta nell'SQL Editor, come proprietario del progetto, `supabase/migrations/202608040001_initial.sql` e poi `supabase/migrations/202608040002_todoist_import.sql`. La seconda migrazione è obbligatoria prima dell'import Todoist e aggiunge progetti, sezioni, priorità e relativi merge protetti. I launcher e le build CI passano automaticamente la configurazione tramite `--dart-define-from-file=supabase/config.json`. Per una configurazione alternativa:
 
 ```sh
 flutter run -d macos \
@@ -116,6 +116,8 @@ Le notifiche sono locali e vengono pianificate per task con data “Mostra il”
 Su Android, “Salva + calendario” crea esplicitamente un evento nel calendario Google primario già configurato sul dispositivo; in assenza di Google usa il primo calendario modificabile secondo un ordine stabile. L’ID restituito dal provider Android viene conservato localmente: ripetere il comando aggiorna lo stesso evento e non crea duplicati. Non esiste importazione automatica dal calendario e SQLite resta la fonte di verità. Il fuso viene letto come identificatore IANA nativo (`Europe/London`, per esempio), funziona offline e segue le regole DST senza dipendere da Google o dall’orologio di rete.
 
 Impostazioni consente export JSON completo/versionato, export CSV e import JSON. Prima dell'import mostra conteggi di aggiunte, aggiornamenti e record invariati; vince solo una versione logica superiore, quindi non avvengono sovrascritture silenziose.
+
+“Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date, fusi e ricorrenze. L'operazione SQLite è atomica: un errore non lascia un import parziale. UUID deterministici e identificativi esterni rendono innocuo scegliere di nuovo lo stesso file. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
 
 ## Limiti noti della prima versione
 
