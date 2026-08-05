@@ -1,7 +1,6 @@
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart';
-import 'package:deterministic_todo/services/notification_service.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,13 +29,11 @@ void main() {
     expect(outbox.single.entityId, id);
   });
 
-  test('creazione rapida può pianificare data e ora atomicamente', () async {
+  test('creazione rapida può pianificare una data civile', () async {
     final id = await repository.create(
       'Dentista',
       status: TaskStatus.scheduled,
       showDate: '2026-08-05',
-      timeMinutes: 570,
-      timeZone: 'Europe/London',
     );
     final task = await (db.select(
       db.tasks,
@@ -44,8 +41,8 @@ void main() {
 
     expect(task.status, TaskStatus.scheduled.name);
     expect(task.showDate, '2026-08-05');
-    expect(task.timeMinutes, 570);
-    expect(task.timeZone, 'Europe/London');
+    expect(task.timeMinutes, isNull);
+    expect(task.timeZone, isNull);
   });
 
   test('tombstone resta nel database ma sparisce dalla vista attiva', () async {
@@ -174,57 +171,6 @@ void main() {
     );
   });
 
-  test('eliminare annulla la notifica senza ripianificarla', () async {
-    final notifications = RecordingNotificationService();
-    final notifiedRepository = TaskRepository(
-      db,
-      deviceId: '00000000-0000-4000-8000-000000000001',
-      notifications: notifications,
-    );
-    final id = await notifiedRepository.create(
-      'Promemoria',
-      status: TaskStatus.scheduled,
-      showDate: '2099-08-05',
-      timeMinutes: 570,
-      timeZone: 'Europe/London',
-    );
-    final task = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(id))).getSingle();
-    notifications.scheduled.clear();
-    notifications.cancelled.clear();
-
-    await notifiedRepository.softDelete(task);
-
-    expect(notifications.cancelled, [id]);
-    expect(notifications.scheduled, isEmpty);
-  });
-
-  test('modificare data e ora ripianifica la notifica', () async {
-    final notifications = RecordingNotificationService();
-    final notifiedRepository = TaskRepository(
-      db,
-      deviceId: '00000000-0000-4000-8000-000000000001',
-      notifications: notifications,
-    );
-    final id = await notifiedRepository.create('Promemoria');
-    final task = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(id))).getSingle();
-
-    await notifiedRepository.updateDetails(
-      task,
-      title: task.title,
-      showDate: '2099-08-05',
-      timeMinutes: 600,
-      timeZone: 'Europe/London',
-    );
-
-    expect(notifications.cancelled, [id]);
-    expect(notifications.scheduled.single.id, id);
-    expect(notifications.scheduled.single.timeMinutes, 600);
-  });
-
   test('crea progetto, sezione e attività nella destinazione scelta', () async {
     final projectId = await repository.createProject('Ricerca', color: 'blue');
     final sectionId = await repository.createProjectSection(projectId, 'Idee');
@@ -244,15 +190,4 @@ void main() {
     expect(task.projectId, project.id);
     expect(task.sectionId, section.id);
   });
-}
-
-class RecordingNotificationService extends NotificationService {
-  final scheduled = <Task>[];
-  final cancelled = <String>[];
-
-  @override
-  Future<void> schedule(Task task) async => scheduled.add(task);
-
-  @override
-  Future<void> cancel(String taskId) async => cancelled.add(taskId);
 }

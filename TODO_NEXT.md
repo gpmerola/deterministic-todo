@@ -43,9 +43,7 @@ La build e i test automatici sono verdi, ma questi flussi devono ancora essere v
 - permessi calendario Samsung/Google;
 - “Salva + calendario” crea nel Google Calendar primario;
 - ripetere il comando aggiorna lo stesso evento senza duplicarlo;
-- nuova attività con ora salva un identificatore IANA;
-- cambio manuale del fuso del telefono e comportamento delle notifiche;
-- riavvio del telefono e ripristino notifiche.
+- cambio manuale del fuso del telefono e stabilità delle date civili.
 
 La release pubblica `1.1.0` contiene l'APK ARM64 per Galaxy S21. Il launcher `SCARICA_APK_ANDROID.command` scarica l'asset ARM64 dalla release latest e lo rinomina nel nome stabile usato dall’installer.
 
@@ -155,7 +153,7 @@ Misurare prima di cambiare codice:
 - CPU a riposo per almeno cinque minuti;
 - frame build/raster durante scroll e riordino a 120 Hz;
 - latenza ricerca e apertura Completate;
-- costo prima pianificazione notifica e primo accesso calendario.
+- costo del primo accesso al calendario.
 
 Ottimizzazioni candidate solo se giustificate dai dati: paginazione Completate, ricerca SQL/FTS5, `--split-debug-info`, riduzione dipendenze. Non sacrificare affidabilità o multipiattaforma per benchmark teorici.
 

@@ -9,7 +9,7 @@ Android è ottimizzato prima per uso offline rapido e poi per dimensione. I budg
 - nessun polling continuo quando la sincronizzazione non è configurata;
 - un solo controllo leggero del manifest a ogni apertura, oltre al comando manuale;
 - nessun caricamento della cronologia completata nelle viste attive;
-- nessuna inizializzazione del database completo dei fusi orari finché non viene pianificata una notifica.
+- nessun plugin, database o servizio per orari e notifiche.
 - timeline futura lazy fino a dieci anni, con salto data e senza stream aggiuntivi.
 
 Ogni aumento significativo va misurato e documentato. Flutter porta un costo minimo non eliminabile: ogni APK include motore Flutter, snapshot AOT Dart e librerie native necessarie. Cambiare toolkit potrebbe ridurre il minimo, ma eliminerebbe la base di codice multipiattaforma richiesta.
@@ -31,7 +31,7 @@ Il client 1.0.4 interroga l’ABI tramite il plugin OTA e seleziona la voce esat
 
 ## Avvio e CPU
 
-Il bootstrap apre Drift su un isolate nativo in background e attiva WAL. Il database dei fusi orari non viene caricato in `main()`: viene inizializzato una sola volta al primo task che richiede una notifica. Anche le richieste dei permessi di notifica sono differite fino a quel momento.
+Il bootstrap apre Drift su un isolate nativo in background e attiva WAL. Dalla 2.8.0 non registra plugin di notifiche o fusi, non richiede i relativi permessi e non installa receiver al riavvio.
 
 Il controllo aggiornamenti parte dopo il primo frame, non blocca la UI e memorizza `last_update_check_us` in `app_settings`. I controlli automatici successivi sono saltati per sei ore. Il controllo manuale nelle Impostazioni ignora intenzionalmente questo limite.
 
@@ -65,7 +65,7 @@ La 2.5.0 applica la priorità con una decorazione statica leggera e ordina in me
 
 La 2.7.0 riduce le transizioni del composer a 80/45 ms e aggiunge il campo descrizione soltanto su richiesta, senza controller, layout o listener persistenti dopo la chiusura. La nuova gerarchia Progetti riusa gli stessi due stream SQLite di progetti e sezioni e non introduce query, polling o dipendenze.
 
-Il fuso IANA viene letto tramite un singolo platform channel soltanto quando si salva una task con ora o si crea una notifica. L’accesso al calendario avviene esclusivamente premendo “Salva + calendario”; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
+L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale
 

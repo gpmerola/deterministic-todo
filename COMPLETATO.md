@@ -53,11 +53,12 @@ Aggiornato il 4 agosto 2026.
 - Release 2.5.0: Progetti con intestazione unica, Impostazioni raccolte, guide testuali rimosse, priorità con tinta leggera e ordinamento automatico, chiusura tastiera/composer Android con una sola pressione e animazione inversa da 90 ms.
 - Release 2.6.0: descrizioni Todoist visibili sotto il titolo con link compatti, eliminazione via swipe sempre annullabile, filtro “Tutte” rimosso da Prossime e sincronizzazione condensata in una sola riga.
 - Release 2.7.0: Progetti ridisegnato come navigazione gerarchica minimale compatibile con Todoist, composer aperto/chiuso in 80/45 ms con descrizione opzionale immediata e ora rimossa dalla UI e dalla creazione naturale.
+- Release 2.8.0: supporto orario rimosso da parser, import, sync, calendario e runtime; eliminati plugin di notifiche/fusi e receiver Android. Priorità P1–P4 impostabile direttamente dal composer rapido.
 
 ## Verificate in questa macchina
 
 - `flutter analyze`: nessun problema.
-- `flutter test`: suite completa superata, inclusi dominio, database, UI Android, parser italiano, notifiche, calendario idempotente e import Todoist ripetibile.
+- `flutter test`: suite completa superata, inclusi dominio, database, UI Android, parser italiano, calendario idempotente e import Todoist ripetibile.
 - Build macOS tentata: non eseguibile perché `xcodebuild` non è installato/selezionato in questa macchina.
 - Build Android tentata: non eseguibile perché Android SDK/`ANDROID_HOME` non è presente.
 - Build Windows non eseguibile da macOS; va verificata su Windows come descritto nel README.

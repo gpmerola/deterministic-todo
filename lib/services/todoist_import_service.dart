@@ -75,8 +75,6 @@ class TodoistTaskDraft {
     this.projectId,
     this.sectionId,
     this.showDate,
-    this.timeMinutes,
-    this.timeZone,
     this.recurrence,
     this.updatedAt,
   });
@@ -89,8 +87,6 @@ class TodoistTaskDraft {
   final String? projectId;
   final String? sectionId;
   final String? showDate;
-  final int? timeMinutes;
-  final String? timeZone;
   final String? recurrence;
   final String? updatedAt;
 }
@@ -247,17 +243,10 @@ class TodoistImportService {
       final externalId = row['id'] as String;
       final due = row['due'] as Map<String, dynamic>?;
       String? showDate;
-      int? timeMinutes;
-      String? timeZone;
       String? recurrence;
       if (due != null) {
         final rawDate = due['date'] as String;
-        final instant = DateTime.parse(rawDate);
         showDate = rawDate.substring(0, 10);
-        if (rawDate.contains('T')) {
-          timeMinutes = instant.hour * 60 + instant.minute;
-        }
-        timeZone = due['timezone'] as String?;
         if (due['is_recurring'] == true) {
           final expression = (due['string'] as String).trim();
           final parserExpression =
@@ -299,8 +288,6 @@ class TodoistImportService {
               ? null
               : sectionIds[sectionExternal],
           showDate: showDate,
-          timeMinutes: timeMinutes,
-          timeZone: timeZone,
           recurrence: recurrence,
           updatedAt: row['updated_at'] as String?,
         ),
@@ -458,8 +445,8 @@ class TodoistImportService {
               title: Value(draft.title),
               notes: Value(draft.notes),
               showDate: Value(draft.showDate),
-              timeMinutes: Value(draft.timeMinutes),
-              timeZone: Value(draft.timeZone),
+              timeMinutes: const Value(null),
+              timeZone: const Value(null),
               priority: Value(draft.priority),
               projectId: Value(draft.projectId),
               sectionId: Value(draft.sectionId),
@@ -504,8 +491,8 @@ class TodoistImportService {
               deviceId: deviceId,
               notes: Value(draft.notes),
               showDate: Value(draft.showDate),
-              timeMinutes: Value(draft.timeMinutes),
-              timeZone: Value(draft.timeZone),
+              timeMinutes: const Value(null),
+              timeZone: const Value(null),
               priority: Value(draft.priority),
               projectId: Value(draft.projectId),
               sectionId: Value(draft.sectionId),

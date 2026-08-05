@@ -5,21 +5,15 @@ import 'package:uuid/uuid.dart';
 
 import '../domain/recurrence.dart';
 import '../domain/task.dart';
-import '../services/notification_service.dart';
 import 'local/database.dart';
 
 class TaskRepository {
-  TaskRepository(
-    this.db, {
-    required this.deviceId,
-    this._notifications,
-    Uuid? uuid,
-  }) : _uuid = uuid ?? const Uuid();
+  TaskRepository(this.db, {required this.deviceId, Uuid? uuid})
+    : _uuid = uuid ?? const Uuid();
 
   final AppDatabase db;
   final String deviceId;
   final Uuid _uuid;
-  final NotificationService? _notifications;
 
   Stream<List<Task>> watchAll() =>
       (db.select(db.tasks)
@@ -64,8 +58,6 @@ class TaskRepository {
     TaskStatus status = TaskStatus.inbox,
     String? notes,
     String? showDate,
-    int? timeMinutes,
-    String? timeZone,
     String? recurrence,
     String? projectId,
     String? sectionId,
@@ -85,8 +77,6 @@ class TaskRepository {
       status: status.name,
       notes: Value(notes),
       showDate: Value(showDate),
-      timeMinutes: Value(timeMinutes),
-      timeZone: Value(timeZone),
       recurrence: Value(recurrence),
       projectId: Value(projectId),
       sectionId: Value(sectionId),
@@ -102,12 +92,6 @@ class TaskRepository {
       await db.into(db.tasks).insert(row);
       await _enqueue(id, 'upsert', _payloadFromCompanion(row));
     });
-    if (showDate != null && timeMinutes != null) {
-      final created = await (db.select(
-        db.tasks,
-      )..where((task) => task.id.equals(id))).getSingle();
-      await _notifications?.schedule(created);
-    }
     return id;
   }
 
@@ -204,7 +188,6 @@ class TaskRepository {
         await _insertOccurrence(task, next);
       }
     }
-    if (completed) await _notifications?.cancel(task.id);
   }
 
   Future<void> softDelete(Task task) async {
@@ -214,10 +197,6 @@ class TaskRepository {
       TasksCompanion(deletedAt: Value(now)),
       operation: 'delete',
     );
-    final refreshed = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(task.id))).getSingle();
-    await _notifications?.cancel(refreshed.id);
   }
 
   Future<void> restore(Task task) async {
@@ -229,12 +208,6 @@ class TaskRepository {
       const TasksCompanion(deletedAt: Value(null)),
       operation: 'upsert',
     );
-    final restored = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(task.id))).getSingle();
-    if (restored.showDate != null && restored.timeMinutes != null) {
-      await _notifications?.schedule(restored);
-    }
   }
 
   Future<void> move(Task task, TaskStatus status) async =>
@@ -246,8 +219,6 @@ class TaskRepository {
     String? notes,
     String? showDate,
     String? dueDate,
-    int? timeMinutes,
-    String? timeZone,
     String? recurrence,
     String? projectId,
     String? sectionId,
@@ -267,8 +238,8 @@ class TaskRepository {
         notes: Value(notes),
         showDate: Value(showDate),
         dueDate: Value(dueDate),
-        timeMinutes: Value(timeMinutes),
-        timeZone: Value(timeZone),
+        timeMinutes: const Value(null),
+        timeZone: const Value(null),
         recurrence: Value(recurrence),
         priority: priority == null ? const Value.absent() : Value(priority),
         projectId: updateProject ? Value(projectId) : const Value.absent(),
@@ -279,13 +250,6 @@ class TaskRepository {
         ),
       ),
     );
-    await _notifications?.cancel(task.id);
-    final refreshed = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(task.id))).getSingle();
-    if (refreshed.showDate != null && refreshed.timeMinutes != null) {
-      await _notifications?.schedule(refreshed);
-    }
   }
 
   Future<int> generateCalendarOccurrences(Task task, CivilDate through) async {
@@ -319,8 +283,8 @@ class TaskRepository {
           : TaskStatus.scheduled.name,
       showDate: Value(date.toString()),
       dueDate: Value(source.dueDate == null ? null : date.toString()),
-      timeMinutes: Value(source.timeMinutes),
-      timeZone: Value(source.timeZone),
+      timeMinutes: const Value(null),
+      timeZone: const Value(null),
       notes: Value(source.notes),
       priority: Value(source.priority),
       projectId: Value(source.projectId),

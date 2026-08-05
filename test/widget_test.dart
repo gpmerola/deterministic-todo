@@ -307,11 +307,16 @@ void main() {
       find.byKey(const ValueKey('mobile-quick-add-notes-field')),
       'Concentrati sui metodi',
     );
+    await tester.tap(find.byKey(const ValueKey('mobile-quick-add-priority')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('P1'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('mobile-quick-add-submit')));
     await tester.pumpAndSettle();
 
     final task = await db.select(db.tasks).getSingle();
     expect(task.notes, 'Concentrati sui metodi');
+    expect(task.priority, 4);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

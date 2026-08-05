@@ -2,7 +2,7 @@
 
 ## Confini
 
-Un solo client Flutter/Dart genera applicazioni native Android, macOS e Windows. La UI legge e scrive esclusivamente SQLite locale; Supabase non è mai nel percorso critico dell'interfaccia. Il codice è diviso in `domain` (regole pure), `data/local` (Drift/SQLite), `data/sync` (outbox e Supabase), `services` (notifiche e import/export) e `ui`.
+Un solo client Flutter/Dart genera applicazioni native Android, macOS e Windows. La UI legge e scrive esclusivamente SQLite locale; Supabase non è mai nel percorso critico dell'interfaccia. Il codice è diviso in `domain` (regole pure), `data/local` (Drift/SQLite), `data/sync` (outbox e Supabase), `services` (calendario, diagnostica e import/export) e `ui`.
 
 ## Dati e tempo
 
@@ -30,11 +30,11 @@ Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. 
 
 ## Budget runtime e aggiornamenti
 
-Il bootstrap non carica il database dei fusi orari né richiede permessi di notifica: entrambi sono differiti alla prima pianificazione. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Android è il primo canale di collaudo: ogni push funzionale con versione monotona produce automaticamente APK per ABI, download interno, progresso e verifica SHA-256; il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
+Il bootstrap non carica database dei fusi e non richiede permessi di notifica: il supporto orario è assente e le date sono sempre civili. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Android è il primo canale di collaudo: ogni push funzionale con versione monotona produce automaticamente APK per ABI, download interno, progresso e verifica SHA-256; il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
 
 ## Fuso del dispositivo e calendario Android
 
-Android fornisce l’identificatore IANA corrente tramite API nativa. Questo valore viene salvato sulle attività con ora e usato da notifiche e calendario; abbreviazioni come GMT, BST o CET non sono persistite perché ambigue. I calcoli continuano a usare date civili e database IANA offline, inclusi anni bisestili e transizioni DST.
+Le pianificazioni sono esclusivamente date civili `YYYY-MM-DD`: non contengono un istante né un fuso e quindi non slittano attraversando mezzanotte, ora legale o confini geografici. Gli anni bisestili sono gestiti dal calendario civile locale. Le colonne legacy `time_minutes` e `time_zone` restano nello schema sincronizzato per compatibilità, ma ogni nuovo comando le normalizza a `null`.
 
 Il comando esplicito “Salva + calendario” interroga il Calendar Provider Android, preferisce deterministicamente un calendario Google primario e crea un evento di 30 minuti oppure un evento giornaliero se manca l’ora. La coppia task/evento è salvata in `app_settings`; ripetere il comando aggiorna l’evento esistente. Non c’è pull dal calendario, nessun evento modifica una task e nessun export parte automaticamente.
 
@@ -54,7 +54,7 @@ Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltant
 
 ## Inserimento rapido e agenda
 
-`QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano data civile e minuti dalla mezzanotte, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. Creazione e modifica di una task datata con ora pianificano la notifica aggiornata, mentre completamento ed eliminazione la annullano. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario rimane un comando per singola attività e non altera la fonte di verità SQLite.
+`QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano una data civile, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario crea un evento giornaliero per singola attività e non altera la fonte di verità SQLite.
 
 Su viewport mobili la creazione usa un modal bottom sheet controllato dalla stessa regola e dallo stesso comando repository del campo desktop. La striscia calendario futura deriva dai task attivi già osservati e costruisce lazy soltanto 45 chip: non apre nuovi stream, timer o query di rete.
 

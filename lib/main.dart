@@ -26,7 +26,6 @@ import 'domain/task.dart';
 import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
-import 'services/notification_service.dart';
 import 'services/performance_monitor.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
@@ -74,19 +73,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
           );
     }
 
-    NotificationService? notifications;
-    try {
-      notifications = NotificationService();
-      await notifications.initialize();
-    } on Object {
-      notifications = null;
-    }
-
-    final repository = TaskRepository(
-      database,
-      deviceId: deviceId,
-      notifications: notifications,
-    );
+    final repository = TaskRepository(database, deviceId: deviceId);
     const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
     const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY');
     SyncService? syncService;
@@ -504,12 +491,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Future<bool> _createFrom(
     TextEditingController controller, {
     TextEditingController? notesController,
+    int priority = 1,
   }) async {
     if (controller.text.trim().isEmpty) return false;
     try {
-      final parsed = const QuickAddParser(
-        enableTime: false,
-      ).parse(controller.text);
+      final parsed = const QuickAddParser().parse(controller.text);
       final today = CivilDate.fromDateTime(DateTime.now());
       await widget.repository.create(
         parsed.title,
@@ -523,6 +509,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             ? null
             : notesController?.text.trim(),
         recurrence: parsed.recurrence,
+        priority: priority,
       );
       controller.clear();
       return true;
@@ -542,7 +529,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   String? _quickAddHelper(String value) {
     if (value.trim().isEmpty) return null;
     try {
-      final draft = const QuickAddParser(enableTime: false).parse(value);
+      final draft = const QuickAddParser().parse(value);
       final parts = <String>[];
       if (draft.showDate != null) {
         parts.add(
@@ -566,6 +553,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     var keyboardWasVisible = false;
     var closing = false;
     var showNotes = false;
+    var priority = 1;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -609,6 +597,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             if (await _createFrom(
                                   controller,
                                   notesController: notesController,
+                                  priority: priority,
                                 ) &&
                                 sheetContext.mounted) {
                               Navigator.pop(sheetContext);
@@ -634,6 +623,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               : null,
                         ),
                       ),
+                      PopupMenuButton<int>(
+                        key: const ValueKey('mobile-quick-add-priority'),
+                        tooltip: 'Priorità P${5 - priority}',
+                        icon: Icon(
+                          Icons.circle,
+                          size: 20,
+                          color: _priorityColor(priority),
+                        ),
+                        onSelected: (value) =>
+                            setSheetState(() => priority = value),
+                        itemBuilder: (_) => [
+                          for (var raw = 4; raw >= 1; raw--)
+                            PopupMenuItem(
+                              value: raw,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.circle,
+                                    size: 18,
+                                    color: _priorityColor(raw),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text('P${5 - raw}'),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                       IconButton.filled(
                         key: const ValueKey('mobile-quick-add-submit'),
                         tooltip: 'Aggiungi attività',
@@ -641,6 +658,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           if (await _createFrom(
                                 controller,
                                 notesController: notesController,
+                                priority: priority,
                               ) &&
                               sheetContext.mounted) {
                             Navigator.pop(sheetContext);
@@ -1260,7 +1278,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Future<void> _addProjectTask(String projectId, String? sectionId) async {
     final raw = await _askName('Nuova attività', 'Cosa devi fare?');
     if (raw == null) return;
-    final parsed = const QuickAddParser(enableTime: false).parse(raw);
+    final parsed = const QuickAddParser().parse(raw);
     final today = CivilDate.fromDateTime(DateTime.now());
     await widget.repository.create(
       parsed.title,
@@ -1730,8 +1748,6 @@ class _TaskEditorState extends State<TaskEditor> {
       dueDate: dueDate.text.trim().isEmpty
           ? null
           : CivilDate.parse(dueDate.text.trim()).toString(),
-      timeMinutes: widget.task.timeMinutes,
-      timeZone: widget.task.timeZone,
       recurrence: recurrence == 'none' ? null : recurrence,
       priority: priority,
       projectId: projectId,
@@ -2577,7 +2593,7 @@ class TaskSearchDelegate extends SearchDelegate<void> {
 }
 
 /// Evidenzia soltanto la sintassi che il parser sa rimuovere e trasformare in
-/// data/ora, così il feedback visivo e il comportamento restano coerenti.
+/// data, così il feedback visivo e il comportamento restano coerenti.
 class SmartDateTextController extends TextEditingController {
   SmartDateTextController({super.text});
 
@@ -2587,7 +2603,7 @@ class SmartDateTextController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
   }) {
-    const parser = QuickAddParser(enableTime: false);
+    const parser = QuickAddParser();
     try {
       parser.parse(text);
     } on FormatException {

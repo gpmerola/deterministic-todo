@@ -1,47 +1,30 @@
 import 'task.dart';
 
 class QuickTaskDraft {
-  const QuickTaskDraft({
-    required this.title,
-    this.showDate,
-    this.timeMinutes,
-    this.recurrence,
-  });
+  const QuickTaskDraft({required this.title, this.showDate, this.recurrence});
 
   final String title;
   final CivilDate? showDate;
-  final int? timeMinutes;
   final String? recurrence;
 
   bool get isScheduled => showDate != null;
 }
 
 class QuickAddParser {
-  const QuickAddParser({this.enableTime = true});
-
-  final bool enableTime;
+  const QuickAddParser();
 
   static final RegExp _recognizedSyntax = RegExp(
-    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)(?:\s+dopo\s+il\s+completamento)?|giorno\s+feriale|weekend|ultimo\s+giorno\s+del\s+mese|ultimo\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|[0-3]?\d\s+del\s+mese|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|stasera|questo\s+weekend|inizio\s+settimana\s+prossima|fine\s+mese|(?:tra|fra)\s+\d+\s+(?:giorni?|settimane?)|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
+    r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)(?:\s+dopo\s+il\s+completamento)?|giorno\s+feriale|weekend|ultimo\s+giorno\s+del\s+mese|ultimo\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|[0-3]?\d\s+del\s+mese|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|stasera|questo\s+weekend|inizio\s+settimana\s+prossima|fine\s+mese|(?:tra|fra)\s+\d+\s+(?:giorni?|settimane?)|dopodomani|domani|oggi|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
     caseSensitive: false,
   );
 
-  Iterable<RegExpMatch> recognizedSyntax(String input) => _recognizedSyntax
-      .allMatches(input)
-      .where(
-        (match) =>
-            enableTime ||
-            !RegExp(
-              r'^(?:alle|ore)\b',
-              caseSensitive: false,
-            ).hasMatch(match.group(0)!),
-      );
+  Iterable<RegExpMatch> recognizedSyntax(String input) =>
+      _recognizedSyntax.allMatches(input);
 
   QuickTaskDraft parse(String input, {DateTime? now}) {
     final reference = now ?? DateTime.now();
     var title = input.trim();
     CivilDate? date;
-    int? minutes;
     String? recurrence;
 
     const weekdayNames = <String>[
@@ -184,7 +167,6 @@ class QuickAddParser {
     ).firstMatch(title);
     if (tonight != null) {
       date = CivilDate.fromDateTime(reference);
-      if (enableTime) minutes = 20 * 60;
       title = _removeMatch(title, tonight);
     }
 
@@ -366,17 +348,6 @@ class QuickAddParser {
       title = _removeMatch(title, recurringUnit);
     }
 
-    final timeMatch = RegExp(
-      r'\b(?:alle|ore)\s+([01]?\d|2[0-3])(?:[\.:]([0-5]\d))?\b',
-      caseSensitive: false,
-    ).firstMatch(title);
-    if (enableTime && timeMatch != null) {
-      minutes =
-          int.parse(timeMatch.group(1)!) * 60 +
-          int.parse(timeMatch.group(2) ?? '0');
-      title = _removeMatch(title, timeMatch);
-    }
-
     final relative = RegExp(
       r'\b(dopodomani|domani|oggi)\b',
       caseSensitive: false,
@@ -466,20 +437,11 @@ class QuickAddParser {
       }
     }
 
-    if (date == null && minutes != null) {
-      date = CivilDate.fromDateTime(reference);
-    }
-
     title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (title.isEmpty) {
       throw const FormatException('Il titolo è obbligatorio');
     }
-    return QuickTaskDraft(
-      title: title,
-      showDate: date,
-      timeMinutes: minutes,
-      recurrence: recurrence,
-    );
+    return QuickTaskDraft(title: title, showDate: date, recurrence: recurrence);
   }
 
   CivilDate _validatedDate(int year, int month, int day) {

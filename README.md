@@ -40,7 +40,7 @@ Directory principali:
 - `lib/domain`: tipi e regole pure;
 - `lib/data/local`: schema SQLite Drift e migrazione iniziale;
 - `lib/data/sync`: conflitti e worker offline-first;
-- `lib/services`: notifiche e import/export;
+- `lib/services`: calendario, diagnostica e import/export;
 - `lib/main.dart`: bootstrap e UI adattiva italiana;
 - `supabase/migrations`: schema PostgreSQL, funzione di merge e RLS.
 
@@ -77,7 +77,7 @@ Le policy RLS limitano entrambe le tabelle a `auth.uid() = user_id`. `merge_task
 
 ## Inserimento rapido e agenda Android
 
-La riga “Nuova attività” crea con Invio e interpreta localmente, senza rete, espressioni italiane comuni: `oggi`, `domani`, `dopodomani`, giorni della settimana, date `GG/MM` e mesi in lettere. Prima di salvare, una riga di anteprima mostra la pianificazione riconosciuta. L'ora è stata rimossa dall'interfaccia e dalla creazione naturale; eventuali orari storici o importati restano conservati senza essere modificati. Il parser rimuove dal titolo soltanto le espressioni riconosciute e rifiuta date impossibili.
+La riga “Nuova attività” crea con Invio e interpreta localmente, senza rete, espressioni italiane comuni: `oggi`, `domani`, `dopodomani`, giorni della settimana, date `GG/MM` e mesi in lettere. Prima di salvare, una riga di anteprima mostra la pianificazione riconosciuta. L'app non supporta orari: espressioni come `alle 18` restano testo normale, Todoist viene importato come data civile e Google Calendar riceve eventi giornalieri. Le vecchie colonne SQLite/Supabase restano soltanto per compatibilità di schema e vengono normalizzate a `null`. Il parser rimuove dal titolo soltanto le espressioni riconosciute e rifiuta date impossibili.
 
 Le ricorrenze rapide accettano `ogni giorno`, `ogni martedì`, `ogni 4 giorni`, `ogni 3 settimane`, `ogni 2 mesi`, `ogni 3 del mese`, `ogni terzo martedì`, `ogni 3 luglio` e `ogni anno`. La frase viene evidenziata e rimossa dal titolo. Completare un'occorrenza la conserva nella cronologia e crea automaticamente la successiva, avanzando oltre eventuali date arretrate senza generare duplicati.
 
@@ -89,7 +89,7 @@ Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ulti
 
 “Prossime” raggruppa le attività pianificate giorno per giorno. Su Android l'icona calendario di ogni attività datata consente di crearla o aggiornarla esplicitamente nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
 
-Su telefono, il pulsante `+` apre in 80 ms un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Un pulsante Note apre immediatamente una descrizione opzionale nello stesso composer. Le espressioni comprese — per esempio `oggi`, `domani` e `venerdì` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
+Su telefono, il pulsante `+` apre in 80 ms un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Un pulsante Note apre immediatamente una descrizione opzionale e il pallino priorità permette di scegliere P1–P4 senza aprire l'editor completo. Le espressioni comprese — per esempio `oggi`, `domani` e `venerdì` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
 
 La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Completate è raggiungibile dalle Impostazioni senza occupare la navigazione primaria; Inbox e In attesa restano stati compatibili nel database e nella versione desktop. Le attività Inbox senza data compaiono in Oggi, ma l'eventuale progetto tecnico “Inbox” importato da Todoist non viene mostrato come progetto autonomo. Prossime genera pigramente giorni fino a dieci anni, senza contatori o il filtro ridondante “Tutte”, e offre **Vai a data** per saltare immediatamente lontano nel calendario. Progetti appare come vista dedicata e mantiene sezioni e attività attive importate.
 
@@ -97,7 +97,7 @@ Il tasto **Indietro** di Android chiude prima dialoghi e menu, poi ripercorre le
 
 Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; la transizione inversa dura 45 ms. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
 
-Le Impostazioni mostrano lo stato reale del worker in una sola riga con icona: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento oppure errore. Account e comandi meno frequenti restano nel menu contestuale. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato. Modificare data/ora ripianifica la notifica; eliminare una task la annulla sempre.
+Le Impostazioni mostrano lo stato reale del worker in una sola riga con icona: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento oppure errore. Account e comandi meno frequenti restano nel menu contestuale. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato.
 
 Progetti usa una navigazione gerarchica minimale: un elenco iniziale con colore e nome apre il dettaglio del progetto; Indietro torna all'elenco prima di lasciare la sezione. Il dettaglio mostra soltanto nome, sezioni e attività, senza dropdown, conteggi o bacheca. ID, colori, sezioni e mapping esterni restano invariati e compatibili con import e reimport Todoist.
 
@@ -119,21 +119,21 @@ Windows va compilato su Windows con Visual Studio 2022 e workload “Desktop dev
 
 La CI Android usa una chiave release stabile salvata esclusivamente nei GitHub Actions Secrets e genera APK separati `arm64-v8a`, `armeabi-v7a` e `x86_64`. Il fallback universale serve soltanto a portare updater precedenti alla versione capace di scegliere l’ABI. Regole, misure e procedura completa sono in [docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
 
-## Dati, notifiche e backup
+## Dati e backup
 
 Localmente sono salvati task, note, date, ricorrenze, tombstone, impostazioni e outbox. Finché Supabase e pairing non sono configurati, nessun task viene sincronizzato remotamente. Nessun contenuto viene inviato altrove o scritto nei log.
 
-Le notifiche sono locali e vengono pianificate per task con data “Mostra il” e ora; completamento ed eliminazione le annullano. Android ripristina le pianificazioni dopo riavvio tramite il receiver del plugin. Permessi e database dei fusi orari sono inizializzati soltanto quando viene programmata la prima notifica, quindi non rallentano l’avvio ordinario. Il permesso negato non impedisce l'uso dell'app.
+Le notifiche orarie sono state rimosse insieme ai relativi plugin, permessi, receiver Android e database dei fusi. Le date restano civili e non cambiano attraversando fusi orari o ora legale.
 
 Su Android, “Salva + calendario” crea esplicitamente un evento nel calendario Google primario già configurato sul dispositivo; in assenza di Google usa il primo calendario modificabile secondo un ordine stabile. L’ID restituito dal provider Android viene conservato localmente: ripetere il comando aggiorna lo stesso evento e non crea duplicati. Non esiste importazione automatica dal calendario e SQLite resta la fonte di verità. Il fuso viene letto come identificatore IANA nativo (`Europe/London`, per esempio), funziona offline e segue le regole DST senza dipendere da Google o dall’orologio di rete.
 
 Impostazioni consente export JSON completo/versionato, export CSV e import JSON. Prima dell'import mostra conteggi di aggiunte, aggiornamenti e record invariati; vince solo una versione logica superiore, quindi non avvengono sovrascritture silenziose.
 
-“Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date, fusi e ricorrenze. **Aggiorna** esegue un reimport incrementale: aggiunge le novità e aggiorna solo i record Todoist modificati, senza duplicati e senza riaprire le attività già completate nell'app. **Sostituisci** richiede una seconda conferma e ricostruisce da zero esclusivamente i dati provenienti da Todoist, rimuovendo quelli assenti dal nuovo file; le attività native dell'app non vengono toccate. L'operazione SQLite è atomica. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
+“Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date civili e ricorrenze. **Aggiorna** esegue un reimport incrementale: aggiunge le novità e aggiorna solo i record Todoist modificati, senza duplicati e senza riaprire le attività già completate nell'app. **Sostituisci** richiede una seconda conferma e ricostruisce da zero esclusivamente i dati provenienti da Todoist, rimuovendo quelli assenti dal nuovo file; le attività native dell'app non vengono toccate. L'operazione SQLite è atomica. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
 
 Titolo e descrizione sono importati separatamente da Todoist. La descrizione appare sotto il titolo, su un massimo di due righe. I link Markdown presenti in entrambi vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco. L'export attualmente supportato non contiene commenti, allegati o sotto-attività importabili.
 
-Lo swipe laterale sposta l'attività nel cestino e mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando sincronizzazione e notifiche.
+Lo swipe laterale sposta l'attività nel cestino e mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando la sincronizzazione.
 
 La vista Progetti usa un elenco verticale con sezioni comprimibili. Si possono creare progetti con colore, aggiungere sezioni e attività direttamente nella destinazione, e spostare un'attività cambiando progetto/sezione dall'editor. L'eventuale preferenza elenco/bacheca importata da Todoist resta nei metadati per compatibilità, ma non condiziona più la UI mobile. Funzioni collaborative come condivisione e commenti restano intenzionalmente escluse.
 

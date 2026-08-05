@@ -7,19 +7,18 @@ void main() {
 
   test('espone la sintassi intelligente da evidenziare', () {
     final matches = parser
-        .recognizedSyntax('Fai X oggi alle 18:30')
+        .recognizedSyntax('Fai X oggi')
         .map((match) => match.group(0))
         .toList();
 
-    expect(matches, ['oggi', 'alle 18:30']);
+    expect(matches, ['oggi']);
   });
 
-  test('riconosce domani e ora rimuovendoli dal titolo', () {
+  test('riconosce domani senza interpretare un orario', () {
     final draft = parser.parse('Dentista domani alle 9:30', now: monday);
 
-    expect(draft.title, 'Dentista');
+    expect(draft.title, 'Dentista alle 9:30');
     expect(draft.showDate.toString(), '2026-08-04');
-    expect(draft.timeMinutes, 9 * 60 + 30);
   });
 
   test('riconosce ogni giorno e lo rimuove dal titolo', () {
@@ -99,7 +98,6 @@ void main() {
     final later = parser.parse('Richiama fra 2 settimane', now: monday);
 
     expect(tonight.showDate.toString(), '2026-08-03');
-    expect(tonight.timeMinutes, 20 * 60);
     expect(later.title, 'Richiama');
     expect(later.showDate.toString(), '2026-08-17');
   });
@@ -118,28 +116,15 @@ void main() {
     expect(draft.showDate.toString(), '2027-08-02');
   });
 
-  test('l ora senza data pianifica oggi', () {
-    final draft = parser.parse('Telefonata alle 18', now: monday);
-
-    expect(draft.title, 'Telefonata');
-    expect(draft.showDate.toString(), '2026-08-03');
-    expect(draft.timeMinutes, 18 * 60);
-  });
-
-  test('la modalità senza ora lascia il testo invariato', () {
-    const parserWithoutTime = QuickAddParser(enableTime: false);
-    final draft = parserWithoutTime.parse(
-      'Telefonata domani alle 18',
-      now: monday,
-    );
-    final matches = parserWithoutTime
+  test('un orario resta testo normale', () {
+    final draft = parser.parse('Telefonata domani alle 18', now: monday);
+    final matches = parser
         .recognizedSyntax('Telefonata domani alle 18')
         .map((match) => match.group(0))
         .toList();
 
     expect(draft.title, 'Telefonata alle 18');
     expect(draft.showDate.toString(), '2026-08-04');
-    expect(draft.timeMinutes, isNull);
     expect(matches, ['domani']);
   });
 
