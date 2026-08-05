@@ -44,6 +44,9 @@ part 'ui/trash_view.dart';
 part 'ui/task_widgets.dart';
 part 'ui/task_editor.dart';
 
+const isPlayDistribution =
+    String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const BootstrapApp());
@@ -339,15 +342,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (mounted) setState(() => currentSyncSnapshot = snapshot);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _checkForUpdates();
+      if (!isPlayDistribution) await _checkForUpdates();
       await widget.repository.archiveCompletedOlderThan(
         DateTime.now().subtract(const Duration(days: 365)),
       );
       await _showDailyPerformanceReminder();
     });
-    updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
-      if (appIsForeground) unawaited(_checkForUpdates());
-    });
+    if (!isPlayDistribution) {
+      updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
+        if (appIsForeground) unawaited(_checkForUpdates());
+      });
+    }
   }
 
   Future<void> _loadInboxProjectIds() async {
@@ -499,6 +504,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<void> _checkForUpdates() async {
+    if (isPlayDistribution) return;
     if (checkingForUpdates) return;
     checkingForUpdates = true;
     lastUpdateCheck = DateTime.now();

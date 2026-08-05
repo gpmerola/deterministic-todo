@@ -14,6 +14,11 @@ La pipeline coordinata genera APK e AAB dallo stesso commit. Entrambi sono
 firmati con la chiave Android conservata nell'environment GitHub
 `android-release`; per Play questa è la chiave di upload.
 
+Il flavor `direct` conserva aggiornamento OTA e permesso
+`REQUEST_INSTALL_PACKAGES`. Il flavor `play` rimuove quel permesso dal manifest
+e disattiva timer, controllo e interfaccia degli aggiornamenti GitHub. Non
+caricare mai su Play il flavor `direct`.
+
 La chiave privata non è disponibile localmente e non è esportabile dai secret
 GitHub. Alla prima configurazione Play App Signing usare quindi la chiave
 generata da Google per la distribuzione. La firma Play sarà diversa da quella

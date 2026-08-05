@@ -154,14 +154,17 @@ jobs:
       - name: Build signed APKs per CPU
         run: |
           flutter pub get
-          flutter build appbundle --release \
+          flutter build appbundle --release --flavor play \
             --split-debug-info=build/private-symbols/play \
+            --dart-define=DISTRIBUTION_CHANNEL=play \
             --dart-define-from-file=supabase/config.json
-          flutter build apk --release \
+          flutter build apk --release --flavor direct \
             --split-debug-info=build/private-symbols/universal \
+            --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
-          flutter build apk --release --split-per-abi \
+          flutter build apk --release --flavor direct --split-per-abi \
             --split-debug-info=build/private-symbols \
+            --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
         env:
           ANDROID_KEYSTORE_PATH: release-key.jks
@@ -183,11 +186,11 @@ jobs:
           BUILD: ${{ needs.verify.outputs.build }}
         run: |
           mkdir release-assets
-          cp build/app/outputs/bundle/release/app-release.aab release-assets/DeterministicTodo-Android.aab
-          cp build/app/outputs/flutter-apk/app-release.apk release-assets/DeterministicTodo-Android-universal.apk
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-assets/DeterministicTodo-Android-x86_64.apk
+          cp build/app/outputs/bundle/playRelease/app-play-release.aab release-assets/DeterministicTodo-Android.aab
+          cp build/app/outputs/flutter-apk/app-direct-release.apk release-assets/DeterministicTodo-Android-universal.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-direct-release.apk release-assets/DeterministicTodo-Android-x86_64.apk
           python3 tools/generate_release_manifest.py \
             --version "$VERSION" \
             --build "$BUILD" \

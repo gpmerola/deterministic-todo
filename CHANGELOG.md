@@ -6,6 +6,8 @@ Cronologia delle modifiche distribuite, dalla più recente.
 
 - La release coordinata genera anche un Android App Bundle firmato, pronto per
   il caricamento su Google Play con la stessa chiave di upload degli APK.
+- Le build Play e diretta sono separate: Play non dichiara il permesso di
+  installazione APK e non mostra né esegue il controllo aggiornamenti GitHub.
 - Aggiunta una privacy policy pubblica e minimale per la scheda Google Play.
 - Il nome mostrato dal launcher Android è ora `Deterministic Todo`.
 

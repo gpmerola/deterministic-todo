@@ -330,29 +330,30 @@ class SettingsView extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
     children: [
       SyncAccountCard(client: syncClient, syncService: syncService),
-      FutureBuilder<PackageInfo>(
-        future: PackageInfo.fromPlatform(),
-        builder: (context, snapshot) => ListTile(
-          leading: const Icon(Icons.system_update_outlined),
-          title: const Text('Controlla aggiornamenti'),
-          subtitle: Text(
-            snapshot.hasData
-                ? 'Versione installata: ${snapshot.requireData.version} '
-                      '(${snapshot.requireData.buildNumber})'
-                : 'Verifica la release pubblica più recente',
+      if (!isPlayDistribution)
+        FutureBuilder<PackageInfo>(
+          future: PackageInfo.fromPlatform(),
+          builder: (context, snapshot) => ListTile(
+            leading: const Icon(Icons.system_update_outlined),
+            title: const Text('Controlla aggiornamenti'),
+            subtitle: Text(
+              snapshot.hasData
+                  ? 'Versione installata: ${snapshot.requireData.version} '
+                        '(${snapshot.requireData.buildNumber})'
+                  : 'Verifica la release pubblica più recente',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              await checkForUpdates();
+              if (context.mounted) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Controllo completato')),
+                );
+              }
+            },
           ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () async {
-            final messenger = ScaffoldMessenger.of(context);
-            await checkForUpdates();
-            if (context.mounted) {
-              messenger.showSnackBar(
-                const SnackBar(content: Text('Controllo completato')),
-              );
-            }
-          },
         ),
-      ),
       ListTile(
         leading: const Icon(Icons.health_and_safety_outlined),
         title: const Text('Salute dati'),
