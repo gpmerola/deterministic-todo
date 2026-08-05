@@ -63,6 +63,8 @@ La 2.4.0 riduce inoltre il numero di widget per riga: priorità sul bordo del ch
 
 La 2.5.0 applica la priorità con una decorazione statica leggera e ordina in memoria le sole liste già caricate; non aggiunge query né scritture automatiche. Il composer osserva esclusivamente il cambiamento dell'inset della tastiera mentre è aperto: quando Android nasconde l'IME, chiude nello stesso gesto anche il bottom sheet con reverse animation da 90 ms. Non esistono listener o timer persistenti dopo la chiusura.
 
+La 2.7.0 riduce le transizioni del composer a 80/45 ms e aggiunge il campo descrizione soltanto su richiesta, senza controller, layout o listener persistenti dopo la chiusura. La nuova gerarchia Progetti riusa gli stessi due stream SQLite di progetti e sezioni e non introduce query, polling o dipendenze.
+
 Il fuso IANA viene letto tramite un singolo platform channel soltanto quando si salva una task con ora o si crea una notifica. L’accesso al calendario avviene esclusivamente premendo “Salva + calendario”; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale

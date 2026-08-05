@@ -17,15 +17,25 @@ class QuickTaskDraft {
 }
 
 class QuickAddParser {
-  const QuickAddParser();
+  const QuickAddParser({this.enableTime = true});
+
+  final bool enableTime;
 
   static final RegExp _recognizedSyntax = RegExp(
     r'\b(?:ogni\s+(?:(?:\d+\s+)?(?:giorno|giorni|settimana|settimane|mese|mesi|anno|anni)(?:\s+dopo\s+il\s+completamento)?|giorno\s+feriale|weekend|ultimo\s+giorno\s+del\s+mese|ultimo\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|[0-3]?\d\s+del\s+mese|(?:primo|secondo|terzo|quarto|quinto)\s+(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)(?:\s+del\s+mese)?|(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre))|stasera|questo\s+weekend|inizio\s+settimana\s+prossima|fine\s+mese|(?:tra|fra)\s+\d+\s+(?:giorni?|settimane?)|dopodomani|domani|oggi|(?:alle|ore)\s+(?:[01]?\d|2[0-3])(?:[\.:][0-5]\d)?|(?:prossimo\s+)?(?:lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)|(?:il\s+)?[0-3]?\d[\/-][01]?\d(?:[\/-](?:\d{2}|\d{4}))?|(?:il\s+)?[0-3]?\d\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)(?:\s+\d{4})?)(?=\s|$)',
     caseSensitive: false,
   );
 
-  Iterable<RegExpMatch> recognizedSyntax(String input) =>
-      _recognizedSyntax.allMatches(input);
+  Iterable<RegExpMatch> recognizedSyntax(String input) => _recognizedSyntax
+      .allMatches(input)
+      .where(
+        (match) =>
+            enableTime ||
+            !RegExp(
+              r'^(?:alle|ore)\b',
+              caseSensitive: false,
+            ).hasMatch(match.group(0)!),
+      );
 
   QuickTaskDraft parse(String input, {DateTime? now}) {
     final reference = now ?? DateTime.now();
@@ -174,7 +184,7 @@ class QuickAddParser {
     ).firstMatch(title);
     if (tonight != null) {
       date = CivilDate.fromDateTime(reference);
-      minutes = 20 * 60;
+      if (enableTime) minutes = 20 * 60;
       title = _removeMatch(title, tonight);
     }
 
@@ -360,7 +370,7 @@ class QuickAddParser {
       r'\b(?:alle|ore)\s+([01]?\d|2[0-3])(?:[\.:]([0-5]\d))?\b',
       caseSensitive: false,
     ).firstMatch(title);
-    if (timeMatch != null) {
+    if (enableTime && timeMatch != null) {
       minutes =
           int.parse(timeMatch.group(1)!) * 60 +
           int.parse(timeMatch.group(2) ?? '0');

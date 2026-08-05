@@ -62,6 +62,7 @@ class TaskRepository {
   Future<String> create(
     String rawTitle, {
     TaskStatus status = TaskStatus.inbox,
+    String? notes,
     String? showDate,
     int? timeMinutes,
     String? timeZone,
@@ -82,6 +83,7 @@ class TaskRepository {
       id: id,
       title: title,
       status: status.name,
+      notes: Value(notes),
       showDate: Value(showDate),
       timeMinutes: Value(timeMinutes),
       timeZone: Value(timeZone),

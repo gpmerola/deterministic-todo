@@ -111,7 +111,7 @@ Incremento critico da implementare prima degli altri:
 6. ~~mostrare Progetti con sezioni e attività attive~~ completato nella 1.9.0;
 7. non committare mai l'export reale.
 
-La 2.0 aggiunge i layout elenco/bacheca e le operazioni essenziali sui progetti. Miglioramenti successivi: rinomina/archiviazione con Undo, riordino drag-and-drop di progetti/sezioni e descrizione progetto.
+La 2.7 sostituisce i layout visibili elenco/bacheca con una gerarchia minimale elenco progetti → dettaglio, mantenendo i metadati Todoist compatibili. Miglioramenti successivi: rinomina/archiviazione con Undo, riordino drag-and-drop di progetti/sezioni e descrizione progetto.
 
 Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settimane/mesi, annuali e giorni fissi dell'anno. Le stringhe ambigue `ogni 1` e `ogni 26` vanno interpretate secondo il campo `due.date` e verificate in anteprima, non indovinate silenziosamente.
 

@@ -24,7 +24,6 @@ import 'data/task_repository.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'services/calendar_service.dart';
-import 'services/device_time_zone_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/notification_service.dart';
@@ -502,14 +501,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  Future<bool> _createFrom(TextEditingController controller) async {
+  Future<bool> _createFrom(
+    TextEditingController controller, {
+    TextEditingController? notesController,
+  }) async {
     if (controller.text.trim().isEmpty) return false;
     try {
-      final parsed = const QuickAddParser().parse(controller.text);
+      final parsed = const QuickAddParser(
+        enableTime: false,
+      ).parse(controller.text);
       final today = CivilDate.fromDateTime(DateTime.now());
-      final timeZone = parsed.timeMinutes == null
-          ? null
-          : await DeviceTimeZoneService.currentIana();
       await widget.repository.create(
         parsed.title,
         status: parsed.showDate == null
@@ -518,8 +519,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             ? TaskStatus.available
             : TaskStatus.scheduled,
         showDate: parsed.showDate?.toString(),
-        timeMinutes: parsed.timeMinutes,
-        timeZone: timeZone,
+        notes: notesController?.text.trim().isEmpty == true
+            ? null
+            : notesController?.text.trim(),
         recurrence: parsed.recurrence,
       );
       controller.clear();
@@ -540,18 +542,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   String? _quickAddHelper(String value) {
     if (value.trim().isEmpty) return null;
     try {
-      final draft = const QuickAddParser().parse(value);
+      final draft = const QuickAddParser(enableTime: false).parse(value);
       final parts = <String>[];
       if (draft.showDate != null) {
         parts.add(
           DateFormat('EEE d MMM', 'it').format(draft.showDate!.asLocalDate),
-        );
-      }
-      if (draft.timeMinutes != null) {
-        final hour = draft.timeMinutes! ~/ 60;
-        final minute = draft.timeMinutes! % 60;
-        parts.add(
-          '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
         );
       }
       if (draft.recurrence != null) {
@@ -567,15 +562,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   Future<void> _showQuickAddSheet() async {
     final controller = SmartDateTextController();
+    final notesController = TextEditingController();
     var keyboardWasVisible = false;
     var closing = false;
+    var showNotes = false;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       sheetAnimationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 160),
-        reverseDuration: Duration(milliseconds: 90),
+        duration: Duration(milliseconds: 80),
+        reverseDuration: Duration(milliseconds: 45),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
@@ -589,51 +585,87 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             });
           }
           return AnimatedPadding(
-            duration: const Duration(milliseconds: 100),
+            duration: const Duration(milliseconds: 50),
             padding: EdgeInsets.fromLTRB(16, 0, 16, keyboardInset + 12),
             child: SafeArea(
               top: false,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      key: const ValueKey('mobile-quick-add-field'),
-                      controller: controller,
-                      autofocus: true,
-                      minLines: 1,
-                      maxLines: 3,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.done,
-                      onChanged: (_) => setSheetState(() {}),
-                      onSubmitted: (_) async {
-                        if (await _createFrom(controller) &&
-                            sheetContext.mounted) {
-                          Navigator.pop(sheetContext);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Nuova attività',
-                        hintText: 'Cosa devi fare?',
-                        helperText: _quickAddHelper(controller.text),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const ValueKey('mobile-quick-add-field'),
+                          controller: controller,
+                          autofocus: true,
+                          minLines: 1,
+                          maxLines: 3,
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.done,
+                          onChanged: (_) => setSheetState(() {}),
+                          onSubmitted: (_) async {
+                            if (await _createFrom(
+                                  controller,
+                                  notesController: notesController,
+                                ) &&
+                                sheetContext.mounted) {
+                              Navigator.pop(sheetContext);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Nuova attività',
+                            hintText: 'Cosa devi fare?',
+                            helperText: _quickAddHelper(controller.text),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        key: const ValueKey('mobile-quick-add-notes'),
+                        tooltip: 'Aggiungi descrizione',
+                        onPressed: () => setSheetState(() {
+                          showNotes = !showNotes;
+                        }),
+                        icon: Icon(
+                          Icons.notes_outlined,
+                          color: showNotes
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                      ),
+                      IconButton.filled(
+                        key: const ValueKey('mobile-quick-add-submit'),
+                        tooltip: 'Aggiungi attività',
+                        onPressed: () async {
+                          if (await _createFrom(
+                                controller,
+                                notesController: notesController,
+                              ) &&
+                              sheetContext.mounted) {
+                            Navigator.pop(sheetContext);
+                          }
+                        },
+                        icon: const Icon(Icons.arrow_upward),
+                      ),
+                    ],
+                  ),
+                  if (showNotes)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: TextField(
+                        key: const ValueKey('mobile-quick-add-notes-field'),
+                        controller: notesController,
+                        autofocus: true,
+                        minLines: 1,
+                        maxLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Descrizione',
+                          prefixIcon: Icon(Icons.notes_outlined),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: IconButton.filled(
-                      key: const ValueKey('mobile-quick-add-submit'),
-                      tooltip: 'Aggiungi attività',
-                      onPressed: () async {
-                        if (await _createFrom(controller) &&
-                            sheetContext.mounted) {
-                          Navigator.pop(sheetContext);
-                        }
-                      },
-                      icon: const Icon(Icons.arrow_upward),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -644,7 +676,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     // The route completes while its exit animation can still own the field for
     // one frame. Dispose after that frame to avoid a controller-after-dispose
     // race on fast submissions.
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+      notesController.dispose();
+    });
   }
 
   bool get _canExitFromBack =>
@@ -663,7 +698,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   void _handleBack() {
     setState(() {
-      if (section == AppSection.upcoming && selectedUpcomingDate != null) {
+      if (section == AppSection.projects && selectedProjectId != null) {
+        selectedProjectId = null;
+      } else if (section == AppSection.upcoming &&
+          selectedUpcomingDate != null) {
         selectedUpcomingDate = null;
       } else if (sectionHistory.isNotEmpty) {
         section = sectionHistory.removeLast();
@@ -948,11 +986,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       builder: (context, sectionSnapshot) {
         final projects = projectSnapshot.data ?? const <Project>[];
         final sections = sectionSnapshot.data ?? const <ProjectSection>[];
-        if (projects.isEmpty) {
-          return const Center(
-            child: Text('Nessun progetto. Puoi importarli da Todoist.'),
-          );
-        }
         inboxProjectIds
           ..clear()
           ..addAll(
@@ -968,14 +1001,61 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
             )
             .toList();
-        if (activeProjects.isEmpty) {
-          return const Center(child: Text('Nessun progetto attivo'));
-        }
         final selected =
             activeProjects.any((item) => item.id == selectedProjectId)
             ? activeProjects.firstWhere((item) => item.id == selectedProjectId)
-            : activeProjects.first;
-        selectedProjectId = selected.id;
+            : null;
+        if (selected == null) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                child: Row(
+                  children: [
+                    Text(
+                      'I miei progetti',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const ValueKey('create-project'),
+                      tooltip: 'Nuovo progetto',
+                      onPressed: _addProject,
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: activeProjects.isEmpty
+                    ? const Center(child: Text('Nessun progetto'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        itemCount: activeProjects.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, indent: 48),
+                        itemBuilder: (context, index) {
+                          final project = activeProjects[index];
+                          return ListTile(
+                            key: ValueKey('project-row-${project.id}'),
+                            dense: true,
+                            leading: Icon(
+                              Icons.circle,
+                              size: 12,
+                              color: _projectColor(project.color),
+                            ),
+                            title: Text(project.name),
+                            trailing: const Icon(Icons.chevron_right, size: 20),
+                            onTap: () =>
+                                setState(() => selectedProjectId = project.id),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        }
         final projectSections = sections
             .where((item) => item.projectId == selected.id && !item.isArchived)
             .toList();
@@ -988,112 +1068,40 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         });
         return Column(
           children: [
-            Expanded(
-              child: StreamBuilder<AppSetting?>(
-                stream:
-                    (widget.repository.db.select(
-                          widget.repository.db.appSettings,
-                        )..where(
-                          (row) =>
-                              row.key.equals('project_view:${selected.id}'),
-                        ))
-                        .watchSingleOrNull(),
-                builder: (context, viewSnapshot) {
-                  final board = viewSnapshot.data?.value == 'board';
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: selected.id,
-                                  isExpanded: true,
-                                  icon: const Icon(Icons.expand_more),
-                                  items: [
-                                    for (final project in activeProjects)
-                                      DropdownMenuItem(
-                                        value: project.id,
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.circle,
-                                              size: 12,
-                                              color: _projectColor(
-                                                project.color,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Flexible(
-                                              child: Text(
-                                                project.name,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.titleLarge,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                  onChanged: (value) =>
-                                      setState(() => selectedProjectId = value),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Aggiungi sezione',
-                              onPressed: () => _addSection(selected.id),
-                              icon: const Icon(Icons.add_box_outlined),
-                            ),
-                            PopupMenuButton<String>(
-                              tooltip: 'Azioni progetto',
-                              onSelected: (value) {
-                                if (value == 'project') _addProject();
-                                if (value == 'view') {
-                                  widget.repository.setProjectView(
-                                    selected.id,
-                                    board ? 'list' : 'board',
-                                  );
-                                }
-                              },
-                              itemBuilder: (_) => [
-                                const PopupMenuItem(
-                                  value: 'project',
-                                  child: Text('Nuovo progetto'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'view',
-                                  child: Text(
-                                    board ? 'Vista elenco' : 'Vista bacheca',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: board
-                            ? _projectBoard(
-                                selected.id,
-                                projectSections,
-                                projectTasks,
-                              )
-                            : _projectList(
-                                selected.id,
-                                projectSections,
-                                projectTasks,
-                              ),
-                      ),
-                    ],
-                  );
-                },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    key: const ValueKey('back-to-projects'),
+                    tooltip: 'Tutti i progetti',
+                    onPressed: () => setState(() => selectedProjectId = null),
+                    icon: const Icon(Icons.arrow_back),
+                  ),
+                  Icon(
+                    Icons.circle,
+                    size: 12,
+                    color: _projectColor(selected.color),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      selected.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Aggiungi sezione',
+                    onPressed: () => _addSection(selected.id),
+                    icon: const Icon(Icons.add_box_outlined),
+                  ),
+                ],
               ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: _projectList(selected.id, projectSections, projectTasks),
             ),
           ],
         );
@@ -1148,73 +1156,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         title: const Text('Aggiungi'),
         onTap: () => _addProjectTask(projectId, null),
       ),
-    ],
-  );
-
-  Widget _projectBoard(
-    String projectId,
-    List<ProjectSection> sections,
-    List<Task> tasks,
-  ) => ListView(
-    scrollDirection: Axis.horizontal,
-    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-    children: [
-      for (final section in sections)
-        SizedBox(
-          width: 300,
-          child: Card(
-            margin: const EdgeInsets.only(right: 12),
-            child: ListView(
-              padding: const EdgeInsets.all(8),
-              children: [
-                ListTile(title: Text(section.name)),
-                for (final task in tasks.where(
-                  (item) => item.sectionId == section.id,
-                ))
-                  Card(
-                    child: TaskTile(
-                      key: ValueKey('board-${task.id}'),
-                      task: task,
-                      repository: widget.repository,
-                    ),
-                  ),
-                TextButton.icon(
-                  onPressed: () => _addProjectTask(projectId, section.id),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Aggiungi attività'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      if (tasks.any((item) => item.sectionId == null))
-        SizedBox(
-          width: 300,
-          child: Card(
-            margin: const EdgeInsets.only(right: 12),
-            child: ListView(
-              padding: const EdgeInsets.all(8),
-              children: [
-                ListTile(title: const Text('Senza sezione')),
-                for (final task in tasks.where(
-                  (item) => item.sectionId == null,
-                ))
-                  Card(
-                    child: TaskTile(
-                      key: ValueKey('board-${task.id}'),
-                      task: task,
-                      repository: widget.repository,
-                    ),
-                  ),
-                TextButton.icon(
-                  onPressed: () => _addProjectTask(projectId, null),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Aggiungi attività'),
-                ),
-              ],
-            ),
-          ),
-        ),
     ],
   );
 
@@ -1319,7 +1260,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Future<void> _addProjectTask(String projectId, String? sectionId) async {
     final raw = await _askName('Nuova attività', 'Cosa devi fare?');
     if (raw == null) return;
-    final parsed = const QuickAddParser().parse(raw);
+    final parsed = const QuickAddParser(enableTime: false).parse(raw);
     final today = CivilDate.fromDateTime(DateTime.now());
     await widget.repository.create(
       parsed.title,
@@ -1329,7 +1270,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ? TaskStatus.available
           : TaskStatus.scheduled,
       showDate: parsed.showDate?.toString(),
-      timeMinutes: parsed.timeMinutes,
       recurrence: parsed.recurrence,
       projectId: projectId,
       sectionId: sectionId,
@@ -1773,11 +1713,6 @@ class _TaskEditorState extends State<TaskEditor> {
   late final TextEditingController dueDate = TextEditingController(
     text: widget.task.dueDate,
   );
-  late final TextEditingController time = TextEditingController(
-    text: widget.task.timeMinutes == null
-        ? ''
-        : '${(widget.task.timeMinutes! ~/ 60).toString().padLeft(2, '0')}:${(widget.task.timeMinutes! % 60).toString().padLeft(2, '0')}',
-  );
   late TaskStatus status = TaskStatus.values.byName(widget.task.status);
   late String recurrence = widget.task.recurrence ?? 'none';
   late String? projectId = widget.task.projectId;
@@ -1785,7 +1720,6 @@ class _TaskEditorState extends State<TaskEditor> {
   late int priority = widget.task.priority;
 
   Future<Task> _save() async {
-    final parsedTime = _parseTime(time.text);
     await widget.repository.updateDetails(
       widget.task,
       title: title.text,
@@ -1796,10 +1730,8 @@ class _TaskEditorState extends State<TaskEditor> {
       dueDate: dueDate.text.trim().isEmpty
           ? null
           : CivilDate.parse(dueDate.text.trim()).toString(),
-      timeMinutes: parsedTime,
-      timeZone: parsedTime == null
-          ? null
-          : await DeviceTimeZoneService.currentIana(),
+      timeMinutes: widget.task.timeMinutes,
+      timeZone: widget.task.timeZone,
       recurrence: recurrence == 'none' ? null : recurrence,
       priority: priority,
       projectId: projectId,
@@ -1974,11 +1906,6 @@ class _TaskEditorState extends State<TaskEditor> {
               onPressed: () => setState(showDate.clear),
               icon: const Icon(Icons.close, size: 18),
             ),
-          ActionChip(
-            avatar: const Icon(Icons.schedule, size: 18),
-            label: Text(time.text.isEmpty ? 'Ora' : time.text),
-            onPressed: _pickTaskTime,
-          ),
           PopupMenuButton<int>(
             tooltip: 'Priorità P${5 - priority}',
             icon: Icon(Icons.circle, color: _priorityColor(priority), size: 20),
@@ -2056,22 +1983,6 @@ class _TaskEditorState extends State<TaskEditor> {
     }
   }
 
-  Future<void> _pickTaskTime() async {
-    final minutes = _parseTime(time.text);
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: minutes == null
-          ? TimeOfDay.now()
-          : TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
-    );
-    if (picked != null && mounted) {
-      setState(
-        () => time.text =
-            '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}',
-      );
-    }
-  }
-
   Widget _projectFields() => StreamBuilder<List<Project>>(
     stream: widget.repository.db.select(widget.repository.db.projects).watch(),
     builder: (context, projectSnapshot) => StreamBuilder<List<ProjectSection>>(
@@ -2142,18 +2053,6 @@ String _statusLabel(TaskStatus status) => switch (status) {
   TaskStatus.waiting => 'In attesa',
   TaskStatus.completed => 'Completata',
 };
-
-int? _parseTime(String value) {
-  if (value.trim().isEmpty) return null;
-  final parts = value.trim().split(':');
-  if (parts.length != 2) throw const FormatException('Ora non valida');
-  final hour = int.parse(parts[0]);
-  final minute = int.parse(parts[1]);
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-    throw const FormatException('Ora non valida');
-  }
-  return hour * 60 + minute;
-}
 
 class SettingsView extends StatelessWidget {
   const SettingsView({
@@ -2688,7 +2587,7 @@ class SmartDateTextController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
   }) {
-    const parser = QuickAddParser();
+    const parser = QuickAddParser(enableTime: false);
     try {
       parser.parse(text);
     } on FormatException {

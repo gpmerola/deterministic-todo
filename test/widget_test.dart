@@ -222,7 +222,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('Progetti usa una sola barra senza conteggi duplicati', (
+  testWidgets('Progetti naviga da elenco minimale al dettaglio', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -239,8 +239,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ChoiceChip), findsNothing);
-    expect(find.byTooltip('Azioni progetto'), findsOneWidget);
+    expect(find.text('I miei progetti'), findsOneWidget);
+    expect(find.text('Casa'), findsOneWidget);
+    expect(find.text('Pulizie'), findsNothing);
     expect(find.textContaining('1 attività'), findsNothing);
+
+    await tester.tap(find.text('Casa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pulizie'), findsOneWidget);
+    expect(find.byKey(const ValueKey('back-to-projects')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('I miei progetti'), findsOneWidget);
+    expect(find.text('Pulizie'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
@@ -269,6 +280,40 @@ void main() {
     tester.view.viewInsets = FakeViewPadding.zero;
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('mobile-quick-add-field')), findsNothing);
+    await db.close();
+  });
+
+  testWidgets('il composer aggiunge subito una descrizione opzionale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mobile-quick-add-notes')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      'Leggi articolo',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('mobile-quick-add-notes-field')),
+      'Concentrati sui metodi',
+    );
+    await tester.tap(find.byKey(const ValueKey('mobile-quick-add-submit')));
+    await tester.pumpAndSettle();
+
+    final task = await db.select(db.tasks).getSingle();
+    expect(task.notes, 'Concentrati sui metodi');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
     await db.close();
   });
 
@@ -330,6 +375,7 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byKey(const ValueKey('task-editor-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('task-editor-save')), findsOneWidget);
+    expect(find.text('Ora'), findsNothing);
     expect(find.text('Altri dettagli'), findsOneWidget);
     expect(find.text('Note'), findsNothing);
     expect(
@@ -359,7 +405,7 @@ void main() {
     await tester.tap(find.text('Progetti'));
     await tester.pumpAndSettle();
     expect(find.text('Inbox'), findsNothing);
-    expect(find.text('Nessun progetto attivo'), findsOneWidget);
+    expect(find.text('Nessun progetto'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
@@ -413,18 +459,12 @@ void main() {
     expect(find.byKey(const ValueKey('jump-to-future-date')), findsOneWidget);
     await tester.tap(find.text('Progetti'));
     await tester.pump();
-    expect(
-      find.text('Nessun progetto. Puoi importarli da Todoist.'),
-      findsOneWidget,
-    );
+    expect(find.text('Nessun progetto'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump();
 
     expect(find.byKey(const ValueKey('jump-to-future-date')), findsOneWidget);
-    expect(
-      find.text('Nessun progetto. Puoi importarli da Todoist.'),
-      findsNothing,
-    );
+    expect(find.text('Nessun progetto'), findsNothing);
     await tester.binding.handlePopRoute();
     await tester.pump();
     expect(find.text('Oggi'), findsWidgets);

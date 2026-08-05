@@ -126,6 +126,23 @@ void main() {
     expect(draft.timeMinutes, 18 * 60);
   });
 
+  test('la modalità senza ora lascia il testo invariato', () {
+    const parserWithoutTime = QuickAddParser(enableTime: false);
+    final draft = parserWithoutTime.parse(
+      'Telefonata domani alle 18',
+      now: monday,
+    );
+    final matches = parserWithoutTime
+        .recognizedSyntax('Telefonata domani alle 18')
+        .map((match) => match.group(0))
+        .toList();
+
+    expect(draft.title, 'Telefonata alle 18');
+    expect(draft.showDate.toString(), '2026-08-04');
+    expect(draft.timeMinutes, isNull);
+    expect(matches, ['domani']);
+  });
+
   test('riconosce una data italiana con mese in lettere', () {
     final draft = parser.parse('Assicurazione 12 agosto', now: monday);
 
