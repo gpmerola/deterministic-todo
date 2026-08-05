@@ -120,7 +120,7 @@ Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settima
 - Estendere il linguaggio naturale evidenziato a ricorrenze: ogni giorno, ogni N giorni/settimane/mesi, ogni secondo martedì del mese, ogni giorno/mese annuale. La frase riconosciuta viene rimossa dal titolo.
 - Aggiungere bandierine priorità opzionali e pulite, coerenti con il mapping Todoist.
 - Aggiungere Undo per completamento, spostamento e ripianificazione; l'eliminazione via swipe è annullabile dalla 2.6.0.
-- Lo swipe sperimentale verso il cestino è annullabile dalla 2.6.0; se il test sul telefono continua a produrre errori, richiedere una conferma o rimuoverlo senza cambiare il dominio.
+- Lo swipe verso il cestino è annullabile e dalla 2.9.0 accetta soltanto destra→sinistra oltre il 62% della riga; verificare la soglia sul Galaxy S21 e rimuoverlo se produce ancora errori.
 - Non materializzare calendari infiniti: usare liste lazy e caricare finestre di date progressivamente.
 
 ## P1 — Funzioni originali ancora incomplete

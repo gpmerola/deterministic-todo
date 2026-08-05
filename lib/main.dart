@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -29,6 +28,8 @@ import 'services/export_service.dart';
 import 'services/performance_monitor.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
+import 'ui/smart_date_text_controller.dart';
+import 'ui/todoist_link_text.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -492,6 +493,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     TextEditingController controller, {
     TextEditingController? notesController,
     int priority = 1,
+    String? projectId,
+    String? sectionId,
   }) async {
     if (controller.text.trim().isEmpty) return false;
     try {
@@ -510,6 +513,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             : notesController?.text.trim(),
         recurrence: parsed.recurrence,
         priority: priority,
+        projectId: projectId,
+        sectionId: sectionId,
       );
       controller.clear();
       return true;
@@ -547,7 +552,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _showQuickAddSheet() async {
+  Future<void> _showQuickAddSheet({
+    String? projectId,
+    String? sectionId,
+  }) async {
     final controller = SmartDateTextController();
     final notesController = TextEditingController();
     var keyboardWasVisible = false;
@@ -598,6 +606,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                   controller,
                                   notesController: notesController,
                                   priority: priority,
+                                  projectId: projectId,
+                                  sectionId: sectionId,
                                 ) &&
                                 sheetContext.mounted) {
                               Navigator.pop(sheetContext);
@@ -659,6 +669,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 controller,
                                 notesController: notesController,
                                 priority: priority,
+                                projectId: projectId,
+                                sectionId: sectionId,
                               ) &&
                               sheetContext.mounted) {
                             Navigator.pop(sheetContext);
@@ -905,8 +917,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   (task.projectId == null ||
                       inboxProjectIds.contains(task.projectId))) ||
               task.status == TaskStatus.available.name ||
-              task.showDate == today ||
-              (task.dueDate != null && task.dueDate!.compareTo(today) <= 0),
+              task.showDate == today,
         AppSection.upcoming =>
           task.status == TaskStatus.scheduled.name &&
               task.showDate != null &&
@@ -1276,22 +1287,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<void> _addProjectTask(String projectId, String? sectionId) async {
-    final raw = await _askName('Nuova attività', 'Cosa devi fare?');
-    if (raw == null) return;
-    final parsed = const QuickAddParser().parse(raw);
-    final today = CivilDate.fromDateTime(DateTime.now());
-    await widget.repository.create(
-      parsed.title,
-      status: parsed.showDate == null
-          ? TaskStatus.inbox
-          : parsed.showDate!.compareTo(today) <= 0
-          ? TaskStatus.available
-          : TaskStatus.scheduled,
-      showDate: parsed.showDate?.toString(),
-      recurrence: parsed.recurrence,
-      projectId: projectId,
-      sectionId: sectionId,
-    );
+    await _showQuickAddSheet(projectId: projectId, sectionId: sectionId);
   }
 
   Color _projectColor(String? value) => switch (value) {
@@ -1430,10 +1426,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
 int _stableCompare(Task a, Task b, String today) {
   int group(Task task) {
-    if (task.dueDate == today) return 0;
-    if (task.dueDate != null && task.dueDate!.compareTo(today) < 0) return 1;
-    if (task.showDate == today) return 2;
-    return 3;
+    if (task.showDate == today) return 0;
+    return 1;
   }
 
   final byGroup = group(a).compareTo(group(b));
@@ -1450,84 +1444,6 @@ Color _priorityColor(int rawPriority) => switch (rawPriority) {
   2 => Colors.blue,
   _ => Colors.grey,
 };
-
-class TodoistLinkText extends StatefulWidget {
-  const TodoistLinkText(
-    this.value, {
-    this.style,
-    this.maxLines,
-    this.overflow = TextOverflow.clip,
-    super.key,
-  });
-
-  final String value;
-  final TextStyle? style;
-  final int? maxLines;
-  final TextOverflow overflow;
-
-  @override
-  State<TodoistLinkText> createState() => _TodoistLinkTextState();
-}
-
-class _TodoistLinkTextState extends State<TodoistLinkText> {
-  static final linkPattern = RegExp(r'\[([^\]]+)\]\((https?://[^\s)]+)\)');
-  final recognizers = <TapGestureRecognizer>[];
-
-  @override
-  void didUpdateWidget(covariant TodoistLinkText oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) _disposeRecognizers();
-  }
-
-  void _disposeRecognizers() {
-    for (final recognizer in recognizers) {
-      recognizer.dispose();
-    }
-    recognizers.clear();
-  }
-
-  @override
-  void dispose() {
-    _disposeRecognizers();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    _disposeRecognizers();
-    final spans = <InlineSpan>[];
-    var offset = 0;
-    for (final match in linkPattern.allMatches(widget.value)) {
-      if (match.start > offset) {
-        spans.add(TextSpan(text: widget.value.substring(offset, match.start)));
-      }
-      final uri = Uri.parse(match.group(2)!);
-      final recognizer = TapGestureRecognizer()
-        ..onTap = () => launchUrl(uri, mode: LaunchMode.externalApplication);
-      recognizers.add(recognizer);
-      spans.add(
-        TextSpan(
-          text: match.group(1),
-          recognizer: recognizer,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            decoration: TextDecoration.underline,
-            decorationColor: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      );
-      offset = match.end;
-    }
-    if (offset < widget.value.length) {
-      spans.add(TextSpan(text: widget.value.substring(offset)));
-    }
-    return Text.rich(
-      TextSpan(style: widget.style, children: spans),
-      maxLines: widget.maxLines,
-      overflow: widget.overflow,
-    );
-  }
-}
 
 class TaskTile extends StatefulWidget {
   const TaskTile({
@@ -1574,8 +1490,17 @@ class _TaskTileState extends State<TaskTile> {
       opacity: leavingAfterCompletion ? 0 : 1,
       child: Dismissible(
         key: ValueKey('dismiss-${widget.task.id}'),
-        background: Container(
+        direction: DismissDirection.endToStart,
+        dismissThresholds: const {DismissDirection.endToStart: 0.62},
+        background: const SizedBox.shrink(),
+        secondaryBackground: Container(
           color: Theme.of(context).colorScheme.errorContainer,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 24),
+          child: Icon(
+            Icons.delete_outline,
+            color: Theme.of(context).colorScheme.onErrorContainer,
+          ),
         ),
         onDismissed: (_) async {
           final messenger = ScaffoldMessenger.of(context);
@@ -1672,7 +1597,6 @@ class _TaskTileState extends State<TaskTile> {
           'd MMM',
           'it',
         ).format(CivilDate.parse(task.showDate!).asLocalDate),
-      if (task.dueDate != null) 'Scade ${task.dueDate}',
       if (task.recurrence != null)
         '↻ ${recurrenceSmartLabel(task.recurrence, task.showDate)}',
     ];
@@ -1689,7 +1613,7 @@ class _TaskTileState extends State<TaskTile> {
           TodoistLinkText(
             notes,
             style: secondaryStyle,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         if (metadata.isNotEmpty)
@@ -1728,10 +1652,6 @@ class _TaskEditorState extends State<TaskEditor> {
   late final TextEditingController showDate = TextEditingController(
     text: widget.task.showDate,
   );
-  late final TextEditingController dueDate = TextEditingController(
-    text: widget.task.dueDate,
-  );
-  late TaskStatus status = TaskStatus.values.byName(widget.task.status);
   late String recurrence = widget.task.recurrence ?? 'none';
   late String? projectId = widget.task.projectId;
   late String? projectSectionId = widget.task.sectionId;
@@ -1745,9 +1665,6 @@ class _TaskEditorState extends State<TaskEditor> {
       showDate: showDate.text.trim().isEmpty
           ? null
           : CivilDate.parse(showDate.text.trim()).toString(),
-      dueDate: dueDate.text.trim().isEmpty
-          ? null
-          : CivilDate.parse(dueDate.text.trim()).toString(),
       recurrence: recurrence == 'none' ? null : recurrence,
       priority: priority,
       projectId: projectId,
@@ -1757,8 +1674,17 @@ class _TaskEditorState extends State<TaskEditor> {
     var refreshed = await (widget.repository.db.select(
       widget.repository.db.tasks,
     )..where((row) => row.id.equals(widget.task.id))).getSingle();
-    if (status.name != refreshed.status) {
-      await widget.repository.move(refreshed, status);
+    final plannedDate = showDate.text.trim().isEmpty
+        ? null
+        : CivilDate.parse(showDate.text.trim());
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final derivedStatus = plannedDate == null
+        ? TaskStatus.inbox
+        : plannedDate.compareTo(today) <= 0
+        ? TaskStatus.available
+        : TaskStatus.scheduled;
+    if (derivedStatus.name != refreshed.status) {
+      await widget.repository.move(refreshed, derivedStatus);
       refreshed = await (widget.repository.db.select(
         widget.repository.db.tasks,
       )..where((row) => row.id.equals(widget.task.id))).getSingle();
@@ -1834,30 +1760,7 @@ class _TaskEditorState extends State<TaskEditor> {
                           decoration: const InputDecoration(labelText: 'Note'),
                         ),
                         const SizedBox(height: 10),
-                        TextField(
-                          controller: dueDate,
-                          keyboardType: TextInputType.datetime,
-                          decoration: const InputDecoration(
-                            labelText: 'Scadenza',
-                            hintText: 'AAAA-MM-GG',
-                          ),
-                        ),
-                        const SizedBox(height: 10),
                         _projectFields(),
-                        const SizedBox(height: 10),
-                        DropdownButtonFormField<TaskStatus>(
-                          initialValue: status,
-                          decoration: const InputDecoration(labelText: 'Stato'),
-                          items: [
-                            for (final value in TaskStatus.values)
-                              DropdownMenuItem(
-                                value: value,
-                                child: Text(_statusLabel(value)),
-                              ),
-                          ],
-                          onChanged: (value) =>
-                              setState(() => status = value ?? status),
-                        ),
                       ],
                     ),
                   ],
@@ -1869,12 +1772,6 @@ class _TaskEditorState extends State<TaskEditor> {
               alignment: MainAxisAlignment.end,
               spacing: 8,
               children: [
-                if (Platform.isAndroid)
-                  IconButton(
-                    tooltip: 'Salva e aggiungi a Google Calendar',
-                    onPressed: _saveAndExportToCalendar,
-                    icon: const Icon(Icons.event_available_outlined),
-                  ),
                 FilledButton.icon(
                   key: const ValueKey('task-editor-save'),
                   onPressed: () async {
@@ -1961,6 +1858,24 @@ class _TaskEditorState extends State<TaskEditor> {
                 ),
             ],
           ),
+          if (Platform.isAndroid)
+            PopupMenuButton<String>(
+              tooltip: 'Altre azioni',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                if (value == 'calendar') _saveAndExportToCalendar();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: 'calendar',
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.event_available_outlined),
+                    title: Text('Aggiungi a Google Calendar'),
+                  ),
+                ),
+              ],
+            ),
           IconButton(
             tooltip: 'Chiudi',
             visualDensity: VisualDensity.compact,
@@ -2061,14 +1976,6 @@ class _TaskEditorState extends State<TaskEditor> {
     ),
   );
 }
-
-String _statusLabel(TaskStatus status) => switch (status) {
-  TaskStatus.inbox => 'Inbox',
-  TaskStatus.available => 'Disponibile',
-  TaskStatus.scheduled => 'Pianificata',
-  TaskStatus.waiting => 'In attesa',
-  TaskStatus.completed => 'Completata',
-};
 
 class SettingsView extends StatelessWidget {
   const SettingsView({
@@ -2590,49 +2497,6 @@ class TaskSearchDelegate extends SearchDelegate<void> {
       );
     },
   );
-}
-
-/// Evidenzia soltanto la sintassi che il parser sa rimuovere e trasformare in
-/// data, così il feedback visivo e il comportamento restano coerenti.
-class SmartDateTextController extends TextEditingController {
-  SmartDateTextController({super.text});
-
-  @override
-  TextSpan buildTextSpan({
-    required BuildContext context,
-    TextStyle? style,
-    required bool withComposing,
-  }) {
-    const parser = QuickAddParser();
-    try {
-      parser.parse(text);
-    } on FormatException {
-      return TextSpan(style: style, text: text);
-    }
-    final matches = parser.recognizedSyntax(text).toList();
-    if (matches.isEmpty) return TextSpan(style: style, text: text);
-    final highlighted = style?.copyWith(
-      color: Theme.of(context).colorScheme.onPrimaryContainer,
-      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      fontWeight: FontWeight.w600,
-    );
-    final spans = <InlineSpan>[];
-    var cursor = 0;
-    for (final match in matches) {
-      if (cursor < match.start) {
-        spans.add(TextSpan(text: text.substring(cursor, match.start)));
-      }
-      spans.add(
-        TextSpan(
-          text: text.substring(match.start, match.end),
-          style: highlighted,
-        ),
-      );
-      cursor = match.end;
-    }
-    if (cursor < text.length) spans.add(TextSpan(text: text.substring(cursor)));
-    return TextSpan(style: style, children: spans);
-  }
 }
 
 class _NewIntent extends Intent {

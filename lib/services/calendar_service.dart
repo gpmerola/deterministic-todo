@@ -29,10 +29,10 @@ class CalendarService {
     if (!_isAndroid) {
       throw UnsupportedError('Calendario disponibile solo su Android');
     }
-    final dateText = task.dueDate ?? task.showDate;
+    final dateText = task.showDate;
     if (dateText == null) {
       throw const FormatException(
-        'Imposta “Mostra il” o “Scade il” prima di aggiungere al calendario.',
+        'Imposta una data prima di aggiungere al calendario.',
       );
     }
     final permission = await _calendar.requestPermissions();

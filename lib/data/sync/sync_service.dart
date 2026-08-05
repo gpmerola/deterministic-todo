@@ -339,7 +339,9 @@ class SyncService {
             notes: Value(raw['notes'] as String?),
             status: Value(raw['status'] as String),
             showDate: Value(raw['show_date'] as String?),
-            dueDate: Value(raw['due_date'] as String?),
+            // Legacy column retained in the remote schema for compatibility.
+            // Planning now has a single canonical civil date: show_date.
+            dueDate: const Value(null),
             timeMinutes: const Value(null),
             timeZone: const Value(null),
             priority: Value(raw['priority'] as int? ?? 1),
@@ -368,7 +370,7 @@ class SyncService {
     'notes': task.notes,
     'status': task.status,
     'show_date': task.showDate,
-    'due_date': task.dueDate,
+    'due_date': null,
     'time_minutes': null,
     'time_zone': null,
     'priority': task.priority,

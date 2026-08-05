@@ -47,7 +47,7 @@ void main() {
       await repository.updateDetails(
         task,
         title: task.title,
-        dueDate: '2026-08-04',
+        showDate: '2026-08-04',
       );
       task = await (database.select(
         database.tasks,

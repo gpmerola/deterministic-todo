@@ -2,6 +2,7 @@ import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/main.dart';
+import 'package:deterministic_todo/ui/todoist_link_text.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -134,6 +135,28 @@ void main() {
     await db.close();
   });
 
+  testWidgets('lo swipe elimina solo verso sinistra oltre una soglia lunga', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Swipe sicuro');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    final dismissible = tester.widget<Dismissible>(find.byType(Dismissible));
+    expect(dismissible.direction, DismissDirection.endToStart);
+    expect(
+      dismissible.dismissThresholds[DismissDirection.endToStart],
+      greaterThan(0.6),
+    );
+
+    expect((await db.select(db.tasks).getSingle()).deletedAt, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('il composer mobile crea dal foglio inferiore', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
@@ -254,6 +277,36 @@ void main() {
     expect(find.text('Pulizie'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('nei progetti Aggiungi usa lo stesso composer rapido', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final projectId = await repository.createProject('Casa');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.text('Progetti'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Casa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aggiungi').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      findsOneWidget,
+    );
+    expect(find.byType(AlertDialog), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(projectId, isNotEmpty);
     await db.close();
   });
 
@@ -381,6 +434,8 @@ void main() {
     expect(find.byKey(const ValueKey('task-editor-title')), findsOneWidget);
     expect(find.byKey(const ValueKey('task-editor-save')), findsOneWidget);
     expect(find.text('Ora'), findsNothing);
+    expect(find.text('Stato'), findsNothing);
+    expect(find.text('Scadenza'), findsNothing);
     expect(find.text('Altri dettagli'), findsOneWidget);
     expect(find.text('Note'), findsNothing);
     expect(

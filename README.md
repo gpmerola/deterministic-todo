@@ -41,7 +41,8 @@ Directory principali:
 - `lib/data/local`: schema SQLite Drift e migrazione iniziale;
 - `lib/data/sync`: conflitti e worker offline-first;
 - `lib/services`: calendario, diagnostica e import/export;
-- `lib/main.dart`: bootstrap e UI adattiva italiana;
+- `lib/main.dart`: bootstrap, navigazione e composizione delle viste;
+- `lib/ui/`: componenti UI riutilizzabili per link Todoist e input naturale;
 - `supabase/migrations`: schema PostgreSQL, funzione di merge e RLS.
 
 ## Avvio locale
@@ -87,7 +88,7 @@ Toccando un'attività su Android si apre un foglio minimale dal fondo, alto al m
 
 Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ultimo giorno del mese`, `ogni ultimo venerdì del mese`, `ogni 3 giorni dopo il completamento`, `stasera` (20:00), `questo weekend`, `inizio settimana prossima`, `fine mese`, `tra 3 giorni` e `fra 2 settimane`.
 
-“Prossime” raggruppa le attività pianificate giorno per giorno. Su Android l'icona calendario di ogni attività datata consente di crearla o aggiornarla esplicitamente nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
+“Prossime” raggruppa le attività pianificate giorno per giorno. Su Android il menu `⋮` dell'editor consente di creare o aggiornare esplicitamente l'attività nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
 
 Su telefono, il pulsante `+` apre in 80 ms un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Un pulsante Note apre immediatamente una descrizione opzionale e il pallino priorità permette di scegliere P1–P4 senza aprire l'editor completo. Le espressioni comprese — per esempio `oggi`, `domani` e `venerdì` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
 
@@ -131,11 +132,13 @@ Impostazioni consente export JSON completo/versionato, export CSV e import JSON.
 
 “Importa da Todoist” accetta l'export JSON, mostra obbligatoriamente il riepilogo e importa soltanto attività attive insieme a progetti, sezioni, descrizioni, priorità, date civili e ricorrenze. **Aggiorna** esegue un reimport incrementale: aggiunge le novità e aggiorna solo i record Todoist modificati, senza duplicati e senza riaprire le attività già completate nell'app. **Sostituisci** richiede una seconda conferma e ricostruisce da zero esclusivamente i dati provenienti da Todoist, rimuovendo quelli assenti dal nuovo file; le attività native dell'app non vengono toccate. L'operazione SQLite è atomica. Prima di confermare sul telefono va applicata la seconda migrazione Supabase indicata sopra.
 
-Titolo e descrizione sono importati separatamente da Todoist. La descrizione appare sotto il titolo, su un massimo di due righe. I link Markdown presenti in entrambi vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco. L'export attualmente supportato non contiene commenti, allegati o sotto-attività importabili.
+Titolo e descrizione sono importati separatamente da Todoist. La descrizione appare sotto il titolo su una sola riga; il testo completo resta disponibile aprendo l'attività. I link Markdown presenti in entrambi vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco. L'export attualmente supportato non contiene commenti, allegati o sotto-attività importabili.
 
-Lo swipe laterale sposta l'attività nel cestino e mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando la sincronizzazione.
+Lo swipe sposta l'attività nel cestino soltanto da destra verso sinistra e dopo aver superato il 62% della riga; mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando la sincronizzazione.
 
-La vista Progetti usa un elenco verticale con sezioni comprimibili. Si possono creare progetti con colore, aggiungere sezioni e attività direttamente nella destinazione, e spostare un'attività cambiando progetto/sezione dall'editor. L'eventuale preferenza elenco/bacheca importata da Todoist resta nei metadati per compatibilità, ma non condiziona più la UI mobile. Funzioni collaborative come condivisione e commenti restano intenzionalmente escluse.
+La vista Progetti usa un elenco verticale con sezioni comprimibili. Si possono creare progetti con colore, aggiungere sezioni e attività direttamente nella destinazione usando lo stesso composer rapido, e spostare un'attività cambiando progetto/sezione dall'editor. L'eventuale preferenza elenco/bacheca importata da Todoist resta nei metadati per compatibilità, ma non condiziona più la UI mobile. Funzioni collaborative come condivisione e commenti restano intenzionalmente escluse.
+
+L'editor espone una sola data civile di pianificazione: da questa deriva automaticamente lo stato interno. “Stato” e “Scadenza” non sono più controlli separati. Le colonne legacy restano nello schema per permettere aggiornamenti sicuri delle installazioni esistenti, ma `due_date` viene normalizzata a `null` nelle modifiche e nella sincronizzazione.
 
 Android e macOS mantengono un log diagnostico locale JSONL con rotazione automatica a 512 KiB e una sola copia precedente. Registra soltanto eventi tecnici, conteggi, piattaforma e tipi/codici di errore; non registra titoli, note, email, token o URL. Il file può essere condiviso esplicitamente da Impostazioni → Esporta diagnostica.
 

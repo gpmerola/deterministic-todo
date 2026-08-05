@@ -65,6 +65,8 @@ La 2.5.0 applica la priorità con una decorazione statica leggera e ordina in me
 
 La 2.7.0 riduce le transizioni del composer a 80/45 ms e aggiunge il campo descrizione soltanto su richiesta, senza controller, layout o listener persistenti dopo la chiusura. La nuova gerarchia Progetti riusa gli stessi due stream SQLite di progetti e sezioni e non introduce query, polling o dipendenze.
 
+La 2.9.0 riusa lo stesso composer anche dentro Progetti e limita la descrizione nelle liste a una riga, senza aggiungere stream, timer o dipendenze. Lo swipe richiede il 62% della larghezza e funziona soltanto verso sinistra; l'Undo resta disponibile. La semplificazione a una sola data elimina confronti e rami UI duplicati, mentre la colonna legacy resta nullable per un upgrade senza migrazioni distruttive.
+
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale
