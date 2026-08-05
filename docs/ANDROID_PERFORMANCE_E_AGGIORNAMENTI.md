@@ -1,5 +1,13 @@
 # Android: performance, dimensioni e aggiornamenti
 
+## Identità visiva
+
+Le sorgenti canoniche dell'icona sono `assets/branding/app_icon.svg` e
+`app_icon_maskable.svg`. I PNG in `android/app/src/main/res/mipmap-*` e
+`web/icons/` sono derivati: non vanno ridisegnati separatamente, così Android,
+favicon e PWA restano coerenti. Il rosso di marca è `#DB4035`; priorità e stati
+di errore mantengono i propri colori semantici.
+
 ## Obiettivi e budget
 
 Android è ottimizzato prima per uso offline rapido e poi per dimensione. I budget attuali sono:

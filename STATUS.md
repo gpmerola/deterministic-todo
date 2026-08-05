@@ -5,8 +5,8 @@ Aggiornato il 5 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione in preparazione: **2.16.0 build 44**.
-- Ultima release pubblica verificata: **2.15.0 build 43**.
+- Versione in preparazione: **2.16.1 build 45**.
+- Ultima release pubblica verificata: **2.16.0 build 44**.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
 

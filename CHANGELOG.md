@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.1
+
+- Nuova icona originale rossa con segno di spunta, coerente su Android, web,
+  favicon e installazione PWA.
+- Accento principale rosso Todoist-like e superfici chiare/scure più neutre;
+  i colori semantici delle priorità restano distinti.
+
 ## 2.16.0
 
 - Sync invisibile quando sano, indicatore soltanto dopo due secondi o in caso

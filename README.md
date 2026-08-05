@@ -135,6 +135,8 @@ Struttura canonica:
 - `lib/data/sync/`: outbox, conflitti Lamport e Supabase;
 - `lib/services/`: import/export, diagnostica, calendario e aggiornamenti;
 - `lib/ui/`: impostazioni, editor, task, componenti testuali e link;
+- `assets/branding/`: sorgenti SVG canoniche dell'icona, da cui derivano i PNG
+  Android e web;
 - `web/`: shell browser e asset SQLite WebAssembly;
 - `android/`: client Android;
 - `supabase/migrations/`: schema remoto e RLS;

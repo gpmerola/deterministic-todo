@@ -167,6 +167,8 @@ class _AppRuntime {
 }
 
 class TodoApp extends StatelessWidget {
+  static const brandRed = Color(0xffdb4035);
+
   const TodoApp({
     required this.repository,
     this.syncClient,
@@ -195,14 +197,36 @@ class TodoApp extends StatelessWidget {
     ),
   );
 
-  ThemeData _theme(Brightness brightness) => ThemeData(
-    brightness: brightness,
-    colorSchemeSeed: const Color(0xff356859),
-    useMaterial3: true,
-    inputDecorationTheme: const InputDecorationTheme(
-      border: OutlineInputBorder(),
-    ),
-  );
+  ThemeData _theme(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: brandRed,
+          brightness: brightness,
+        ).copyWith(
+          primary: brandRed,
+          onPrimary: Colors.white,
+          surface: dark ? const Color(0xff1f1f1f) : const Color(0xfffafafa),
+          surfaceContainerLow: dark
+              ? const Color(0xff242424)
+              : const Color(0xfff5f5f5),
+          surfaceContainer: dark
+              ? const Color(0xff292929)
+              : const Color(0xfff0f0f0),
+          surfaceContainerHigh: dark
+              ? const Color(0xff303030)
+              : const Color(0xffe9e9e9),
+        );
+    return ThemeData(
+      brightness: brightness,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: scheme.surface,
+      useMaterial3: true,
+      inputDecorationTheme: const InputDecorationTheme(
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
 }
 
 enum AppSection {

@@ -679,4 +679,18 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await db.close();
   });
+
+  testWidgets('il tema usa il rosso di marca su chiaro e scuro', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.theme?.colorScheme.primary, TodoApp.brandRed);
+    expect(app.darkTheme?.colorScheme.primary, TodoApp.brandRed);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
 }

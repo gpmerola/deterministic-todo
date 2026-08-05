@@ -8,8 +8,8 @@ Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata precedente verificata: 2.15.0 build 43.
-- Versione in preparazione: 2.16.0 build 44, con release Android/web unica,
+- Release coordinata precedente verificata: 2.16.0 build 44.
+- Versione in preparazione: 2.16.1 build 45, con release Android/web unica,
   identità pubblica verificabile e logging browser persistente.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
