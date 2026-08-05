@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.4
+
+- Il riconoscimento intelligente ora funziona anche modificando un'attività già
+  esistente: espressioni come `domani` vengono evidenziate, convertite nella
+  data pianificata e rimosse dal titolo al salvataggio.
+- Aggiunto un test completo del percorso editor con sintassi intelligente.
+
 ## 2.16.3
 
 - L'editor rispetta ora l'area sicura inferiore Android: il pulsante Salva non

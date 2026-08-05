@@ -599,6 +599,43 @@ void main() {
     await db.close();
   });
 
+  testWidgets('domani nell editor riprogramma e viene rimosso dal titolo', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Riprogramma attività');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Riprogramma attività'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('task-editor-title')),
+      'Riprogramma attività domani',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('task-editor-save')));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final saved = await db.select(db.tasks).getSingle();
+    expect(saved.title, 'Riprogramma attività');
+    expect(
+      saved.showDate,
+      CivilDate.fromDateTime(
+        DateTime.now().add(const Duration(days: 1)),
+      ).toString(),
+    );
+    expect(saved.status, TaskStatus.scheduled.name);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('Inbox Todoist non appare come progetto separato', (
     tester,
   ) async {

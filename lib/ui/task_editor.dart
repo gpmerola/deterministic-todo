@@ -12,7 +12,10 @@ class TaskEditor extends StatefulWidget {
 
 class _TaskEditorState extends State<TaskEditor> {
   late final LinkTextEditingController title =
-      LinkTextEditingController.fromMarkdown(widget.task.title);
+      LinkTextEditingController.fromMarkdown(
+        widget.task.title,
+        highlightSmartDates: true,
+      );
   late final LinkTextEditingController notes =
       LinkTextEditingController.fromMarkdown(widget.task.notes);
   late final TextEditingController showDate = TextEditingController(
@@ -32,6 +35,17 @@ class _TaskEditorState extends State<TaskEditor> {
   }
 
   Future<Task> _save() async {
+    final hasSmartSyntax = const QuickAddParser()
+        .recognizedSyntax(title.text)
+        .isNotEmpty;
+    if (hasSmartSyntax) {
+      final parsed = const QuickAddParser().parse(title.text);
+      title.text = parsed.title;
+      if (parsed.showDate != null) {
+        showDate.text = parsed.showDate.toString();
+      }
+      if (parsed.recurrence != null) recurrence = parsed.recurrence!;
+    }
     await widget.repository.updateDetails(
       widget.task,
       title: title.toMarkdown(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/link_syntax.dart';
+import '../domain/quick_add_parser.dart';
 
 class TextLink {
   const TextLink(this.label, this.url);
@@ -11,11 +12,14 @@ class TextLink {
 
 /// Edits Todoist Markdown links as ordinary linked text, hiding raw URLs.
 class LinkTextEditingController extends TextEditingController {
-  LinkTextEditingController.fromMarkdown(String? markdown)
-    : links = _extractLinks(markdown ?? ''),
-      super(text: _plainText(markdown ?? ''));
+  LinkTextEditingController.fromMarkdown(
+    String? markdown, {
+    this.highlightSmartDates = false,
+  }) : links = _extractLinks(markdown ?? ''),
+       super(text: _plainText(markdown ?? ''));
 
   final List<TextLink> links;
+  final bool highlightSmartDates;
   static List<TextLink> _extractLinks(String value) => [
     for (final link in extractMarkdownLinks(value))
       TextLink(link.label, link.url),
@@ -57,6 +61,44 @@ class LinkTextEditingController extends TextEditingController {
   void removeLink(TextLink link) {
     links.remove(link);
     notifyListeners();
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    if (!highlightSmartDates) return TextSpan(style: style, text: text);
+    const parser = QuickAddParser();
+    try {
+      parser.parse(text);
+    } on FormatException {
+      return TextSpan(style: style, text: text);
+    }
+    final matches = parser.recognizedSyntax(text).toList();
+    if (matches.isEmpty) return TextSpan(style: style, text: text);
+    final highlighted = style?.copyWith(
+      color: Theme.of(context).colorScheme.onPrimaryContainer,
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      fontWeight: FontWeight.w600,
+    );
+    final spans = <InlineSpan>[];
+    var cursor = 0;
+    for (final match in matches) {
+      if (cursor < match.start) {
+        spans.add(TextSpan(text: text.substring(cursor, match.start)));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(match.start, match.end),
+          style: highlighted,
+        ),
+      );
+      cursor = match.end;
+    }
+    if (cursor < text.length) spans.add(TextSpan(text: text.substring(cursor)));
+    return TextSpan(style: style, children: spans);
   }
 
   String toMarkdown() {

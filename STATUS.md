@@ -5,8 +5,8 @@ Aggiornato il 5 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione in preparazione: **2.16.3 build 47**.
-- Ultima release pubblica verificata: **2.16.2 build 46**.
+- Versione in preparazione: **2.16.4 build 48**.
+- Ultima release pubblica verificata: **2.16.3 build 47**.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
 
@@ -36,7 +36,7 @@ Aggiornato il 5 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 88 test automatici superati.
+- 89 test automatici superati.
 - Build web release completata localmente.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
