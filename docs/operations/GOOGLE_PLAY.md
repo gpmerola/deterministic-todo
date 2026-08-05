@@ -18,7 +18,9 @@ firmati con la chiave Android conservata nell'environment GitHub
 
 Il flavor `direct` conserva aggiornamento OTA e permesso
 `REQUEST_INSTALL_PACKAGES`. Il flavor `play` rimuove quel permesso dal manifest
-e disattiva timer, controllo e interfaccia degli aggiornamenti GitHub. Non
+e disattiva timer e controllo degli aggiornamenti GitHub. Nelle Impostazioni
+espone invece `Aggiorna da Google Play`, che apre la scheda ufficiale tramite
+`market://` con fallback HTTPS; non apre mai lo Store automaticamente. Non
 caricare mai su Play il flavor `direct`.
 
 La chiave privata non è disponibile localmente e non è esportabile dai secret

@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.12
+
+- Nelle Impostazioni della build Google Play compare ora `Aggiorna da Google
+  Play`: apre direttamente la scheda ufficiale dell'app, mostrando il comando
+  Aggiorna non appena la nuova versione è disponibile.
+- Il controllo automatico dell'APK resta confinato alla distribuzione diretta;
+  la build Play non apre mai lo Store da sola.
+
 ## 2.16.11
 
 - Il completamento di un'attività risponde più rapidamente: conferma, spunta,

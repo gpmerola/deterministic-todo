@@ -108,8 +108,10 @@ Ogni modifica funzionale verificata incrementa versione e build.
   versione, build e commit; la pipeline li confronta dopo la pubblicazione.
 - Il browser riceve la versione nuova senza installer.
 
-Android controlla gli aggiornamenti all’avvio e ogni sei ore mentre è in primo
-piano. Il browser aggiorna la pagina direttamente dal sito.
+La build Android diretta controlla gli aggiornamenti all’avvio e ogni sei ore
+mentre è in primo piano. La build Google Play usa gli aggiornamenti gestiti
+dallo Store e offre in Impostazioni il collegamento `Aggiorna da Google Play`.
+Il browser aggiorna la pagina direttamente dal sito.
 
 ## Sviluppo
 

@@ -482,7 +482,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (lastUpdateCheck == null ||
           DateTime.now().difference(lastUpdateCheck!) >=
               const Duration(hours: 6)) {
-        unawaited(_checkForUpdates());
+        if (!isPlayDistribution) unawaited(_checkForUpdates());
       }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
@@ -504,7 +504,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<void> _checkForUpdates() async {
-    if (isPlayDistribution) return;
+    if (isPlayDistribution) {
+      await _openPlayStoreListing();
+      return;
+    }
     if (checkingForUpdates) return;
     checkingForUpdates = true;
     lastUpdateCheck = DateTime.now();
@@ -538,6 +541,30 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       // Offline, timeout o manifest non valido: l'uso locale continua.
     } finally {
       checkingForUpdates = false;
+    }
+  }
+
+  Future<void> _openPlayStoreListing() async {
+    const packageName = 'app.deterministic.todo.deterministic_todo';
+    final marketUri = Uri.parse('market://details?id=$packageName');
+    final webUri = Uri.https('play.google.com', '/store/apps/details', {
+      'id': packageName,
+    });
+    try {
+      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } on Object {
+      // Alcuni dispositivi non espongono lo schema market://.
+    }
+    final opened = await launchUrl(
+      webUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossibile aprire Google Play')),
+      );
     }
   }
 
