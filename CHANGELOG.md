@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.3
+
+- L'editor rispetta ora l'area sicura inferiore Android: il pulsante Salva non
+  viene più coperto dalla barra di navigazione Samsung.
+- Aggiunto un test completo della riprogrammazione: apertura Data, scelta del
+  giorno, salvataggio e passaggio dell'attività allo stato pianificato.
+
 ## 2.16.2
 
 - L'icona Android usa ora il formato adattivo nativo: il launcher applica

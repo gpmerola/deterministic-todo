@@ -92,7 +92,11 @@ class _TaskEditorState extends State<TaskEditor> {
   @override
   Widget build(BuildContext context) => AnimatedPadding(
     duration: const Duration(milliseconds: 40),
-    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+    padding: EdgeInsets.only(
+      bottom:
+          MediaQuery.viewInsetsOf(context).bottom +
+          MediaQuery.viewPaddingOf(context).bottom,
+    ),
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 560, maxHeight: 460),
       child: Padding(
