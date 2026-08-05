@@ -5,10 +5,12 @@ Aggiornato il 5 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione in preparazione: **2.16.8 build 52**.
-- Ultima release pubblica verificata: **2.16.7 build 51**.
+- Versione in preparazione: **2.16.9 build 53**.
+- Ultima release pubblica verificata: **2.16.8 build 52**.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
+- La stessa pipeline produce APK per gli aggiornamenti diretti e AAB firmato
+  per Google Play.
 
 ## Dati e sincronizzazione
 

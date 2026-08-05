@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.9
+
+- La release coordinata genera anche un Android App Bundle firmato, pronto per
+  il caricamento su Google Play con la stessa chiave di upload degli APK.
+- Aggiunta una privacy policy pubblica e minimale per la scheda Google Play.
+- Il nome mostrato dal launcher Android è ora `Deterministic Todo`.
+
 ## 2.16.8
 
 - Il composer mantiene stabile il massimo spazio occupato dalla tastiera fino

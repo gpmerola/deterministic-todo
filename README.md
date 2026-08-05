@@ -21,6 +21,10 @@ URL web previsto:
 
 `https://gpmerola.github.io/deterministic-todo/`
 
+Informativa privacy:
+
+`https://gpmerola.github.io/deterministic-todo/privacy.html`
+
 ### Aprirla automaticamente con Chrome
 
 In Chrome apri **⋮ → Impostazioni → All’avvio**, scegli **Apri una pagina
