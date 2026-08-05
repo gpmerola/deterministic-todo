@@ -600,7 +600,7 @@ void main() {
       1,
     );
 
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 20));
     expect(
       tester
           .widget<AnimatedOpacity>(
@@ -609,6 +609,7 @@ void main() {
           .opacity,
       lessThan(1),
     );
+    expect((await db.select(db.tasks).getSingle()).status, 'inbox');
 
     await tester.pumpAndSettle();
     expect((await db.select(db.tasks).getSingle()).status, 'completed');

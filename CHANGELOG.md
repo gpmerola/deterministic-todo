@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.11
+
+- Il completamento di un'attività risponde più rapidamente: conferma, spunta,
+  dissolvenza e rimozione dalla lista terminano circa 90 ms prima.
+- Aggiornamento incrementale pubblicato per verificare il recapito automatico
+  tramite Google Play dopo la migrazione dal canale APK diretto.
+
 ## 2.16.10
 
 - La privacy policy descrive correttamente la cancellazione dei dati

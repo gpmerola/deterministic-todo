@@ -114,6 +114,11 @@ Dalla 2.11.1 ogni richiesta al manifest aggiunge un timestamp e `Cache-Control: 
 
 La 2.12.0 imposta a zero la durata della route del composer; non aggiunge overlay persistenti o controller globali. Il Cestino riusa stream SQLite filtrati e limita le attività eliminate a 200 righe. I chip link vengono costruiti soltanto quando l'editor e la sezione dettagli sono aperti.
 
+La 2.16.11 riduce da 230 a 140 ms l'attesa complessiva prima del commit di
+completamento e accorcia in proporzione spunta, dissolvenza e scorrimento. La
+scrittura resta successiva al feedback visivo iniziale, ma la riga libera prima
+la lista senza aggiungere controller, timer persistenti o lavoro di database.
+
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale

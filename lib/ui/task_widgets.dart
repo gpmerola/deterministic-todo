@@ -37,21 +37,21 @@ class _TaskTileState extends State<TaskTile> {
       return;
     }
     setState(() => confirmingCompletion = true);
-    await Future<void>.delayed(const Duration(milliseconds: 90));
+    await Future<void>.delayed(const Duration(milliseconds: 55));
     if (mounted) setState(() => leavingAfterCompletion = true);
-    await Future<void>.delayed(const Duration(milliseconds: 140));
+    await Future<void>.delayed(const Duration(milliseconds: 85));
     await widget.repository.setCompleted(widget.task, true);
   }
 
   @override
   Widget build(BuildContext context) => AnimatedSlide(
     key: ValueKey('completion-slide-${widget.task.id}'),
-    duration: const Duration(milliseconds: 320),
+    duration: const Duration(milliseconds: 220),
     curve: Curves.easeInCubic,
     offset: leavingAfterCompletion ? const Offset(0.12, 0) : Offset.zero,
     child: AnimatedOpacity(
       key: ValueKey('completion-opacity-${widget.task.id}'),
-      duration: const Duration(milliseconds: 290),
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeInCubic,
       opacity: leavingAfterCompletion ? 0 : 1,
       child: Dismissible(
@@ -128,11 +128,11 @@ class _TaskTileState extends State<TaskTile> {
                   // belongs to this control, never to the parent Dismissible.
                   onHorizontalDragStart: (_) {},
                   child: AnimatedScale(
-                    duration: const Duration(milliseconds: 260),
+                    duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOutBack,
                     scale: confirmingCompletion ? 1.22 : 1,
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
+                      duration: const Duration(milliseconds: 120),
                       transitionBuilder: (child, animation) => ScaleTransition(
                         scale: animation,
                         child: FadeTransition(opacity: animation, child: child),
