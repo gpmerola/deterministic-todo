@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite. Le versioni più recenti sono in fondo.
 
+## 2.15.0
+
+- Sincronizzazione Android↔browser guidata dagli eventi: outbox inviata subito,
+  ricezione Supabase Realtime e aggiornamento Drift/UI senza ricaricare.
+- Debounce di 120 ms, secondo passaggio se un evento arriva durante il sync e
+  timer da 15 minuti conservato soltanto come recupero.
+- Riconoscimento automatico di link `http://`, `https://` e `www.` in titoli,
+  descrizioni, editor e nuovi import Todoist.
+
 ## 2.14.1
 
 - Il fallback Android universale viene ora ricostruito a ogni release e pubblicato

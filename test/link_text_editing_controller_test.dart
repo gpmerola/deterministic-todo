@@ -37,4 +37,18 @@ void main() {
     expect(controller.links, isEmpty);
     expect(controller.toMarkdown(), 'Paper');
   });
+
+  test('riconosce automaticamente URL completi e www', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      'Console https://play.google.com/console e www.example.com.',
+    );
+
+    expect(controller.links, hasLength(2));
+    expect(controller.links.last.url, 'https://www.example.com');
+    expect(
+      controller.toMarkdown(),
+      'Console [https://play.google.com/console](https://play.google.com/console) '
+      'e [www.example.com](https://www.example.com).',
+    );
+  });
 }

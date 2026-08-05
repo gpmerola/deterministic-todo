@@ -74,7 +74,13 @@ pubblici protetti dalle policy RLS; una `service_role` non deve mai entrare nel
 client. Sul progetto personale devono essere state applicate, nell’ordine:
 
 1. `supabase/migrations/202608040001_initial.sql`;
-2. `supabase/migrations/202608040002_todoist_import.sql`.
+2. `supabase/migrations/202608040002_todoist_import.sql`;
+3. `supabase/migrations/202608050001_realtime_sync.sql`.
+
+Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
+Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e
+quindi l’interfaccia senza ricaricare la pagina. Il controllo ogni 15 minuti
+rimane soltanto come recupero dopo assenza di rete o sospensione del processo.
 
 La creazione di nuovi account è disabilitata nel progetto Supabase. I dispositivi
 esistenti si collegano con l’account personale già creato.

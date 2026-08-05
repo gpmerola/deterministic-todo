@@ -58,7 +58,7 @@ Una serie ha UUID e tipo esplicito. `calendar` supporta giorno, settimana e mese
 
 ## Sincronizzazione e conflitti
 
-Ogni transazione utente aggiorna SQLite e aggiunge un'operazione all'outbox persistente. `operation_id` è UUID e il server lo registra con vincolo univoco: ritentare dopo crash non duplica l'operazione. Pull e push sono paginati; l'ack rimuove l'elemento solo dopo conferma remota.
+Ogni transazione utente aggiorna SQLite e aggiunge un'operazione all'outbox persistente. `operation_id` è UUID e il server lo registra con vincolo univoco: ritentare dopo crash non duplica l'operazione. L'outbox avvia subito il push; gli eventi PostgreSQL Realtime filtrati per `user_id` avviano il pull sugli altri client entro un breve debounce. Gli stream Drift aggiornano quindi la UI senza refresh. Il timer di 15 minuti è solo una rete di recupero per eventi persi, rete assente o processi sospesi. Eventi arrivati durante un sync impostano un secondo passaggio, evitando finestre di perdita. Pull e push sono paginati; l'ack rimuove l'elemento solo dopo conferma remota.
 
 Ogni record porta una versione Lamport `(logical_version, device_id)`. Prima di modificare, il client imposta `logical_version = max(versione locale, massimo remoto osservato) + 1`. Vince la coppia massima in ordine lessicografico: prima contatore, poi UUID stabile del dispositivo. Questa regola include i tombstone e rende la convergenza indipendente dall'orologio. Gli orari UTC sono audit, mai arbitri del conflitto.
 
@@ -66,7 +66,7 @@ Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltant
 
 ## Inserimento rapido e agenda
 
-`QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano una data civile, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario crea un evento giornaliero per singola attività e non altera la fonte di verità SQLite.
+`QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano una data civile, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. URL `http://`, `https://` e `www.` vengono convertiti localmente nel formato Markdown canonico e resi cliccabili in titolo e descrizione, inclusi gli import Todoist. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario crea un evento giornaliero per singola attività e non altera la fonte di verità SQLite.
 
 La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta soltanto navigazione e larghezza al mouse e alla tastiera; dominio e comandi restano identici. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete.
 

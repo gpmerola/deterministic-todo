@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../domain/link_syntax.dart';
+
 class TextLink {
   const TextLink(this.label, this.url);
 
@@ -14,15 +16,12 @@ class LinkTextEditingController extends TextEditingController {
       super(text: _plainText(markdown ?? ''));
 
   final List<TextLink> links;
-  static final _pattern = RegExp(r'\[([^\]]+)\]\((https?://[^\s)]+)\)');
-
   static List<TextLink> _extractLinks(String value) => [
-    for (final match in _pattern.allMatches(value))
-      TextLink(match.group(1)!, match.group(2)!),
+    for (final link in extractMarkdownLinks(value))
+      TextLink(link.label, link.url),
   ];
 
-  static String _plainText(String value) =>
-      value.replaceAllMapped(_pattern, (match) => match.group(1)!);
+  static String _plainText(String value) => markdownToPlainText(value);
 
   String? get selectedText {
     final range = selection;
@@ -32,7 +31,7 @@ class LinkTextEditingController extends TextEditingController {
 
   bool addLink(String url) {
     final label = selectedText?.trim();
-    final uri = Uri.tryParse(url.trim());
+    final uri = Uri.tryParse(normalizeWebUrl(url));
     if (label == null ||
         label.isEmpty ||
         uri == null ||
@@ -71,6 +70,6 @@ class LinkTextEditingController extends TextEditingController {
         '[${link.label}](${link.url})',
       );
     }
-    return value;
+    return linkifyPlainUrls(value);
   }
 }

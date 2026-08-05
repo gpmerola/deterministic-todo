@@ -19,6 +19,7 @@ import 'data/local/database.dart';
 import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
+import 'domain/link_syntax.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'services/calendar_service.dart';
@@ -536,17 +537,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     try {
       final parsed = const QuickAddParser().parse(controller.text);
       final today = CivilDate.fromDateTime(DateTime.now());
+      final notesText = notesController?.text.trim();
       await widget.repository.create(
-        parsed.title,
+        linkifyPlainUrls(parsed.title),
         status: parsed.showDate == null
             ? TaskStatus.inbox
             : parsed.showDate!.compareTo(today) <= 0
             ? TaskStatus.available
             : TaskStatus.scheduled,
         showDate: parsed.showDate?.toString(),
-        notes: notesController?.text.trim().isEmpty == true
+        notes: notesText == null || notesText.isEmpty
             ? null
-            : notesController?.text.trim(),
+            : linkifyPlainUrls(notesText),
         recurrence: parsed.recurrence,
         priority: priority,
         projectId: projectId,

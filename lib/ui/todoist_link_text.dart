@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../domain/link_syntax.dart';
+
 /// Renders Todoist-style Markdown links without exposing their raw URLs.
 class TodoistLinkText extends StatefulWidget {
   const TodoistLinkText(
@@ -49,9 +51,10 @@ class _TodoistLinkTextState extends State<TodoistLinkText> {
     _disposeRecognizers();
     final spans = <InlineSpan>[];
     var offset = 0;
-    for (final match in linkPattern.allMatches(widget.value)) {
+    final displayValue = linkifyPlainUrls(widget.value);
+    for (final match in linkPattern.allMatches(displayValue)) {
       if (match.start > offset) {
-        spans.add(TextSpan(text: widget.value.substring(offset, match.start)));
+        spans.add(TextSpan(text: displayValue.substring(offset, match.start)));
       }
       final uri = Uri.parse(match.group(2)!);
       final recognizer = TapGestureRecognizer()
@@ -70,8 +73,8 @@ class _TodoistLinkTextState extends State<TodoistLinkText> {
       );
       offset = match.end;
     }
-    if (offset < widget.value.length) {
-      spans.add(TextSpan(text: widget.value.substring(offset)));
+    if (offset < displayValue.length) {
+      spans.add(TextSpan(text: displayValue.substring(offset)));
     }
     return Text.rich(
       TextSpan(style: widget.style, children: spans),

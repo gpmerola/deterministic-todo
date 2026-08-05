@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('il controllo periodico di sicurezza non usa polling frequente', () {
     expect(SyncService.periodicInterval, const Duration(minutes: 15));
+    expect(SyncService.eventDebounce, lessThan(const Duration(seconds: 1)));
   });
 
   test(

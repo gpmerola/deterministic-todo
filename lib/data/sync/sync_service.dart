@@ -27,13 +27,19 @@ class SyncSnapshot {
 class SyncService {
   SyncService(this.db, this.client);
   static const periodicInterval = Duration(minutes: 15);
+  static const eventDebounce = Duration(milliseconds: 120);
   final AppDatabase db;
   final SupabaseClient client;
   final _state = StreamController<SyncSnapshot>.broadcast();
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
   StreamSubscription<AuthState>? _auth;
+  StreamSubscription<List<OutboxEntry>>? _outbox;
+  RealtimeChannel? _realtime;
   Timer? _timer;
+  Timer? _eventTimer;
   Future<void>? _inFlight;
+  bool _syncAgain = false;
+  bool _paused = false;
   SyncSnapshot _latest = const SyncSnapshot(SyncPhase.disabled);
 
   Stream<SyncSnapshot> get snapshots => _state.stream;
@@ -47,24 +53,34 @@ class SyncService {
   void start() {
     _auth = client.auth.onAuthStateChange.listen((state) {
       if (state.session != null) {
+        unawaited(_subscribeRealtime());
         unawaited(sync());
       } else {
+        unawaited(_removeRealtime());
         _emit(const SyncSnapshot(SyncPhase.disabled));
       }
+    });
+    _outbox = db.select(db.outboxEntries).watch().listen((entries) {
+      if (entries.isNotEmpty) _scheduleEventSync();
     });
     _connectivity = Connectivity().onConnectivityChanged.listen((result) {
       if (!result.contains(ConnectivityResult.none)) unawaited(sync());
     });
+    if (client.auth.currentUser != null) unawaited(_subscribeRealtime());
     _startTimer();
     unawaited(sync());
   }
 
   void pause() {
+    _paused = true;
     _timer?.cancel();
     _timer = null;
+    _eventTimer?.cancel();
+    _eventTimer = null;
   }
 
   void resume() {
+    _paused = false;
     _startTimer();
     unawaited(sync());
   }
@@ -74,14 +90,57 @@ class SyncService {
     _timer = Timer.periodic(periodicInterval, (_) => unawaited(sync()));
   }
 
+  void _scheduleEventSync() {
+    if (_paused || client.auth.currentUser == null) return;
+    _eventTimer?.cancel();
+    _eventTimer = Timer(eventDebounce, () => unawaited(sync()));
+  }
+
+  Future<void> _subscribeRealtime() async {
+    final user = client.auth.currentUser;
+    if (user == null || _realtime != null) return;
+    final filter = PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: 'user_id',
+      value: user.id,
+    );
+    final channel = client.channel('todo-live-${user.id}');
+    for (final table in const ['tasks', 'projects', 'project_sections']) {
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: table,
+        filter: filter,
+        callback: (_) => _scheduleEventSync(),
+      );
+    }
+    _realtime = channel..subscribe();
+  }
+
+  Future<void> _removeRealtime() async {
+    final channel = _realtime;
+    _realtime = null;
+    if (channel != null) await client.removeChannel(channel);
+  }
+
   Future<void> sync() {
     final active = _inFlight;
-    if (active != null) return active;
-    final operation = _syncOnce();
+    if (active != null) {
+      _syncAgain = true;
+      return active;
+    }
+    final operation = _syncUntilQuiet();
     _inFlight = operation;
     return operation.whenComplete(() {
       if (identical(_inFlight, operation)) _inFlight = null;
     });
+  }
+
+  Future<void> _syncUntilQuiet() async {
+    do {
+      _syncAgain = false;
+      await _syncOnce();
+    } while (_syncAgain && !_paused);
   }
 
   Future<void> _syncOnce() async {
@@ -420,8 +479,11 @@ class SyncService {
 
   Future<void> dispose() async {
     _timer?.cancel();
+    _eventTimer?.cancel();
     await _connectivity?.cancel();
     await _auth?.cancel();
+    await _outbox?.cancel();
+    await _removeRealtime();
     await _state.close();
   }
 }

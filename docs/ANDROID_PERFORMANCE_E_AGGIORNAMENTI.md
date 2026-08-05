@@ -39,6 +39,11 @@ Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizza
 
 Prima del push, l’outbox viene compattata logicamente per `entity_id`: più modifiche pendenti della stessa attività causano un solo `merge_task` della versione finale, mentre tutte le operazioni vengono comunque riconosciute e rimosse soltanto dopo il successo. Il pull carica le attività locali interessate con una sola query SQLite e applica poi il confronto Lamport in memoria, evitando una query per ogni riga remota.
 
+Una nuova riga nell'outbox avvia il sync dopo 120 ms, così più tocchi ravvicinati
+restano accorpati. Realtime sostituisce il polling frequente sul dispositivo
+ricevente; il controllo completo ogni 15 minuti rimane come recovery. Quando
+l'app è in background gli eventi non avviano lavoro e il rientro forza un sync.
+
 ## RAM e query SQLite
 
 `TaskShell` conserva due stream Drift creati una sola volta:

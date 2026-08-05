@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/local/database.dart';
+import '../domain/link_syntax.dart';
 import '../domain/quick_add_parser.dart';
 
 class TodoistImportResult {
@@ -275,10 +276,8 @@ class TodoistImportService {
         TodoistTaskDraft(
           id: _externalUuid('task', externalId),
           externalId: externalId,
-          title: _requiredText(row, 'content'),
-          notes: (row['description'] as String?)?.trim().isEmpty == true
-              ? null
-              : row['description'] as String?,
+          title: linkifyPlainUrls(_requiredText(row, 'content')),
+          notes: _optionalLinkedText(row['description']),
           priority: row['priority'] as int,
           position: row['child_order'] as int? ?? 0,
           projectId: projectExternal == null
@@ -637,6 +636,11 @@ class TodoistImportService {
       throw FormatException('Campo Todoist $key non valido');
     }
     return value.trim();
+  }
+
+  String? _optionalLinkedText(Object? value) {
+    if (value is! String || value.trim().isEmpty) return null;
+    return linkifyPlainUrls(value.trim());
   }
 
   List<Map<String, dynamic>> _list(Map<String, dynamic> root, String key) {
