@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.10
+
+- La privacy policy descrive correttamente la cancellazione dei dati
+  sincronizzati tramite l'amministrazione del progetto Supabase privato.
+- Il primo canale di test interno Google Play è configurato con lista tester e
+  App Bundle firmato; Android diretto, Play e web restano versionati insieme.
+
 ## 2.16.9
 
 - La release coordinata genera anche un Android App Bundle firmato, pronto per

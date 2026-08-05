@@ -7,6 +7,8 @@
 - Package ID immutabile: `app.deterministic.todo.deterministic_todo`.
 - Lingua predefinita: italiano; app gratuita.
 - Protezione automatica Play disattivata per conservare il canale APK diretto.
+- Test interno attivo dal 5 agosto 2026; lista `Test interno` configurata e
+  build 53 (2.16.9) disponibile ai tester autorizzati.
 
 ## Firma e transizione
 
