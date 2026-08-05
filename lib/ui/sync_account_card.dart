@@ -1,5 +1,82 @@
 part of '../main.dart';
 
+class SyncStatusAction extends StatefulWidget {
+  const SyncStatusAction({required this.service, super.key});
+
+  final SyncService service;
+
+  @override
+  State<SyncStatusAction> createState() => _SyncStatusActionState();
+}
+
+class _SyncStatusActionState extends State<SyncStatusAction> {
+  StreamSubscription<SyncSnapshot>? subscription;
+  Timer? slowTimer;
+  late SyncSnapshot snapshot;
+  bool showSlowSync = false;
+
+  @override
+  void initState() {
+    super.initState();
+    snapshot = widget.service.latest;
+    subscription = widget.service.snapshots.listen(_onSnapshot);
+  }
+
+  void _onSnapshot(SyncSnapshot next) {
+    slowTimer?.cancel();
+    if (next.phase == SyncPhase.syncing) {
+      slowTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted && snapshot.phase == SyncPhase.syncing) {
+          setState(() => showSlowSync = true);
+        }
+      });
+    } else {
+      showSlowSync = false;
+    }
+    if (mounted) setState(() => snapshot = next);
+  }
+
+  @override
+  void dispose() {
+    slowTimer?.cancel();
+    subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (snapshot.phase == SyncPhase.error ||
+        snapshot.phase == SyncPhase.offline) {
+      return IconButton(
+        tooltip: snapshot.phase == SyncPhase.offline
+            ? 'Offline'
+            : snapshot.error == null
+            ? 'Sincronizzazione non riuscita'
+            : 'Sincronizzazione non riuscita · ${snapshot.error}',
+        onPressed: widget.service.sync,
+        icon: Icon(
+          snapshot.phase == SyncPhase.offline
+              ? Icons.cloud_off_outlined
+              : Icons.sync_problem_outlined,
+          color: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+    if (showSlowSync && snapshot.phase == SyncPhase.syncing) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14),
+        child: Center(
+          child: SizedBox.square(
+            dimension: 17,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
 class SyncAccountCard extends StatefulWidget {
   const SyncAccountCard({this.client, this.syncService, super.key});
 

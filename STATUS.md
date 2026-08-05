@@ -5,7 +5,7 @@ Aggiornato il 5 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.16.12 build 56**.
+- Versione sorgente corrente: **2.16.13 build 57**.
 - Ultima release pubblica verificata: **2.16.12 build 56**.
 - Il test interno Google Play è attivo; la 2.16.12 build 56 è disponibile alla
   lista `Test interno`. La produzione resta subordinata al test chiuso Google.

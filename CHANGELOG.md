@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.13
+
+- Gli aggiornamenti dello stato di sincronizzazione ricostruiscono soltanto la
+  piccola icona nell'AppBar, non più l'intera schermata e tutte le attività.
+- La creazione rapida riusa la cache dei progetti e non interroga SQLite nel
+  momento in cui si preme Invio o Aggiungi.
+- L'avvio usa una sola lettura condivisa per Inbox e cache progetti; la pulizia
+  delle attività completate viene eseguita al massimo una volta al giorno.
+- Il promemoria diagnostico giornaliero è ora una notifica discreta in basso;
+  il pannello dettagliato si apre soltanto scegliendo `Apri`.
+
 ## 2.16.12
 
 - Nelle Impostazioni della build Google Play compare ora `Aggiorna da Google

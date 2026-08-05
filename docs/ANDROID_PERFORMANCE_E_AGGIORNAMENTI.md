@@ -119,6 +119,14 @@ completamento e accorcia in proporzione spunta, dissolvenza e scorrimento. La
 scrittura resta successiva al feedback visivo iniziale, ma la riga libera prima
 la lista senza aggiungere controller, timer persistenti o lavoro di database.
 
+La 2.16.13 isola lo stato di sincronizzazione in un solo widget dell'AppBar:
+le transizioni `syncing/current/offline` non ricostruiscono più Scaffold,
+navigazione e liste. Il composer riusa la cache progetti già acquisita prima
+dell'apertura e non esegue una query SQLite al submit. Inbox e cache rapida
+condividono inoltre la lettura iniziale dei progetti; l'archiviazione annuale
+viene controllata una sola volta per data civile. Il promemoria diagnostico
+resta giornaliero ma usa una SnackBar non bloccante.
+
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale

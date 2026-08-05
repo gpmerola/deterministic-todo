@@ -296,11 +296,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   bool appIsForeground = true;
   final Set<String> recentlySyncedTaskIds = {};
   StreamSubscription<Set<String>>? remoteTaskSubscription;
-  StreamSubscription<SyncSnapshot>? syncSnapshotSubscription;
   Timer? remoteHighlightTimer;
-  Timer? slowSyncTimer;
-  SyncSnapshot? currentSyncSnapshot;
-  bool showSlowSync = false;
   List<Project> quickAddProjects = const [];
   int lastQuickPriority = 1;
   String? lastQuickProjectId;
@@ -309,8 +305,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadInboxProjectIds();
-    unawaited(_refreshQuickAddCache());
+    unawaited(_initializeProjectCaches());
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted(limit: 200);
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
@@ -327,25 +322,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         if (mounted) setState(recentlySyncedTaskIds.clear);
       });
     });
-    currentSyncSnapshot = widget.syncService?.latest;
-    syncSnapshotSubscription = widget.syncService?.snapshots.listen((snapshot) {
-      slowSyncTimer?.cancel();
-      if (snapshot.phase == SyncPhase.syncing) {
-        slowSyncTimer = Timer(const Duration(seconds: 2), () {
-          if (mounted && currentSyncSnapshot?.phase == SyncPhase.syncing) {
-            setState(() => showSlowSync = true);
-          }
-        });
-      } else {
-        showSlowSync = false;
-      }
-      if (mounted) setState(() => currentSyncSnapshot = snapshot);
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!isPlayDistribution) await _checkForUpdates();
-      await widget.repository.archiveCompletedOlderThan(
-        DateTime.now().subtract(const Duration(days: 365)),
-      );
+      await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
     });
     if (!isPlayDistribution) {
@@ -355,7 +334,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadInboxProjectIds() async {
+  Future<void> _initializeProjectCaches() async {
     final projects = await widget.repository.db
         .select(widget.repository.db.projects)
         .get();
@@ -366,11 +345,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             .where((project) => project.name.trim().toLowerCase() == 'inbox')
             .map((project) => project.id),
       );
+    await _refreshQuickAddCache(projects: projects);
     if (mounted) setState(() {});
   }
 
-  Future<void> _refreshQuickAddCache() async {
-    final projects = await widget.repository.db
+  Future<void> _refreshQuickAddCache({List<Project>? projects}) async {
+    projects ??= await widget.repository.db
         .select(widget.repository.db.projects)
         .get();
     final settings =
@@ -397,6 +377,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     lastQuickProjectId = values['last_quick_project'];
   }
 
+  Future<void> _runDailyMaintenance() async {
+    final today = CivilDate.fromDateTime(DateTime.now()).toString();
+    final setting = await (widget.repository.db.select(
+      widget.repository.db.appSettings,
+    )..where((row) => row.key.equals('maintenance_date'))).getSingleOrNull();
+    if (setting?.value == today) return;
+    await widget.repository.archiveCompletedOlderThan(
+      DateTime.now().subtract(const Duration(days: 365)),
+    );
+    await _savePreference('maintenance_date', today);
+  }
+
   Future<void> _showDailyPerformanceReminder() async {
     if (!DiagnosticLogService.instance.isInitialized) return;
     final today = CivilDate.fromDateTime(DateTime.now()).toString();
@@ -414,61 +406,72 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ),
         );
     if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Controllare le prestazioni?'),
-        content: const Text(
-          'Se hai usato abbastanza l’app, puoi esportare i log e inviarli a '
-          'Codex con questo prompt:\n\n“Analizza questi log prestazionali, '
-          'individua colli di bottiglia di RAM, CPU, storage, frame e sync e '
-          'implementa le ottimizzazioni sicure.”',
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        content: const Text('Diagnostica prestazioni disponibile'),
+        action: SnackBarAction(
+          label: 'Apri',
+          onPressed: _showPerformanceDialog,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Non oggi'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await Clipboard.setData(
-                const ClipboardData(
-                  text:
-                      'Analizza questi log prestazionali, individua colli di '
-                      'bottiglia di RAM, CPU, storage, frame e sync e '
-                      'implementa le ottimizzazioni sicure.',
-                ),
-              );
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            child: const Text('Copia prompt'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final data = await DiagnosticLogService.instance.exportData();
-              if (data != null) {
-                await SharePlus.instance.share(
-                  ShareParams(
-                    files: [
-                      XFile.fromData(
-                        data.bytes,
-                        name: data.name,
-                        mimeType: 'application/x-ndjson',
-                      ),
-                    ],
-                    fileNameOverrides: [data.name],
-                    title: 'Diagnostica Deterministic Todo',
-                  ),
-                );
-              }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            child: const Text('Esporta log'),
-          ),
-        ],
       ),
     );
   }
+
+  Future<void> _showPerformanceDialog() => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Controllare le prestazioni?'),
+      content: const Text(
+        'Se hai usato abbastanza l’app, puoi esportare i log e inviarli a '
+        'Codex con questo prompt:\n\n“Analizza questi log prestazionali, '
+        'individua colli di bottiglia di RAM, CPU, storage, frame e sync e '
+        'implementa le ottimizzazioni sicure.”',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Non oggi'),
+        ),
+        TextButton(
+          onPressed: () async {
+            await Clipboard.setData(
+              const ClipboardData(
+                text:
+                    'Analizza questi log prestazionali, individua colli di '
+                    'bottiglia di RAM, CPU, storage, frame e sync e '
+                    'implementa le ottimizzazioni sicure.',
+              ),
+            );
+            if (dialogContext.mounted) Navigator.pop(dialogContext);
+          },
+          child: const Text('Copia prompt'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            final data = await DiagnosticLogService.instance.exportData();
+            if (data != null) {
+              await SharePlus.instance.share(
+                ShareParams(
+                  files: [
+                    XFile.fromData(
+                      data.bytes,
+                      name: data.name,
+                      mimeType: 'application/x-ndjson',
+                    ),
+                  ],
+                  fileNameOverrides: [data.name],
+                  title: 'Diagnostica Deterministic Todo',
+                ),
+              );
+            }
+            if (dialogContext.mounted) Navigator.pop(dialogContext);
+          },
+          child: const Text('Esporta log'),
+        ),
+      ],
+    ),
+  );
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -649,15 +652,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     updateTimer?.cancel();
     remoteHighlightTimer?.cancel();
-    slowSyncTimer?.cancel();
     remoteTaskSubscription?.cancel();
-    syncSnapshotSubscription?.cancel();
     search.dispose();
     super.dispose();
   }
 
   Future<bool> _createFrom(
     TextEditingController controller, {
+    required List<Project> projects,
     TextEditingController? notesController,
     int priority = 1,
     String? projectId,
@@ -665,9 +667,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }) async {
     if (controller.text.trim().isEmpty) return false;
     try {
-      final projects = await widget.repository.db
-          .select(widget.repository.db.projects)
-          .get();
       final metadata = parseQuickAddMetadata(
         controller.text,
         defaultPriority: priority,
@@ -809,6 +808,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           onSubmitted: (_) async {
                             if (await _createFrom(
                                   controller,
+                                  projects: availableProjects,
                                   notesController: notesController,
                                   priority: priority,
                                   projectId: projectId,
@@ -898,6 +898,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         onPressed: () async {
                           if (await _createFrom(
                                 controller,
+                                projects: availableProjects,
                                 notesController: notesController,
                                 priority: priority,
                                 projectId: projectId,
@@ -966,43 +967,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         section = AppSection.today;
       }
     });
-  }
-
-  List<Widget> _syncStatusActions() {
-    final snapshot = currentSyncSnapshot;
-    if (snapshot?.phase == SyncPhase.error ||
-        snapshot?.phase == SyncPhase.offline) {
-      return [
-        IconButton(
-          tooltip: snapshot?.phase == SyncPhase.offline
-              ? 'Offline'
-              : snapshot?.error == null
-              ? 'Sincronizzazione non riuscita'
-              : 'Sincronizzazione non riuscita · ${snapshot!.error}',
-          onPressed: widget.syncService?.sync,
-          icon: Icon(
-            snapshot?.phase == SyncPhase.offline
-                ? Icons.cloud_off_outlined
-                : Icons.sync_problem_outlined,
-            color: Theme.of(context).colorScheme.error,
-          ),
-        ),
-      ];
-    }
-    if (showSlowSync && snapshot?.phase == SyncPhase.syncing) {
-      return const [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
-          child: Center(
-            child: SizedBox.square(
-              dimension: 17,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-        ),
-      ];
-    }
-    return const [];
   }
 
   @override
@@ -1079,7 +1043,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         : null,
                     title: Text(section.label),
                     actions: [
-                      ..._syncStatusActions(),
+                      if (widget.syncService != null)
+                        SyncStatusAction(service: widget.syncService!),
                       if (section != AppSection.settings) ...[
                         IconButton(
                           tooltip: 'Cerca (Ctrl/⌘ F)',
