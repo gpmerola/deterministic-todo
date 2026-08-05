@@ -3,6 +3,7 @@ import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/main.dart';
 import 'package:deterministic_todo/ui/todoist_link_text.dart';
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -309,6 +310,49 @@ void main() {
     expect(projectId, isNotEmpty);
     await db.close();
   });
+
+  testWidgets(
+    'il menu progetto consente spostamento ed eliminazione con Undo',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final repository = TaskRepository(db, deviceId: 'test-device');
+      final firstId = await repository.createProject('Primo');
+      await repository.createProject('Secondo');
+      await tester.pumpWidget(TodoApp(repository: repository));
+      await tester.pump();
+      await tester.tap(find.text('Progetti'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(ValueKey('project-actions-$firstId')));
+      await tester.pumpAndSettle();
+      expect(find.text('Rinomina'), findsOneWidget);
+      expect(find.text('Sposta giù'), findsOneWidget);
+      expect(find.text('Elimina'), findsOneWidget);
+      await tester.tap(find.text('Sposta giù'));
+      await tester.pumpAndSettle();
+      final ordered = await (db.select(
+        db.projects,
+      )..orderBy([(row) => OrderingTerm(expression: row.position)])).get();
+      expect(ordered.last.id, firstId);
+
+      await tester.tap(find.byKey(ValueKey('project-actions-$firstId')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Elimina'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('eliminato'), findsOneWidget);
+      expect(find.text('Annulla'), findsOneWidget);
+      await tester.tap(find.text('Annulla'));
+      await tester.pumpAndSettle();
+      expect(find.text('Primo'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await db.close();
+    },
+  );
 
   testWidgets('chiudendo la tastiera il composer mobile si chiude subito', (
     tester,

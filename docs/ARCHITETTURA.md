@@ -28,6 +28,8 @@ Il controller del composer usa gli stessi pattern del parser per costruire gli s
 
 Dalla 2.9.0 l'unica data applicativa visibile è `show_date`, una data civile senza ora. Lo stato operativo viene derivato da essa nell'editor (`inbox` senza data, `available` fino a oggi, `scheduled` nel futuro). `due_date` resta una colonna legacy nullable per compatibilità con database e backend già distribuiti, ma il client la normalizza a `null` e non la usa per liste, ordinamento o calendario. I componenti riutilizzabili del testo Todoist e dell'evidenziazione naturale vivono in `lib/ui/`, separati dall'orchestrazione di `main.dart`.
 
+Progetti e sezioni non vengono cancellati fisicamente: “Elimina” imposta `is_archived`, conserva attività e identificatori esterni e offre Undo immediato. Rinomina, archiviazione e scambio delle posizioni incrementano `logical_version` e aggiornano `device_id`, così il merge Supabase conserva l'ordinamento scelto e resta deterministico.
+
 Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. Al completamento l'occorrenza corrente diventa storica e il repository inserisce atomicamente la successiva con la stessa serie; l'indice `(series_id, occurrence_key)` rende l'operazione idempotente. Giorni e settimane avanzano come date civili, mesi e anni mantengono il giorno ancora con clamp deterministico per mesi corti e anni bisestili.
 
 ## Budget runtime e aggiornamenti

@@ -147,6 +147,77 @@ class TaskRepository {
     return id;
   }
 
+  Future<void> updateProject(
+    Project project, {
+    String? name,
+    int? position,
+    bool? isArchived,
+  }) async {
+    final normalizedName = name?.trim();
+    if (normalizedName != null && normalizedName.isEmpty) {
+      throw const FormatException('Il nome è obbligatorio');
+    }
+    await (db.update(
+      db.projects,
+    )..where((row) => row.id.equals(project.id))).write(
+      ProjectsCompanion(
+        name: normalizedName == null
+            ? const Value.absent()
+            : Value(normalizedName),
+        position: position == null ? const Value.absent() : Value(position),
+        isArchived: isArchived == null
+            ? const Value.absent()
+            : Value(isArchived),
+        logicalVersion: Value(project.logicalVersion + 1),
+        deviceId: Value(deviceId),
+      ),
+    );
+  }
+
+  Future<void> updateProjectSection(
+    ProjectSection section, {
+    String? name,
+    int? position,
+    bool? isArchived,
+  }) async {
+    final normalizedName = name?.trim();
+    if (normalizedName != null && normalizedName.isEmpty) {
+      throw const FormatException('Il nome è obbligatorio');
+    }
+    await (db.update(
+      db.projectSections,
+    )..where((row) => row.id.equals(section.id))).write(
+      ProjectSectionsCompanion(
+        name: normalizedName == null
+            ? const Value.absent()
+            : Value(normalizedName),
+        position: position == null ? const Value.absent() : Value(position),
+        isArchived: isArchived == null
+            ? const Value.absent()
+            : Value(isArchived),
+        logicalVersion: Value(section.logicalVersion + 1),
+        deviceId: Value(deviceId),
+      ),
+    );
+  }
+
+  Future<void> swapProjects(Project first, Project second) =>
+      db.transaction(() async {
+        await updateProject(first, position: second.position);
+        await updateProject(second, position: first.position);
+      });
+
+  Future<void> swapProjectSections(
+    ProjectSection first,
+    ProjectSection second,
+  ) => db.transaction(() async {
+    if (first.projectId != second.projectId) {
+      throw const FormatException('Le sezioni appartengono a progetti diversi');
+    }
+    await updateProjectSection(first, position: second.position);
+    await updateProjectSection(second, position: first.position);
+  });
+
   Future<void> setProjectView(String projectId, String view) => db
       .into(db.appSettings)
       .insertOnConflictUpdate(

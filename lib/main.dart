@@ -1075,7 +1075,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               color: _projectColor(project.color),
                             ),
                             title: Text(project.name),
-                            trailing: const Icon(Icons.chevron_right, size: 20),
+                            trailing: _projectActions(project, activeProjects),
                             onTap: () =>
                                 setState(() => selectedProjectId = project.id),
                           );
@@ -1125,6 +1125,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                     onPressed: () => _addSection(selected.id),
                     icon: const Icon(Icons.add_box_outlined),
                   ),
+                  _projectActions(selected, activeProjects),
                 ],
               ),
             ),
@@ -1149,6 +1150,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ExpansionTile(
           initiallyExpanded: true,
           title: Text(section.name),
+          trailing: _sectionActions(section, sections),
           children: [
             for (final task in tasks.where(
               (item) => item.sectionId == section.id,
@@ -1188,8 +1190,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ],
   );
 
-  Future<String?> _askName(String title, String label) async {
-    final controller = TextEditingController();
+  Future<String?> _askName(
+    String title,
+    String label, {
+    String? initialValue,
+  }) async {
+    final controller = TextEditingController(text: initialValue);
     final value = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1283,6 +1289,149 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     final name = await _askName('Nuova sezione', 'Nome');
     if (name == null) return;
     await widget.repository.createProjectSection(projectId, name);
+    await widget.syncService?.sync();
+  }
+
+  Widget _projectActions(Project project, List<Project> projects) {
+    final index = projects.indexWhere((item) => item.id == project.id);
+    return PopupMenuButton<String>(
+      key: ValueKey('project-actions-${project.id}'),
+      tooltip: 'Azioni progetto',
+      onSelected: (action) =>
+          _handleProjectAction(action, project, projects, index),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'rename', child: Text('Rinomina')),
+        PopupMenuItem(
+          value: 'up',
+          enabled: index > 0,
+          child: const Text('Sposta su'),
+        ),
+        PopupMenuItem(
+          value: 'down',
+          enabled: index >= 0 && index < projects.length - 1,
+          child: const Text('Sposta giù'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'delete', child: Text('Elimina')),
+      ],
+    );
+  }
+
+  Future<void> _handleProjectAction(
+    String action,
+    Project project,
+    List<Project> projects,
+    int index,
+  ) async {
+    if (action == 'rename') {
+      final name = await _askName(
+        'Rinomina progetto',
+        'Nome',
+        initialValue: project.name,
+      );
+      if (name == null) return;
+      await widget.repository.updateProject(project, name: name);
+    } else if (action == 'up' && index > 0) {
+      await widget.repository.swapProjects(project, projects[index - 1]);
+    } else if (action == 'down' && index < projects.length - 1) {
+      await widget.repository.swapProjects(project, projects[index + 1]);
+    } else if (action == 'delete') {
+      await widget.repository.updateProject(project, isArchived: true);
+      if (mounted && selectedProjectId == project.id) {
+        setState(() => selectedProjectId = null);
+      }
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Progetto “${project.name}” eliminato'),
+          action: SnackBarAction(
+            label: 'Annulla',
+            onPressed: () async {
+              final current = await (widget.repository.db.select(
+                widget.repository.db.projects,
+              )..where((row) => row.id.equals(project.id))).getSingle();
+              await widget.repository.updateProject(current, isArchived: false);
+              await widget.syncService?.sync();
+            },
+          ),
+        ),
+      );
+    }
+    await widget.syncService?.sync();
+  }
+
+  Widget _sectionActions(
+    ProjectSection section,
+    List<ProjectSection> sections,
+  ) {
+    final index = sections.indexWhere((item) => item.id == section.id);
+    return PopupMenuButton<String>(
+      key: ValueKey('section-actions-${section.id}'),
+      tooltip: 'Azioni sezione',
+      onSelected: (action) =>
+          _handleSectionAction(action, section, sections, index),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'rename', child: Text('Rinomina')),
+        PopupMenuItem(
+          value: 'up',
+          enabled: index > 0,
+          child: const Text('Sposta su'),
+        ),
+        PopupMenuItem(
+          value: 'down',
+          enabled: index >= 0 && index < sections.length - 1,
+          child: const Text('Sposta giù'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'delete', child: Text('Elimina')),
+      ],
+    );
+  }
+
+  Future<void> _handleSectionAction(
+    String action,
+    ProjectSection section,
+    List<ProjectSection> sections,
+    int index,
+  ) async {
+    if (action == 'rename') {
+      final name = await _askName(
+        'Rinomina sezione',
+        'Nome',
+        initialValue: section.name,
+      );
+      if (name == null) return;
+      await widget.repository.updateProjectSection(section, name: name);
+    } else if (action == 'up' && index > 0) {
+      await widget.repository.swapProjectSections(section, sections[index - 1]);
+    } else if (action == 'down' && index < sections.length - 1) {
+      await widget.repository.swapProjectSections(section, sections[index + 1]);
+    } else if (action == 'delete') {
+      await widget.repository.updateProjectSection(section, isArchived: true);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Sezione “${section.name}” eliminata'),
+          action: SnackBarAction(
+            label: 'Annulla',
+            onPressed: () async {
+              final current = await (widget.repository.db.select(
+                widget.repository.db.projectSections,
+              )..where((row) => row.id.equals(section.id))).getSingle();
+              await widget.repository.updateProjectSection(
+                current,
+                isArchived: false,
+              );
+              await widget.syncService?.sync();
+            },
+          ),
+        ),
+      );
+    }
     await widget.syncService?.sync();
   }
 

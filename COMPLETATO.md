@@ -55,6 +55,7 @@ Aggiornato il 4 agosto 2026.
 - Release 2.7.0: Progetti ridisegnato come navigazione gerarchica minimale compatibile con Todoist, composer aperto/chiuso in 80/45 ms con descrizione opzionale immediata e ora rimossa dalla UI e dalla creazione naturale.
 - Release 2.8.0: supporto orario rimosso da parser, import, sync, calendario e runtime; eliminati plugin di notifiche/fusi e receiver Android. Priorità P1–P4 impostabile direttamente dal composer rapido.
 - Release 2.9.0: swipe verso il cestino limitato a destra→sinistra con soglia 62% e Undo; composer rapido riusato dentro Progetti; descrizioni ridotte a una riga; editor senza Stato e Scadenza, con stato derivato dalla sola data; Google Calendar spostato nel menu `⋮`. Link Todoist e highlighting naturale estratti da `main.dart` in componenti UI dedicati.
+- Release 2.10.0: menu minimale `⋮` su progetti e sezioni con rinomina, spostamento su/giù ed eliminazione reversibile con Undo; riordino e archiviazione incrementano la versione logica e convergono tramite la sincronizzazione esistente senza cancellare task o mapping Todoist.
 
 ## Verificate in questa macchina
 

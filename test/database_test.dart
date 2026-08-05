@@ -190,4 +190,72 @@ void main() {
     expect(task.projectId, project.id);
     expect(task.sectionId, section.id);
   });
+
+  test('riordina e archivia progetti e sezioni senza perdere i dati', () async {
+    final firstId = await repository.createProject('Primo');
+    final secondId = await repository.createProject('Secondo');
+    final firstSectionId = await repository.createProjectSection(
+      firstId,
+      'Prima sezione',
+    );
+    final secondSectionId = await repository.createProjectSection(
+      firstId,
+      'Seconda sezione',
+    );
+    final taskId = await repository.create(
+      'Conservami',
+      projectId: firstId,
+      sectionId: firstSectionId,
+    );
+    var projects = await db.select(db.projects).get();
+    var sections = await db.select(db.projectSections).get();
+
+    await repository.swapProjects(
+      projects.firstWhere((item) => item.id == firstId),
+      projects.firstWhere((item) => item.id == secondId),
+    );
+    await repository.swapProjectSections(
+      sections.firstWhere((item) => item.id == firstSectionId),
+      sections.firstWhere((item) => item.id == secondSectionId),
+    );
+    projects = await db.select(db.projects).get();
+    sections = await db.select(db.projectSections).get();
+    final first = projects.firstWhere((item) => item.id == firstId);
+    final firstSection = sections.firstWhere(
+      (item) => item.id == firstSectionId,
+    );
+    expect(
+      first.position,
+      greaterThan(projects.firstWhere((item) => item.id == secondId).position),
+    );
+    expect(
+      firstSection.position,
+      greaterThan(
+        sections.firstWhere((item) => item.id == secondSectionId).position,
+      ),
+    );
+    expect(first.logicalVersion, 2);
+    expect(firstSection.logicalVersion, 2);
+
+    await repository.updateProject(first, isArchived: true);
+    await repository.updateProjectSection(firstSection, isArchived: true);
+    expect(
+      (await (db.select(
+        db.projects,
+      )..where((row) => row.id.equals(firstId))).getSingle()).isArchived,
+      isTrue,
+    );
+    expect(
+      (await (db.select(
+        db.projectSections,
+      )..where((row) => row.id.equals(firstSectionId))).getSingle()).isArchived,
+      isTrue,
+    );
+    expect(
+      (await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(taskId))).getSingle()).title,
+      'Conservami',
+    );
+  });
 }
