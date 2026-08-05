@@ -57,6 +57,7 @@ Aggiornato il 4 agosto 2026.
 - Release 2.9.0: swipe verso il cestino limitato a destra→sinistra con soglia 62% e Undo; composer rapido riusato dentro Progetti; descrizioni ridotte a una riga; editor senza Stato e Scadenza, con stato derivato dalla sola data; Google Calendar spostato nel menu `⋮`. Link Todoist e highlighting naturale estratti da `main.dart` in componenti UI dedicati.
 - Release 2.10.0: menu minimale `⋮` su progetti e sezioni con rinomina, spostamento su/giù ed eliminazione reversibile con Undo; riordino e archiviazione incrementano la versione logica e convergono tramite la sincronizzazione esistente senza cancellare task o mapping Todoist.
 - Release 2.11.0: composer/editor e completamento accelerati; padding tastiera immediato; Prossime trasformata in timeline lazy con giorni vuoti, senza chip e senza doppio Indietro; editor link senza URL Markdown visibili; Completate limitata a 200 record con retention di 365 giorni; reset locale transazionale protetto; controllo update ogni sei ore soltanto in foreground.
+- Release 2.11.1: controllo aggiornamenti con query cache-buster e header `no-cache`, per evitare che la cache CDN GitHub ritardi il prompt dopo una nuova pubblicazione.
 
 ## Verificate in questa macchina
 

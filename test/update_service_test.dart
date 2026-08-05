@@ -19,4 +19,21 @@ void main() {
       expect(UpdateService.isNewerVersion('1.10.0', '1.9.0'), isTrue);
     });
   });
+
+  test('il manifest usa un cache-buster diverso a ogni controllo', () {
+    final manifest = Uri.parse('https://example.com/manifest.json');
+    final first = UpdateService.cacheBustedManifest(
+      manifest,
+      DateTime.fromMillisecondsSinceEpoch(1000, isUtc: true),
+    );
+    final second = UpdateService.cacheBustedManifest(
+      manifest,
+      DateTime.fromMillisecondsSinceEpoch(2000, isUtc: true),
+    );
+
+    expect(first.path, manifest.path);
+    expect(first.queryParameters['check'], '1000');
+    expect(second.queryParameters['check'], '2000');
+    expect(second, isNot(first));
+  });
 }

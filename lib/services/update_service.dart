@@ -30,9 +30,20 @@ class UpdateService {
   final http.Client _client;
   final Uri _manifest;
 
+  static Uri cacheBustedManifest(Uri manifest, DateTime now) =>
+      manifest.replace(
+        queryParameters: {
+          ...manifest.queryParameters,
+          'check': '${now.toUtc().millisecondsSinceEpoch}',
+        },
+      );
+
   Future<AvailableUpdate?> check() async {
     final response = await _client
-        .get(_manifest)
+        .get(
+          cacheBustedManifest(_manifest, DateTime.now()),
+          headers: const {'Cache-Control': 'no-cache'},
+        )
         .timeout(const Duration(seconds: 8));
     if (response.statusCode != HttpStatus.ok) return null;
     final root = jsonDecode(response.body);
