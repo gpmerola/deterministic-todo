@@ -936,7 +936,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         IconButton(
           tooltip: snapshot?.phase == SyncPhase.offline
               ? 'Offline'
-              : 'Sincronizzazione non riuscita',
+              : snapshot?.error == null
+              ? 'Sincronizzazione non riuscita'
+              : 'Sincronizzazione non riuscita · ${snapshot!.error}',
           onPressed: widget.syncService?.sync,
           icon: Icon(
             snapshot?.phase == SyncPhase.offline

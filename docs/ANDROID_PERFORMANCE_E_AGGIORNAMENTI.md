@@ -63,6 +63,13 @@ Il ricevente raccoglie gli ID per tabella e interroga esclusivamente quei
 record; anche import e raffiche di modifiche producono una query per tabella,
 non un pull completo per evento.
 
+Gli errori di trasporto temporanei vengono ritentati dopo 2, 10 e 30 secondi,
+poi al massimo ogni 2 minuti, esclusivamente in foreground. Pausa e background
+annullano il timer. Gli errori strutturali Supabase non generano loop: il loro
+codice sicuro resta visibile e nell'outbox, mentre titoli, token e payload non
+entrano mai nel messaggio. Le impronte Lamport di tutti i progetti e sezioni
+sono lette con una sola query SQLite anziché una query per elemento.
+
 ## RAM e query SQLite
 
 `TaskShell` conserva due stream Drift creati una sola volta:
@@ -156,3 +163,15 @@ Per contenere lavoro duplicato, `Verify` e `Build Android APK` restano manuali. 
 - Rimuovere una dipendenza solo dopo aver verificato Android e la build web release.
 
 Non sacrificare firma, hash, persistenza, funzioni corrette o determinismo per guadagni teorici non misurati.
+
+## Audit finale 2.16.7
+
+- startup e composer non attendono rete né query non necessarie sul thread UI;
+- nessun servizio Android persistente, polling in background o timer inferiore
+  a 15 minuti; retry sync annullati appena l'app va in background;
+- stream attivi/completati e liste future restano filtrati o lazy;
+- APK ARM64 resta sotto il budget di 25 MB con split ABI e simboli separati;
+- rimossa una dipendenza diretta inutilizzata; le altre dipendenze hanno tutte
+  un'integrazione applicativa effettiva;
+- nessun upgrade major di pacchetti è stato eseguito alla cieca: richiederebbe
+  collaudo Android reale e non offre un beneficio prestazionale dimostrato.

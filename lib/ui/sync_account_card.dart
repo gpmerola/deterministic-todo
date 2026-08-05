@@ -154,7 +154,10 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
       snapshot!.lastSuccess == null
           ? 'Sincronizzato'
           : 'Sincronizzato · ${DateFormat('HH:mm').format(snapshot.lastSuccess!.toLocal())}',
-    SyncPhase.error => 'Errore di sincronizzazione',
+    SyncPhase.error =>
+      snapshot?.error == null
+          ? 'Errore di sincronizzazione'
+          : 'Errore · ${snapshot!.error}',
     SyncPhase.offline => 'Offline',
     SyncPhase.disabled || null => 'Collegato',
   };

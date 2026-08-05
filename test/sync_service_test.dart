@@ -16,4 +16,11 @@ void main() {
       });
     },
   );
+
+  test('il retry di rete cresce ma resta limitato', () {
+    expect(syncRetryDelay(0), const Duration(seconds: 2));
+    expect(syncRetryDelay(1), const Duration(seconds: 10));
+    expect(syncRetryDelay(2), const Duration(seconds: 30));
+    expect(syncRetryDelay(20), const Duration(minutes: 2));
+  });
 }

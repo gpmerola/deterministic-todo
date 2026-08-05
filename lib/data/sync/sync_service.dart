@@ -39,10 +39,12 @@ class SyncService {
   Timer? _timer;
   Timer? _outboxTimer;
   Timer? _realtimeTimer;
+  Timer? _retryTimer;
   Future<void>? _inFlight;
   bool _syncAgain = false;
   bool _pullAllRequested = false;
   bool _paused = false;
+  int _consecutiveFailures = 0;
   final Map<String, Set<String>> _pendingRealtimeIds = {
     'tasks': <String>{},
     'projects': <String>{},
@@ -73,7 +75,19 @@ class SyncService {
       if (entries.isNotEmpty) _scheduleOutboxSync();
     });
     _connectivity = Connectivity().onConnectivityChanged.listen((result) {
-      if (!result.contains(ConnectivityResult.none)) unawaited(sync());
+      if (result.contains(ConnectivityResult.none)) {
+        _retryTimer?.cancel();
+        _retryTimer = null;
+        _emit(
+          SyncSnapshot(
+            SyncPhase.offline,
+            pending: _latest.pending,
+            lastSuccess: _latest.lastSuccess,
+          ),
+        );
+      } else {
+        unawaited(sync());
+      }
     });
     if (client.auth.currentUser != null) unawaited(_subscribeRealtime());
     _startTimer();
@@ -88,6 +102,8 @@ class SyncService {
     _outboxTimer = null;
     _realtimeTimer?.cancel();
     _realtimeTimer = null;
+    _retryTimer?.cancel();
+    _retryTimer = null;
   }
 
   void resume() {
@@ -278,6 +294,9 @@ class SyncService {
       }
       final now = DateTime.now().toUtc();
       timer.stop();
+      _consecutiveFailures = 0;
+      _retryTimer?.cancel();
+      _retryTimer = null;
       _emit(SyncSnapshot(SyncPhase.current, lastSuccess: now));
       unawaited(
         DiagnosticLogService.instance.event(
@@ -294,13 +313,37 @@ class SyncService {
       );
     } catch (error) {
       timer.stop();
+      final errorCode = safeSyncErrorCode(error);
       _emit(
         SyncSnapshot(
           SyncPhase.error,
           pending: entries.length,
-          error: error.runtimeType.toString(),
+          error: errorCode,
         ),
       );
+      if (entries.isNotEmpty) {
+        try {
+          var nextAttempt = 1;
+          for (final entry in entries) {
+            if (entry.attempts >= nextAttempt) {
+              nextAttempt = entry.attempts + 1;
+            }
+          }
+          await (db.update(db.outboxEntries)..where(
+                (row) => row.operationId.isIn(
+                  entries.map((entry) => entry.operationId),
+                ),
+              ))
+              .write(
+                OutboxEntriesCompanion(
+                  attempts: Value(nextAttempt),
+                  lastError: Value(errorCode),
+                ),
+              );
+        } on Object {
+          // La diagnostica dell'outbox non deve mascherare l'errore originale.
+        }
+      }
       unawaited(
         DiagnosticLogService.instance.event(
           'sync_failed',
@@ -313,19 +356,40 @@ class SyncService {
           },
         ),
       );
+      if (isTransientSyncError(error)) _scheduleRetry();
     }
+  }
+
+  void _scheduleRetry() {
+    if (_paused || client.auth.currentUser == null) return;
+    _retryTimer?.cancel();
+    final delay = syncRetryDelay(_consecutiveFailures++);
+    _retryTimer = Timer(delay, () {
+      _retryTimer = null;
+      if (!_paused) unawaited(sync());
+    });
   }
 
   Future<({int skippedProjects, int skippedSections})> _syncProjects() async {
     var skippedProjects = 0;
     var skippedSections = 0;
+    final savedRows =
+        await (db.select(db.appSettings)..where(
+              (row) =>
+                  row.key.like('sync_project:%') |
+                  row.key.like('sync_section:%'),
+            ))
+            .get();
+    final savedFingerprints = {
+      for (final setting in savedRows) setting.key: setting.value,
+    };
     final projects = await db.select(db.projects).get();
     for (final project in projects) {
       final fingerprint = _fingerprint(
         project.logicalVersion,
         project.deviceId,
       );
-      if (await _syncedFingerprint('project', project.id) == fingerprint) {
+      if (savedFingerprints['sync_project:${project.id}'] == fingerprint) {
         skippedProjects++;
         continue;
       }
@@ -341,7 +405,7 @@ class SyncService {
         section.logicalVersion,
         section.deviceId,
       );
-      if (await _syncedFingerprint('section', section.id) == fingerprint) {
+      if (savedFingerprints['sync_section:${section.id}'] == fingerprint) {
         skippedSections++;
         continue;
       }
@@ -518,12 +582,6 @@ class SyncService {
 
   String _fingerprint(int version, String deviceId) => '$version:$deviceId';
 
-  Future<String?> _syncedFingerprint(String type, String id) async =>
-      (await (db.select(db.appSettings)
-                ..where((row) => row.key.equals('sync_$type:$id')))
-              .getSingleOrNull())
-          ?.value;
-
   Future<void> _saveSyncedFingerprint(String type, String id, String value) =>
       db
           .into(db.appSettings)
@@ -638,6 +696,7 @@ class SyncService {
     _timer?.cancel();
     _outboxTimer?.cancel();
     _realtimeTimer?.cancel();
+    _retryTimer?.cancel();
     await _connectivity?.cancel();
     await _auth?.cancel();
     await _outbox?.cancel();
@@ -648,3 +707,42 @@ class SyncService {
 }
 
 Set<String> distinctEntityIds(Iterable<String> ids) => ids.toSet();
+
+Duration syncRetryDelay(int failureIndex) {
+  const delays = [
+    Duration(seconds: 2),
+    Duration(seconds: 10),
+    Duration(seconds: 30),
+    Duration(minutes: 2),
+  ];
+  return delays[failureIndex.clamp(0, delays.length - 1)];
+}
+
+bool isTransientSyncError(Object error) {
+  final type = error.runtimeType.toString().toLowerCase();
+  if (type.contains('socket') ||
+      type.contains('clientexception') ||
+      type.contains('timeout') ||
+      type.contains('handshake') ||
+      type.contains('network') ||
+      type.contains('connection') ||
+      type.contains('retryablefetch')) {
+    return true;
+  }
+  if (error is PostgrestException) {
+    return const {
+      'PGRST000',
+      'PGRST001',
+      'PGRST002',
+      'PGRST003',
+    }.contains(error.code);
+  }
+  return false;
+}
+
+String safeSyncErrorCode(Object error) {
+  if (error is PostgrestException) return 'Supabase ${error.code}';
+  final type = error.runtimeType.toString();
+  if (isTransientSyncError(error)) return 'Rete $type';
+  return type;
+}

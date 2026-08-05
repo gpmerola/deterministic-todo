@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.7
+
+- Favicon e bookmark Chrome usano ora una superficie rossa piena senza angoli
+  trasparenti, eliminando il bordo bianco imposto dallo sfondo del browser.
+- Gli errori di rete della sincronizzazione attivano retry progressivi in
+  foreground; l'outbox conserva tentativi e codice tecnico senza dati utente.
+- Il controllo Lamport di progetti e sezioni passa da una query SQLite per
+  elemento a un'unica lettura indicizzata per ogni sync completo.
+- Rimossa la dipendenza diretta `collection`, non usata dal codice applicativo.
+
 ## 2.16.6
 
 - Il composer richiede il focus prima di montare il foglio, permettendo ad
