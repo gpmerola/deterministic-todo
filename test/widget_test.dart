@@ -13,7 +13,12 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.enterText(find.byType(TextField).first, 'Comprare il pane');
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      'Comprare il pane',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.text('Comprare il pane'), findsOneWidget);
@@ -71,6 +76,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
     await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('Chrome largo usa la stessa navigazione minimale di Android', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.text('Inbox'), findsNothing);
+    expect(find.text('In attesa'), findsNothing);
+    expect(find.text('Oggi'), findsWidgets);
+    expect(find.text('Prossime'), findsOneWidget);
+    expect(find.text('Progetti'), findsOneWidget);
+    expect(find.byTooltip('Nuova attività'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
   });
 
   testWidgets('i link Todoist mostrano la parola senza URL esteso', (

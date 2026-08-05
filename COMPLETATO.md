@@ -106,3 +106,10 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 - Aggiunto deployment automatico GitHub Pages insieme alla release Android.
 - Rimossi target, workflow, launcher e build locali macOS/Windows obsoleti; le utilità Android residue sono state raccolte in `tools/launchers`.
 - README, architettura, handover e regole operative aggiornati al modello Android + browser.
+
+# 2.13.1
+
+- Rimossa la vecchia navigazione desktop con Inbox e In attesa: Chrome usa la
+  stessa interfaccia minimale Oggi/Prossime/Progetti di Android.
+- Contenuto centrato su schermi larghi, stesso composer `+`, stessa barra
+  inferiore e nessun titolo o campo di inserimento desktop duplicato.

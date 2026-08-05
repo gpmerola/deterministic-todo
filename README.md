@@ -10,9 +10,9 @@ Distribuito con licenza [MIT](LICENSE).
 
 - **Android:** app firmata, aggiornata automaticamente tramite il manifest
   pubblico e APK separati per CPU.
-- **Browser desktop:** web app Flutter pubblicata su GitHub Pages. Funziona su
-  Chrome ed Edge recenti, conserva un database SQLite locale persistente e si
-  sincronizza con Android tramite Supabase.
+- **Browser desktop:** web app Flutter pubblicata su GitHub Pages. Usa la stessa
+  interfaccia minimale di Android, conserva un database SQLite locale
+  persistente e si sincronizza con Android tramite Supabase.
 - **macOS e Windows nativi:** non più distribuiti. I vecchi launcher e target
   sono stati rimossi per evitare versioni divergenti.
 
