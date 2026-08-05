@@ -8,7 +8,7 @@
 - Lingua predefinita: italiano; app gratuita.
 - Protezione automatica Play disattivata per conservare il canale APK diretto.
 - Test interno attivo dal 5 agosto 2026; lista `Test interno` configurata e
-  build 56 (2.16.12) disponibile ai tester autorizzati.
+  build 57 (2.16.13) disponibile ai tester autorizzati.
 
 ## Firma e transizione
 
