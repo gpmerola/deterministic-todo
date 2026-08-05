@@ -121,34 +121,43 @@ class _TaskTileState extends State<TaskTile> {
                 visualDensity: widget.dense
                     ? const VisualDensity(vertical: -2)
                     : null,
-                leading: AnimatedScale(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeOutBack,
-                  scale: confirmingCompletion ? 1.22 : 1,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    transitionBuilder: (child, animation) => ScaleTransition(
-                      scale: animation,
-                      child: FadeTransition(opacity: animation, child: child),
-                    ),
-                    child: confirmingCompletion
-                        ? const Icon(
-                            Icons.check_circle_rounded,
-                            key: ValueKey('completed-check'),
-                            color: Colors.green,
-                            size: 30,
-                          )
-                        : Checkbox(
-                            key: const ValueKey('task-checkbox'),
-                            value:
-                                widget.task.status == TaskStatus.completed.name,
-                            onChanged: (value) => _setCompleted(value ?? false),
-                            activeColor: Colors.green,
-                            side: BorderSide(
-                              color: _priorityColor(widget.task.priority),
-                              width: widget.task.priority == 1 ? 1.5 : 2.5,
+                leading: GestureDetector(
+                  key: const ValueKey('completion-no-swipe-zone'),
+                  behavior: HitTestBehavior.opaque,
+                  // A horizontal gesture that starts on the completion target
+                  // belongs to this control, never to the parent Dismissible.
+                  onHorizontalDragStart: (_) {},
+                  child: AnimatedScale(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutBack,
+                    scale: confirmingCompletion ? 1.22 : 1,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      transitionBuilder: (child, animation) => ScaleTransition(
+                        scale: animation,
+                        child: FadeTransition(opacity: animation, child: child),
+                      ),
+                      child: confirmingCompletion
+                          ? const Icon(
+                              Icons.check_circle_rounded,
+                              key: ValueKey('completed-check'),
+                              color: Colors.green,
+                              size: 30,
+                            )
+                          : Checkbox(
+                              key: const ValueKey('task-checkbox'),
+                              value:
+                                  widget.task.status ==
+                                  TaskStatus.completed.name,
+                              onChanged: (value) =>
+                                  _setCompleted(value ?? false),
+                              activeColor: Colors.green,
+                              side: BorderSide(
+                                color: _priorityColor(widget.task.priority),
+                                width: widget.task.priority == 1 ? 1.5 : 2.5,
+                              ),
                             ),
-                          ),
+                    ),
                   ),
                 ),
                 title: AnimatedDefaultTextStyle(

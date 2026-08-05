@@ -232,6 +232,30 @@ void main() {
     await db.close();
   });
 
+  testWidgets('lo swipe iniziato sulla spunta non muove né elimina la task', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Spunta protetta');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('completion-no-swipe-zone'))),
+    );
+    await gesture.moveBy(const Offset(-500, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Spunta protetta'), findsOneWidget);
+    expect(find.text('Spostata nel cestino'), findsNothing);
+    expect((await db.select(db.tasks).getSingle()).deletedAt, isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('il composer mobile crea dal foglio inferiore', (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1;
@@ -482,6 +506,36 @@ void main() {
     tester.view.viewInsets = FakeViewPadding.zero;
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('mobile-quick-add-field')), findsNothing);
+    await db.close();
+  });
+
+  testWidgets('il composer non segue gli assestamenti della tastiera', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pumpAndSettle();
+
+    Padding composerPadding() => tester.widget<Padding>(
+      find.byKey(const ValueKey('mobile-quick-add-keyboard-padding')),
+    );
+    expect((composerPadding().padding as EdgeInsets).bottom, 312);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 240);
+    await tester.pump();
+    expect((composerPadding().padding as EdgeInsets).bottom, 312);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
     await db.close();
   });
 

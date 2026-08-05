@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.8
+
+- Il composer mantiene stabile il massimo spazio occupato dalla tastiera fino
+  alla chiusura, evitando salti durante gli assestamenti dell'IME Android.
+- La spunta è ora una zona protetta: un gesto orizzontale iniziato sul controllo
+  di completamento non può trascinare o mandare nel cestino l'attività.
+- Lo swipe lungo verso sinistra sul corpo della riga e il relativo `Annulla`
+  restano disponibili.
+
 ## 2.16.7
 
 - Favicon e bookmark Chrome usano ora una superficie rossa piena senza angoli

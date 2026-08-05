@@ -5,8 +5,8 @@ Aggiornato il 5 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione in preparazione: **2.16.7 build 51**.
-- Ultima release pubblica verificata: **2.16.6 build 50**.
+- Versione in preparazione: **2.16.8 build 52**.
+- Ultima release pubblica verificata: **2.16.7 build 51**.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
 
@@ -27,7 +27,10 @@ Aggiornato il 5 agosto 2026.
 - Oggi, Prossime, Progetti, ricerca e composer condividono lo stesso modello su
   Android e web, con layout desktop adattivo.
 - Il composer riconosce linguaggio naturale, `#Progetto`, `p1`–`p4` e link;
-  ricorda progetto e priorità recenti.
+  ricorda progetto e priorità recenti e resta fermo durante gli assestamenti
+  della tastiera Android.
+- La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
+  non possono più avviare per errore il trascinamento verso il cestino.
 - L'import Todoist supporta aggiornamento e sostituzione idempotente di task,
   progetti e sezioni e produce un rapporto prima del backup.
 - Impostazioni contiene Cestino, attività completate, diagnostica e Salute dati;
@@ -36,7 +39,7 @@ Aggiornato il 5 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 92 test automatici superati.
+- 94 test automatici superati.
 - Build web release completata localmente.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).

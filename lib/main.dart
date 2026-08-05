@@ -717,6 +717,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     final notesController = TextEditingController();
     final titleFocusNode = FocusNode(debugLabel: 'quick-add-title');
     var keyboardWasVisible = false;
+    var stableKeyboardInset = 0.0;
     var closing = false;
     var showNotes = false;
     var priority = lastQuickPriority;
@@ -736,18 +737,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
-          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-          if (keyboardInset > 0) {
+          final currentKeyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          if (currentKeyboardInset > 0) {
             keyboardWasVisible = true;
+            if (currentKeyboardInset > stableKeyboardInset) {
+              stableKeyboardInset = currentKeyboardInset;
+            }
           } else if (keyboardWasVisible && !closing) {
             closing = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (sheetContext.mounted) Navigator.pop(sheetContext);
             });
           }
-          return AnimatedPadding(
-            duration: Duration.zero,
-            padding: EdgeInsets.fromLTRB(16, 0, 16, keyboardInset + 12),
+          final composerInset = keyboardWasVisible
+              ? stableKeyboardInset
+              : currentKeyboardInset;
+          return Padding(
+            key: const ValueKey('mobile-quick-add-keyboard-padding'),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, composerInset + 12),
             child: SafeArea(
               top: false,
               child: Column(

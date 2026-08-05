@@ -94,6 +94,14 @@ La 2.4.0 riduce inoltre il numero di widget per riga: priorità sul bordo del ch
 
 La 2.5.0 applica la priorità con una decorazione statica leggera e ordina in memoria le sole liste già caricate; non aggiunge query né scritture automatiche. Il composer osserva esclusivamente il cambiamento dell'inset della tastiera mentre è aperto: quando Android nasconde l'IME, chiude nello stesso gesto anche il bottom sheet con reverse animation da 90 ms. Non esistono listener o timer persistenti dopo la chiusura.
 
+La 2.16.8 conserva il massimo inset osservato durante la singola apertura del
+composer: può salire insieme alla tastiera, ma non segue più le oscillazioni di
+altezza prodotte da suggerimenti, toolbar o passaggi intermedi dell'IME. Quando
+l'inset arriva a zero il foglio viene chiuso come prima. Il valore è locale al
+foglio e viene rilasciato alla chiusura. La zona della spunta intercetta inoltre
+le sole gesture orizzontali che iniziano sul controllo, eliminando la contesa
+con lo swipe senza aggiungere listener globali o lavoro a riposo.
+
 La 2.7.0 riduce le transizioni del composer a 80/45 ms e aggiunge il campo descrizione soltanto su richiesta, senza controller, layout o listener persistenti dopo la chiusura. La nuova gerarchia Progetti riusa gli stessi due stream SQLite di progetti e sezioni e non introduce query, polling o dipendenze.
 
 La 2.9.0 riusa lo stesso composer anche dentro Progetti e limita la descrizione nelle liste a una riga, senza aggiungere stream, timer o dipendenze. Lo swipe richiede il 62% della larghezza e funziona soltanto verso sinistra; l'Undo resta disponibile. La semplificazione a una sola data elimina confronti e rami UI duplicati, mentre la colonna legacy resta nullable per un upgrade senza migrazioni distruttive.
@@ -164,7 +172,7 @@ Per contenere lavoro duplicato, `Verify` e `Build Android APK` restano manuali. 
 
 Non sacrificare firma, hash, persistenza, funzioni corrette o determinismo per guadagni teorici non misurati.
 
-## Audit finale 2.16.7
+## Audit finale 2.16.8
 
 - startup e composer non attendono rete né query non necessarie sul thread UI;
 - nessun servizio Android persistente, polling in background o timer inferiore
