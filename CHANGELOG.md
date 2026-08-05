@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.5
+
+- Il composer `+` si apre ora al primo frame senza attendere query SQLite o il
+  caricamento delle preferenze; progetti e scelte recenti vengono precaricati e
+  aggiornati in background.
+- Aggiunto un test che impedisce di reintrodurre I/O prima dell'apertura.
+
 ## 2.16.4
 
 - Il riconoscimento intelligente ora funziona anche modificando un'attività già

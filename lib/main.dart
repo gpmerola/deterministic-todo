@@ -298,12 +298,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Timer? slowSyncTimer;
   SyncSnapshot? currentSyncSnapshot;
   bool showSlowSync = false;
+  List<Project> quickAddProjects = const [];
+  int lastQuickPriority = 1;
+  String? lastQuickProjectId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadInboxProjectIds();
+    unawaited(_refreshQuickAddCache());
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted(limit: 200);
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
@@ -358,6 +362,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             .map((project) => project.id),
       );
     if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshQuickAddCache() async {
+    final projects = await widget.repository.db
+        .select(widget.repository.db.projects)
+        .get();
+    final settings =
+        await (widget.repository.db.select(widget.repository.db.appSettings)
+              ..where(
+                (row) => row.key.isIn(const [
+                  'last_quick_priority',
+                  'last_quick_project',
+                ]),
+              ))
+            .get();
+    final values = {for (final setting in settings) setting.key: setting.value};
+    final savedPriority = int.tryParse(values['last_quick_priority'] ?? '');
+    quickAddProjects = projects
+        .where(
+          (item) =>
+              !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
+        )
+        .toList();
+    lastQuickPriority =
+        savedPriority != null && savedPriority >= 1 && savedPriority <= 4
+        ? savedPriority
+        : 1;
+    lastQuickProjectId = values['last_quick_project'];
   }
 
   Future<void> _showDailyPerformanceReminder() async {
@@ -633,6 +665,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
       await _savePreference('last_quick_priority', '${metadata.priority}');
       await _savePreference('last_quick_project', metadata.projectId ?? '');
+      lastQuickPriority = metadata.priority;
+      lastQuickProjectId = metadata.projectId;
       controller.clear();
       return true;
     } on FormatException catch (error) {
@@ -643,11 +677,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       return false;
     }
   }
-
-  Future<String?> _preference(String key) async =>
-      (await (widget.repository.db.select(
-        widget.repository.db.appSettings,
-      )..where((row) => row.key.equals(key))).getSingleOrNull())?.value;
 
   Future<void> _savePreference(String key, String value) => widget.repository.db
       .into(widget.repository.db.appSettings)
@@ -680,32 +709,20 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     String? projectId,
     String? sectionId,
   }) async {
-    final projects = await widget.repository.db
-        .select(widget.repository.db.projects)
-        .get();
-    final availableProjects = projects
-        .where(
-          (item) =>
-              !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
-        )
-        .toList();
-    final savedPriority = int.tryParse(
-      await _preference('last_quick_priority') ?? '',
-    );
-    final savedProject = await _preference('last_quick_project');
-    projectId ??= availableProjects.any((item) => item.id == savedProject)
-        ? savedProject
+    final availableProjects = List<Project>.of(quickAddProjects);
+    projectId ??= availableProjects.any((item) => item.id == lastQuickProjectId)
+        ? lastQuickProjectId
         : null;
     final controller = SmartDateTextController();
     final notesController = TextEditingController();
     var keyboardWasVisible = false;
     var closing = false;
     var showNotes = false;
-    var priority =
-        savedPriority != null && savedPriority >= 1 && savedPriority <= 4
-        ? savedPriority
-        : 1;
+    var priority = lastQuickPriority;
     if (!mounted) return;
+    // Refresh in background for the next opening. The current sheet must be
+    // mounted immediately, without waiting for SQLite or preferences.
+    unawaited(_refreshQuickAddCache());
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

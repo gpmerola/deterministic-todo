@@ -265,6 +265,30 @@ void main() {
     await db.close();
   });
 
+  testWidgets('il composer mobile appare al primo frame senza attendere I/O', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('ricorrenza e priorità sono riconoscibili nella lista', (
     tester,
   ) async {
