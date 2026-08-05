@@ -58,6 +58,7 @@ Aggiornato il 4 agosto 2026.
 - Release 2.10.0: menu minimale `⋮` su progetti e sezioni con rinomina, spostamento su/giù ed eliminazione reversibile con Undo; riordino e archiviazione incrementano la versione logica e convergono tramite la sincronizzazione esistente senza cancellare task o mapping Todoist.
 - Release 2.11.0: composer/editor e completamento accelerati; padding tastiera immediato; Prossime trasformata in timeline lazy con giorni vuoti, senza chip e senza doppio Indietro; editor link senza URL Markdown visibili; Completate limitata a 200 record con retention di 365 giorni; reset locale transazionale protetto; controllo update ogni sei ore soltanto in foreground.
 - Release 2.11.1: controllo aggiornamenti con query cache-buster e header `no-cache`, per evitare che la cache CDN GitHub ritardi il prompt dopo una nuova pubblicazione.
+- Release 2.12.0: apertura e chiusura del composer `+` senza animazione; link delle descrizioni presentati come chip apribili e rimovibili senza URL grezzi; Cestino in Impostazioni con ripristino di attività, progetti e sezioni.
 
 ## Verificate in questa macchina
 

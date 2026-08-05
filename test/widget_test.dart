@@ -88,6 +88,42 @@ void main() {
     expect(find.textContaining('https://example.com'), findsNothing);
   });
 
+  testWidgets('il Cestino nelle Impostazioni ripristina le attività', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final id = await repository.create('Da recuperare');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await repository.softDelete(task);
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Impostazioni'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cestino'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Da recuperare'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ripristina').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Cestino vuoto'), findsOneWidget);
+    expect(
+      (await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(id))).getSingle()).deletedAt,
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('la descrizione Todoist appare sotto il titolo con link puliti', (
     tester,
   ) async {
@@ -107,6 +143,12 @@ void main() {
 
     expect(find.text('Update PhD'), findsOneWidget);
     expect(find.textContaining('Methods paper Paper1'), findsOneWidget);
+    expect(find.textContaining('https://example.com'), findsNothing);
+    await tester.tap(find.text('Update PhD'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Altri dettagli'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(InputChip, 'Paper1'), findsOneWidget);
     expect(find.textContaining('https://example.com'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

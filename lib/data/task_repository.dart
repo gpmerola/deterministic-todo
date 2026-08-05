@@ -56,6 +56,19 @@ class TaskRepository {
             ..limit(limit))
           .watch();
 
+  Stream<List<Task>> watchTrash({int limit = 200}) =>
+      (db.select(db.tasks)
+            ..where((task) => task.deletedAt.isNotNull())
+            ..orderBy([
+              (task) => OrderingTerm(
+                expression: task.deletedAt,
+                mode: OrderingMode.desc,
+              ),
+              (task) => OrderingTerm(expression: task.id),
+            ])
+            ..limit(limit))
+          .watch();
+
   Future<int> archiveCompletedOlderThan(DateTime cutoff) async {
     final cutoffMicros = cutoff.toUtc().microsecondsSinceEpoch;
     final old =

@@ -34,6 +34,8 @@ La cronologia completata è una vista limitata alle 200 righe più recenti. All'
 
 Le note continuano a usare Markdown Todoist come formato persistente canonico, ma `LinkTextEditingController` lo converte in testo semplice durante l'editing e ricostruisce i link al salvataggio. La UI non espone URL grezzi e non richiede un nuovo schema o una dipendenza Markdown.
 
+Il Cestino è una proiezione di tombstone attività (`deleted_at`) e archivi di progetto/sezione (`is_archived`). Il ripristino aggiorna lo stesso record e lo stesso ID; non crea copie. L'eliminazione fisica non è esposta perché rimuovere prima SQLite e poi Supabase, o viceversa, lascerebbe uno stato parziale in caso di rete interrotta. Un reset totale richiederà una RPC Supabase eseguita in una singola transazione server-side, seguita dal reset locale soltanto dopo conferma del commit remoto.
+
 Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. Al completamento l'occorrenza corrente diventa storica e il repository inserisce atomicamente la successiva con la stessa serie; l'indice `(series_id, occurrence_key)` rende l'operazione idempotente. Giorni e settimane avanzano come date civili, mesi e anni mantengono il giorno ancora con clamp deterministico per mesi corti e anni bisestili.
 
 ## Budget runtime e aggiornamenti

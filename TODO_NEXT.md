@@ -140,7 +140,7 @@ Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settima
 - provare sul Galaxy S21 per alcuni giorni creazione, modifica, swipe, ricorrenze e back con la tastiera Samsung reale;
 - eseguire un ultimo export Todoist e un reimport incrementale prima del passaggio definitivo, poi verificare conteggi e progetti su telefono e Mac;
 - decidere se servono davvero promemoria/notifiche: dalla 2.8 il supporto orario e i relativi plugin sono intenzionalmente assenti;
-- aggiungere una vista Cestino se si vuole recuperare oltre la finestra Undo attività, progetti o sezioni archiviati;
+- ~~aggiungere una vista Cestino per recuperare oltre la finestra Undo attività, progetti o sezioni archiviati~~ completato nella 2.12;
 - etichette, filtri, commenti, allegati e sotto-attività Todoist non sono ancora modellati; l'export personale analizzato non li usava sulle 110 attività attive, quindi non bloccano l'import corrente ma possono bloccare un uso futuro;
 - il reset completo cloud+dispositivo richiede una RPC Supabase transazionale prima di poter essere offerto come singolo comando sicuro.
 

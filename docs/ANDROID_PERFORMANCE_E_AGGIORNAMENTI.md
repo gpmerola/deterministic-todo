@@ -73,6 +73,8 @@ La 2.11.0 porta il composer a 30/20 ms, elimina l'animazione del padding IME e r
 
 Dalla 2.11.1 ogni richiesta al manifest aggiunge un timestamp e `Cache-Control: no-cache`: GitHub può mantenere brevemente in CDN il redirect `latest`, ma il client non riutilizza più una risposta manifest obsoleta tra due controlli.
 
+La 2.12.0 imposta a zero la durata della route del composer; non aggiunge overlay persistenti o controller globali. Il Cestino riusa stream SQLite filtrati e limita le attività eliminate a 200 righe. I chip link vengono costruiti soltanto quando l'editor e la sezione dettagli sono aperti.
+
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale

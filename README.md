@@ -96,7 +96,7 @@ La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Compl
 
 Il tasto **Indietro** di Android chiude prima dialoghi e menu, poi ripercorre le sezioni visitate; in Prossime rimuove prima l'eventuale filtro sul giorno. Soltanto dalla radice Oggi, esaurita la cronologia interna, lascia chiudere normalmente l'app.
 
-Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; le transizioni sono 30/20 ms e l'adeguamento alla tastiera non è animato, evitando il breve accavallamento tra IME e foglio. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
+Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; dalla 2.12 il foglio `+` non ha alcuna animazione di route e l'adeguamento alla tastiera non è animato. Il solo tempo residuo dipende dall'apertura della tastiera Android. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
 
 Le Impostazioni mostrano lo stato reale del worker in una sola riga con icona: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento oppure errore. Account e comandi meno frequenti restano nel menu contestuale. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato.
 
@@ -134,7 +134,7 @@ Impostazioni consente export JSON completo/versionato, export CSV e import JSON.
 
 Titolo e descrizione sono importati separatamente da Todoist. La descrizione appare sotto il titolo su una sola riga; il testo completo resta disponibile aprendo l'attività. I link Markdown presenti in entrambi vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco. L'export attualmente supportato non contiene commenti, allegati o sotto-attività importabili.
 
-Anche nell'editor le descrizioni mostrano soltanto il testo leggibile: gli URL Todoist non appaiono più in chiaro. Per collegare o scollegare una parola basta selezionarla e usare **Aggiungi link** o **Togli link**; il formato Markdown compatibile con Todoist viene ricostruito soltanto al salvataggio.
+Anche nell'editor le descrizioni mostrano soltanto il testo leggibile: gli URL Todoist non appaiono più in chiaro. I link già presenti appaiono come chip con il loro nome: un tocco apre il collegamento e la `×` lo rimuove. Per crearne uno nuovo basta selezionare una parola e usare **Aggiungi link**; il formato Markdown compatibile con Todoist viene ricostruito soltanto al salvataggio.
 
 Lo swipe sposta l'attività nel cestino soltanto da destra verso sinistra e dopo aver superato il 62% della riga; mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando la sincronizzazione.
 
@@ -143,6 +143,8 @@ La vista Progetti usa un elenco verticale con sezioni comprimibili. Si possono c
 L'editor espone una sola data civile di pianificazione: da questa deriva automaticamente lo stato interno. “Stato” e “Scadenza” non sono più controlli separati. Le colonne legacy restano nello schema per permettere aggiornamenti sicuri delle installazioni esistenti, ma `due_date` viene normalizzata a `null` nelle modifiche e nella sincronizzazione.
 
 Completate carica al massimo le 200 attività più recenti, in ordine di completamento e con righe più dense. Le attività completate da oltre 365 giorni vengono archiviate con tombstone sincronizzato, così la cronologia non cresce senza limite. In **Dati e manutenzione** è disponibile **Cancella tutti i dati locali**: opera in una transazione unica e conserva soltanto l'identità tecnica del dispositivo; richiede prima di scollegare Supabase per evitare che il cloud ripristini subito i dati.
+
+Il **Cestino** nelle Impostazioni mostra fino a 200 attività eliminate insieme a progetti e sezioni archiviati. Ogni elemento può essere ripristinato mantenendo ID, ricorrenze, collegamenti Todoist e sincronizzazione. Non offre eliminazione definitiva finché il backend non dispone di un reset remoto transazionale sicuro.
 
 Il controllo aggiornamenti avviene all'avvio, al ritorno in primo piano se sono trascorse almeno sei ore e ogni sei ore mentre l'app è visibile. Dieci minuti sarebbero troppo frequenti per una release che cambia raramente.
 

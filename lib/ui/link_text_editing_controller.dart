@@ -55,6 +55,11 @@ class LinkTextEditingController extends TextEditingController {
     return true;
   }
 
+  void removeLink(TextLink link) {
+    links.remove(link);
+    notifyListeners();
+  }
+
   String toMarkdown() {
     var value = text;
     for (final link in links) {

@@ -25,4 +25,16 @@ void main() {
     expect(controller.removeSelectedLink(), isTrue);
     expect(controller.toMarkdown(), 'Apri ricerca');
   });
+
+  test('rimuove direttamente un link importato dalla descrizione', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      '[Paper](https://example.com/paper)',
+    );
+
+    controller.removeLink(controller.links.single);
+
+    expect(controller.text, 'Paper');
+    expect(controller.links, isEmpty);
+    expect(controller.toMarkdown(), 'Paper');
+  });
 }
