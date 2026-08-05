@@ -106,7 +106,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,22 +117,45 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) await _createPerformanceIndexes();
-      if (from < 3) {
-        await migrator.addColumn(tasks, tasks.priority);
-        await migrator.addColumn(tasks, tasks.projectId);
-        await migrator.addColumn(tasks, tasks.sectionId);
-        await migrator.addColumn(tasks, tasks.externalSource);
-        await migrator.addColumn(tasks, tasks.externalId);
-        await migrator.createTable(projects);
-        await migrator.createTable(projectSections);
-        await _createImportIndexes();
-      }
+      if (from < 4) await _ensureImportSchema(migrator);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       await customStatement('PRAGMA journal_mode = WAL');
     },
   );
+
+  Future<void> _ensureImportSchema(Migrator migrator) async {
+    for (final column in [
+      tasks.priority,
+      tasks.projectId,
+      tasks.sectionId,
+      tasks.externalSource,
+      tasks.externalId,
+    ]) {
+      if (!await _columnExists('tasks', column.$name)) {
+        await migrator.addColumn(tasks, column);
+      }
+    }
+    if (!await _tableExists('projects')) await migrator.createTable(projects);
+    if (!await _tableExists('project_sections')) {
+      await migrator.createTable(projectSections);
+    }
+    await _createImportIndexes();
+  }
+
+  Future<bool> _columnExists(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.any((row) => row.read<String>('name') == column);
+  }
+
+  Future<bool> _tableExists(String table) async {
+    final row = await customSelect(
+      'SELECT 1 FROM sqlite_master WHERE type = ? AND name = ? LIMIT 1',
+      variables: [Variable.withString('table'), Variable.withString(table)],
+    ).getSingleOrNull();
+    return row != null;
+  }
 
   Future<void> _createPerformanceIndexes() async {
     await customStatement(

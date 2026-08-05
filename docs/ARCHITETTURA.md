@@ -42,6 +42,8 @@ Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. 
 
 Il bootstrap non carica database dei fusi e non richiede permessi di notifica: il supporto orario è assente e le date sono sempre civili. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Android è il primo canale di collaudo: ogni push funzionale con versione monotona produce automaticamente APK per ABI, download interno, progresso e verifica SHA-256; il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
 
+Le migrazioni locali verificano colonne e tabelle prima di crearle. Dallo schema 4 una migrazione interrotta può quindi riprendere senza cancellare il database o ripetere operazioni già applicate.
+
 ## Fuso del dispositivo e calendario Android
 
 Le pianificazioni sono esclusivamente date civili `YYYY-MM-DD`: non contengono un istante né un fuso e quindi non slittano attraversando mezzanotte, ora legale o confini geografici. Gli anni bisestili sono gestiti dal calendario civile locale. Le colonne legacy `time_minutes` e `time_zone` restano nello schema sincronizzato per compatibilità, ma ogni nuovo comando le normalizza a `null`.

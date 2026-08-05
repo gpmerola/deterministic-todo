@@ -1,6 +1,6 @@
 # Funzioni completate e verificate
 
-Aggiornato il 4 agosto 2026.
+Aggiornato il 5 agosto 2026.
 
 ## Completate
 
@@ -94,3 +94,7 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 - Promemoria interno massimo una volta al giorno con esportazione diretta e prompt di analisi pronto da copiare.
 - Oggi esclude il backlog senza data appartenente ai progetti, mantenendo visibili le attività libere senza progetto.
 - Conteggio frame lenti sia sul budget 60 Hz sia sul budget 120 Hz del Galaxy S21.
+# 2.12.1
+
+- Ripristino automatico delle migrazioni SQLite interrotte: macOS e Android possono completare lo schema locale senza perdere attività quando alcune colonne erano già state create.
+- Aggiunto un test di regressione che parte intenzionalmente da una migrazione versione 2 rimasta a metà.
