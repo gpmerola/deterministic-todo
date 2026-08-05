@@ -20,6 +20,13 @@ URL web previsto:
 
 `https://gpmerola.github.io/deterministic-todo/`
 
+### Aprirla automaticamente con Chrome
+
+In Chrome apri **⋮ → Impostazioni → All’avvio**, scegli **Apri una pagina
+specifica o un insieme di pagine**, premi **Aggiungi una nuova pagina** e
+incolla l’URL web qui sopra. Da quel momento la web app si aprirà come scheda
+ogni volta che avvii Chrome.
+
 ## Uso quotidiano
 
 Al primo accesso da un nuovo browser vai in **Impostazioni**, inserisci la stessa
