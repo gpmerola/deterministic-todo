@@ -1,9 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+import 'platform_runtime_native.dart'
+    if (dart.library.js_interop) 'platform_runtime_web.dart';
 
 class AvailableUpdate {
   const AvailableUpdate({
@@ -45,7 +47,7 @@ class UpdateService {
           headers: const {'Cache-Control': 'no-cache'},
         )
         .timeout(const Duration(seconds: 8));
-    if (response.statusCode != HttpStatus.ok) return null;
+    if (response.statusCode != 200) return null;
     final root = jsonDecode(response.body);
     if (root is! Map<String, Object?> || root['schema_version'] != 1) {
       return null;
@@ -56,11 +58,7 @@ class UpdateService {
       return null;
     }
     String? platformKey;
-    if (Platform.isMacOS) {
-      platformKey = 'macos';
-    } else if (Platform.isWindows) {
-      platformKey = 'windows';
-    } else if (Platform.isAndroid) {
+    if (isAndroidPlatform) {
       final abi = await OtaUpdate().getAbi();
       final abiKey = abi == null ? null : 'android-$abi';
       platformKey = abiKey != null && platforms.containsKey(abiKey)

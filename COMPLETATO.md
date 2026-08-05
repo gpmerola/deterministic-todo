@@ -98,3 +98,11 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 
 - Ripristino automatico delle migrazioni SQLite interrotte: macOS e Android possono completare lo schema locale senza perdere attività quando alcune colonne erano già state create.
 - Aggiunto un test di regressione che parte intenzionalmente da una migrazione versione 2 rimasta a metà.
+
+# 2.13.0
+
+- Aggiunto il client browser Flutter per macOS e Windows con SQLite Drift WebAssembly, sincronizzazione Supabase e import/export compatibili.
+- La web app rifiuta esplicitamente uno storage soltanto volatile; i salvataggi non vengono mai presentati come persistenti se il browser non li supporta.
+- Aggiunto deployment automatico GitHub Pages insieme alla release Android.
+- Rimossi target, workflow, launcher e build locali macOS/Windows obsoleti; le utilità Android residue sono state raccolte in `tools/launchers`.
+- README, architettura, handover e regole operative aggiornati al modello Android + browser.

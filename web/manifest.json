@@ -1,0 +1,35 @@
+{
+    "name": "Deterministic Todo",
+    "short_name": "Todo",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0C1510",
+    "theme_color": "#102018",
+    "description": "Attività deterministiche, offline-first e sincronizzate.",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

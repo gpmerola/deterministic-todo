@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:file_picker/file_picker.dart';
@@ -10,7 +10,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,6 +25,10 @@ import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/performance_monitor.dart';
+import 'services/picked_file_reader_native.dart'
+    if (dart.library.js_interop) 'services/picked_file_reader_web.dart';
+import 'services/platform_runtime_native.dart'
+    if (dart.library.js_interop) 'services/platform_runtime_web.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
 import 'ui/link_text_editing_controller.dart';
@@ -339,11 +342,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ),
           FilledButton(
             onPressed: () async {
-              final file = await DiagnosticLogService.instance.exportFile();
-              if (file != null) {
+              final data = await DiagnosticLogService.instance.exportData();
+              if (data != null) {
                 await SharePlus.instance.share(
                   ShareParams(
-                    files: [XFile(file.path)],
+                    files: [
+                      XFile.fromData(
+                        data.bytes,
+                        name: data.name,
+                        mimeType: 'application/x-ndjson',
+                      ),
+                    ],
+                    fileNameOverrides: [data.name],
                     title: 'Diagnostica Deterministic Todo',
                   ),
                 );
@@ -428,7 +438,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<void> _installUpdate(AvailableUpdate update) async {
-    if (!Platform.isAndroid) {
+    if (!isAndroidPlatform) {
       await launchUrl(update.url, mode: LaunchMode.externalApplication);
       return;
     }
@@ -2087,7 +2097,7 @@ class _TaskEditorState extends State<TaskEditor> {
                 ),
             ],
           ),
-          if (Platform.isAndroid)
+          if (isAndroidPlatform)
             PopupMenuButton<String>(
               tooltip: 'Altre azioni',
               icon: const Icon(Icons.more_vert),
@@ -2274,12 +2284,20 @@ class SettingsView extends StatelessWidget {
     final content = json
         ? await service.exportJson()
         : await service.exportCsv();
-    final directory = await getTemporaryDirectory();
-    final file = File('${directory.path}/attivita.${json ? 'json' : 'csv'}');
-    await file.writeAsString(content, flush: true);
+    final name = 'attivita.${json ? 'json' : 'csv'}';
     if (context.mounted) {
       await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)], title: 'Esporta attività'),
+        ShareParams(
+          files: [
+            XFile.fromData(
+              Uint8List.fromList(utf8.encode(content)),
+              name: name,
+              mimeType: json ? 'application/json' : 'text/csv',
+            ),
+          ],
+          fileNameOverrides: [name],
+          title: 'Esporta attività',
+        ),
       );
     }
   }
@@ -2292,9 +2310,7 @@ class SettingsView extends StatelessWidget {
     );
     if (picked == null || !context.mounted) return;
     final bytes = picked.files.single.bytes;
-    final source = bytes == null
-        ? await File(picked.files.single.path!).readAsString()
-        : String.fromCharCodes(bytes);
+    final source = await readPickedText(bytes, picked.files.single.path);
     final service = ExportService(repository.db);
     final preview = await service.preview(source);
     if (!context.mounted) return;
@@ -2337,9 +2353,7 @@ class SettingsView extends StatelessWidget {
       );
       if (picked == null || !context.mounted) return;
       final bytes = picked.files.single.bytes;
-      final source = bytes == null
-          ? await File(picked.files.single.path!).readAsString()
-          : String.fromCharCodes(bytes);
+      final source = await readPickedText(bytes, picked.files.single.path);
       const service = TodoistImportService();
       final preview = service.preview(source);
       if (!context.mounted) return;
@@ -2472,11 +2486,18 @@ class SettingsView extends StatelessWidget {
   }
 
   Future<void> _exportDiagnostics(BuildContext context) async {
-    final file = await DiagnosticLogService.instance.exportFile();
-    if (file == null || !context.mounted) return;
+    final data = await DiagnosticLogService.instance.exportData();
+    if (data == null || !context.mounted) return;
     await SharePlus.instance.share(
       ShareParams(
-        files: [XFile(file.path)],
+        files: [
+          XFile.fromData(
+            data.bytes,
+            name: data.name,
+            mimeType: 'application/x-ndjson',
+          ),
+        ],
+        fileNameOverrides: [data.name],
         title: 'Diagnostica Deterministic Todo',
       ),
     );
@@ -2793,7 +2814,7 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
     super.dispose();
   }
 
-  Future<void> _connect({required bool create}) async {
+  Future<void> _connect() async {
     final client = widget.client;
     if (client == null || busy) return;
     setState(() {
@@ -2801,22 +2822,12 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
       message = null;
     });
     try {
-      if (create) {
-        final response = await client.auth.signUp(
-          email: email.text.trim(),
-          password: password.text,
-        );
-        message = response.session == null
-            ? 'Controlla l’email una sola volta, poi premi Collega.'
-            : 'Collegamento permanente attivo.';
-      } else {
-        await client.auth.signInWithPassword(
-          email: email.text.trim(),
-          password: password.text,
-        );
-        await widget.syncService?.sync();
-        message = 'Collegamento permanente attivo.';
-      }
+      await client.auth.signInWithPassword(
+        email: email.text.trim(),
+        password: password.text,
+      );
+      await widget.syncService?.sync();
+      message = 'Collegamento permanente attivo.';
       password.clear();
     } on AuthException catch (error) {
       message = error.message;
@@ -2906,13 +2917,8 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
-                  onPressed: busy ? null : () => _connect(create: true),
-                  child: const Text('Crea account'),
-                ),
-                const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: busy ? null : () => _connect(create: false),
+                  onPressed: busy ? null : _connect,
                   child: Text(busy ? 'Collego…' : 'Collega'),
                 ),
               ],

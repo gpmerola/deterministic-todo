@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
+import '../../services/platform_runtime_native.dart'
+    if (dart.library.js_interop) '../../services/platform_runtime_web.dart';
+import 'database_connection_native.dart'
+    if (dart.library.js_interop) 'database_connection_web.dart';
 
 part 'database.g.dart';
 
@@ -121,7 +121,7 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement('PRAGMA journal_mode = WAL');
+      if (!isWebPlatform) await customStatement('PRAGMA journal_mode = WAL');
     },
   );
 
@@ -184,8 +184,4 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-LazyDatabase _openConnection() => LazyDatabase(() async {
-  final directory = await getApplicationSupportDirectory();
-  final file = File(p.join(directory.path, 'deterministic_todo.sqlite'));
-  return NativeDatabase.createInBackground(file);
-});
+QueryExecutor _openConnection() => openDatabaseConnection();

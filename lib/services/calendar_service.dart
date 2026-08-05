@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 
 import '../data/local/database.dart';
 import '../domain/task.dart';
+import 'platform_runtime_native.dart'
+    if (dart.library.js_interop) 'platform_runtime_web.dart';
 
 class CalendarExportResult {
   const CalendarExportResult({
@@ -19,7 +20,7 @@ class CalendarExportResult {
 class CalendarService {
   CalendarService(this._database, {DeviceCalendar? calendar, bool? isAndroid})
     : _calendar = calendar ?? DeviceCalendar.instance,
-      _isAndroid = isAndroid ?? Platform.isAndroid;
+      _isAndroid = isAndroid ?? isAndroidPlatform;
 
   final AppDatabase _database;
   final DeviceCalendar _calendar;

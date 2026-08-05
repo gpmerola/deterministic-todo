@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../data/local/database.dart';
 import '../domain/task.dart';
 import 'diagnostic_log_service.dart';
+import 'platform_runtime_native.dart'
+    if (dart.library.js_interop) 'platform_runtime_web.dart';
 
 class PerformanceMonitor {
   PerformanceMonitor._();
@@ -92,14 +91,12 @@ class PerformanceMonitor {
     final outboxCount = db.outboxEntries.operationId.count();
     final outboxQuery = db.selectOnly(db.outboxEntries)
       ..addColumns([outboxCount]);
-    final support = await getApplicationSupportDirectory();
-    final database = File(p.join(support.path, 'deterministic_todo.sqlite'));
     await DiagnosticLogService.instance.event(
       'performance_snapshot',
       fields: {
         'phase': phase,
-        'rss_bytes': ProcessInfo.currentRss,
-        'db_bytes': await database.exists() ? await database.length() : 0,
+        'rss_bytes': currentRssBytes,
+        'db_bytes': await databaseSizeBytes(),
         'active_tasks': counts.read(activeCount) ?? 0,
         'completed_tasks': counts.read(completedCount) ?? 0,
         'outbox': (await outboxQuery.getSingle()).read(outboxCount) ?? 0,

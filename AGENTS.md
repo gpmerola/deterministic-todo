@@ -15,11 +15,12 @@ All’inizio di ogni nuova sessione leggere integralmente `TODO_NEXT.md` oltre a
 ## Android: leggerezza e aggiornamenti
 
 - Android è il primo canale di collaudo dell'utente: ogni modifica funzionale verificata deve incrementare `version` e `build` in `pubspec.yaml`, essere pubblicata automaticamente come aggiornamento Android e provata sul dispositivo prima di essere considerata conclusa.
-- Un push funzionale su un branch `agent/**` avvia l'unico percorso automatico: verifica, build e pubblicazione Android. Verify, build APK separata e macOS sono manuali per non duplicare minuti Actions. Non riutilizzare mai una versione già pubblicata e non affidarsi al solo artefatto CI, che non alimenta l'updater.
+- Un push funzionale su un branch `agent/**` avvia i due percorsi automatici: verifica/build/pubblicazione Android e verifica/build/deployment web. macOS e Windows nativi non sono target supportati. Non riutilizzare mai una versione Android già pubblicata e non affidarsi al solo artefatto CI, che non alimenta l'updater.
 - Raggruppare modifiche correlate in un incremento Android collaudabile. Non pubblicare commit intermedi incompleti; push ravvicinati annullano la build obsoleta tramite concurrency.
 - Android è la piattaforma con priorità massima per dimensione, RAM, CPU, batteria e rapidità percepita. Ogni nuova dipendenza deve essere giustificata e valutata rispetto al costo nell’APK e a runtime.
 - Generare sempre APK release separati per ABI con `--split-per-abi`. L’APK universale è ammesso soltanto come fallback di transizione per client vecchi e non deve essere il download normale.
 - Il manifest pubblico deve offrire asset `android-arm64-v8a`, `android-armeabi-v7a` e `android-x86_64`, relativi SHA-256 e numeri versione/build monotoni.
+- La web app deve mantenere SQLite locale persistente; se Drift seleziona soltanto storage in memoria deve fallire chiaramente. Ogni modifica web va verificata con build release, avvio HTTPS e persistenza dopo refresh.
 - Gli aggiornamenti devono essere seamless: controllo non bloccante e limitato nel tempo, download interno all’app, progresso visibile, verifica SHA-256 e una sola conferma Android finale. Non reindirizzare normalmente l’utente a una pagina GitHub.
 - Tutti gli APK successivi devono essere firmati con la stessa chiave release stabile. Prima della pubblicazione verificare che CI, manifest, `versionCode`, hash e firma siano coerenti.
 - Non aggiungere polling frequente, timer non necessari, inizializzazioni pesanti all’avvio o query che caricano cronologie non visibili. Preferire lavoro differito, stream persistenti e query SQLite filtrate/indicizzate.

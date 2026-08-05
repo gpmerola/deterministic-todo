@@ -1,207 +1,75 @@
 # TODO e handover
 
-Aggiornato il 4 agosto 2026. Questo file è il punto di partenza per una nuova sessione.
+Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
-## Stato pronto al passaggio
+## Stato corrente
 
-- Repository sorgente privato: `gpmerola/deterministic-todo`.
-- Repository release pubblico: `gpmerola/deterministic-todo-releases`.
-- Branch di lavoro: `agent/android-apk-sync-pairing`.
-- Pull request draft: <https://github.com/gpmerola/deterministic-todo/pull/1>.
-- Release pubblica corrente verificata: `v1.2.0`, build Android `10`; `v1.3.0` build `11` è nella pipeline automatica al momento di questo aggiornamento.
-- Telefono principale: Samsung Galaxy S21, ABI `arm64-v8a`.
-- L’albero Git deve risultare pulito dopo il commit di handover; verificare con `git status -sb`.
-- Le ultime CI Android, macOS e Verify risultavano verdi. Riconfermare sempre dalla PR prima di un merge.
+- Repository sorgente pubblico: `gpmerola/deterministic-todo`.
+- Repository release Android: `gpmerola/deterministic-todo-releases`.
+- Branch operativo: `agent/verify-public-release-token`.
+- Android è il primo canale nativo; desktop usa la web app GitHub Pages.
+- Release Android precedente verificata: 2.12.1 build 37.
+- Versione in preparazione: 2.13.0 build 38, con target web e pulizia desktop.
+- Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
+- Supabase reale e convergenza Android↔cloud sono già stati provati.
 
-La PR rimane volutamente draft: non è stata autorizzata una fusione in `main`. Il nuovo agente deve leggere integralmente `AGENTS.md`, questo file, README e i due documenti in `docs/` prima di modificare codice.
+## P0 — Concludere il passaggio alla web app
 
-## P0 — Completare e provare la sincronizzazione persistente
+1. pubblicare `Publish Web App` e verificare il sito HTTPS;
+2. confermare in Chrome reale che una task locale sopravviva a refresh e
+   riapertura; lo startup deve fallire esplicitamente se Drift offre soltanto
+   storage in memoria;
+3. collegare l’account Supabase personale già esistente e verificare
+   Android → browser e browser → Android;
+4. aggiungere il sito alle pagine di avvio di Chrome;
+5. verificare import ed export JSON dal browser con una fixture sintetica.
 
-Il client ora offre collegamento account una tantum, rinnovo automatico e sessione nel secure storage. Database locale, outbox, versioni Lamport, tombstone, worker Supabase e migrazione RLS sono presenti, ma manca ancora la configurazione di un progetto reale e quindi la sincronizzazione end-to-end non è dichiarata completa.
+La web app non deve dipendere dalla rete per mostrare o modificare task già
+locali. Non usare navigazione in incognito come ambiente supportato.
 
-Obiettivo concordato:
+## P0 — Passaggio definitivo da Todoist
 
-1. configurazione iniziale una sola volta (implementata lato client);
-2. collegamento permanente tramite lo stesso account personale (implementato); QR/codice monouso resta un miglioramento server;
-3. nessun login quotidiano (implementato con refresh automatico);
-4. sessione e token conservati nel secure storage (implementato);
-5. possibilità di revocare un dispositivo;
-6. SQLite sempre fonte della UI e rete mai bloccante;
-7. conflitti deterministici `(logical_version, device_id)` e operazioni idempotenti.
+- esportare un ultimo JSON Todoist;
+- usare **Sostituisci** per ricostruire soltanto i dati Todoist;
+- verificare conteggi, progetti, sezioni, descrizioni, link, priorità, date e
+  ricorrenze;
+- attendere la sincronizzazione e confrontare Android e browser;
+- non committare mai l’export personale.
 
-Architettura raccomandata: vault personale, token dispositivo casuale memorizzato solo come hash sul server, codice pairing a scadenza breve e Supabase Edge Function che usa `service_role` soltanto lato server. Non trasferire refresh token Supabase dentro un QR e non includere `service_role` nel client.
+L’ultimo export analizzato conteneva 5 progetti, 13 sezioni e 110 task attive,
+ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
-Il progetto Supabase personale, la configurazione client pubblica e la migrazione iniziale sono collegati e verificati. Accesso permanente e convergenza telefono → Supabase → Mac sono stati provati con un'attività sentinella. Il deployment di future Edge Functions richiede autorizzazione esplicita.
+## P1 — Blocchi pratici
 
-## P0 — Test reale sul Galaxy S21
+- provare per alcuni giorni creazione, modifica, completamento, ricorrenze,
+  swipe e Indietro sul Galaxy S21;
+- confermare Google Calendar su hardware Android reale;
+- aggiungere una RPC Supabase transazionale prima di offrire “cancella tutto”
+  contemporaneamente su cloud e dispositivo;
+- valutare commenti, allegati, etichette e sotto-attività Todoist solo se
+  compaiono nei prossimi export reali;
+- backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-La build e i test automatici sono verdi, ma questi flussi devono ancora essere verificati fisicamente:
+## P2 — Performance
 
-- aggiornamento in-app da una versione senza Impostazioni → 1.1.1, eventualmente tramite installazione manuale sopra l'app esistente;
-- installazione dell’APK ARM64 con conservazione di una task sentinella;
-- permesso “Installa app sconosciute” e prompt finale Android;
-- permessi calendario Samsung/Google;
-- “Salva + calendario” crea nel Google Calendar primario;
-- ripetere il comando aggiorna lo stesso evento senza duplicarlo;
-- cambio manuale del fuso del telefono e stabilità delle date civili.
+Misurare prima di ottimizzare ulteriormente:
 
-La release pubblica `1.1.0` contiene l'APK ARM64 per Galaxy S21. Il launcher `SCARICA_APK_ANDROID.command` scarica l'asset ARM64 dalla release latest e lo rinomina nel nome stabile usato dall’installer.
+- cold/warm start Android;
+- RAM e frame pacing con 100, 1.000 e 10.000 task;
+- CPU a riposo per cinque minuti;
+- dimensione e latenza del database browser;
+- tempo di primo sync e reimport Todoist.
 
-## P1 — Calendario: confini e completamento
+Il browser usa SQLite Drift WebAssembly; Android usa SQLite nativo in background.
+Non introdurre polling, timer o dipendenze senza una misura che li giustifichi.
 
-L’integrazione corrente è intenzionalmente unidirezionale ed esplicita:
+## Checklist di consegna
 
-- SQLite è la fonte di verità;
-- “Salva + calendario” preferisce Google primario;
-- il mapping `calendar_event:<task_id>` è locale in `app_settings`;
-- ripetere il comando aggiorna l’evento esistente;
-- nessun pull dal calendario modifica task;
-- completamento ed eliminazione non modificano automaticamente l’evento.
-
-Prossimi miglioramenti possibili, da autorizzare separatamente:
-
-- mostrare nell’editor quale calendario/evento è collegato;
-- comando esplicito “Rimuovi dal calendario”;
-- scelta manuale del calendario quando esistono più account;
-- sincronizzare il mapping evento tra dispositivi soltanto dopo il backend;
-- gestire in modo chiaro un evento eliminato esternamente, senza creare duplicati silenziosi.
-
-Non implementare sincronizzazione bidirezionale implicita: violerebbe la promessa deterministica e richiederebbe una regola di conflitto separata.
-
-## P1 — Completare la configurazione dell'automazione release
-
-Il workflow protetto `Publish Android Release` ora ricompila, verifica, genera manifest/hash, pubblica nel repository release e ricontrolla il manifest pubblico. Per renderlo operativo su GitHub manca soltanto configurare l'environment `android-release` e il secret fine-grained `RELEASE_REPO_TOKEN`, limitato al repository pubblico.
-
-Requisiti:
-
-- build Android solo `--split-per-abi`;
-- firma stabile dai Secrets `ANDROID_KEYSTORE_*`;
-- asset ARM64, ARM32 e x86_64 con SHA-256;
-- manifest pubblico coerente;
-- fallback `android` verso l’universale 1.0.4 per client 1.0.3;
-- rendere `latest` soltanto dopo verifica;
-- mantenere symbol map private se si abilita offuscamento.
-
-Soluzioni ammissibili: fine-grained token limitato al repository release oppure workflow nel repository pubblico attivato in modo controllato. Non usare token amministrativi generici.
-
-## P0 — Applicare la migrazione e collaudare l'import Todoist
-
-Un export personale Todoist è stato verificato localmente il 4 agosto 2026. Non copiarlo nel repository perché contiene dati personali. L'import attivo-only è implementato e validato in memoria sul file reale, senza modificare il database personale. Prima del collaudo Android resta obbligatorio eseguire nell'SQL Editor `supabase/migrations/202608040002_todoist_import.sql`.
-
-Contenuto disponibile:
-
-- 5 progetti personali, incluso Inbox;
-- 13 sezioni, tutte collegabili ai rispettivi progetti;
-- 110 attività attive, delle quali 46 pianificate e 25 ricorrenti;
-- 13 descrizioni, nessun commento/nota separata, nessuna sotto-attività, nessun reminder e nessuna durata;
-- priorità Todoist: 75 p4/default, 8 p3, 6 p2, 21 p1 (nel JSON i valori sono invertiti rispetto alle etichette mostrate da Todoist: `4` è la priorità massima);
-- 2 etichette definite ma nessuna assegnata alle 110 attività;
-- 2 filtri personali;
-- `completed_info` contiene soltanto contatori aggregati per progetto, non titoli o record completati. La cronologia completata non è quindi importabile da questo file.
-
-Incremento critico da implementare prima degli altri:
-
-1. ~~schema locale e remoto per progetti, sezioni, priorità e ID esterni~~ completato;
-2. ~~parser, anteprima, piano tipizzato e transazione idempotente~~ completato;
-3. eseguire la migrazione Supabase `202608040002_todoist_import.sql`;
-4. installare la release Android, scegliere `todoist.json` da Impostazioni e verificare il riepilogo 5/13/110 prima di confermare;
-5. dopo import sul telefono, verificare la convergenza sul Mac;
-6. ~~mostrare Progetti con sezioni e attività attive~~ completato nella 1.9.0;
-7. non committare mai l'export reale.
-
-La 2.7 sostituisce i layout visibili elenco/bacheca con una gerarchia minimale elenco progetti → dettaglio, mantenendo i metadati Todoist compatibili. Dalla 2.10 progetti e sezioni possono essere rinominati, spostati su/giù e archiviati con Undo. Miglioramenti successivi: eventuale drag-and-drop dopo collaudo mobile e descrizione progetto.
-
-Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settimane/mesi, annuali e giorni fissi dell'anno. Le stringhe ambigue `ogni 1` e `ogni 26` vanno interpretate secondo il campo `due.date` e verificate in anteprima, non indovinate silenziosamente.
-
-## P1 — UX Android richiesta
-
-- ~~Spostare Completate dentro Impostazioni~~ completato; la barra primaria contiene Oggi, Prossime e Progetti.
-- Rendere Prossime una timeline verticale virtualizzata senza limite pratico, con separatori giornalieri e sezioni comprimibili; mostrare le task del giorno dall'SQLite dell'app. Google Calendar resta export esplicito e non diventa fonte di verità.
-- Estendere il linguaggio naturale evidenziato a ricorrenze: ogni giorno, ogni N giorni/settimane/mesi, ogni secondo martedì del mese, ogni giorno/mese annuale. La frase riconosciuta viene rimossa dal titolo.
-- Aggiungere bandierine priorità opzionali e pulite, coerenti con il mapping Todoist.
-- Aggiungere Undo per completamento, spostamento e ripianificazione; l'eliminazione via swipe è annullabile dalla 2.6.0.
-- Lo swipe verso il cestino è annullabile e dalla 2.9.0 accetta soltanto destra→sinistra oltre il 62% della riga; verificare la soglia sul Galaxy S21 e rimuoverlo se produce ancora errori.
-- Dalla 2.11 Prossime è una timeline lazy con giorni vuoti e salto diretto, Completate è limitata a 200 righe con retention di 365 giorni e gli aggiornamenti vengono ricontrollati ogni sei ore soltanto in foreground. Verificare sul Galaxy S21 il singolo Indietro del composer e l'assenza di sovrapposizione con la tastiera Samsung.
-- Non materializzare calendari infiniti: usare liste lazy e caricare finestre di date progressivamente.
-
-## P1 — Funzioni originali ancora incomplete
-
-- schermata cestino con ripristino tombstone;
-- selezione multipla per stato, mostra il e scadenza;
-- undo per completamento, eliminazione, spostamento e modifica recente (incluso nel piano UX Android sopra);
-- scheduler automatico dell’orizzonte delle ricorrenze calendario;
-- backup cifrato;
-- test end-to-end contro Supabase e due dispositivi;
-- test/installazione Windows su una macchina Windows reale.
-- reset coordinato anche dei dati remoti Supabase: richiede una RPC transazionale server-side; il pulsante 2.11 cancella intenzionalmente solo il dispositivo scollegato.
-
-## P1 — Blocchi pratici prima di lasciare Todoist
-
-- provare sul Galaxy S21 per alcuni giorni creazione, modifica, swipe, ricorrenze e back con la tastiera Samsung reale;
-- eseguire un ultimo export Todoist e un reimport incrementale prima del passaggio definitivo, poi verificare conteggi e progetti su telefono e Mac;
-- decidere se servono davvero promemoria/notifiche: dalla 2.8 il supporto orario e i relativi plugin sono intenzionalmente assenti;
-- ~~aggiungere una vista Cestino per recuperare oltre la finestra Undo attività, progetti o sezioni archiviati~~ completato nella 2.12;
-- etichette, filtri, commenti, allegati e sotto-attività Todoist non sono ancora modellati; l'export personale analizzato non li usava sulle 110 attività attive, quindi non bloccano l'import corrente ma possono bloccare un uso futuro;
-- il reset completo cloud+dispositivo richiede una RPC Supabase transazionale prima di poter essere offerto come singolo comando sicuro.
-
-Non ampliare l’ambito con progetti, etichette, priorità, AI, collaborazione o calendario completo.
-
-## P2 — Performance misurata
-
-Il Galaxy S21 riceve l’APK ARM64 da circa 21 MB. Le ottimizzazioni strutturali sono documentate, ma RAM, CPU, startup time e frame pacing non sono ancora stati profilati su hardware reale.
-
-Procedura consigliata:
-
-```sh
-flutter run --profile -d <device-id>
-flutter devtools
-```
-
-Misurare prima di cambiare codice:
-
-- tempo cold start e warm start;
-- RAM con 100, 1.000 e 10.000 task;
-- CPU a riposo per almeno cinque minuti;
-- frame build/raster durante scroll e riordino a 120 Hz;
-- latenza ricerca e apertura Completate;
-- costo del primo accesso al calendario.
-
-Ottimizzazioni candidate solo se giustificate dai dati: paginazione Completate, ricerca SQL/FTS5, `--split-debug-info`, riduzione dipendenze. Non sacrificare affidabilità o multipiattaforma per benchmark teorici.
-
-## Sicurezza e backup operativo
-
-- Non committare `private_release_keys/`.
-- Eseguire un backup cifrato esterno del keystore Android e della password; perdere la chiave impedisce aggiornamenti delle installazioni esistenti.
-- Non mostrare segreti nei log o nei comandi copiati nella documentazione.
-- La chiave pubblica Supabase è ammessa nel client; `service_role` non lo è.
-- Titoli e note non devono entrare nei log.
-
-## Checklist di ogni sessione
-
-1. Leggere `AGENTS.md` e `TODO_NEXT.md`.
-2. `git status -sb` e controllo delle modifiche dell’utente.
-3. Scegliere un solo incremento verificabile.
-4. Aggiornare test e documentazione insieme al codice.
-5. Eseguire `dart format lib test`, `flutter analyze`, `flutter test`.
-6. Commit intenzionale e push obbligatorio sul branch.
-7. Attendere la pipeline Android automatica; eseguire Verify/build separata e macOS manualmente soltanto ai checkpoint necessari.
-8. Per release Android, misurare asset, calcolare hash, pubblicare manifest e provare l’upgrade dalla versione precedente.
-
-## Comandi rapidi
-
-```sh
-flutter pub get
-dart run build_runner build
-flutter analyze
-flutter test
-git status -sb
-gh pr checks 1 --repo gpmerola/deterministic-todo
-gh release list --repo gpmerola/deterministic-todo-releases
-```
-
-La documentazione autorevole è: `AGENTS.md` per le regole, README per l’uso, `docs/ARCHITETTURA.md` per il dominio, `docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md` per distribuzione/performance e `COMPLETATO.md` per ciò che è stato verificato.
-# Dopo il reimport Todoist 2.1
-
-- Aggiungere ordinamento per nome, data e priorità all'interno delle sezioni progetto.
-- Valutare una barra progetti gerarchica su schermi larghi, mantenendo il selettore compatto su Android.
-- Estendere l'import a commenti e allegati solo dopo aver definito modello dati, privacy e costi di archiviazione.
+1. controllare `git status -sb` e preservare dati personali/chiavi;
+2. aggiornare versione, test e documentazione;
+3. eseguire `dart format lib test`, `flutter analyze`, `flutter test`,
+   `flutter build web --release` e i controlli Android pertinenti;
+4. commit e push sul branch `agent/*`;
+5. attendere e verificare entrambe le pipeline automatiche;
+6. collaudare fisicamente Android e, per cambi web, refresh/persistenza in
+   Chrome sul sito pubblicato.

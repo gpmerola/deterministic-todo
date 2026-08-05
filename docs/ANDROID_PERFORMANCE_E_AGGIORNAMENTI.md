@@ -118,7 +118,7 @@ La perdita della chiave impedisce di aggiornare installazioni esistenti. Eseguir
 
 Il workflow usa esclusivamente `RELEASE_REPO_TOKEN`, un fine-grained token con accesso in scrittura alle release del solo repository pubblico. Non riutilizzare token amministrativi o la chiave Supabase. Ogni modifica funzionale viene collaudata prima su Android: versione e build devono quindi crescere a ogni push pubblicabile. La modalità manuale con conferma `PUBBLICA` resta un fallback di recupero.
 
-Per contenere i minuti GitHub Actions, `Verify`, `Build Android APK` e `Build macOS` non reagiscono ai push o alla PR: sono strumenti manuali. La pubblicazione Android comprende già analisi, test e build, quindi resta l'unica pipeline automatica. La concurrency annulla una build superata da un push più recente. macOS va compilato solo ai checkpoint che richiedono davvero un collaudo desktop.
+Per contenere lavoro duplicato, `Verify` e `Build Android APK` restano manuali. La pubblicazione Android comprende già analisi, test e build. In parallelo `Publish Web App` verifica, compila e distribuisce il client browser; non esiste più una build nativa macOS. Le concurrency annullano build superate da push più recenti.
 
 ## Ottimizzazioni future ammesse
 
@@ -127,6 +127,6 @@ Per contenere i minuti GitHub Actions, `Verify`, `Build Android APK` e `Build ma
 - Spostare la ricerca a query SQL/FTS5 se dataset reali dimostrano latenza misurabile.
 - Valutare `--split-debug-info` e offuscamento conservando privatamente le symbol map.
 - ~~Valutare `--split-debug-info`~~ attivo dalla 2.1.2: i simboli Dart vengono separati dall’APK e conservati per 30 giorni come artefatto privato della build. L’offuscamento resta escluso finché non è necessario.
-- Rimuovere una dipendenza solo dopo aver verificato che la funzione non sia richiesta su macOS, Windows o Android.
+- Rimuovere una dipendenza solo dopo aver verificato Android e la build web release.
 
 Non sacrificare firma, hash, persistenza, funzioni corrette o determinismo per guadagni teorici non misurati.

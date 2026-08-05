@@ -1,25 +1,37 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
+import 'diagnostic_store.dart';
+import 'diagnostic_store_native.dart'
+    if (dart.library.js_interop) 'diagnostic_store_web.dart';
+import 'platform_runtime_native.dart'
+    if (dart.library.js_interop) 'platform_runtime_web.dart';
 
-/// Log diagnostico locale privo di contenuto utente. Conserva al massimo due
-/// file da 512 KiB e non registra mai titoli, note, email, token o URL.
+class DiagnosticExport {
+  const DiagnosticExport(this.bytes, this.name);
+
+  final Uint8List bytes;
+  final String name;
+}
+
+/// Log diagnostico privo di contenuto utente. Conserva al massimo 512 KiB e
+/// non registra mai titoli, note, email, token o URL.
 class DiagnosticLogService {
   DiagnosticLogService._();
 
   static final instance = DiagnosticLogService._();
   static const _maxBytes = 512 * 1024;
-  File? _file;
+  late final DiagnosticStore _store;
   Future<void> _pending = Future.value();
+  bool _initialized = false;
 
-  bool get isInitialized => _file != null;
+  bool get isInitialized => _initialized;
 
   Future<void> initialize() async {
-    final directory = await getApplicationSupportDirectory();
-    _file = File('${directory.path}/diagnostics.jsonl');
-    await event('app_started', fields: {'platform': Platform.operatingSystem});
+    _store = await createDiagnosticStore(maxBytes: _maxBytes);
+    _initialized = true;
+    await event('app_started', fields: {'platform': operatingSystemName});
   }
 
   Future<void> event(
@@ -32,34 +44,24 @@ class DiagnosticLogService {
         if (_allowedKeys.contains(entry.key)) entry.key: entry.value,
     };
     _pending = _pending.catchError((Object _) {}).then((_) async {
-      final file = _file;
-      if (file == null) return;
+      if (!_initialized) return;
       try {
-        await _rotateIfNeeded(file);
-        await file.writeAsString(
+        await _store.append(
           '${jsonEncode({'timestamp': DateTime.now().toUtc().toIso8601String(), 'level': level, 'event': name, ...allowed})}\n',
-          mode: FileMode.append,
-          flush: true,
         );
       } on Object {
-        // Un errore diagnostico non deve interrompere l'app né i log futuri.
+        // La diagnostica non deve mai impedire l'uso dell'app.
       }
     });
     return _pending;
   }
 
-  Future<File?> exportFile() async {
+  Future<DiagnosticExport?> exportData() async {
     await _pending;
-    final file = _file;
-    if (file == null || !await file.exists()) return null;
-    return file;
-  }
-
-  Future<void> _rotateIfNeeded(File file) async {
-    if (!await file.exists() || await file.length() < _maxBytes) return;
-    final previous = File('${file.path}.1');
-    if (await previous.exists()) await previous.delete();
-    await file.rename(previous.path);
+    if (!_initialized) return null;
+    final bytes = await _store.read();
+    if (bytes.isEmpty) return null;
+    return DiagnosticExport(bytes, 'diagnostics.jsonl');
   }
 
   static const _allowedKeys = {
