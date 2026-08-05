@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.2
+
+- L'icona Android usa ora il formato adattivo nativo: il launcher applica
+  direttamente la propria forma senza creare un doppio bordo bianco.
+- Anche il fallback per dispositivi Android meno recenti riempie tutto lo
+  sfondo, evitando angoli bianchi attorno all'icona.
+
 ## 2.16.1
 
 - Nuova icona originale rossa con segno di spunta, coerente su Android, web,

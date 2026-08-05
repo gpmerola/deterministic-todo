@@ -6,7 +6,9 @@ Le sorgenti canoniche dell'icona sono `assets/branding/app_icon.svg` e
 `app_icon_maskable.svg`. I PNG in `android/app/src/main/res/mipmap-*` e
 `web/icons/` sono derivati: non vanno ridisegnati separatamente, così Android,
 favicon e PWA restano coerenti. Il rosso di marca è `#DB4035`; priorità e stati
-di errore mantengono i propri colori semantici.
+di errore mantengono i propri colori semantici. Da Android 8 il launcher usa
+`mipmap-anydpi-v26/ic_launcher.xml`: sfondo e primo piano separati evitano il
+doppio bordo prodotto dalle maschere Samsung e dagli altri launcher adattivi.
 
 ## Obiettivi e budget
 
