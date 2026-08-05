@@ -8,8 +8,8 @@ Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata precedente verificata: 2.13.2 build 40.
-- Versione in preparazione: 2.15.0 build 43, con release Android/web unica,
+- Release coordinata precedente verificata: 2.15.0 build 43.
+- Versione in preparazione: 2.16.0 build 44, con release Android/web unica,
   identità pubblica verificabile e logging browser persistente.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
@@ -20,12 +20,12 @@ Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
    riapertura completa; lo startup deve fallire esplicitamente se Drift offre
    soltanto storage in memoria;
 2. verificare import ed export JSON dal browser con una fixture sintetica;
-3. dopo la 2.15.0 esportare la diagnostica, ricaricare la pagina ed esportarla
+3. dopo la 2.16.0 esportare la diagnostica, ricaricare la pagina ed esportarla
    di nuovo per confermare la persistenza IndexedDB sul profilo reale.
 
 Sito HTTPS, layout desktop, pagina di avvio Chrome e sincronizzazione
 Android↔browser sono già configurati. La pipeline coordinata ne verifica da
-2.15.0 versione, build, commit, APK e URL pubblici.
+2.16.0 versione, build, commit, APK e URL pubblici.
 
 La web app non deve dipendere dalla rete per mostrare o modificare task già
 locali. Non usare navigazione in incognito come ambiente supportato.

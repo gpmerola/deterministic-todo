@@ -43,6 +43,9 @@ Una nuova riga nell'outbox avvia il sync dopo 120 ms, così più tocchi ravvicin
 restano accorpati. Realtime sostituisce il polling frequente sul dispositivo
 ricevente; il controllo completo ogni 15 minuti rimane come recovery. Quando
 l'app è in background gli eventi non avviano lavoro e il rientro forza un sync.
+Il ricevente raccoglie gli ID per tabella e interroga esclusivamente quei
+record; anche import e raffiche di modifiche producono una query per tabella,
+non un pull completo per evento.
 
 ## RAM e query SQLite
 

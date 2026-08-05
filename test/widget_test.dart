@@ -654,4 +654,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
   });
+
+  testWidgets('Impostazioni espone Salute dati senza clutter nella home', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    expect(find.text('Salute dati'), findsNothing);
+
+    await tester.tap(find.byTooltip('Impostazioni'));
+    await tester.pump();
+    expect(find.text('Salute dati'), findsOneWidget);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: DataHealthView(repository: repository)),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Modifiche in attesa'), findsOneWidget);
+    expect(find.text('Dati locali'), findsOneWidget);
+    expect(find.text('Ultimo backup'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await db.close();
+  });
 }

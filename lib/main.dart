@@ -20,6 +20,7 @@ import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
 import 'domain/link_syntax.dart';
+import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'services/calendar_service.dart';
@@ -37,6 +38,7 @@ import 'ui/smart_date_text_controller.dart';
 import 'ui/todoist_link_text.dart';
 
 part 'ui/settings_view.dart';
+part 'ui/data_health_view.dart';
 part 'ui/sync_account_card.dart';
 part 'ui/trash_view.dart';
 part 'ui/task_widgets.dart';
@@ -265,6 +267,13 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   DateTime? lastUpdateCheck;
   bool checkingForUpdates = false;
   bool appIsForeground = true;
+  final Set<String> recentlySyncedTaskIds = {};
+  StreamSubscription<Set<String>>? remoteTaskSubscription;
+  StreamSubscription<SyncSnapshot>? syncSnapshotSubscription;
+  Timer? remoteHighlightTimer;
+  Timer? slowSyncTimer;
+  SyncSnapshot? currentSyncSnapshot;
+  bool showSlowSync = false;
 
   @override
   void initState() {
@@ -273,6 +282,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     _loadInboxProjectIds();
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted(limit: 200);
+    remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
+      ids,
+    ) {
+      if (!mounted) return;
+      setState(() {
+        recentlySyncedTaskIds
+          ..clear()
+          ..addAll(ids);
+      });
+      remoteHighlightTimer?.cancel();
+      remoteHighlightTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) setState(recentlySyncedTaskIds.clear);
+      });
+    });
+    currentSyncSnapshot = widget.syncService?.latest;
+    syncSnapshotSubscription = widget.syncService?.snapshots.listen((snapshot) {
+      slowSyncTimer?.cancel();
+      if (snapshot.phase == SyncPhase.syncing) {
+        slowSyncTimer = Timer(const Duration(seconds: 2), () {
+          if (mounted && currentSyncSnapshot?.phase == SyncPhase.syncing) {
+            setState(() => showSlowSync = true);
+          }
+        });
+      } else {
+        showSlowSync = false;
+      }
+      if (mounted) setState(() => currentSyncSnapshot = snapshot);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkForUpdates();
       await widget.repository.archiveCompletedOlderThan(
@@ -522,6 +559,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     updateTimer?.cancel();
+    remoteHighlightTimer?.cancel();
+    slowSyncTimer?.cancel();
+    remoteTaskSubscription?.cancel();
+    syncSnapshotSubscription?.cancel();
     search.dispose();
     super.dispose();
   }
@@ -535,7 +576,19 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }) async {
     if (controller.text.trim().isEmpty) return false;
     try {
-      final parsed = const QuickAddParser().parse(controller.text);
+      final projects = await widget.repository.db
+          .select(widget.repository.db.projects)
+          .get();
+      final metadata = parseQuickAddMetadata(
+        controller.text,
+        defaultPriority: priority,
+        defaultProjectId: projectId,
+        projectsByName: {
+          for (final project in projects.where((item) => !item.isArchived))
+            project.name: project.id,
+        },
+      );
+      final parsed = const QuickAddParser().parse(metadata.text);
       final today = CivilDate.fromDateTime(DateTime.now());
       final notesText = notesController?.text.trim();
       await widget.repository.create(
@@ -550,10 +603,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             ? null
             : linkifyPlainUrls(notesText),
         recurrence: parsed.recurrence,
-        priority: priority,
-        projectId: projectId,
-        sectionId: sectionId,
+        priority: metadata.priority,
+        projectId: metadata.projectId,
+        sectionId: metadata.projectId == projectId ? sectionId : null,
       );
+      await _savePreference('last_quick_priority', '${metadata.priority}');
+      await _savePreference('last_quick_project', metadata.projectId ?? '');
       controller.clear();
       return true;
     } on FormatException catch (error) {
@@ -564,6 +619,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       return false;
     }
   }
+
+  Future<String?> _preference(String key) async =>
+      (await (widget.repository.db.select(
+        widget.repository.db.appSettings,
+      )..where((row) => row.key.equals(key))).getSingleOrNull())?.value;
+
+  Future<void> _savePreference(String key, String value) => widget.repository.db
+      .into(widget.repository.db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(key: key, value: value),
+      );
 
   String? _quickAddHelper(String value) {
     if (value.trim().isEmpty) return null;
@@ -590,12 +656,32 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     String? projectId,
     String? sectionId,
   }) async {
+    final projects = await widget.repository.db
+        .select(widget.repository.db.projects)
+        .get();
+    final availableProjects = projects
+        .where(
+          (item) =>
+              !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
+        )
+        .toList();
+    final savedPriority = int.tryParse(
+      await _preference('last_quick_priority') ?? '',
+    );
+    final savedProject = await _preference('last_quick_project');
+    projectId ??= availableProjects.any((item) => item.id == savedProject)
+        ? savedProject
+        : null;
     final controller = SmartDateTextController();
     final notesController = TextEditingController();
     var keyboardWasVisible = false;
     var closing = false;
     var showNotes = false;
-    var priority = 1;
+    var priority =
+        savedPriority != null && savedPriority >= 1 && savedPriority <= 4
+        ? savedPriority
+        : 1;
+    if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -695,6 +781,32 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             ),
                         ],
                       ),
+                      if (availableProjects.isNotEmpty)
+                        PopupMenuButton<String>(
+                          tooltip: 'Progetto',
+                          icon: Icon(
+                            projectId == null
+                                ? Icons.folder_outlined
+                                : Icons.folder,
+                            color: projectId == null
+                                ? null
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          onSelected: (value) => setSheetState(
+                            () => projectId = value.isEmpty ? null : value,
+                          ),
+                          itemBuilder: (_) => [
+                            const PopupMenuItem<String>(
+                              value: '',
+                              child: Text('Nessun progetto'),
+                            ),
+                            for (final project in availableProjects)
+                              PopupMenuItem<String>(
+                                value: project.id,
+                                child: Text(project.name),
+                              ),
+                          ],
+                        ),
                       IconButton.filled(
                         key: const ValueKey('mobile-quick-add-submit'),
                         tooltip: 'Aggiungi attività',
@@ -770,6 +882,41 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     });
   }
 
+  List<Widget> _syncStatusActions() {
+    final snapshot = currentSyncSnapshot;
+    if (snapshot?.phase == SyncPhase.error ||
+        snapshot?.phase == SyncPhase.offline) {
+      return [
+        IconButton(
+          tooltip: snapshot?.phase == SyncPhase.offline
+              ? 'Offline'
+              : 'Sincronizzazione non riuscita',
+          onPressed: widget.syncService?.sync,
+          icon: Icon(
+            snapshot?.phase == SyncPhase.offline
+                ? Icons.cloud_off_outlined
+                : Icons.sync_problem_outlined,
+            color: Theme.of(context).colorScheme.error,
+          ),
+        ),
+      ];
+    }
+    if (showSlowSync && snapshot?.phase == SyncPhase.syncing) {
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14),
+          child: Center(
+            child: SizedBox.square(
+              dimension: 17,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ];
+    }
+    return const [];
+  }
+
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: _canExitFromBack,
@@ -780,9 +927,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.keyN, meta: true): _NewIntent(),
         SingleActivator(LogicalKeyboardKey.keyN, control: true): _NewIntent(),
+        SingleActivator(LogicalKeyboardKey.keyN): _NewIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, control: true):
             _SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.slash): _SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
       },
       child: Actions(
         actions: {
@@ -794,6 +944,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               context: context,
               delegate: TaskSearchDelegate(widget.repository),
             ),
+          ),
+          _BackIntent: CallbackAction<_BackIntent>(
+            onInvoke: (_) {
+              _handleBack();
+              return null;
+            },
           ),
         },
         child: StreamBuilder<List<Task>>(
@@ -835,6 +991,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         : null,
                     title: Text(section.label),
                     actions: [
+                      ..._syncStatusActions(),
                       if (section != AppSection.settings) ...[
                         IconButton(
                           tooltip: 'Cerca (Ctrl/⌘ F)',
@@ -977,12 +1134,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               : visible.isEmpty
               ? const Center(child: Text('Nessuna attività'))
               : ListView.builder(
+                  key: PageStorageKey('task-list-${section.name}'),
                   padding: const EdgeInsets.only(bottom: 24),
                   itemCount: visible.length,
                   itemBuilder: (context, index) => TaskTile(
                     key: ValueKey(visible[index].id),
                     task: visible[index],
                     repository: widget.repository,
+                    highlightRemote: recentlySyncedTaskIds.contains(
+                      visible[index].id,
+                    ),
                     dense: section == AppSection.completed,
                     showDateMetadata:
                         section != AppSection.today &&
@@ -1137,6 +1298,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     List<ProjectSection> sections,
     List<Task> tasks,
   ) => ListView(
+    key: PageStorageKey('project-list-$projectId'),
     padding: const EdgeInsets.only(bottom: 24),
     children: [
       for (final section in sections)
@@ -1152,6 +1314,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                 key: ValueKey('project-${task.id}'),
                 task: task,
                 repository: widget.repository,
+                highlightRemote: recentlySyncedTaskIds.contains(task.id),
               ),
             ListTile(
               dense: true,
@@ -1171,6 +1334,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                 key: ValueKey('project-${task.id}'),
                 task: task,
                 repository: widget.repository,
+                highlightRemote: recentlySyncedTaskIds.contains(task.id),
               ),
           ],
         ),
@@ -1496,6 +1660,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     final lastDate = CivilDate(today.year + 10, 12, 31);
     final dayCount = lastDate.asLocalDate.difference(start.asLocalDate).inDays;
     return ListView.builder(
+      key: PageStorageKey('upcoming-$selectedUpcomingDate'),
       padding: const EdgeInsets.only(bottom: 24),
       itemCount: dayCount + 1,
       itemBuilder: (context, index) {
@@ -1528,6 +1693,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   task: task,
                   repository: widget.repository,
                   showDateMetadata: false,
+                  highlightRemote: recentlySyncedTaskIds.contains(task.id),
                 ),
             const Divider(height: 1),
           ],
@@ -1558,8 +1724,11 @@ int _stableCompare(Task a, Task b, String today) {
 }
 
 class TaskSearchDelegate extends SearchDelegate<void> {
-  TaskSearchDelegate(this.repository);
+  TaskSearchDelegate(this.repository)
+    : _projects = repository.db.select(repository.db.projects).get();
   final TaskRepository repository;
+  final Future<List<Project>> _projects;
+  final Set<_TaskSearchFilter> _filters = {};
 
   @override
   String get searchFieldLabel => 'Cerca titolo e note';
@@ -1576,30 +1745,94 @@ class TaskSearchDelegate extends SearchDelegate<void> {
   );
 
   @override
-  Widget buildResults(BuildContext context) => _results();
+  Widget buildResults(BuildContext context) => _results(context);
 
   @override
-  Widget buildSuggestions(BuildContext context) => _results();
+  Widget buildSuggestions(BuildContext context) => _results(context);
 
-  Widget _results() => StreamBuilder<List<Task>>(
-    stream: repository.watchAll(),
-    builder: (context, snapshot) {
-      final needle = query.trim().toLowerCase();
-      final results = (snapshot.data ?? const <Task>[])
-          .where(
-            (task) =>
-                task.title.toLowerCase().contains(needle) ||
-                (task.notes?.toLowerCase().contains(needle) ?? false),
-          )
-          .toList();
-      return ListView(
-        children: [
-          for (final task in results)
-            TaskTile(task: task, repository: repository),
-        ],
-      );
-    },
+  Widget _results(BuildContext context) => FutureBuilder<List<Project>>(
+    future: _projects,
+    builder: (context, projectSnapshot) => StreamBuilder<List<Task>>(
+      stream: repository.watchAll(),
+      builder: (context, snapshot) {
+        final needle = query.trim().toLowerCase();
+        final projectNames = {
+          for (final project in projectSnapshot.data ?? const <Project>[])
+            project.id: project.name.toLowerCase(),
+        };
+        final today = CivilDate.fromDateTime(DateTime.now()).toString();
+        final results = (snapshot.data ?? const <Task>[]).where((task) {
+          final matchesText =
+              needle.isEmpty ||
+              task.title.toLowerCase().contains(needle) ||
+              (task.notes?.toLowerCase().contains(needle) ?? false) ||
+              (projectNames[task.projectId]?.contains(needle) ?? false);
+          if (!matchesText) return false;
+          if (_filters.contains(_TaskSearchFilter.today) &&
+              task.showDate != today) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.undated) &&
+              task.showDate != null) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.recurring) &&
+              task.recurrence == null) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.highPriority) &&
+              task.priority < 3) {
+            return false;
+          }
+          return true;
+        }).toList();
+        return Column(
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              child: Row(
+                children: [
+                  for (final filter in _TaskSearchFilter.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(filter.label),
+                        selected: _filters.contains(filter),
+                        onSelected: (selected) {
+                          selected
+                              ? _filters.add(filter)
+                              : _filters.remove(filter);
+                          showSuggestions(context);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final task in results)
+                    TaskTile(task: task, repository: repository),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    ),
   );
+}
+
+enum _TaskSearchFilter {
+  today('Oggi'),
+  undated('Senza data'),
+  recurring('Ricorrenti'),
+  highPriority('Priorità alta');
+
+  const _TaskSearchFilter(this.label);
+  final String label;
 }
 
 class _NewIntent extends Intent {
@@ -1608,4 +1841,8 @@ class _NewIntent extends Intent {
 
 class _SearchIntent extends Intent {
   const _SearchIntent();
+}
+
+class _BackIntent extends Intent {
+  const _BackIntent();
 }

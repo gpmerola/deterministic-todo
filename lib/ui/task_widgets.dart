@@ -13,6 +13,7 @@ class TaskTile extends StatefulWidget {
     required this.repository,
     this.showDateMetadata = true,
     this.dense = false,
+    this.highlightRemote = false,
     super.key,
   });
 
@@ -20,6 +21,7 @@ class TaskTile extends StatefulWidget {
   final TaskRepository repository;
   final bool showDateMetadata;
   final bool dense;
+  final bool highlightRemote;
 
   @override
   State<TaskTile> createState() => _TaskTileState();
@@ -90,6 +92,10 @@ class _TaskTileState extends State<TaskTile> {
           decoration: BoxDecoration(
             color: confirmingCompletion
                 ? Colors.green.withValues(alpha: 0.10)
+                : widget.highlightRemote
+                ? Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: 0.55)
                 : widget.task.priority == 1
                 ? Colors.transparent
                 : _priorityColor(widget.task.priority).withValues(alpha: 0.035),
@@ -106,53 +112,61 @@ class _TaskTileState extends State<TaskTile> {
           child: Material(
             type: MaterialType.transparency,
             borderRadius: BorderRadius.circular(14),
-            child: ListTile(
-              dense: widget.dense,
-              visualDensity: widget.dense
-                  ? const VisualDensity(vertical: -2)
-                  : null,
-              leading: AnimatedScale(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutBack,
-                scale: confirmingCompletion ? 1.22 : 1,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  transitionBuilder: (child, animation) => ScaleTransition(
-                    scale: animation,
-                    child: FadeTransition(opacity: animation, child: child),
-                  ),
-                  child: confirmingCompletion
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          key: ValueKey('completed-check'),
-                          color: Colors.green,
-                          size: 30,
-                        )
-                      : Checkbox(
-                          key: const ValueKey('task-checkbox'),
-                          value:
-                              widget.task.status == TaskStatus.completed.name,
-                          onChanged: (value) => _setCompleted(value ?? false),
-                          activeColor: Colors.green,
-                          side: BorderSide(
-                            color: _priorityColor(widget.task.priority),
-                            width: widget.task.priority == 1 ? 1.5 : 2.5,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: (details) =>
+                  _showDesktopMenu(details.globalPosition),
+              child: ListTile(
+                dense: widget.dense,
+                visualDensity: widget.dense
+                    ? const VisualDensity(vertical: -2)
+                    : null,
+                leading: AnimatedScale(
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeOutBack,
+                  scale: confirmingCompletion ? 1.22 : 1,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) => ScaleTransition(
+                      scale: animation,
+                      child: FadeTransition(opacity: animation, child: child),
+                    ),
+                    child: confirmingCompletion
+                        ? const Icon(
+                            Icons.check_circle_rounded,
+                            key: ValueKey('completed-check'),
+                            color: Colors.green,
+                            size: 30,
+                          )
+                        : Checkbox(
+                            key: const ValueKey('task-checkbox'),
+                            value:
+                                widget.task.status == TaskStatus.completed.name,
+                            onChanged: (value) => _setCompleted(value ?? false),
+                            activeColor: Colors.green,
+                            side: BorderSide(
+                              color: _priorityColor(widget.task.priority),
+                              width: widget.task.priority == 1 ? 1.5 : 2.5,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
-              ),
-              title: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 180),
-                style: DefaultTextStyle.of(context).style.copyWith(
-                  color: confirmingCompletion ? Colors.green.shade700 : null,
-                  decoration: confirmingCompletion
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
+                title: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 180),
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                    color: confirmingCompletion ? Colors.green.shade700 : null,
+                    decoration: confirmingCompletion
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
+                  ),
+                  child: TodoistLinkText(widget.task.title),
                 ),
-                child: TodoistLinkText(widget.task.title),
+                subtitle: _subtitle(widget.task),
+                onTap: confirmingCompletion ? null : _showEditor,
+                onLongPress: confirmingCompletion
+                    ? null
+                    : () => unawaited(_showMobileMenu()),
               ),
-              subtitle: _subtitle(widget.task),
-              onTap: confirmingCompletion ? null : _showEditor,
             ),
           ),
         ),
@@ -204,4 +218,76 @@ class _TaskTileState extends State<TaskTile> {
     builder: (_) =>
         TaskEditor(task: widget.task, repository: widget.repository),
   );
+
+  Future<void> _runAction(String action) async {
+    if (action == 'edit') return _showEditor();
+    if (action == 'complete') {
+      await _setCompleted(true);
+    } else if (action == 'delete') {
+      await widget.repository.softDelete(widget.task);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Spostata nel cestino'),
+          action: SnackBarAction(
+            label: 'Annulla',
+            onPressed: () => widget.repository.restore(widget.task),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showDesktopMenu(Offset position) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(position.dx, position.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: const [
+        PopupMenuItem(value: 'edit', child: Text('Modifica')),
+        PopupMenuItem(value: 'complete', child: Text('Completa')),
+        PopupMenuDivider(),
+        PopupMenuItem(value: 'delete', child: Text('Cestino')),
+      ],
+    );
+    if (action != null) await _runAction(action);
+  }
+
+  Future<void> _showMobileMenu() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      sheetAnimationStyle: const AnimationStyle(
+        duration: Duration(milliseconds: 45),
+        reverseDuration: Duration(milliseconds: 25),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Modifica'),
+              onTap: () => Navigator.pop(context, 'edit'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline),
+              title: const Text('Completa'),
+              onTap: () => Navigator.pop(context, 'complete'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Cestino'),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action != null) await _runAction(action);
+  }
 }

@@ -1,6 +1,21 @@
 # Changelog
 
-Cronologia delle modifiche distribuite. Le versioni più recenti sono in fondo.
+Cronologia delle modifiche distribuite, dalla più recente.
+
+## 2.16.0
+
+- Sync invisibile quando sano, indicatore soltanto dopo due secondi o in caso
+  di errore/offline ed evidenziazione breve delle attività ricevute.
+- Realtime incrementale: gli eventi vengono raggruppati per 120 ms e scaricano
+  soltanto task, progetti e sezioni effettivamente modificati.
+- Composer con ultimo progetto/priorità ricordati, selettore progetto e sintassi
+  `#Progetto`/`p1`; URL grezzi trasformati in etichette leggibili.
+- Ricerca unica per testo, descrizione, progetto e link, con filtri Oggi, senza
+  data, ricorrenti e priorità alta.
+- Menu attività con pressione lunga/clic destro, scorciatoie `N`, `/`, `Esc` e
+  conservazione della posizione nelle liste.
+- Import Todoist con rapporto finale esplicito e backup JSON immediatamente
+  disponibile; nuova schermata minimale Salute dati nelle Impostazioni.
 
 ## 2.15.0
 

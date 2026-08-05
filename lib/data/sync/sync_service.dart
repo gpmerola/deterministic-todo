@@ -31,18 +31,27 @@ class SyncService {
   final AppDatabase db;
   final SupabaseClient client;
   final _state = StreamController<SyncSnapshot>.broadcast();
+  final _remoteTaskChanges = StreamController<Set<String>>.broadcast();
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
   StreamSubscription<AuthState>? _auth;
   StreamSubscription<List<OutboxEntry>>? _outbox;
   RealtimeChannel? _realtime;
   Timer? _timer;
-  Timer? _eventTimer;
+  Timer? _outboxTimer;
+  Timer? _realtimeTimer;
   Future<void>? _inFlight;
   bool _syncAgain = false;
+  bool _pullAllRequested = false;
   bool _paused = false;
+  final Map<String, Set<String>> _pendingRealtimeIds = {
+    'tasks': <String>{},
+    'projects': <String>{},
+    'project_sections': <String>{},
+  };
   SyncSnapshot _latest = const SyncSnapshot(SyncPhase.disabled);
 
   Stream<SyncSnapshot> get snapshots => _state.stream;
+  Stream<Set<String>> get remoteTaskChanges => _remoteTaskChanges.stream;
   SyncSnapshot get latest => _latest;
 
   void _emit(SyncSnapshot snapshot) {
@@ -61,7 +70,7 @@ class SyncService {
       }
     });
     _outbox = db.select(db.outboxEntries).watch().listen((entries) {
-      if (entries.isNotEmpty) _scheduleEventSync();
+      if (entries.isNotEmpty) _scheduleOutboxSync();
     });
     _connectivity = Connectivity().onConnectivityChanged.listen((result) {
       if (!result.contains(ConnectivityResult.none)) unawaited(sync());
@@ -75,8 +84,10 @@ class SyncService {
     _paused = true;
     _timer?.cancel();
     _timer = null;
-    _eventTimer?.cancel();
-    _eventTimer = null;
+    _outboxTimer?.cancel();
+    _outboxTimer = null;
+    _realtimeTimer?.cancel();
+    _realtimeTimer = null;
   }
 
   void resume() {
@@ -90,10 +101,10 @@ class SyncService {
     _timer = Timer.periodic(periodicInterval, (_) => unawaited(sync()));
   }
 
-  void _scheduleEventSync() {
+  void _scheduleOutboxSync() {
     if (_paused || client.auth.currentUser == null) return;
-    _eventTimer?.cancel();
-    _eventTimer = Timer(eventDebounce, () => unawaited(sync()));
+    _outboxTimer?.cancel();
+    _outboxTimer = Timer(eventDebounce, () => unawaited(sync(pullAll: false)));
   }
 
   Future<void> _subscribeRealtime() async {
@@ -111,10 +122,62 @@ class SyncService {
         schema: 'public',
         table: table,
         filter: filter,
-        callback: (_) => _scheduleEventSync(),
+        callback: (payload) => _queueRealtimeChange(table, payload),
       );
     }
     _realtime = channel..subscribe();
+  }
+
+  void _queueRealtimeChange(String table, PostgresChangePayload payload) {
+    if (_paused) return;
+    final id = (payload.newRecord['id'] ?? payload.oldRecord['id']) as String?;
+    if (id == null) return;
+    _pendingRealtimeIds[table]!.add(id);
+    _realtimeTimer?.cancel();
+    _realtimeTimer = Timer(
+      eventDebounce,
+      () => unawaited(_pullQueuedRealtimeChanges()),
+    );
+  }
+
+  Future<void> _pullQueuedRealtimeChanges() async {
+    if (_paused || client.auth.currentUser == null) return;
+    final queued = {
+      for (final entry in _pendingRealtimeIds.entries)
+        entry.key: entry.value.toSet(),
+    };
+    for (final ids in _pendingRealtimeIds.values) {
+      ids.clear();
+    }
+    try {
+      final taskIds = queued['tasks']!;
+      final changedTasks = <String>{};
+      if (taskIds.isNotEmpty) {
+        final remoteRows = await client
+            .from('tasks')
+            .select()
+            .inFilter('id', taskIds.toList());
+        final localTasks = await (db.select(
+          db.tasks,
+        )..where((row) => row.id.isIn(taskIds))).get();
+        final localById = {for (final task in localTasks) task.id: task};
+        for (final raw in remoteRows) {
+          if (await _mergeRemote(raw, localById[raw['id'] as String])) {
+            changedTasks.add(raw['id'] as String);
+          }
+        }
+      }
+      if (changedTasks.isNotEmpty) _remoteTaskChanges.add(changedTasks);
+      if (queued['projects']!.isNotEmpty ||
+          queued['project_sections']!.isNotEmpty) {
+        await _pullRemoteProjects(
+          projectIds: queued['projects']!,
+          sectionIds: queued['project_sections']!,
+        );
+      }
+    } on Object {
+      // Il controllo completo periodico recupera qualunque evento perso.
+    }
   }
 
   Future<void> _removeRealtime() async {
@@ -123,7 +186,8 @@ class SyncService {
     if (channel != null) await client.removeChannel(channel);
   }
 
-  Future<void> sync() {
+  Future<void> sync({bool pullAll = true}) {
+    if (pullAll) _pullAllRequested = true;
     final active = _inFlight;
     if (active != null) {
       _syncAgain = true;
@@ -139,11 +203,13 @@ class SyncService {
   Future<void> _syncUntilQuiet() async {
     do {
       _syncAgain = false;
-      await _syncOnce();
+      final pullAll = _pullAllRequested;
+      _pullAllRequested = false;
+      await _syncOnce(pullAll: pullAll);
     } while (_syncAgain && !_paused);
   }
 
-  Future<void> _syncOnce() async {
+  Future<void> _syncOnce({required bool pullAll}) async {
     if (client.auth.currentUser == null) {
       _emit(const SyncSnapshot(SyncPhase.disabled));
       return;
@@ -160,7 +226,9 @@ class SyncService {
     );
     final timer = Stopwatch()..start();
     try {
-      final projectMetrics = await _syncProjects();
+      final projectMetrics = pullAll
+          ? await _syncProjects()
+          : (skippedProjects: 0, skippedSections: 0);
       final acknowledged = <OutboxEntry>[...entries];
       final pendingIds = distinctEntityIds(
         entries.map((entry) => entry.entityId),
@@ -193,7 +261,9 @@ class SyncService {
           }
         });
       }
-      final remoteRows = await client.from('tasks').select();
+      final remoteRows = pullAll
+          ? await client.from('tasks').select()
+          : const <Map<String, dynamic>>[];
       final remoteIds = remoteRows
           .map((raw) => raw['id'] as String)
           .toList(growable: false);
@@ -360,6 +430,92 @@ class SyncService {
     return (skippedProjects: skippedProjects, skippedSections: skippedSections);
   }
 
+  Future<void> _pullRemoteProjects({
+    required Set<String> projectIds,
+    required Set<String> sectionIds,
+  }) async {
+    if (projectIds.isNotEmpty) {
+      for (final raw
+          in await client
+              .from('projects')
+              .select()
+              .inFilter('id', projectIds.toList())) {
+        final local =
+            await (db.select(db.projects)
+                  ..where((row) => row.id.equals(raw['id'] as String)))
+                .getSingleOrNull();
+        final remoteVersion = domain.LogicalVersion(
+          raw['logical_version'] as int,
+          raw['device_id'] as String,
+        );
+        if (local != null &&
+            remoteVersion.compareTo(
+                  domain.LogicalVersion(local.logicalVersion, local.deviceId),
+                ) <=
+                0) {
+          continue;
+        }
+        await db
+            .into(db.projects)
+            .insertOnConflictUpdate(
+              ProjectsCompanion(
+                id: Value(raw['id'] as String),
+                userId: Value(raw['user_id'] as String?),
+                name: Value(raw['name'] as String),
+                color: Value(raw['color'] as String?),
+                parentId: Value(raw['parent_id'] as String?),
+                position: Value(raw['position'] as int),
+                isFavorite: Value(raw['is_favorite'] as bool),
+                isArchived: Value(raw['is_archived'] as bool),
+                externalSource: Value(raw['external_source'] as String?),
+                externalId: Value(raw['external_id'] as String?),
+                logicalVersion: Value(raw['logical_version'] as int),
+                deviceId: Value(raw['device_id'] as String),
+              ),
+            );
+      }
+    }
+    if (sectionIds.isNotEmpty) {
+      for (final raw
+          in await client
+              .from('project_sections')
+              .select()
+              .inFilter('id', sectionIds.toList())) {
+        final local =
+            await (db.select(db.projectSections)
+                  ..where((row) => row.id.equals(raw['id'] as String)))
+                .getSingleOrNull();
+        final remoteVersion = domain.LogicalVersion(
+          raw['logical_version'] as int,
+          raw['device_id'] as String,
+        );
+        if (local != null &&
+            remoteVersion.compareTo(
+                  domain.LogicalVersion(local.logicalVersion, local.deviceId),
+                ) <=
+                0) {
+          continue;
+        }
+        await db
+            .into(db.projectSections)
+            .insertOnConflictUpdate(
+              ProjectSectionsCompanion(
+                id: Value(raw['id'] as String),
+                userId: Value(raw['user_id'] as String?),
+                projectId: Value(raw['project_id'] as String),
+                name: Value(raw['name'] as String),
+                position: Value(raw['position'] as int),
+                isArchived: Value(raw['is_archived'] as bool),
+                externalSource: Value(raw['external_source'] as String?),
+                externalId: Value(raw['external_id'] as String?),
+                logicalVersion: Value(raw['logical_version'] as int),
+                deviceId: Value(raw['device_id'] as String),
+              ),
+            );
+      }
+    }
+  }
+
   String _fingerprint(int version, String deviceId) => '$version:$deviceId';
 
   Future<String?> _syncedFingerprint(String type, String id) async =>
@@ -375,7 +531,7 @@ class SyncService {
             AppSettingsCompanion.insert(key: 'sync_$type:$id', value: value),
           );
 
-  Future<void> _mergeRemote(Map<String, dynamic> raw, Task? local) async {
+  Future<bool> _mergeRemote(Map<String, dynamic> raw, Task? local) async {
     final id = raw['id'] as String;
     final remoteVersion = domain.LogicalVersion(
       raw['logical_version'] as int,
@@ -386,7 +542,7 @@ class SyncService {
         local.logicalVersion,
         local.deviceId,
       );
-      if (remoteVersion.compareTo(localVersion) <= 0) return;
+      if (remoteVersion.compareTo(localVersion) <= 0) return false;
     }
     await db
         .into(db.tasks)
@@ -420,6 +576,7 @@ class SyncService {
             deviceId: Value(raw['device_id'] as String),
           ),
         );
+    return true;
   }
 
   Map<String, Object?> _remoteTask(Task task) => {
@@ -479,12 +636,14 @@ class SyncService {
 
   Future<void> dispose() async {
     _timer?.cancel();
-    _eventTimer?.cancel();
+    _outboxTimer?.cancel();
+    _realtimeTimer?.cancel();
     await _connectivity?.cancel();
     await _auth?.cancel();
     await _outbox?.cancel();
     await _removeRealtime();
     await _state.close();
+    await _remoteTaskChanges.close();
   }
 }
 

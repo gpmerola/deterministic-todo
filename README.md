@@ -81,6 +81,14 @@ Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
 Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e
 quindi l’interfaccia senza ricaricare la pagina. Il controllo ogni 15 minuti
 rimane soltanto come recupero dopo assenza di rete o sospensione del processo.
+Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
+
+Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
+`p1`–`p4`, ricorda le ultime scelte e rende leggibili i link incollati. Su
+desktop `N` crea, `/` cerca ed `Esc` torna indietro; clic destro e pressione
+lunga aprono le sole azioni essenziali. La ricerca copre anche progetti e URL e
+offre filtri compatti. “Salute dati” nelle Impostazioni raccoglie sync, outbox,
+backup, quantità locali e versione senza aggiungere indicatori alla home.
 
 La creazione di nuovi account è disabilitata nel progetto Supabase. I dispositivi
 esistenti si collegano con l’account personale già creato.

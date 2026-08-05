@@ -36,6 +36,14 @@ class SettingsView extends StatelessWidget {
           title: 'Esporta attività',
         ),
       );
+      await repository.db
+          .into(repository.db.appSettings)
+          .insertOnConflictUpdate(
+            AppSettingsCompanion.insert(
+              key: 'last_backup_at',
+              value: DateTime.now().toUtc().toIso8601String(),
+            ),
+          );
     }
   }
 
@@ -190,15 +198,43 @@ class SettingsView extends StatelessWidget {
       );
       await syncService?.sync();
       if (context.mounted) {
-        messenger.showSnackBar(
-          SnackBar(
+        await repository.db
+            .into(repository.db.appSettings)
+            .insertOnConflictUpdate(
+              AppSettingsCompanion.insert(
+                key: 'last_todoist_import_at',
+                value: DateTime.now().toUtc().toIso8601String(),
+              ),
+            );
+        if (!context.mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Import Todoist completato'),
             content: Text(
-              'Import completato: ${result.addedTasks} nuove, '
-              '${result.updatedTasks} aggiornate, '
-              '${result.removedTasks} rimosse; '
-              '${result.addedProjects} progetti e '
-              '${result.addedSections} sezioni aggiunti.',
+              '${preview.activeTasks} attività attive lette\n'
+              '${result.addedTasks} aggiunte · ${result.updatedTasks} aggiornate\n'
+              '${result.removedTasks} rimosse perché assenti dal nuovo JSON\n'
+              '${preview.projects} progetti · ${preview.sections} sezioni\n'
+              '${preview.recurringTasks} ricorrenti · '
+              '${preview.scheduledTasks} pianificate\n\n'
+              'Elementi non importati: attività completate, commenti, '
+              'allegati, filtri e promemoria Todoist.',
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Chiudi'),
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  await _export(context, true);
+                },
+                icon: const Icon(Icons.backup_outlined),
+                label: const Text('Backup ora'),
+              ),
+            ],
           ),
         );
       }
@@ -315,6 +351,24 @@ class SettingsView extends StatelessWidget {
               );
             }
           },
+        ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.health_and_safety_outlined),
+        title: const Text('Salute dati'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          showDragHandle: true,
+          builder: (_) => SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.72,
+            child: DataHealthView(
+              repository: repository,
+              syncService: syncService,
+            ),
+          ),
         ),
       ),
       ListTile(

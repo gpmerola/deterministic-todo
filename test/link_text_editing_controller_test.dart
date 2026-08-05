@@ -47,8 +47,8 @@ void main() {
     expect(controller.links.last.url, 'https://www.example.com');
     expect(
       controller.toMarkdown(),
-      'Console [https://play.google.com/console](https://play.google.com/console) '
-      'e [www.example.com](https://www.example.com).',
+      'Console [play.google.com › console](https://play.google.com/console) '
+      'e [example.com](https://www.example.com).',
     );
   });
 }
