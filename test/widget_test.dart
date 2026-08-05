@@ -284,6 +284,13 @@ void main() {
       find.byKey(const ValueKey('mobile-quick-add-field')),
       findsOneWidget,
     );
+    expect(
+      tester
+          .widget<EditableText>(find.byType(EditableText).first)
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

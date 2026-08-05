@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.6
+
+- Il composer richiede il focus prima di montare il foglio, permettendo ad
+  Android di avviare la tastiera nello stesso frame dell'apertura.
+- L'identità rossa è ora dichiarata esplicitamente per scheda e bookmark
+  Chrome, favicon SVG/PNG, Apple touch icon, PWA e launcher Android.
+
 ## 2.16.5
 
 - Il composer `+` si apre ora al primo frame senza attendere query SQLite o il

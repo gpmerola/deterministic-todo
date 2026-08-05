@@ -10,6 +10,12 @@ di errore mantengono i propri colori semantici. Da Android 8 il launcher usa
 `mipmap-anydpi-v26/ic_launcher.xml`: sfondo e primo piano separati evitano il
 doppio bordo prodotto dalle maschere Samsung e dagli altri launcher adattivi.
 
+La superficie web espone la stessa icona come favicon SVG, fallback PNG 16/32,
+bookmark Chrome, Apple touch icon e icone PWA normali/maskable. Quando cambia
+la sorgente canonica, tutte le varianti vanno rigenerate nello stesso commit;
+la favicon primaria deve ricevere un nuovo nome per superare la cache dei
+bookmark già esistenti.
+
 ## Obiettivi e budget
 
 Android è ottimizzato prima per uso offline rapido e poi per dimensione. I budget attuali sono:

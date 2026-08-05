@@ -715,6 +715,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         : null;
     final controller = SmartDateTextController();
     final notesController = TextEditingController();
+    final titleFocusNode = FocusNode(debugLabel: 'quick-add-title');
     var keyboardWasVisible = false;
     var closing = false;
     var showNotes = false;
@@ -723,9 +724,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     // Refresh in background for the next opening. The current sheet must be
     // mounted immediately, without waiting for SQLite or preferences.
     unawaited(_refreshQuickAddCache());
+    // Let Android begin opening the IME in the same frame as the composer.
+    titleFocusNode.requestFocus();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      requestFocus: true,
       sheetAnimationStyle: const AnimationStyle(
         duration: Duration.zero,
         reverseDuration: Duration.zero,
@@ -756,7 +760,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         child: TextField(
                           key: const ValueKey('mobile-quick-add-field'),
                           controller: controller,
-                          autofocus: true,
+                          focusNode: titleFocusNode,
                           minLines: 1,
                           maxLines: 3,
                           textCapitalization: TextCapitalization.sentences,
@@ -896,6 +900,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.dispose();
       notesController.dispose();
+      titleFocusNode.dispose();
     });
   }
 
