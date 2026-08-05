@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite. Le versioni più recenti sono in fondo.
 
+## 2.14.1
+
+- Il fallback Android universale viene ora ricostruito a ogni release e pubblicato
+  insieme agli APK per architettura, senza collegamenti a versioni storiche.
+- La verifica finale rifiuta manifest con piattaforme mancanti, hash non validi o
+  URL che non appartengono alla versione appena pubblicata.
+
 # Funzioni completate e verificate
 
 Aggiornato il 5 agosto 2026.

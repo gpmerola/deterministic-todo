@@ -17,10 +17,13 @@
    canali.
 5. Chrome viene distribuito e controllato tramite `release-info.json`.
 6. Solo dopo il successo web viene creata la release Android `latest`.
-7. Il job finale confronta versione, build e commit dei due endpoint pubblici.
+7. Il job finale confronta versione, build e commit dei due endpoint pubblici;
+   inoltre richiede tutti e quattro gli APK Android, con hash e URL appartenenti
+   alla release corrente.
 
 Output atteso: workflow verde, `release-info.json` raggiungibile, manifest
-Android con gli stessi identificativi e tre APK con SHA-256.
+Android con gli stessi identificativi e quattro APK con SHA-256 (universale più
+tre architetture).
 
 ## Fallimento e recovery
 

@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--build", required=True, type=int)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--release-base-url", required=True)
+    parser.add_argument("--universal", required=True, type=Path)
     parser.add_argument("--arm64", required=True, type=Path)
     parser.add_argument("--arm32", required=True, type=Path)
     parser.add_argument("--x86-64", required=True, type=Path)
@@ -30,6 +31,7 @@ def main() -> None:
     args = parser.parse_args()
 
     assets = {
+        "android": args.universal,
         "android-arm64-v8a": args.arm64,
         "android-armeabi-v7a": args.arm32,
         "android-x86_64": args.x86_64,
@@ -39,15 +41,9 @@ def main() -> None:
             raise SystemExit(f"Missing or empty APK: {path}")
 
     base = args.release_base_url.rstrip("/")
-    platforms = {
-        # Bootstrap for clients older than the ABI-aware updater.
-        "android": {
-            "url": "https://github.com/gpmerola/deterministic-todo-releases/"
-            "releases/download/v1.0.4/DeterministicTodo-Android-universal.apk",
-            "sha256": "25ecf3cc74b950d782884be0a959f41a8ef1127fa5ea8765acdba005f22a6679",
-        }
-    }
+    platforms = {}
     names = {
+        "android": "DeterministicTodo-Android-universal.apk",
         "android-arm64-v8a": "DeterministicTodo-Android-arm64-v8a.apk",
         "android-armeabi-v7a": "DeterministicTodo-Android-armeabi-v7a.apk",
         "android-x86_64": "DeterministicTodo-Android-x86_64.apk",

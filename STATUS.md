@@ -3,7 +3,7 @@
 Aggiornato il 5 agosto 2026.
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione in pubblicazione: 2.14.0 build 41.
+- Versione in pubblicazione: 2.14.1 build 42.
 - Fonte locale: SQLite Drift; replica facoltativa: Supabase con RLS.
 - Release: un solo workflow coordinato Android + web con parità verificata di
   versione, build e commit.

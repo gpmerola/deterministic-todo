@@ -113,7 +113,9 @@ La perdita della chiave impedisce di aggiornare installazioni esistenti. Eseguir
 4. Commit e push su un branch `agent/**`: questo avvia `Publish Android and Web Release`.
 5. Il workflow esegue analisi, generazione e test una volta, poi costruisce in parallelo web e APK firmati.
 6. Il client web viene distribuito e verificato tramite `release-info.json`; soltanto dopo vengono pubblicati APK e manifest Android.
-7. Il controllo finale confronta versione, build e commit pubblici dei due canali, oltre agli hash APK.
+7. Il controllo finale confronta versione, build e commit pubblici dei due canali,
+   oltre a piattaforme, hash e URL degli APK. Anche il fallback universale viene
+   ricostruito: nessun collegamento può restare ancorato a una release precedente.
 8. Installare sopra la versione precedente su un dispositivo reale e verificare versione e conservazione di un task sentinella.
 
 Il workflow usa esclusivamente `RELEASE_REPO_TOKEN`, un fine-grained token con accesso in scrittura alle release del solo repository pubblico. Non riutilizzare token amministrativi o la chiave Supabase. Ogni modifica funzionale viene collaudata prima su Android: versione e build devono quindi crescere a ogni push pubblicabile. La modalità manuale con conferma `PUBBLICA` resta un fallback di recupero.
