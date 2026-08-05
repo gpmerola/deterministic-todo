@@ -78,7 +78,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  testWidgets('Chrome largo usa la stessa navigazione minimale di Android', (
+  testWidgets('Chrome largo usa una navigazione desktop minimale', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1440, 900);
@@ -91,13 +91,14 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('Inbox'), findsNothing);
     expect(find.text('In attesa'), findsNothing);
     expect(find.text('Oggi'), findsWidgets);
     expect(find.text('Prossime'), findsOneWidget);
     expect(find.text('Progetti'), findsOneWidget);
-    expect(find.byTooltip('Nuova attività'), findsOneWidget);
+    expect(find.byTooltip('Nuova attività (Ctrl/⌘ N)'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

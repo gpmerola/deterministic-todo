@@ -9,8 +9,8 @@ Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
 - Release Android precedente verificata: 2.12.1 build 37.
-- Versione in preparazione: 2.13.1 build 39, con interfaccia browser unificata
-  a quella Android.
+- Versione in preparazione: 2.13.2 build 40, con layout desktop adattivo e
+  pubblicazione Chrome accoppiata agli aggiornamenti Android.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 

@@ -11,8 +11,9 @@ Distribuito con licenza [MIT](LICENSE).
 - **Android:** app firmata, aggiornata automaticamente tramite il manifest
   pubblico e APK separati per CPU.
 - **Browser desktop:** web app Flutter pubblicata su GitHub Pages. Usa la stessa
-  interfaccia minimale di Android, conserva un database SQLite locale
-  persistente e si sincronizza con Android tramite Supabase.
+  struttura minimale di Android con un adattamento per mouse, tastiera e
+  schermi larghi; conserva un database SQLite locale persistente e si
+  sincronizza con Android tramite Supabase.
 - **macOS e Windows nativi:** non più distribuiti. I vecchi launcher e target
   sono stati rimossi per evitare versioni divergenti.
 
@@ -85,7 +86,9 @@ Ogni modifica funzionale verificata incrementa versione e build.
 - Il workflow `Publish Android Release` esegue analisi, test, firma, build per
   ABI, pubblicazione e verifica del manifest.
 - Il workflow `Publish Web App` esegue analisi, test, build web e deployment su
-  GitHub Pages. Il browser riceve la versione nuova senza installer.
+  GitHub Pages. Gli stessi percorsi che attivano una release Android attivano
+  sempre anche il deployment web della medesima versione e dello stesso commit.
+  Il browser riceve la versione nuova senza installer.
 
 Android controlla gli aggiornamenti all’avvio e ogni sei ore mentre è in primo
 piano. Il browser aggiorna la pagina direttamente dal sito.

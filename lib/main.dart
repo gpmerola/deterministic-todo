@@ -799,75 +799,120 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               AppSection.upcoming,
               AppSection.projects,
             ];
-            final content = _content(tasks);
-            return Scaffold(
-              appBar: AppBar(
-                leading:
-                    section == AppSection.settings ||
-                        section == AppSection.completed
-                    ? IconButton(
-                        tooltip: 'Indietro',
-                        onPressed: _handleBack,
-                        icon: const Icon(Icons.arrow_back),
-                      )
-                    : null,
-                title: Text(section.label),
-                actions: [
-                  if (section != AppSection.settings) ...[
-                    IconButton(
-                      tooltip: 'Cerca',
-                      onPressed: () => showSearch<void>(
-                        context: context,
-                        delegate: TaskSearchDelegate(widget.repository),
-                      ),
-                      icon: const Icon(Icons.search),
-                    ),
-                    IconButton(
-                      tooltip: 'Impostazioni',
-                      onPressed: () => _navigateTo(AppSection.settings),
-                      icon: const Icon(Icons.settings_outlined),
-                    ),
-                  ],
-                ],
-              ),
-              body: Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(width: 720, child: content),
-              ),
-              floatingActionButton:
-                  section != AppSection.settings &&
-                      section != AppSection.projects &&
-                      section != AppSection.completed
-                  ? FloatingActionButton(
-                      tooltip: 'Nuova attività',
-                      onPressed: _showQuickAddSheet,
-                      child: const Icon(Icons.add),
-                    )
-                  : null,
-              bottomNavigationBar:
-                  section == AppSection.settings ||
-                      section == AppSection.completed
-                  ? null
-                  : Center(
-                      heightFactor: 1,
-                      child: SizedBox(
-                        width: 720,
-                        child: NavigationBar(
-                          selectedIndex: primarySections
-                              .indexOf(section)
-                              .clamp(0, primarySections.length - 1),
-                          onDestinationSelected: (index) =>
-                              _navigateTo(primarySections[index]),
-                          destinations: [
-                            for (final item in primarySections)
-                              NavigationDestination(
-                                icon: Icon(item.icon),
-                                label: item.label,
-                              ),
-                          ],
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final desktop = constraints.maxWidth >= 900;
+                final content = Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: desktop ? 960 : 720,
+                    child: _content(tasks),
+                  ),
+                );
+                return Scaffold(
+                  appBar: AppBar(
+                    leadingWidth: desktop ? 80 : null,
+                    leading:
+                        desktop &&
+                            section != AppSection.settings &&
+                            section != AppSection.completed
+                        ? const SizedBox.shrink()
+                        : section == AppSection.settings ||
+                              section == AppSection.completed
+                        ? IconButton(
+                            tooltip: 'Indietro',
+                            onPressed: _handleBack,
+                            icon: const Icon(Icons.arrow_back),
+                          )
+                        : null,
+                    title: Text(section.label),
+                    actions: [
+                      if (section != AppSection.settings) ...[
+                        IconButton(
+                          tooltip: 'Cerca (Ctrl/⌘ F)',
+                          onPressed: () => showSearch<void>(
+                            context: context,
+                            delegate: TaskSearchDelegate(widget.repository),
+                          ),
+                          icon: const Icon(Icons.search),
                         ),
-                      ),
-                    ),
+                        IconButton(
+                          tooltip: 'Impostazioni',
+                          onPressed: () => _navigateTo(AppSection.settings),
+                          icon: const Icon(Icons.settings_outlined),
+                        ),
+                      ],
+                    ],
+                  ),
+                  body: desktop
+                      ? Row(
+                          children: [
+                            NavigationRail(
+                              selectedIndex: primarySections.contains(section)
+                                  ? primarySections.indexOf(section)
+                                  : null,
+                              onDestinationSelected: (index) =>
+                                  _navigateTo(primarySections[index]),
+                              labelType: NavigationRailLabelType.all,
+                              leading: Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: IconButton.filled(
+                                  tooltip: 'Nuova attività (Ctrl/⌘ N)',
+                                  onPressed: _showQuickAddSheet,
+                                  icon: const Icon(Icons.add),
+                                ),
+                              ),
+                              destinations: [
+                                for (final item in primarySections)
+                                  NavigationRailDestination(
+                                    icon: Icon(item.icon),
+                                    label: Text(item.label),
+                                  ),
+                              ],
+                            ),
+                            const VerticalDivider(width: 1),
+                            Expanded(child: content),
+                          ],
+                        )
+                      : content,
+                  floatingActionButton:
+                      !desktop &&
+                          section != AppSection.settings &&
+                          section != AppSection.projects &&
+                          section != AppSection.completed
+                      ? FloatingActionButton(
+                          tooltip: 'Nuova attività',
+                          onPressed: _showQuickAddSheet,
+                          child: const Icon(Icons.add),
+                        )
+                      : null,
+                  bottomNavigationBar:
+                      desktop ||
+                          section == AppSection.settings ||
+                          section == AppSection.completed
+                      ? null
+                      : Center(
+                          heightFactor: 1,
+                          child: SizedBox(
+                            width: 720,
+                            child: NavigationBar(
+                              selectedIndex: primarySections
+                                  .indexOf(section)
+                                  .clamp(0, primarySections.length - 1),
+                              onDestinationSelected: (index) =>
+                                  _navigateTo(primarySections[index]),
+                              destinations: [
+                                for (final item in primarySections)
+                                  NavigationDestination(
+                                    icon: Icon(item.icon),
+                                    label: item.label,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                );
+              },
             );
           },
         ),

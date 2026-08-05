@@ -113,3 +113,12 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
   stessa interfaccia minimale Oggi/Prossime/Progetti di Android.
 - Contenuto centrato su schermi larghi, stesso composer `+`, stessa barra
   inferiore e nessun titolo o campo di inserimento desktop duplicato.
+
+# 2.13.2
+
+- Chrome mantiene le sole sezioni Oggi/Prossime/Progetti ma, sopra 900 px, usa
+  una barra laterale compatta, un'area di lavoro più ampia e comandi adatti a
+  mouse e tastiera; sui viewport stretti resta identico ad Android.
+- Il workflow web osserva tutti i percorsi che possono produrre una release
+  Android: ogni aggiornamento Android avvia automaticamente anche il deployment
+  Chrome dello stesso commit e della stessa versione.

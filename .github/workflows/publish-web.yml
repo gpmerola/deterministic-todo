@@ -5,12 +5,16 @@ on:
     branches:
       - 'agent/**'
     paths:
+      - 'android/**'
+      - 'assets/**'
       - 'lib/**'
       - 'web/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - 'supabase/config.json'
+      - 'tools/generate_release_manifest.py'
       - '.github/workflows/publish-web.yml'
+      - '.github/workflows/publish-android-release.yml'
   workflow_dispatch:
 
 permissions:
