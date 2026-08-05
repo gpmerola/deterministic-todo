@@ -5,9 +5,9 @@ Aggiornato il 5 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione in preparazione: **2.16.11 build 55**.
-- Ultima release pubblica verificata: **2.16.10 build 54**.
-- Il test interno Google Play è attivo; la 2.16.10 build 54 è disponibile alla
+- Versione corrente: **2.16.11 build 55**.
+- Ultima release pubblica verificata: **2.16.11 build 55**.
+- Il test interno Google Play è attivo; la 2.16.11 build 55 è disponibile alla
   lista `Test interno`. La produzione resta subordinata al test chiuso Google.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
