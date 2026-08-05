@@ -83,12 +83,12 @@ esistenti si collegano con l’account personale già creato.
 
 Ogni modifica funzionale verificata incrementa versione e build.
 
-- Il workflow `Publish Android Release` esegue analisi, test, firma, build per
-  ABI, pubblicazione e verifica del manifest.
-- Il workflow `Publish Web App` esegue analisi, test, build web e deployment su
-  GitHub Pages. Gli stessi percorsi che attivano una release Android attivano
-  sempre anche il deployment web della medesima versione e dello stesso commit.
-  Il browser riceve la versione nuova senza installer.
+- L'unico workflow `Publish Android and Web Release` esegue analisi e test una
+  volta, compila entrambe le piattaforme e pubblica Android soltanto dopo che il
+  nuovo client web è online.
+- `release-info.json` sul sito e il manifest Android devono dichiarare la stessa
+  versione, build e commit; la pipeline li confronta dopo la pubblicazione.
+- Il browser riceve la versione nuova senza installer.
 
 Android controlla gli aggiornamenti all’avvio e ogni sei ore mentre è in primo
 piano. Il browser aggiorna la pagina direttamente dal sito.
@@ -120,7 +120,7 @@ Struttura canonica:
 - `lib/data/local/`: schema Drift e connessioni SQLite native/web;
 - `lib/data/sync/`: outbox, conflitti Lamport e Supabase;
 - `lib/services/`: import/export, diagnostica, calendario e aggiornamenti;
-- `lib/ui/`: componenti testuali e link;
+- `lib/ui/`: impostazioni, editor, task, componenti testuali e link;
 - `web/`: shell browser e asset SQLite WebAssembly;
 - `android/`: client Android;
 - `supabase/migrations/`: schema remoto e RLS;
@@ -130,15 +130,15 @@ Struttura canonica:
 
 Titoli e note restano nel database locale e, dopo il collegamento, nel progetto
 Supabase personale. Non entrano nei log. La diagnostica registra soltanto
-conteggi e metriche tecniche; su Android è rotante su file, nel browser resta in
-memoria fino all’esportazione.
+conteggi e metriche tecniche in due blocchi rotanti da 512 KiB: file applicativi
+su Android e IndexedDB nel browser. Nessun log viene inviato automaticamente.
 
 Il Cestino conserva tombstone sincronizzati. La cancellazione simultanea e
 definitiva di dispositivo e cloud non è ancora offerta: richiede una funzione
 Supabase transazionale. Il reset locale richiede prima di scollegare Supabase,
 altrimenti i dati verrebbero scaricati nuovamente.
 
-La documentazione tecnica è in [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md), la
-procedura Android in
-[docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md)
-e il lavoro residuo in [TODO_NEXT.md](TODO_NEXT.md).
+La documentazione tecnica è in [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md), le
+procedure sono in [docs/operations/](docs/operations/), lo stato corrente in
+[STATUS.md](STATUS.md), le versioni in [CHANGELOG.md](CHANGELOG.md) e il lavoro
+residuo in [TODO_NEXT.md](TODO_NEXT.md).

@@ -15,4 +15,8 @@ void main() {
       const Duration(microseconds: 8334),
     );
   });
+
+  test('aggrega i frame prima di scrivere la diagnostica', () {
+    expect(PerformanceMonitor.frameSampleSize, 600);
+  });
 }

@@ -21,6 +21,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", required=True)
     parser.add_argument("--build", required=True, type=int)
+    parser.add_argument("--source-commit", required=True)
     parser.add_argument("--release-base-url", required=True)
     parser.add_argument("--arm64", required=True, type=Path)
     parser.add_argument("--arm32", required=True, type=Path)
@@ -61,6 +62,7 @@ def main() -> None:
         "schema_version": 1,
         "version": args.version,
         "build": args.build,
+        "source_commit": args.source_commit,
         "platforms": platforms,
     }
     args.output.write_text(

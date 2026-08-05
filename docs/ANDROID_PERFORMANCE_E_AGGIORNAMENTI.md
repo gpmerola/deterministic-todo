@@ -46,7 +46,7 @@ Prima del push, l’outbox viene compattata logicamente per `entity_id`: più mo
 - `watchActive()` esclude tombstone e completate;
 - `watchCompleted()` carica esclusivamente la cronologia completata.
 
-Il cambio schermata seleziona lo stream pertinente. Questo evita di tenere in RAM tutta la cronologia durante Inbox, Oggi, Prossime e In attesa. Gli indici SQLite della migrazione 2 sono:
+Il cambio schermata seleziona lo stream pertinente. Questo evita di tenere in RAM tutta la cronologia durante Oggi, Prossime e Progetti. Gli indici SQLite della migrazione 2 sono:
 
 - `tasks_status_order_idx (deleted_at, status, position, created_at, id)`;
 - `tasks_dates_idx (deleted_at, show_date, due_date)`.
@@ -82,11 +82,11 @@ L’accesso al calendario avviene esclusivamente premendo “Salva + calendario�
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:
 
 - `performance_snapshot`: millisecondi di avvio, RAM RSS, byte SQLite, attività attive/completate e outbox, raccolti ad avvio e cambio foreground/background;
-- `frame_sample`: media e massimo dei tempi build/raster e frame oltre 16,67 ms, emesso ogni 120 frame o andando in background;
+- `frame_sample`: media e massimo dei tempi build/raster e frame oltre 16,67 ms, aggregato ogni 600 frame o andando in background per ridurre le scritture;
 - `sync_completed`: durata, righe remote, entità effettivamente caricate e progetti/sezioni saltati perché invariati;
 - `sync_failed`: tipo/codice tecnico e durata prima dell’errore.
 
-I dati restano nei due file rotanti da 512 KiB già previsti e si esportano esplicitamente da Impostazioni. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
+I dati restano in due blocchi rotanti da 512 KiB e si esportano esplicitamente da Impostazioni: file applicativi su Android e IndexedDB nel browser. L'export include sia il blocco precedente sia quello corrente. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. Ogni riga include versione/build, schema log e un identificatore casuale valido soltanto per l'apertura corrente. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
 
 ## Flusso OTA
 
@@ -110,15 +110,15 @@ La perdita della chiave impedisce di aggiornare installazioni esistenti. Eseguir
 1. Aggiornare versione e build number in `pubspec.yaml` in modo monotono.
 2. Aggiornare codice, test e documentazione nello stesso cambiamento.
 3. Eseguire `dart format`, `flutter analyze` e `flutter test`.
-4. Commit e push su un branch `agent/**`: questo avvia automaticamente l'unico percorso CI ordinario, `Publish Android Release`.
-5. Il workflow riesegue analisi e test, ricompila con la chiave stabile, calcola SHA-256, pubblica asset e manifest nel repository pubblico e confronta il manifest riscaricato byte per byte.
-7. Verificare anche `/releases/latest/download/manifest.json` e la coerenza di versione, URL e hash.
-8. Rendere `latest` soltanto dopo la verifica della catena dalla release precedente.
-9. Installare sopra la versione precedente su un dispositivo reale e verificare versione e conservazione di un task sentinella.
+4. Commit e push su un branch `agent/**`: questo avvia `Publish Android and Web Release`.
+5. Il workflow esegue analisi, generazione e test una volta, poi costruisce in parallelo web e APK firmati.
+6. Il client web viene distribuito e verificato tramite `release-info.json`; soltanto dopo vengono pubblicati APK e manifest Android.
+7. Il controllo finale confronta versione, build e commit pubblici dei due canali, oltre agli hash APK.
+8. Installare sopra la versione precedente su un dispositivo reale e verificare versione e conservazione di un task sentinella.
 
 Il workflow usa esclusivamente `RELEASE_REPO_TOKEN`, un fine-grained token con accesso in scrittura alle release del solo repository pubblico. Non riutilizzare token amministrativi o la chiave Supabase. Ogni modifica funzionale viene collaudata prima su Android: versione e build devono quindi crescere a ogni push pubblicabile. La modalità manuale con conferma `PUBBLICA` resta un fallback di recupero.
 
-Per contenere lavoro duplicato, `Verify` e `Build Android APK` restano manuali. La pubblicazione Android comprende già analisi, test e build. In parallelo `Publish Web App` verifica, compila e distribuisce il client browser; non esiste più una build nativa macOS. Le concurrency annullano build superate da push più recenti.
+Per contenere lavoro duplicato, `Verify` e `Build Android APK` restano manuali. La release coordinata esegue analisi e test una sola volta per entrambi i canali; non esiste più una build nativa macOS. La concurrency annulla build superate da push più recenti.
 
 ## Ottimizzazioni future ammesse
 

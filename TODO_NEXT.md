@@ -8,22 +8,24 @@ Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Android precedente verificata: 2.12.1 build 37.
-- Versione in preparazione: 2.13.2 build 40, con layout desktop adattivo e
-  pubblicazione Chrome accoppiata agli aggiornamenti Android.
+- Release coordinata precedente verificata: 2.13.2 build 40.
+- Versione in preparazione: 2.14.0 build 41, con release Android/web unica,
+  identità pubblica verificabile e logging browser persistente.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
-## P0 — Concludere il passaggio alla web app
+## P0 — Ultimi collaudi browser
 
-1. pubblicare `Publish Web App` e verificare il sito HTTPS;
-2. confermare in Chrome reale che una task locale sopravviva a refresh e
-   riapertura; lo startup deve fallire esplicitamente se Drift offre soltanto
-   storage in memoria;
-3. collegare l’account Supabase personale già esistente e verificare
-   Android → browser e browser → Android;
-4. aggiungere il sito alle pagine di avvio di Chrome;
-5. verificare import ed export JSON dal browser con una fixture sintetica.
+1. confermare in Chrome reale che una task locale sopravviva a chiusura e
+   riapertura completa; lo startup deve fallire esplicitamente se Drift offre
+   soltanto storage in memoria;
+2. verificare import ed export JSON dal browser con una fixture sintetica;
+3. dopo la 2.14.0 esportare la diagnostica, ricaricare la pagina ed esportarla
+   di nuovo per confermare la persistenza IndexedDB sul profilo reale.
+
+Sito HTTPS, layout desktop, pagina di avvio Chrome e sincronizzazione
+Android↔browser sono già configurati. La pipeline coordinata ne verifica da
+2.14.0 versione, build e commit pubblici.
 
 La web app non deve dipendere dalla rete per mostrare o modificare task già
 locali. Non usare navigazione in incognito come ambiente supportato.

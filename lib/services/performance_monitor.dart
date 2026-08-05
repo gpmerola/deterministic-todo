@@ -15,6 +15,7 @@ class PerformanceMonitor {
   static final instance = PerformanceMonitor._();
   static const slowFrameThreshold = Duration(microseconds: 16667);
   static const highRefreshSlowFrameThreshold = Duration(microseconds: 8334);
+  static const frameSampleSize = 600;
 
   final List<FrameTiming> _frames = [];
   bool _started = false;
@@ -27,7 +28,7 @@ class PerformanceMonitor {
 
   void _onTimings(List<FrameTiming> timings) {
     _frames.addAll(timings);
-    if (_frames.length >= 120) unawaited(flushFrames());
+    if (_frames.length >= frameSampleSize) unawaited(flushFrames());
   }
 
   Future<void> flushFrames() async {

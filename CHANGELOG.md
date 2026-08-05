@@ -1,3 +1,7 @@
+# Changelog
+
+Cronologia delle modifiche distribuite. Le versioni più recenti sono in fondo.
+
 # Funzioni completate e verificate
 
 Aggiornato il 5 agosto 2026.
@@ -122,3 +126,14 @@ Vedi “Limiti noti” nel README e [TODO_NEXT.md](TODO_NEXT.md): pairing/sync l
 - Il workflow web osserva tutti i percorsi che possono produrre una release
   Android: ogni aggiornamento Android avvia automaticamente anche il deployment
   Chrome dello stesso commit e della stessa versione.
+
+# 2.14.0
+
+- Release Android e Chrome consolidate in un'unica pipeline: verifica condivisa,
+  build di entrambi i canali, deploy web precedente alla pubblicazione Android e
+  confronto finale pubblico di versione, build e commit.
+- Logging browser persistente in IndexedDB; export Android e web comprensivo del
+  blocco ruotato precedente, con versione/build e sessione anonima per apertura.
+- UI suddivisa in moduli dedicati per impostazioni, account sync, cestino, task
+  ed editor; `main.dart` ridotto senza cambiare dominio o persistenza.
+- Documentazione riorganizzata in changelog, stato e runbook operativi.

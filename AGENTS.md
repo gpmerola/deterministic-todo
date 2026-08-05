@@ -8,7 +8,7 @@ All’inizio di ogni nuova sessione leggere integralmente `TODO_NEXT.md` oltre a
 
 - Ogni modifica completata e verificata deve essere committata e pubblicata sul repository GitHub; non lasciare lavoro valido soltanto nella copia locale.
 - Usare un branch `agent/*`, pushare il branch e mantenere aggiornata la pull request. Non pushare modifiche non verificate.
-- La documentazione fa parte del codice: ogni modifica di comportamento, architettura, schema, build, release o limitazione deve aggiornare nello stesso commit almeno README, `docs/` e/o `COMPLETATO.md` secondo pertinenza.
+- La documentazione fa parte del codice: ogni modifica di comportamento, architettura, schema, build, release o limitazione deve aggiornare nello stesso commit almeno README, `docs/` e/o `CHANGELOG.md` secondo pertinenza.
 - Non dichiarare completata una funzione senza analisi statica e test proporzionati. Ogni regressione deterministica deve avere un test.
 - Non committare keystore, password, token o chiavi amministrative. La chiave Android resta in `private_release_keys/` e nei GitHub Actions Secrets.
 

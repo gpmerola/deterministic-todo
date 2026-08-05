@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:uuid/uuid.dart';
+
 import 'diagnostic_store.dart';
 import 'diagnostic_store_native.dart'
     if (dart.library.js_interop) 'diagnostic_store_web.dart';
@@ -25,11 +28,22 @@ class DiagnosticLogService {
   late final DiagnosticStore _store;
   Future<void> _pending = Future.value();
   bool _initialized = false;
+  String _version = 'unknown';
+  String _build = 'unknown';
+  final String _session = const Uuid().v4();
 
   bool get isInitialized => _initialized;
 
   Future<void> initialize() async {
+    if (_initialized) return;
     _store = await createDiagnosticStore(maxBytes: _maxBytes);
+    try {
+      final package = await PackageInfo.fromPlatform();
+      _version = package.version;
+      _build = package.buildNumber;
+    } on Object {
+      // I metadati di build arricchiscono il log ma non sono obbligatori.
+    }
     _initialized = true;
     await event('app_started', fields: {'platform': operatingSystemName});
   }
@@ -47,7 +61,7 @@ class DiagnosticLogService {
       if (!_initialized) return;
       try {
         await _store.append(
-          '${jsonEncode({'timestamp': DateTime.now().toUtc().toIso8601String(), 'level': level, 'event': name, ...allowed})}\n',
+          '${jsonEncode({'timestamp': DateTime.now().toUtc().toIso8601String(), 'level': level, 'event': name, 'version': _version, 'build': _build, 'log_schema': 1, 'session': _session, ...allowed})}\n',
         );
       } on Object {
         // La diagnostica non deve mai impedire l'uso dell'app.
@@ -76,6 +90,8 @@ class DiagnosticLogService {
     'removed',
     'version',
     'build',
+    'log_schema',
+    'session',
     'error_type',
     'error_code',
     'duration_ms',

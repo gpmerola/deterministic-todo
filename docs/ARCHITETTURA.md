@@ -40,7 +40,7 @@ Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. 
 
 ## Budget runtime e aggiornamenti
 
-Il bootstrap non carica database dei fusi e non richiede permessi di notifica: il supporto orario è assente e le date sono sempre civili. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Android è il primo canale di collaudo: ogni push funzionale con versione monotona produce automaticamente APK per ABI, download interno, progresso e verifica SHA-256; il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
+Il bootstrap non carica database dei fusi e non richiede permessi di notifica: il supporto orario è assente e le date sono sempre civili. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Un unico workflow verifica il codice una volta, costruisce web e APK per ABI, distribuisce prima il browser e pubblica Android soltanto dopo il successo web. Manifest Android e `release-info.json` web espongono versione, build e commit e vengono confrontati pubblicamente. Il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
 
 Le migrazioni locali verificano colonne e tabelle prima di crearle. Dallo schema 4 una migrazione interrotta può quindi riprendere senza cancellare il database o ripetere operazioni già applicate.
 
@@ -68,8 +68,8 @@ Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltant
 
 `QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano una data civile, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario crea un evento giornaliero per singola attività e non altera la fonte di verità SQLite.
 
-Su viewport mobili la creazione usa un modal bottom sheet controllato dalla stessa regola e dallo stesso comando repository del campo desktop. La striscia calendario futura deriva dai task attivi già osservati e costruisce lazy soltanto 45 chip: non apre nuovi stream, timer o query di rete.
+La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta soltanto navigazione e larghezza al mouse e alla tastiera; dominio e comandi restano identici. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete.
 
 ## Privacy e backup
 
-Titoli e note risiedono nel database locale e, dopo login/sync, nel progetto Supabase dell'utente. Non ci sono analytics né logging del contenuto. JSON versionato è il formato completo e validato; CSV è interoperabile ma non costituisce un backup completo. L'interfaccia di backup separa serializzazione e destinazione, così potrà aggiungere cifratura autenticata senza cambiare il dominio.
+Titoli e note risiedono nel database locale e, dopo login/sync, nel progetto Supabase dell'utente. Non ci sono analytics né logging del contenuto. La diagnostica salva esclusivamente eventi e conteggi consentiti, con versione/build e un ID casuale limitato alla singola apertura; ruota su file Android o IndexedDB browser e viene esportata soltanto su comando. JSON versionato è il formato completo e validato; CSV è interoperabile ma non costituisce un backup completo. L'interfaccia di backup separa serializzazione e destinazione, così potrà aggiungere cifratura autenticata senza cambiare il dominio.

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -8,14 +7,14 @@ import 'diagnostic_store.dart';
 
 Future<DiagnosticStore> createDiagnosticStore({required int maxBytes}) async {
   final directory = await getApplicationSupportDirectory();
-  return _FileDiagnosticStore(
+  return FileDiagnosticStore(
     File('${directory.path}/diagnostics.jsonl'),
     maxBytes,
   );
 }
 
-class _FileDiagnosticStore implements DiagnosticStore {
-  _FileDiagnosticStore(this.file, this.maxBytes);
+class FileDiagnosticStore implements DiagnosticStore {
+  FileDiagnosticStore(this.file, this.maxBytes);
 
   final File file;
   final int maxBytes;
@@ -31,7 +30,11 @@ class _FileDiagnosticStore implements DiagnosticStore {
   }
 
   @override
-  Future<Uint8List> read() async => await file.exists()
-      ? file.readAsBytes()
-      : Uint8List.fromList(utf8.encode(''));
+  Future<Uint8List> read() async {
+    final previous = File('${file.path}.1');
+    final output = BytesBuilder(copy: false);
+    if (await previous.exists()) output.add(await previous.readAsBytes());
+    if (await file.exists()) output.add(await file.readAsBytes());
+    return output.takeBytes();
+  }
 }
