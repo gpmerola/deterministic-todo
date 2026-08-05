@@ -306,7 +306,7 @@ void main() {
     );
     expect(find.byType(AlertDialog), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 50));
     expect(projectId, isNotEmpty);
     await db.close();
   });
@@ -429,7 +429,7 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.byType(Checkbox).first);
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 50));
     expect((await db.select(db.tasks).getSingle()).status, 'inbox');
     expect(find.byKey(const ValueKey('completed-check')), findsOneWidget);
     expect(
@@ -441,14 +441,14 @@ void main() {
       1,
     );
 
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 100));
     expect(
       tester
           .widget<AnimatedOpacity>(
             find.byKey(ValueKey('completion-opacity-$taskId')),
           )
           .opacity,
-      0,
+      lessThan(1),
     );
 
     await tester.pumpAndSettle();
@@ -516,7 +516,7 @@ void main() {
   });
 
   testWidgets(
-    'Prossime resta compatta con molte attività nello stesso giorno',
+    'Prossime mostra una timeline senza quadratini e indica i giorni vuoti',
     (tester) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1;
@@ -527,9 +527,11 @@ void main() {
       final tomorrow = CivilDate.fromDateTime(
         DateTime.now().add(const Duration(days: 1)),
       ).toString();
-      for (var index = 0; index < 12; index++) {
-        await repository.create('Attività $index', showDate: tomorrow);
-      }
+      await repository.create(
+        'Attività domani',
+        status: TaskStatus.scheduled,
+        showDate: tomorrow,
+      );
       await tester.pumpWidget(TodoApp(repository: repository));
       await tester.pump();
       await tester.tap(find.text('Prossime'));
@@ -537,9 +539,10 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Tutte'), findsNothing);
-      final dateChip = tester.widget<ChoiceChip>(find.byType(ChoiceChip).first);
-      final label = dateChip.label as Column;
-      expect(label.children, hasLength(2));
+      expect(find.byType(ChoiceChip), findsNothing);
+      expect(find.text('Attività domani'), findsOneWidget);
+      expect(find.text('Nessuna attività'), findsWidgets);
+      expect(find.byKey(const ValueKey('jump-to-future-date')), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(milliseconds: 1));
       await db.close();

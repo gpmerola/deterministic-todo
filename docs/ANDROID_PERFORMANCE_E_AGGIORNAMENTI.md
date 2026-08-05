@@ -69,6 +69,8 @@ La 2.9.0 riusa lo stesso composer anche dentro Progetti e limita la descrizione 
 
 La 2.10.0 aggiunge le azioni progetto/sezione usando menu costruiti soltanto all'apertura. Spostamento e archiviazione sono aggiornamenti SQLite puntuali sugli stream esistenti; non introducono dipendenze, polling, query persistenti o cancellazioni a cascata.
 
+La 2.11.0 porta il composer a 30/20 ms, elimina l'animazione del padding IME e riduce le animazioni di editor, completamento e swipe. Prossime usa un solo `ListView.builder` lazy fino a dieci anni: anche i giorni vuoti non vengono materializzati fuori schermo. Completate osserva al massimo 200 righe e archivia oltre 365 giorni. Il controllo release usa un solo timer da sei ore, esegue rete soltanto in foreground ed è protetto da single-flight; un polling ogni dieci minuti è stato escluso perché sproporzionato.
+
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
 ## Telemetria prestazionale locale

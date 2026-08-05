@@ -1,0 +1,28 @@
+import 'package:deterministic_todo/ui/link_text_editing_controller.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('nasconde URL Markdown e li conserva al salvataggio', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      'Leggi [Paper1](https://example.com/paper) oggi',
+    );
+
+    expect(controller.text, 'Leggi Paper1 oggi');
+    expect(controller.text, isNot(contains('https://')));
+    expect(
+      controller.toMarkdown(),
+      'Leggi [Paper1](https://example.com/paper) oggi',
+    );
+  });
+
+  test('aggiunge e rimuove un link dal testo selezionato', () {
+    final controller = LinkTextEditingController.fromMarkdown('Apri ricerca');
+    controller.selection = const TextSelection(baseOffset: 5, extentOffset: 12);
+
+    expect(controller.addLink('https://example.com'), isTrue);
+    expect(controller.toMarkdown(), 'Apri [ricerca](https://example.com)');
+    expect(controller.removeSelectedLink(), isTrue);
+    expect(controller.toMarkdown(), 'Apri ricerca');
+  });
+}

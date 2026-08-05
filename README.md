@@ -88,7 +88,7 @@ Toccando un'attività su Android si apre un foglio minimale dal fondo, alto al m
 
 Sono supportati anche `ogni giorno feriale`, `ogni weekend` (sabato), `ogni ultimo giorno del mese`, `ogni ultimo venerdì del mese`, `ogni 3 giorni dopo il completamento`, `stasera` (20:00), `questo weekend`, `inizio settimana prossima`, `fine mese`, `tra 3 giorni` e `fra 2 settimane`.
 
-“Prossime” raggruppa le attività pianificate giorno per giorno. Su Android il menu `⋮` dell'editor consente di creare o aggiornare esplicitamente l'attività nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
+“Prossime” è una timeline verticale lazy che include anche i giorni senza attività con un'indicazione discreta. Non usa più una seconda barra di quadratini: **Vai a data** è l'unico comando superiore e sposta direttamente l'inizio della timeline senza aggiungere un livello alla navigazione Indietro. Su Android il menu `⋮` dell'editor consente di creare o aggiornare esplicitamente l'attività nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
 
 Su telefono, il pulsante `+` apre in 80 ms un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Un pulsante Note apre immediatamente una descrizione opzionale e il pallino priorità permette di scegliere P1–P4 senza aprire l'editor completo. Le espressioni comprese — per esempio `oggi`, `domani` e `venerdì` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
 
@@ -96,7 +96,7 @@ La navigazione Android è ridotta a **Oggi**, **Prossime** e **Progetti**. Compl
 
 Il tasto **Indietro** di Android chiude prima dialoghi e menu, poi ripercorre le sezioni visitate; in Prossime rimuove prima l'eventuale filtro sul giorno. Soltanto dalla radice Oggi, esaurita la cronologia interna, lascia chiudere normalmente l'app.
 
-Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; la transizione inversa dura 45 ms. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
+Nel composer mobile una sola pressione di **Indietro** chiude tastiera e foglio insieme; le transizioni sono 30/20 ms e l'adeguamento alla tastiera non è animato, evitando il breve accavallamento tra IME e foglio. I testi di esempio e le istruzioni permanenti sotto i campi sono rimossi: appare soltanto l'esito utile di una data o ricorrenza effettivamente riconosciuta.
 
 Le Impostazioni mostrano lo stato reale del worker in una sola riga con icona: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento oppure errore. Account e comandi meno frequenti restano nel menu contestuale. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato.
 
@@ -134,11 +134,17 @@ Impostazioni consente export JSON completo/versionato, export CSV e import JSON.
 
 Titolo e descrizione sono importati separatamente da Todoist. La descrizione appare sotto il titolo su una sola riga; il testo completo resta disponibile aprendo l'attività. I link Markdown presenti in entrambi vengono mostrati con la sola parola associata, sottolineata e cliccabile; l'URL completo resta nel dato originale ma non ingombra l'elenco. L'export attualmente supportato non contiene commenti, allegati o sotto-attività importabili.
 
+Anche nell'editor le descrizioni mostrano soltanto il testo leggibile: gli URL Todoist non appaiono più in chiaro. Per collegare o scollegare una parola basta selezionarla e usare **Aggiungi link** o **Togli link**; il formato Markdown compatibile con Todoist viene ricostruito soltanto al salvataggio.
+
 Lo swipe sposta l'attività nel cestino soltanto da destra verso sinistra e dopo aver superato il 62% della riga; mostra sempre **Annulla**. Il ripristino riusa la stessa attività e lo stesso identificatore, preservando la sincronizzazione.
 
 La vista Progetti usa un elenco verticale con sezioni comprimibili. Si possono creare progetti con colore, aggiungere sezioni e attività direttamente nella destinazione usando lo stesso composer rapido, e spostare un'attività cambiando progetto/sezione dall'editor. Il menu `⋮` di progetti e sezioni permette di rinominare, spostare su/giù ed eliminare con **Annulla**; l'eliminazione è un'archiviazione reversibile e non cancella le attività associate. L'eventuale preferenza elenco/bacheca importata da Todoist resta nei metadati per compatibilità, ma non condiziona più la UI mobile. Funzioni collaborative come condivisione e commenti restano intenzionalmente escluse.
 
 L'editor espone una sola data civile di pianificazione: da questa deriva automaticamente lo stato interno. “Stato” e “Scadenza” non sono più controlli separati. Le colonne legacy restano nello schema per permettere aggiornamenti sicuri delle installazioni esistenti, ma `due_date` viene normalizzata a `null` nelle modifiche e nella sincronizzazione.
+
+Completate carica al massimo le 200 attività più recenti, in ordine di completamento e con righe più dense. Le attività completate da oltre 365 giorni vengono archiviate con tombstone sincronizzato, così la cronologia non cresce senza limite. In **Dati e manutenzione** è disponibile **Cancella tutti i dati locali**: opera in una transazione unica e conserva soltanto l'identità tecnica del dispositivo; richiede prima di scollegare Supabase per evitare che il cloud ripristini subito i dati.
+
+Il controllo aggiornamenti avviene all'avvio, al ritorno in primo piano se sono trascorse almeno sei ore e ogni sei ore mentre l'app è visibile. Dieci minuti sarebbero troppo frequenti per una release che cambia raramente.
 
 Android e macOS mantengono un log diagnostico locale JSONL con rotazione automatica a 512 KiB e una sola copia precedente. Registra soltanto eventi tecnici, conteggi, piattaforma e tipi/codici di errore; non registra titoli, note, email, token o URL. Il file può essere condiviso esplicitamente da Impostazioni → Esporta diagnostica.
 

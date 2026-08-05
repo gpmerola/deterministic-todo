@@ -121,6 +121,7 @@ Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settima
 - Aggiungere bandierine priorità opzionali e pulite, coerenti con il mapping Todoist.
 - Aggiungere Undo per completamento, spostamento e ripianificazione; l'eliminazione via swipe è annullabile dalla 2.6.0.
 - Lo swipe verso il cestino è annullabile e dalla 2.9.0 accetta soltanto destra→sinistra oltre il 62% della riga; verificare la soglia sul Galaxy S21 e rimuoverlo se produce ancora errori.
+- Dalla 2.11 Prossime è una timeline lazy con giorni vuoti e salto diretto, Completate è limitata a 200 righe con retention di 365 giorni e gli aggiornamenti vengono ricontrollati ogni sei ore soltanto in foreground. Verificare sul Galaxy S21 il singolo Indietro del composer e l'assenza di sovrapposizione con la tastiera Samsung.
 - Non materializzare calendari infiniti: usare liste lazy e caricare finestre di date progressivamente.
 
 ## P1 — Funzioni originali ancora incomplete
@@ -132,6 +133,16 @@ Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settima
 - backup cifrato;
 - test end-to-end contro Supabase e due dispositivi;
 - test/installazione Windows su una macchina Windows reale.
+- reset coordinato anche dei dati remoti Supabase: richiede una RPC transazionale server-side; il pulsante 2.11 cancella intenzionalmente solo il dispositivo scollegato.
+
+## P1 — Blocchi pratici prima di lasciare Todoist
+
+- provare sul Galaxy S21 per alcuni giorni creazione, modifica, swipe, ricorrenze e back con la tastiera Samsung reale;
+- eseguire un ultimo export Todoist e un reimport incrementale prima del passaggio definitivo, poi verificare conteggi e progetti su telefono e Mac;
+- decidere se servono davvero promemoria/notifiche: dalla 2.8 il supporto orario e i relativi plugin sono intenzionalmente assenti;
+- aggiungere una vista Cestino se si vuole recuperare oltre la finestra Undo attività, progetti o sezioni archiviati;
+- etichette, filtri, commenti, allegati e sotto-attività Todoist non sono ancora modellati; l'export personale analizzato non li usava sulle 110 attività attive, quindi non bloccano l'import corrente ma possono bloccare un uso futuro;
+- il reset completo cloud+dispositivo richiede una RPC Supabase transazionale prima di poter essere offerto come singolo comando sicuro.
 
 Non ampliare l’ambito con progetti, etichette, priorità, AI, collaborazione o calendario completo.
 

@@ -28,6 +28,7 @@ import 'services/export_service.dart';
 import 'services/performance_monitor.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
+import 'ui/link_text_editing_controller.dart';
 import 'ui/smart_date_text_controller.dart';
 import 'ui/todoist_link_text.dart';
 
@@ -252,6 +253,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   late final Stream<List<Task>> activeTasks;
   late final Stream<List<Task>> completedTasks;
   bool backgroundSnapshotTaken = false;
+  Timer? updateTimer;
+  DateTime? lastUpdateCheck;
+  bool checkingForUpdates = false;
+  bool appIsForeground = true;
 
   @override
   void initState() {
@@ -259,10 +264,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadInboxProjectIds();
     activeTasks = widget.repository.watchActive();
-    completedTasks = widget.repository.watchCompleted();
+    completedTasks = widget.repository.watchCompleted(limit: 200);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkForUpdates();
+      await widget.repository.archiveCompletedOlderThan(
+        DateTime.now().subtract(const Duration(days: 365)),
+      );
       await _showDailyPerformanceReminder();
+    });
+    updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
+      if (appIsForeground) unawaited(_checkForUpdates());
     });
   }
 
@@ -349,16 +360,23 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      appIsForeground = true;
       backgroundSnapshotTaken = false;
       widget.syncService?.resume();
       unawaited(
         PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
       );
+      if (lastUpdateCheck == null ||
+          DateTime.now().difference(lastUpdateCheck!) >=
+              const Duration(hours: 6)) {
+        unawaited(_checkForUpdates());
+      }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
       widget.syncService?.pause();
+      appIsForeground = false;
       if (!backgroundSnapshotTaken) {
         backgroundSnapshotTaken = true;
         unawaited(PerformanceMonitor.instance.flushFrames());
@@ -373,6 +391,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<void> _checkForUpdates() async {
+    if (checkingForUpdates) return;
+    checkingForUpdates = true;
+    lastUpdateCheck = DateTime.now();
     try {
       final update = await UpdateService().check();
       if (update == null || !mounted) return;
@@ -401,6 +422,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
     } on Object {
       // Offline, timeout o manifest non valido: l'uso locale continua.
+    } finally {
+      checkingForUpdates = false;
     }
   }
 
@@ -483,6 +506,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    updateTimer?.cancel();
     quickAdd.dispose();
     search.dispose();
     quickFocus.dispose();
@@ -566,8 +590,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       context: context,
       isScrollControlled: true,
       sheetAnimationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 80),
-        reverseDuration: Duration(milliseconds: 45),
+        duration: Duration(milliseconds: 30),
+        reverseDuration: Duration(milliseconds: 20),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
@@ -581,7 +605,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             });
           }
           return AnimatedPadding(
-            duration: const Duration(milliseconds: 50),
+            duration: Duration.zero,
             padding: EdgeInsets.fromLTRB(16, 0, 16, keyboardInset + 12),
             child: SafeArea(
               top: false,
@@ -713,9 +737,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   bool get _canExitFromBack =>
-      section == AppSection.today &&
-      selectedUpcomingDate == null &&
-      sectionHistory.isEmpty;
+      section == AppSection.today && sectionHistory.isEmpty;
 
   void _navigateTo(AppSection destination) {
     if (destination == section) return;
@@ -730,9 +752,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     setState(() {
       if (section == AppSection.projects && selectedProjectId != null) {
         selectedProjectId = null;
-      } else if (section == AppSection.upcoming &&
-          selectedUpcomingDate != null) {
-        selectedUpcomingDate = null;
       } else if (sectionHistory.isNotEmpty) {
         section = sectionHistory.removeLast();
       } else {
@@ -928,9 +947,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         AppSection.settings => false,
       };
     }).toList();
-    if (section == AppSection.upcoming && selectedUpcomingDate != null) {
-      visible.removeWhere((task) => task.showDate != selectedUpcomingDate);
-    }
     visible.sort((a, b) {
       if (section == AppSection.upcoming) {
         final byDate = a.showDate!.compareTo(b.showDate!);
@@ -991,6 +1007,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                     key: ValueKey(visible[index].id),
                     task: visible[index],
                     repository: widget.repository,
+                    dense: section == AppSection.completed,
                     showDateMetadata:
                         section != AppSection.today &&
                         section != AppSection.upcoming,
@@ -1451,70 +1468,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   };
 
   Widget _futureDateStrip() {
-    final today = CivilDate.fromDateTime(DateTime.now());
-    final lastDate = CivilDate(today.year + 10, 12, 31);
-    final dayCount = lastDate.asLocalDate.difference(today.asLocalDate).inDays;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-          child: Row(
-            children: [
-              const Spacer(),
-              TextButton.icon(
-                key: const ValueKey('jump-to-future-date'),
-                onPressed: _pickFutureDate,
-                icon: const Icon(Icons.calendar_month_outlined),
-                label: Text(
-                  selectedUpcomingDate == null
-                      ? 'Vai a data'
-                      : DateFormat('d MMM yyyy', 'it').format(
-                          CivilDate.parse(selectedUpcomingDate!).asLocalDate,
-                        ),
-                ),
-              ),
-            ],
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 8, 2),
+        child: TextButton.icon(
+          key: const ValueKey('jump-to-future-date'),
+          onPressed: _pickFutureDate,
+          icon: const Icon(Icons.calendar_month_outlined, size: 18),
+          label: Text(
+            selectedUpcomingDate == null
+                ? 'Vai a data'
+                : DateFormat(
+                    'd MMM yyyy',
+                    'it',
+                  ).format(CivilDate.parse(selectedUpcomingDate!).asLocalDate),
           ),
         ),
-        SizedBox(
-          height: 68,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: dayCount + 1,
-            itemBuilder: (context, index) {
-              final date = today.addDays(index + 1);
-              final key = date.toString();
-              final startsMonth = date.day == 1;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  selected: selectedUpcomingDate == key,
-                  onSelected: (_) => setState(() => selectedUpcomingDate = key),
-                  label: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        startsMonth
-                            ? DateFormat(
-                                'MMM yy',
-                                'it',
-                              ).format(date.asLocalDate)
-                            : DateFormat('EEE', 'it').format(date.asLocalDate),
-                      ),
-                      Text(
-                        '${date.day}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1538,31 +1509,54 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Widget _upcomingList(List<Task> tasks) {
-    if (tasks.isEmpty) return const Center(child: Text('Nessuna attività'));
     final grouped = <String, List<Task>>{};
     for (final task in tasks) {
       grouped.putIfAbsent(task.showDate!, () => []).add(task);
     }
-    return ListView(
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final start = selectedUpcomingDate == null
+        ? today.addDays(1)
+        : CivilDate.parse(selectedUpcomingDate!);
+    final lastDate = CivilDate(today.year + 10, 12, 31);
+    final dayCount = lastDate.asLocalDate.difference(start.asLocalDate).inDays;
+    return ListView.builder(
       padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        for (final entry in grouped.entries) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
-            child: Text(
-              _friendlyDate(entry.key),
-              style: Theme.of(context).textTheme.titleMedium,
+      itemCount: dayCount + 1,
+      itemBuilder: (context, index) {
+        final date = start.addDays(index);
+        final dateTasks = grouped[date.toString()] ?? const <Task>[];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 5),
+              child: Text(
+                _friendlyDate(date.toString()),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
             ),
-          ),
-          for (final task in entry.value)
-            TaskTile(
-              key: ValueKey(task.id),
-              task: task,
-              repository: widget.repository,
-              showDateMetadata: false,
-            ),
-        ],
-      ],
+            if (dateTasks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Text(
+                  'Nessuna attività',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            else
+              for (final task in dateTasks)
+                TaskTile(
+                  key: ValueKey(task.id),
+                  task: task,
+                  repository: widget.repository,
+                  showDateMetadata: false,
+                ),
+            const Divider(height: 1),
+          ],
+        );
+      },
     );
   }
 
@@ -1599,12 +1593,14 @@ class TaskTile extends StatefulWidget {
     required this.task,
     required this.repository,
     this.showDateMetadata = true,
+    this.dense = false,
     super.key,
   });
 
   final Task task;
   final TaskRepository repository;
   final bool showDateMetadata;
+  final bool dense;
 
   @override
   State<TaskTile> createState() => _TaskTileState();
@@ -1620,9 +1616,9 @@ class _TaskTileState extends State<TaskTile> {
       return;
     }
     setState(() => confirmingCompletion = true);
-    await Future<void>.delayed(const Duration(milliseconds: 190));
+    await Future<void>.delayed(const Duration(milliseconds: 90));
     if (mounted) setState(() => leavingAfterCompletion = true);
-    await Future<void>.delayed(const Duration(milliseconds: 290));
+    await Future<void>.delayed(const Duration(milliseconds: 140));
     await widget.repository.setCompleted(widget.task, true);
   }
 
@@ -1641,6 +1637,8 @@ class _TaskTileState extends State<TaskTile> {
         key: ValueKey('dismiss-${widget.task.id}'),
         direction: DismissDirection.endToStart,
         dismissThresholds: const {DismissDirection.endToStart: 0.62},
+        movementDuration: const Duration(milliseconds: 110),
+        resizeDuration: const Duration(milliseconds: 100),
         background: const SizedBox.shrink(),
         secondaryBackground: Container(
           color: Theme.of(context).colorScheme.errorContainer,
@@ -1668,7 +1666,7 @@ class _TaskTileState extends State<TaskTile> {
         },
         child: AnimatedContainer(
           key: ValueKey('task-surface-${widget.task.id}'),
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 100),
           curve: Curves.easeOut,
           decoration: BoxDecoration(
             color: confirmingCompletion
@@ -1690,6 +1688,10 @@ class _TaskTileState extends State<TaskTile> {
             type: MaterialType.transparency,
             borderRadius: BorderRadius.circular(14),
             child: ListTile(
+              dense: widget.dense,
+              visualDensity: widget.dense
+                  ? const VisualDensity(vertical: -2)
+                  : null,
               leading: AnimatedScale(
                 duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutBack,
@@ -1776,6 +1778,10 @@ class _TaskTileState extends State<TaskTile> {
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
+    sheetAnimationStyle: const AnimationStyle(
+      duration: Duration(milliseconds: 45),
+      reverseDuration: Duration(milliseconds: 25),
+    ),
     builder: (_) =>
         TaskEditor(task: widget.task, repository: widget.repository),
   );
@@ -1792,12 +1798,10 @@ class TaskEditor extends StatefulWidget {
 }
 
 class _TaskEditorState extends State<TaskEditor> {
-  late final TextEditingController title = TextEditingController(
-    text: widget.task.title,
-  );
-  late final TextEditingController notes = TextEditingController(
-    text: widget.task.notes,
-  );
+  late final LinkTextEditingController title =
+      LinkTextEditingController.fromMarkdown(widget.task.title);
+  late final LinkTextEditingController notes =
+      LinkTextEditingController.fromMarkdown(widget.task.notes);
   late final TextEditingController showDate = TextEditingController(
     text: widget.task.showDate,
   );
@@ -1806,11 +1810,19 @@ class _TaskEditorState extends State<TaskEditor> {
   late String? projectSectionId = widget.task.sectionId;
   late int priority = widget.task.priority;
 
+  @override
+  void dispose() {
+    title.dispose();
+    notes.dispose();
+    showDate.dispose();
+    super.dispose();
+  }
+
   Future<Task> _save() async {
     await widget.repository.updateDetails(
       widget.task,
-      title: title.text,
-      notes: notes.text.trim().isEmpty ? null : notes.text.trim(),
+      title: title.toMarkdown(),
+      notes: notes.text.trim().isEmpty ? null : notes.toMarkdown().trim(),
       showDate: showDate.text.trim().isEmpty
           ? null
           : CivilDate.parse(showDate.text.trim()).toString(),
@@ -1866,7 +1878,7 @@ class _TaskEditorState extends State<TaskEditor> {
 
   @override
   Widget build(BuildContext context) => AnimatedPadding(
-    duration: const Duration(milliseconds: 160),
+    duration: const Duration(milliseconds: 40),
     padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 560, maxHeight: 460),
@@ -1887,9 +1899,30 @@ class _TaskEditorState extends State<TaskEditor> {
                       minLines: 1,
                       maxLines: 3,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Cosa devi fare?',
-                        prefixIcon: Icon(Icons.check_circle_outline),
+                        prefixIcon: const Icon(Icons.check_circle_outline),
+                        suffixIcon: PopupMenuButton<String>(
+                          tooltip: 'Link nel titolo',
+                          icon: const Icon(Icons.link),
+                          onSelected: (value) {
+                            if (value == 'add') {
+                              _addLinkToSelection(title);
+                            } else if (!title.removeSelectedLink()) {
+                              _showSelectLinkedTextMessage();
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'add',
+                              child: Text('Aggiungi link'),
+                            ),
+                            PopupMenuItem(
+                              value: 'remove',
+                              child: Text('Togli link'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1907,6 +1940,28 @@ class _TaskEditorState extends State<TaskEditor> {
                           minLines: 2,
                           maxLines: 4,
                           decoration: const InputDecoration(labelText: 'Note'),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Wrap(
+                            spacing: 4,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () => _addLinkToSelection(notes),
+                                icon: const Icon(Icons.link, size: 18),
+                                label: const Text('Aggiungi link'),
+                              ),
+                              TextButton.icon(
+                                onPressed: () {
+                                  if (!notes.removeSelectedLink()) {
+                                    _showSelectLinkedTextMessage();
+                                  }
+                                },
+                                icon: const Icon(Icons.link_off, size: 18),
+                                label: const Text('Togli link'),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 10),
                         _projectFields(),
@@ -2060,6 +2115,53 @@ class _TaskEditorState extends State<TaskEditor> {
     );
     if (picked != null && mounted) {
       setState(() => showDate.text = CivilDate.fromDateTime(picked).toString());
+    }
+  }
+
+  void _showSelectLinkedTextMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Seleziona il testo collegato.')),
+    );
+  }
+
+  Future<void> _addLinkToSelection(LinkTextEditingController controller) async {
+    if (controller.selectedText?.trim().isEmpty ?? true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Prima seleziona il testo da collegare.')),
+      );
+      return;
+    }
+    final url = TextEditingController(text: 'https://');
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aggiungi link'),
+        content: TextField(
+          controller: url,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(labelText: 'Indirizzo'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, url.text),
+            child: const Text('Collega'),
+          ),
+        ],
+      ),
+    );
+    url.dispose();
+    if (value == null || !mounted) return;
+    if (!controller.addLink(value)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inserisci un indirizzo valido.')),
+      );
+    } else {
+      setState(() {});
     }
   }
 
@@ -2355,6 +2457,55 @@ class SettingsView extends StatelessWidget {
     );
   }
 
+  Future<void> _resetLocalData(BuildContext context) async {
+    if (syncClient?.auth.currentUser != null) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Sincronizzazione ancora collegata'),
+          content: const Text(
+            'Prima scollega questo dispositivo. Altrimenti i dati verrebbero '
+            'scaricati di nuovo da Supabase subito dopo la cancellazione.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Ho capito'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancellare tutti i dati locali?'),
+        content: const Text(
+          'Attività, progetti, sezioni e preferenze saranno cancellati in '
+          'un’unica operazione. Questa azione non può essere annullata.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cancella tutto'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await repository.resetAllLocalData();
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Dati locali cancellati')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
@@ -2421,6 +2572,14 @@ class SettingsView extends StatelessWidget {
             leading: const Icon(Icons.bug_report_outlined),
             title: const Text('Esporta diagnostica'),
             onTap: () => _exportDiagnostics(context),
+          ),
+          ListTile(
+            leading: Icon(
+              Icons.delete_forever_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: const Text('Cancella tutti i dati locali'),
+            onTap: () => _resetLocalData(context),
           ),
         ],
       ),

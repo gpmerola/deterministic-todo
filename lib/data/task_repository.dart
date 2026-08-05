@@ -39,7 +39,7 @@ class TaskRepository {
             ]))
           .watch();
 
-  Stream<List<Task>> watchCompleted() =>
+  Stream<List<Task>> watchCompleted({int limit = 200}) =>
       (db.select(db.tasks)
             ..where(
               (task) =>
@@ -47,11 +47,41 @@ class TaskRepository {
                   task.status.equals(TaskStatus.completed.name),
             )
             ..orderBy([
-              (task) => OrderingTerm(expression: task.position),
-              (task) => OrderingTerm(expression: task.createdAt),
+              (task) => OrderingTerm(
+                expression: task.completedAt,
+                mode: OrderingMode.desc,
+              ),
               (task) => OrderingTerm(expression: task.id),
-            ]))
+            ])
+            ..limit(limit))
           .watch();
+
+  Future<int> archiveCompletedOlderThan(DateTime cutoff) async {
+    final cutoffMicros = cutoff.toUtc().microsecondsSinceEpoch;
+    final old =
+        await (db.select(db.tasks)..where(
+              (task) =>
+                  task.deletedAt.isNull() &
+                  task.status.equals(TaskStatus.completed.name) &
+                  task.completedAt.isNotNull() &
+                  task.completedAt.isSmallerThanValue(cutoffMicros),
+            ))
+            .get();
+    for (final task in old) {
+      await softDelete(task);
+    }
+    return old.length;
+  }
+
+  Future<void> resetAllLocalData() => db.transaction(() async {
+    await db.delete(db.outboxEntries).go();
+    await db.delete(db.tasks).go();
+    await db.delete(db.projectSections).go();
+    await db.delete(db.projects).go();
+    await (db.delete(
+      db.appSettings,
+    )..where((row) => row.key.equals('device_id').not())).go();
+  });
 
   Future<String> create(
     String rawTitle, {

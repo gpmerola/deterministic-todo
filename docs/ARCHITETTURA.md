@@ -30,6 +30,10 @@ Dalla 2.9.0 l'unica data applicativa visibile è `show_date`, una data civile se
 
 Progetti e sezioni non vengono cancellati fisicamente: “Elimina” imposta `is_archived`, conserva attività e identificatori esterni e offre Undo immediato. Rinomina, archiviazione e scambio delle posizioni incrementano `logical_version` e aggiornano `device_id`, così il merge Supabase conserva l'ordinamento scelto e resta deterministico.
 
+La cronologia completata è una vista limitata alle 200 righe più recenti. All'avvio, i completamenti oltre 365 giorni diventano tombstone tramite lo stesso repository e la stessa outbox delle eliminazioni normali; non vengono rimossi direttamente dal file SQLite. Il reset locale usa una singola transazione e preserva `device_id`; è bloccato nella UI finché Supabase è collegato, perché una cancellazione soltanto locale verrebbe altrimenti annullata dal pull remoto.
+
+Le note continuano a usare Markdown Todoist come formato persistente canonico, ma `LinkTextEditingController` lo converte in testo semplice durante l'editing e ricostruisce i link al salvataggio. La UI non espone URL grezzi e non richiede un nuovo schema o una dipendenza Markdown.
+
 Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. Al completamento l'occorrenza corrente diventa storica e il repository inserisce atomicamente la successiva con la stessa serie; l'indice `(series_id, occurrence_key)` rende l'operazione idempotente. Giorni e settimane avanzano come date civili, mesi e anni mantengono il giorno ancora con clamp deterministico per mesi corti e anni bisestili.
 
 ## Budget runtime e aggiornamenti

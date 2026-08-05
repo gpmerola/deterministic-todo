@@ -1,6 +1,7 @@
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -258,4 +259,66 @@ void main() {
       'Conservami',
     );
   });
+
+  test('Completate limita il carico e archivia quelle oltre un anno', () async {
+    for (var index = 0; index < 205; index++) {
+      final id = await repository.create('Completata $index');
+      final task = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(id))).getSingle();
+      await repository.setCompleted(task, true);
+    }
+    expect(await repository.watchCompleted().first, hasLength(200));
+
+    final oldest = (await db.select(db.tasks).get()).first;
+    await (db.update(db.tasks)..where((row) => row.id.equals(oldest.id))).write(
+      TasksCompanion(
+        completedAt: Value(
+          DateTime.now()
+              .subtract(const Duration(days: 366))
+              .toUtc()
+              .microsecondsSinceEpoch,
+        ),
+      ),
+    );
+    expect(
+      await repository.archiveCompletedOlderThan(
+        DateTime.now().subtract(const Duration(days: 365)),
+      ),
+      1,
+    );
+    expect(
+      (await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(oldest.id))).getSingle()).deletedAt,
+      isNotNull,
+    );
+  });
+
+  test(
+    'reset locale è atomico e conserva soltanto identità dispositivo',
+    () async {
+      final projectId = await repository.createProject('Casa');
+      await repository.create('Task', projectId: projectId);
+      await db
+          .into(db.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(key: 'device_id', value: 'device-test'),
+          );
+      await db
+          .into(db.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(key: 'temporary', value: 'value'),
+          );
+
+      await repository.resetAllLocalData();
+
+      expect(await db.select(db.tasks).get(), isEmpty);
+      expect(await db.select(db.projects).get(), isEmpty);
+      expect(await db.select(db.projectSections).get(), isEmpty);
+      expect(await db.select(db.outboxEntries).get(), isEmpty);
+      final settings = await db.select(db.appSettings).get();
+      expect(settings.single.key, 'device_id');
+    },
+  );
 }
