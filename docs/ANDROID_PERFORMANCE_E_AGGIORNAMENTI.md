@@ -136,6 +136,18 @@ resta giornaliero ma usa una SnackBar non bloccante.
 
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
+## Motion system UI
+
+La 2.16.15 introduce un motion system limitato alle transizioni informative:
+140 ms per il cambio schermata/progetto e 110 ms per titolo, data e stato
+vuoto. Le animazioni sono fade e traslazioni minime, lavorano in parallelo al
+cambio di contenuto e non aggiungono attese alle operazioni. Le righe non
+vengono animate durante lo scroll per evitare lavoro GPU e distrazioni.
+
+Il composer rapido resta escluso: `sheetAnimationStyle` mantiene durata e
+durata inversa a zero, così il percorso `+` → tastiera → invio non subisce
+regressioni.
+
 ## Telemetria prestazionale locale
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:

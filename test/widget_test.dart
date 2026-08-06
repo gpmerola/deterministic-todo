@@ -105,6 +105,46 @@ void main() {
     await db.close();
   });
 
+  testWidgets('le transizioni UI sono brevi e non coinvolgono il composer', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    final pageMotion = tester.widget<AnimatedSwitcher>(
+      find.byKey(const ValueKey('page-motion')),
+    );
+    final titleMotion = tester.widget<AnimatedSwitcher>(
+      find.byKey(const ValueKey('appbar-title-motion')),
+    );
+    expect(
+      pageMotion.duration,
+      lessThanOrEqualTo(const Duration(milliseconds: 150)),
+    );
+    expect(
+      titleMotion.duration,
+      lessThanOrEqualTo(const Duration(milliseconds: 120)),
+    );
+
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('i link Todoist mostrano la parola senza URL esteso', (
     tester,
   ) async {

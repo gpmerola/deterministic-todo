@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.15
+
+- Navigazione tra Oggi, Prossime, Progetti, Impostazioni e dettaglio progetto
+  resa più professionale con dissolvenza e spostamento minimo di 140 ms.
+- Titolo della schermata, cambio data futura e passaggio tra lista e stato
+  vuoto usano micro-animazioni da 110 ms, senza ritardare input o operazioni.
+- Gli stati vuoti hanno ora icone discrete e testo contestuale.
+- Il composer `+` conserva intenzionalmente apertura e chiusura a durata zero.
+
 ## 2.16.14
 
 - La build Google Play verifica automaticamente gli aggiornamenti dopo il

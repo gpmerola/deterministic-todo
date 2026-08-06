@@ -48,6 +48,10 @@ part 'ui/task_editor.dart';
 const isPlayDistribution =
     String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
 
+const _pageMotion = Duration(milliseconds: 140);
+const _pageMotionOut = Duration(milliseconds: 90);
+const _microMotion = Duration(milliseconds: 110);
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const BootstrapApp());
@@ -1143,11 +1147,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             return LayoutBuilder(
               builder: (context, constraints) {
                 final desktop = constraints.maxWidth >= 900;
+                final pageIdentity =
+                    '${section.name}:'
+                    '${section == AppSection.projects ? selectedProjectId ?? 'root' : ''}';
                 final content = Align(
                   alignment: Alignment.topCenter,
                   child: SizedBox(
                     width: desktop ? 960 : 720,
-                    child: _content(tasks),
+                    child: AnimatedSwitcher(
+                      key: const ValueKey('page-motion'),
+                      duration: _pageMotion,
+                      reverseDuration: _pageMotionOut,
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.012, 0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
+                      child: KeyedSubtree(
+                        key: ValueKey('page-$pageIdentity'),
+                        child: _content(tasks),
+                      ),
+                    ),
                   ),
                 );
                 return Scaffold(
@@ -1166,7 +1193,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             icon: const Icon(Icons.arrow_back),
                           )
                         : null,
-                    title: Text(section.label),
+                    title: AnimatedSwitcher(
+                      key: const ValueKey('appbar-title-motion'),
+                      duration: _microMotion,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: Text(
+                        section.label,
+                        key: ValueKey('appbar-title-${section.name}'),
+                      ),
+                    ),
                     actions: [
                       if (widget.syncService != null)
                         SyncStatusAction(service: widget.syncService!),
@@ -1309,24 +1345,38 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         Expanded(
           child: section == AppSection.upcoming
               ? _upcomingList(visible)
-              : visible.isEmpty
-              ? const Center(child: Text('Nessuna attività'))
-              : ListView.builder(
-                  key: PageStorageKey('task-list-${section.name}'),
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: visible.length,
-                  itemBuilder: (context, index) => TaskTile(
-                    key: ValueKey(visible[index].id),
-                    task: visible[index],
-                    repository: widget.repository,
-                    highlightRemote: recentlySyncedTaskIds.contains(
-                      visible[index].id,
-                    ),
-                    dense: section == AppSection.completed,
-                    showDateMetadata:
-                        section != AppSection.today &&
-                        section != AppSection.upcoming,
-                  ),
+              : AnimatedSwitcher(
+                  key: ValueKey('task-state-motion-${section.name}'),
+                  duration: _microMotion,
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: visible.isEmpty
+                      ? _emptyState(
+                          key: ValueKey('empty-${section.name}'),
+                          icon: section == AppSection.completed
+                              ? Icons.task_alt
+                              : Icons.checklist_rounded,
+                          label: section == AppSection.completed
+                              ? 'Nessuna attività completata'
+                              : 'Nessuna attività',
+                        )
+                      : ListView.builder(
+                          key: PageStorageKey('task-list-${section.name}'),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemCount: visible.length,
+                          itemBuilder: (context, index) => TaskTile(
+                            key: ValueKey(visible[index].id),
+                            task: visible[index],
+                            repository: widget.repository,
+                            highlightRemote: recentlySyncedTaskIds.contains(
+                              visible[index].id,
+                            ),
+                            dense: section == AppSection.completed,
+                            showDateMetadata:
+                                section != AppSection.today &&
+                                section != AppSection.upcoming,
+                          ),
+                        ),
                 ),
         ),
       ],
@@ -1390,7 +1440,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               const Divider(height: 1),
               Expanded(
                 child: activeProjects.isEmpty
-                    ? const Center(child: Text('Nessun progetto'))
+                    ? _emptyState(
+                        key: const ValueKey('empty-projects'),
+                        icon: Icons.folder_open_outlined,
+                        label: 'Nessun progetto',
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         itemCount: activeProjects.length,
@@ -1794,13 +1848,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           key: const ValueKey('jump-to-future-date'),
           onPressed: _pickFutureDate,
           icon: const Icon(Icons.calendar_month_outlined, size: 18),
-          label: Text(
-            selectedUpcomingDate == null
-                ? 'Vai a data'
-                : DateFormat(
-                    'd MMM yyyy',
-                    'it',
-                  ).format(CivilDate.parse(selectedUpcomingDate!).asLocalDate),
+          label: AnimatedSwitcher(
+            duration: _microMotion,
+            child: Text(
+              selectedUpcomingDate == null
+                  ? 'Vai a data'
+                  : DateFormat('d MMM yyyy', 'it').format(
+                      CivilDate.parse(selectedUpcomingDate!).asLocalDate,
+                    ),
+              key: ValueKey(selectedUpcomingDate ?? 'jump-to-date'),
+            ),
           ),
         ),
       ),
@@ -1885,6 +1942,31 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     final label = DateFormat('EEEE d MMMM', 'it').format(date);
     return label[0].toUpperCase() + label.substring(1);
   }
+
+  Widget _emptyState({
+    required Key key,
+    required IconData icon,
+    required String label,
+  }) => Center(
+    key: key,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 30,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 int _stableCompare(Task a, Task b, String today) {
