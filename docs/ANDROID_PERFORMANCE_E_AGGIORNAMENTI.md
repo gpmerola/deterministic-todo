@@ -210,6 +210,9 @@ restano invariati.
 Il deployment Pages usa il limite massimo di 10 minuti imposto da GitHub.
 Questo non allunga le build normali; una coda eccezionalmente più lunga resta
 un limite esterno del servizio e richiede un nuovo tentativo di pubblicazione.
+Poiché Pages identifica il deployment tramite il commit, dopo una cancellazione
+il recovery usa un nuovo commit documentale e rilancia il workflow coordinato:
+riutilizzare lo stesso SHA può riferirsi al deployment già annullato.
 
 La stessa versione evita retry artificiali della sincronizzazione: le modifiche
 ai soli metadati `attempts` e `last_error` dell'outbox non sono nuovo lavoro. Un
