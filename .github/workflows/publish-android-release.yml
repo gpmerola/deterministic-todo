@@ -78,7 +78,9 @@ jobs:
 
   build-web:
     needs: verify
-    runs-on: ubuntu-latest
+    # The latest-image pool has intermittently failed before Set up job.
+    # Pin Web to the mature pool; Android remains on the current image.
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
       - name: Checkout

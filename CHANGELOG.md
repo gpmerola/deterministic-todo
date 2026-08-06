@@ -10,6 +10,8 @@ Cronologia delle modifiche distribuite, dalla più recente.
 - La build Web riusa la risoluzione delle dipendenze già completata e non
   esegue il controllo WebAssembly non utilizzato, riducendo lavoro duplicato.
 - Il workflow usa la generazione corrente dell'azione di checkout.
+- La build Web usa un runner Ubuntu stabile per evitare fallimenti del pool
+  GitHub prima ancora dell'inizializzazione del job.
 - Il deployment Web usa esplicitamente il limite massimo di 10 minuti imposto
   da GitHub Pages; code eccezionalmente più lunghe restano un limite esterno.
 
