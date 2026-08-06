@@ -6,10 +6,10 @@ Aggiornato il 6 agosto 2026.
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
 - Versione sorgente corrente: **2.16.17 build 61**.
-- Ultima release pubblica verificata: **2.16.15 build 59**.
-- La 2.16.17 build 61 attende la ripresa di GitHub Actions/Pages per la release
-  coordinata.
-- Il test interno Google Play è attivo; la 2.16.15 build 59 è disponibile alla
+- Ultima release pubblica verificata: **2.16.17 build 61**.
+- Web, release Android pubblica e manifest di parità sono verificati sul commit
+  `f433aee`.
+- Il test interno Google Play è attivo; la 2.16.17 build 61 è disponibile alla
   lista `Test interno`. La produzione resta subordinata al test chiuso Google.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
