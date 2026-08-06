@@ -221,7 +221,8 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          timeout: 900000
+          # deploy-pages enforces a hard maximum of ten minutes.
+          timeout: 600000
 
       - name: Verify deployed web identity
         env:

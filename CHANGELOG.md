@@ -10,8 +10,8 @@ Cronologia delle modifiche distribuite, dalla più recente.
 - La build Web riusa la risoluzione delle dipendenze già completata e non
   esegue il controllo WebAssembly non utilizzato, riducendo lavoro duplicato.
 - Il workflow usa la generazione corrente dell'azione di checkout.
-- Il deployment Web tollera code GitHub Pages fino a 15 minuti, evitando
-  ricompilazioni complete causate dal precedente timeout di 10 minuti.
+- Il deployment Web usa esplicitamente il limite massimo di 10 minuti imposto
+  da GitHub Pages; code eccezionalmente più lunghe restano un limite esterno.
 
 ## 2.16.15
 
