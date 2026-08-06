@@ -7,7 +7,7 @@ Cronologia delle modifiche distribuite, dalla più recente.
 - La coda di sincronizzazione non interpreta più l'aggiornamento interno del
   numero di tentativi come una nuova modifica, eliminando il lampeggio ciclico
   dell'indicatore di errore sul Web.
-- Le build riusano la risoluzione delle dipendenze già completata e il Web non
+- La build Web riusa la risoluzione delle dipendenze già completata e non
   esegue il controllo WebAssembly non utilizzato, riducendo lavoro duplicato.
 - Il workflow usa la generazione corrente dell'azione di checkout.
 

@@ -200,10 +200,12 @@ Il workflow usa esclusivamente `RELEASE_REPO_TOKEN`, un fine-grained token con a
 
 Per contenere lavoro duplicato, `Verify` e `Build Android APK` restano manuali. La release coordinata esegue analisi e test una sola volta per entrambi i canali; non esiste più una build nativa macOS. La concurrency annulla build superate da push più recenti.
 
-Dalla 2.16.16 ogni job risolve le dipendenze una sola volta e passa `--no-pub`
-alle build successive. La build web salta inoltre il dry-run WebAssembly perché
-il target distribuito resta JavaScript. Firma, test, APK universale e per ABI,
-AAB Play e controlli di parità restano invariati.
+Dalla 2.16.16 la build web risolve le dipendenze una sola volta, passa
+`--no-pub` alla compilazione e salta il dry-run WebAssembly perché il target
+distribuito resta JavaScript. Android conserva la risoluzione automatica di
+Flutter: disattivarla può lasciare nel registrant release plugin destinati ai
+soli test. Firma, test, APK universale e per ABI, AAB Play e controlli di parità
+restano invariati.
 
 La stessa versione evita retry artificiali della sincronizzazione: le modifiche
 ai soli metadati `attempts` e `last_error` dell'outbox non sono nuovo lavoro. Un

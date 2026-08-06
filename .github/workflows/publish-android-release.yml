@@ -154,15 +154,15 @@ jobs:
       - name: Build signed APKs per CPU
         run: |
           flutter pub get
-          flutter build appbundle --release --no-pub --flavor play \
+          flutter build appbundle --release --flavor play \
             --split-debug-info=build/private-symbols/play \
             --dart-define=DISTRIBUTION_CHANNEL=play \
             --dart-define-from-file=supabase/config.json
-          flutter build apk --release --no-pub --flavor direct \
+          flutter build apk --release --flavor direct \
             --split-debug-info=build/private-symbols/universal \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
-          flutter build apk --release --no-pub --flavor direct --split-per-abi \
+          flutter build apk --release --flavor direct --split-per-abi \
             --split-debug-info=build/private-symbols \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
