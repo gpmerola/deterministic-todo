@@ -23,4 +23,11 @@ void main() {
     expect(syncRetryDelay(2), const Duration(seconds: 30));
     expect(syncRetryDelay(20), const Duration(minutes: 2));
   });
+
+  test('la notifica auth iniziale non duplica il sync di avvio', () {
+    expect(SyncService.shouldSyncForAuthChange('user-a', 'user-a'), isFalse);
+    expect(SyncService.shouldSyncForAuthChange(null, 'user-a'), isTrue);
+    expect(SyncService.shouldSyncForAuthChange('user-a', 'user-b'), isTrue);
+    expect(SyncService.shouldSyncForAuthChange('user-a', null), isFalse);
+  });
 }

@@ -51,6 +51,10 @@ class SyncService {
     'project_sections': <String>{},
   };
   SyncSnapshot _latest = const SyncSnapshot(SyncPhase.disabled);
+  String? _authenticatedUserId;
+
+  static bool shouldSyncForAuthChange(String? previous, String? next) =>
+      next != null && previous != next;
 
   Stream<SyncSnapshot> get snapshots => _state.stream;
   Stream<Set<String>> get remoteTaskChanges => _remoteTaskChanges.stream;
@@ -62,10 +66,17 @@ class SyncService {
   }
 
   void start() {
+    _authenticatedUserId = client.auth.currentUser?.id;
     _auth = client.auth.onAuthStateChange.listen((state) {
-      if (state.session != null) {
+      final nextUserId = state.session?.user.id;
+      final shouldSync = shouldSyncForAuthChange(
+        _authenticatedUserId,
+        nextUserId,
+      );
+      _authenticatedUserId = nextUserId;
+      if (nextUserId != null) {
         unawaited(_subscribeRealtime());
-        unawaited(sync());
+        if (shouldSync) unawaited(sync());
       } else {
         unawaited(_removeRealtime());
         _emit(const SyncSnapshot(SyncPhase.disabled));
@@ -89,9 +100,11 @@ class SyncService {
         unawaited(sync());
       }
     });
-    if (client.auth.currentUser != null) unawaited(_subscribeRealtime());
+    if (client.auth.currentUser != null) {
+      unawaited(_subscribeRealtime());
+      unawaited(sync());
+    }
     _startTimer();
-    unawaited(sync());
   }
 
   void pause() {

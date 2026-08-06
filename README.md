@@ -109,9 +109,11 @@ Ogni modifica funzionale verificata incrementa versione e build.
 - Il browser riceve la versione nuova senza installer.
 
 La build Android diretta controlla gli aggiornamenti all’avvio e ogni sei ore
-mentre è in primo piano. La build Google Play usa gli aggiornamenti gestiti
-dallo Store e offre in Impostazioni il collegamento `Aggiorna da Google Play`.
-Il browser aggiorna la pagina direttamente dal sito.
+mentre è in primo piano. La build Google Play interroga l’API ufficiale dopo il
+primo frame e al ritorno in primo piano: se esiste una nuova versione, mostra il
+prompt flessibile dello Store senza interrompere l’uso. Il controllo manuale è
+disponibile nelle Impostazioni. Il browser aggiorna la pagina direttamente dal
+sito.
 
 ## Sviluppo
 

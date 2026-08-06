@@ -51,6 +51,13 @@ Il bootstrap apre Drift su un isolate nativo in background e attiva WAL. Dalla 2
 
 Il controllo aggiornamenti parte dopo il primo frame, non blocca la UI e memorizza `last_update_check_us` in `app_settings`. I controlli automatici successivi sono saltati per sei ore. Il controllo manuale nelle Impostazioni ignora intenzionalmente questo limite.
 
+Dal flavor Play 2.16.14 il controllo usa `Play App Update 2.1.0` e il flusso
+flessibile ufficiale: il prompt compare soltanto se Google Play conferma una
+versione più recente, il download non blocca l'app e l'installazione si completa
+quando il pacchetto è pronto. La dipendenza è `playImplementation`, quindi APK
+diretto e browser non la includono. In caso di API non disponibile, soltanto il
+controllo manuale apre la scheda Store come fallback.
+
 Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione reagisce a modifica, riconnessione e ritorno in primo piano. Il controllo di sicurezza ogni 15 minuti esiste soltanto mentre l’app è visibile e viene sospeso in background. Progetti e sezioni già confermati dal server sono identificati tramite la coppia Lamport `(logical_version, device_id)` e non vengono reinviati finché non cambiano.
 
 Prima del push, l’outbox viene compattata logicamente per `entity_id`: più modifiche pendenti della stessa attività causano un solo `merge_task` della versione finale, mentre tutte le operazioni vengono comunque riconosciute e rimosse soltanto dopo il successo. Il pull carica le attività locali interessate con una sola query SQLite e applica poi il confronto Lamport in memoria, evitando una query per ogni riga remota.
@@ -137,6 +144,13 @@ Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii es
 - `frame_sample`: media e massimo dei tempi build/raster e frame oltre 16,67 ms, aggregato ogni 600 frame o andando in background per ridurre le scritture;
 - `sync_completed`: durata, righe remote, entità effettivamente caricate e progetti/sezioni saltati perché invariati;
 - `sync_failed`: tipo/codice tecnico e durata prima dell’errore.
+- `update_check`: canale, esito, durata e natura automatica/manuale;
+- `interaction_latency`: durata di apertura composer/editor, cambio schermata,
+  creazione, modifica e completamento. Non contiene ID, titoli, note o URL.
+
+La 2.16.14 inizializza l'identità auth prima di ascoltare gli eventi Supabase:
+la notifica iniziale della stessa sessione non duplica più il primo sync
+completo; login e cambio account continuano invece a forzarlo.
 
 I dati restano in due blocchi rotanti da 512 KiB e si esportano esplicitamente da Impostazioni: file applicativi su Android e IndexedDB nel browser. L'export include sia il blocco precedente sia quello corrente. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. Ogni riga include versione/build, schema log e un identificatore casuale valido soltanto per l'apertura corrente. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
 

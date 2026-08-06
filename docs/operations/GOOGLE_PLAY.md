@@ -8,7 +8,8 @@
 - Lingua predefinita: italiano; app gratuita.
 - Protezione automatica Play disattivata per conservare il canale APK diretto.
 - Test interno attivo dal 5 agosto 2026; lista `Test interno` configurata e
-  build 57 (2.16.13) disponibile ai tester autorizzati.
+  build 57 (2.16.13) disponibile ai tester autorizzati; build 58 (2.16.14) in
+  preparazione.
 
 ## Firma e transizione
 
@@ -18,10 +19,15 @@ firmati con la chiave Android conservata nell'environment GitHub
 
 Il flavor `direct` conserva aggiornamento OTA e permesso
 `REQUEST_INSTALL_PACKAGES`. Il flavor `play` rimuove quel permesso dal manifest
-e disattiva timer e controllo degli aggiornamenti GitHub. Nelle Impostazioni
-espone invece `Aggiorna da Google Play`, che apre la scheda ufficiale tramite
-`market://` con fallback HTTPS; non apre mai lo Store automaticamente. Non
-caricare mai su Play il flavor `direct`.
+e disattiva timer e controllo degli aggiornamenti GitHub. La build Play usa
+invece l'API ufficiale In-App Updates all'avvio e alla ripresa (al massimo ogni
+sei ore nella stessa sessione), mostrando il flusso flessibile solo se
+necessario. Nelle Impostazioni
+espone `Aggiorna da Google Play`; la scheda ufficiale viene aperta solo come
+fallback se l'API nativa non è disponibile. L'integrazione è confinata al
+source set `android/app/src/play` e alla dipendenza `playImplementation`; non
+apre mai lo Store automaticamente. Il fallback manuale usa `market://` e poi
+HTTPS. Non caricare mai su Play il flavor `direct`.
 
 La chiave privata non è disponibile localmente e non è esportabile dai secret
 GitHub. Alla prima configurazione Play App Signing usare quindi la chiave

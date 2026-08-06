@@ -35,6 +35,7 @@ class _TaskEditorState extends State<TaskEditor> {
   }
 
   Future<Task> _save() async {
+    final elapsed = Stopwatch()..start();
     final hasSmartSyntax = const QuickAddParser()
         .recognizedSyntax(title.text)
         .isNotEmpty;
@@ -77,6 +78,17 @@ class _TaskEditorState extends State<TaskEditor> {
         widget.repository.db.tasks,
       )..where((row) => row.id.equals(widget.task.id))).getSingle();
     }
+    elapsed.stop();
+    unawaited(
+      DiagnosticLogService.instance.event(
+        'interaction_latency',
+        fields: {
+          'interaction': 'task_edit_save',
+          'outcome': 'success',
+          'duration_ms': elapsed.elapsedMilliseconds,
+        },
+      ),
+    );
     return refreshed;
   }
 

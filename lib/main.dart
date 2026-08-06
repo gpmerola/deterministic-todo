@@ -31,6 +31,7 @@ import 'services/picked_file_reader_native.dart'
     if (dart.library.js_interop) 'services/picked_file_reader_web.dart';
 import 'services/platform_runtime_native.dart'
     if (dart.library.js_interop) 'services/platform_runtime_web.dart';
+import 'services/play_update_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
 import 'ui/link_text_editing_controller.dart';
@@ -323,13 +324,13 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!isPlayDistribution) await _checkForUpdates();
+      await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
     });
     if (!isPlayDistribution) {
       updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
-        if (appIsForeground) unawaited(_checkForUpdates());
+        if (appIsForeground) unawaited(_checkForUpdates(automatic: true));
       });
     }
   }
@@ -485,7 +486,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (lastUpdateCheck == null ||
           DateTime.now().difference(lastUpdateCheck!) >=
               const Duration(hours: 6)) {
-        if (!isPlayDistribution) unawaited(_checkForUpdates());
+        unawaited(_checkForUpdates(automatic: true));
       }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
@@ -506,17 +507,20 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _checkForUpdates() async {
+  Future<void> _checkForUpdates({bool automatic = false}) async {
     if (isPlayDistribution) {
-      await _openPlayStoreListing();
+      await _checkPlayUpdate(automatic: automatic);
       return;
     }
     if (checkingForUpdates) return;
     checkingForUpdates = true;
     lastUpdateCheck = DateTime.now();
+    final elapsed = Stopwatch()..start();
+    var result = 'current';
     try {
       final update = await UpdateService().check();
       if (update == null || !mounted) return;
+      result = 'available';
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
@@ -540,9 +544,74 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ],
         ),
       );
-    } on Object {
+    } on Object catch (error) {
+      result = 'error';
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'update_check',
+          level: 'warning',
+          fields: {
+            'channel': 'direct',
+            'result': result,
+            'automatic': automatic,
+            'error_type': error.runtimeType.toString(),
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       // Offline, timeout o manifest non valido: l'uso locale continua.
     } finally {
+      elapsed.stop();
+      if (result != 'error') {
+        unawaited(
+          DiagnosticLogService.instance.event(
+            'update_check',
+            fields: {
+              'channel': 'direct',
+              'result': result,
+              'automatic': automatic,
+              'duration_ms': elapsed.elapsedMilliseconds,
+            },
+          ),
+        );
+      }
+      checkingForUpdates = false;
+    }
+  }
+
+  Future<void> _checkPlayUpdate({required bool automatic}) async {
+    if (checkingForUpdates) return;
+    checkingForUpdates = true;
+    lastUpdateCheck = DateTime.now();
+    final elapsed = Stopwatch()..start();
+    var status = PlayUpdateStatus.error;
+    try {
+      status = await PlayUpdateService().check(startIfAvailable: true);
+      if (!automatic && mounted) {
+        if (status == PlayUpdateStatus.unavailable) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('L’app è aggiornata')));
+        } else if (status == PlayUpdateStatus.available ||
+            status == PlayUpdateStatus.unsupported ||
+            status == PlayUpdateStatus.error) {
+          await _openPlayStoreListing();
+        }
+      }
+    } finally {
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'update_check',
+          level: status == PlayUpdateStatus.error ? 'warning' : 'info',
+          fields: {
+            'channel': 'play',
+            'result': status.name,
+            'automatic': automatic,
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       checkingForUpdates = false;
     }
   }
@@ -666,6 +735,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     String? sectionId,
   }) async {
     if (controller.text.trim().isEmpty) return false;
+    final elapsed = Stopwatch()..start();
     try {
       final metadata = parseQuickAddMetadata(
         controller.text,
@@ -700,8 +770,31 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       lastQuickPriority = metadata.priority;
       lastQuickProjectId = metadata.projectId;
       controller.clear();
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'interaction_latency',
+          fields: {
+            'interaction': 'task_submit',
+            'outcome': 'success',
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       return true;
     } on FormatException catch (error) {
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'interaction_latency',
+          level: 'warning',
+          fields: {
+            'interaction': 'task_submit',
+            'outcome': 'invalid',
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       if (!mounted) return false;
       ScaffoldMessenger.of(
         context,
@@ -741,6 +834,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     String? projectId,
     String? sectionId,
   }) async {
+    final openElapsed = Stopwatch()..start();
+    var openLogged = false;
     final availableProjects = List<Project>.of(quickAddProjects);
     projectId ??= availableProjects.any((item) => item.id == lastQuickProjectId)
         ? lastQuickProjectId
@@ -769,6 +864,22 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
+          if (!openLogged) {
+            openLogged = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              openElapsed.stop();
+              unawaited(
+                DiagnosticLogService.instance.event(
+                  'interaction_latency',
+                  fields: {
+                    'interaction': 'composer_open',
+                    'outcome': 'visible',
+                    'duration_ms': openElapsed.elapsedMilliseconds,
+                  },
+                ),
+              );
+            });
+          }
           final currentKeyboardInset = MediaQuery.viewInsetsOf(context).bottom;
           if (currentKeyboardInset > 0) {
             keyboardWasVisible = true;
@@ -950,10 +1061,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   void _navigateTo(AppSection destination) {
     if (destination == section) return;
+    final elapsed = Stopwatch()..start();
     setState(() {
       sectionHistory.add(section);
       if (sectionHistory.length > 20) sectionHistory.removeAt(0);
       section = destination;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'interaction_latency',
+          fields: {
+            'interaction': 'screen_change',
+            'outcome': 'visible',
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
     });
   }
 

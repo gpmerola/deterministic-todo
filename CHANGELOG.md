@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.14
+
+- La build Google Play verifica automaticamente gli aggiornamenti dopo il
+  primo frame e al ritorno in primo piano, mostrando il flusso flessibile
+  ufficiale di Play soltanto quando una nuova versione è disponibile.
+- Il controllo manuale nelle Impostazioni usa la stessa API; se non è
+  disponibile sul dispositivo, apre come fallback la scheda Play Store.
+- Eliminato il doppio sync completo all'avvio causato dalla sovrapposizione tra
+  sessione già attiva ed evento iniziale di autenticazione.
+- La diagnostica anonima misura apertura composer/editor, cambio schermata,
+  salvataggio, creazione e completamento, senza registrare titoli, note o URL.
+
 ## 2.16.13
 
 - Gli aggiornamenti dello stato di sincronizzazione ricostruiscono soltanto la

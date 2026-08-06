@@ -32,8 +32,10 @@ class _TaskTileState extends State<TaskTile> {
   bool leavingAfterCompletion = false;
 
   Future<void> _setCompleted(bool completed) async {
+    final elapsed = Stopwatch()..start();
     if (!completed) {
       await widget.repository.setCompleted(widget.task, false);
+      elapsed.stop();
       return;
     }
     setState(() => confirmingCompletion = true);
@@ -41,6 +43,17 @@ class _TaskTileState extends State<TaskTile> {
     if (mounted) setState(() => leavingAfterCompletion = true);
     await Future<void>.delayed(const Duration(milliseconds: 85));
     await widget.repository.setCompleted(widget.task, true);
+    elapsed.stop();
+    unawaited(
+      DiagnosticLogService.instance.event(
+        'interaction_latency',
+        fields: {
+          'interaction': 'task_complete',
+          'outcome': 'success',
+          'duration_ms': elapsed.elapsedMilliseconds,
+        },
+      ),
+    );
   }
 
   @override
@@ -215,18 +228,39 @@ class _TaskTileState extends State<TaskTile> {
     );
   }
 
-  Future<void> _showEditor() => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    sheetAnimationStyle: const AnimationStyle(
-      duration: Duration(milliseconds: 45),
-      reverseDuration: Duration(milliseconds: 25),
-    ),
-    builder: (_) =>
-        TaskEditor(task: widget.task, repository: widget.repository),
-  );
+  Future<void> _showEditor() {
+    final elapsed = Stopwatch()..start();
+    var logged = false;
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      sheetAnimationStyle: const AnimationStyle(
+        duration: Duration(milliseconds: 45),
+        reverseDuration: Duration(milliseconds: 25),
+      ),
+      builder: (_) {
+        if (!logged) {
+          logged = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            elapsed.stop();
+            unawaited(
+              DiagnosticLogService.instance.event(
+                'interaction_latency',
+                fields: {
+                  'interaction': 'editor_open',
+                  'outcome': 'visible',
+                  'duration_ms': elapsed.elapsedMilliseconds,
+                },
+              ),
+            );
+          });
+        }
+        return TaskEditor(task: widget.task, repository: widget.repository);
+      },
+    );
+  }
 
   Future<void> _runAction(String action) async {
     if (action == 'edit') return _showEditor();

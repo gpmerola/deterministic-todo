@@ -111,5 +111,10 @@ class DiagnosticLogService {
     'uploaded_entities',
     'skipped_projects',
     'skipped_sections',
+    'channel',
+    'result',
+    'automatic',
+    'interaction',
+    'outcome',
   };
 }
