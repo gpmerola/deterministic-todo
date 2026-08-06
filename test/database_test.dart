@@ -107,6 +107,17 @@ void main() {
     expect(dates, ['2024-01-31', '2024-02-29', '2024-03-31']);
   });
 
+  test('la stessa occorrenza ha un id uguale su dispositivi diversi', () {
+    expect(
+      recurringOccurrenceId('series-a', '2026-08-08'),
+      recurringOccurrenceId('series-a', '2026-08-08'),
+    );
+    expect(
+      recurringOccurrenceId('series-a', '2026-08-08'),
+      isNot(recurringOccurrenceId('series-a', '2026-08-09')),
+    );
+  });
+
   test('completare una ricorrenza giornaliera crea il giorno dopo', () async {
     final today = CivilDate.fromDateTime(DateTime.now());
     final id = await repository.create(

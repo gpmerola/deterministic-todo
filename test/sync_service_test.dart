@@ -54,4 +54,24 @@ void main() {
     );
     expect(outboxOperationsChanged({'operation-a'}, {}), isTrue);
   });
+
+  test('riconosce solo il conflitto univoco delle ricorrenze', () {
+    expect(
+      isRecurringOccurrenceConflict(
+        const PostgrestException(
+          message:
+              'duplicate key value violates unique constraint '
+              '"tasks_user_id_series_id_occurrence_key_key"',
+          code: '23505',
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      isRecurringOccurrenceConflict(
+        const PostgrestException(message: 'rete', code: '500'),
+      ),
+      isFalse,
+    );
+  });
 }

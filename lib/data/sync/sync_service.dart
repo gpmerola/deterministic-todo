@@ -318,7 +318,17 @@ class SyncService {
           db.tasks,
         )..where((row) => row.id.isIn(pendingIds))).get();
         for (final task in pendingTasks) {
-          await client.rpc('merge_task', params: {'record': _remoteTask(task)});
+          try {
+            await client.rpc(
+              'merge_task',
+              params: {'record': _remoteTask(task)},
+            );
+          } on PostgrestException catch (error) {
+            if (!isRecurringOccurrenceConflict(error) ||
+                !await _reconcileRecurringOccurrence(task)) {
+              rethrow;
+            }
+          }
         }
         uploadedEntities = pendingTasks.length;
       }
@@ -700,6 +710,48 @@ class SyncService {
     return true;
   }
 
+  Future<bool> _reconcileRecurringOccurrence(Task local) async {
+    final seriesId = local.seriesId;
+    final occurrenceKey = local.occurrenceKey;
+    if (seriesId == null || occurrenceKey == null) return false;
+
+    final rows = await client
+        .from('tasks')
+        .select()
+        .eq('series_id', seriesId)
+        .eq('occurrence_key', occurrenceKey)
+        .limit(1);
+    if (rows.isEmpty) return false;
+    final remote = Map<String, dynamic>.from(rows.first);
+    final remoteId = remote['id'] as String;
+    if (remoteId == local.id) return false;
+
+    final localVersion = domain.LogicalVersion(
+      local.logicalVersion,
+      local.deviceId,
+    );
+    final remoteVersion = domain.LogicalVersion(
+      remote['logical_version'] as int,
+      remote['device_id'] as String,
+    );
+    Map<String, dynamic> canonical = remote;
+    if (localVersion.compareTo(remoteVersion) > 0) {
+      canonical = Map<String, dynamic>.from(_remoteTask(local))
+        ..['id'] = remoteId;
+      await client.rpc('merge_task', params: {'record': canonical});
+    }
+
+    await (db.delete(db.tasks)..where((row) => row.id.equals(local.id))).go();
+    await _mergeRemote(canonical, null);
+    unawaited(
+      DiagnosticLogService.instance.event(
+        'sync_recurrence_conflict_reconciled',
+        fields: {'local_won': identical(canonical, remote) ? 0 : 1},
+      ),
+    );
+    return true;
+  }
+
   Map<String, Object?> _remoteTask(Task task) => {
     'id': task.id,
     'user_id': client.auth.currentUser!.id,
@@ -784,6 +836,10 @@ Duration syncRetryDelay(int failureIndex) {
 
 bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>
     previous.length != current.length || !previous.containsAll(current);
+
+bool isRecurringOccurrenceConflict(PostgrestException error) =>
+    error.code == '23505' &&
+    error.message.contains('tasks_user_id_series_id_occurrence_key_key');
 
 bool shouldReconnectRealtime(RealtimeSubscribeStatus status) =>
     switch (status) {

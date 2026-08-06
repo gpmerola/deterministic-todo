@@ -386,7 +386,7 @@ class TaskRepository {
 
   Future<int> _insertOccurrence(Task source, CivilDate date) async {
     final seriesId = source.seriesId ?? source.id;
-    final id = _uuid.v4();
+    final id = recurringOccurrenceId(seriesId, date.toString());
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     final companion = TasksCompanion.insert(
       id: id,
@@ -512,3 +512,9 @@ class TaskRepository {
     'device_id': row.deviceId.value,
   });
 }
+
+String recurringOccurrenceId(String seriesId, String occurrenceKey) =>
+    const Uuid().v5(
+      Namespace.url.value,
+      'deterministic-todo:recurrence:$seriesId:$occurrenceKey',
+    );

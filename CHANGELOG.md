@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.18
+
+- Il sync riconcilia automaticamente le vecchie collisioni tra occorrenze
+  ricorrenti create in parallelo da Android e browser, conservando la versione
+  Lamport più recente invece di restare bloccato con errore Supabase `23505`.
+- Le nuove occorrenze ricorrenti usano un UUID v5 deterministico derivato da
+  serie e data civile: dispositivi diversi generano lo stesso record e non
+  possono più introdurre questa duplicazione.
+- La diagnostica registra soltanto l'avvenuta riconciliazione e quale lato ha
+  prevalso, senza titolo, descrizione, data o altri contenuti dell'utente.
+
 ## 2.16.17
 
 - Realtime ora rileva chiusure, timeout ed errori del canale e si riconnette

@@ -1,11 +1,11 @@
 # Stato corrente
 
-Aggiornato il 6 agosto 2026.
+Aggiornato il 7 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.16.17 build 61**.
+- Versione sorgente corrente: **2.16.18 build 62**.
 - Ultima release pubblica verificata: **2.16.17 build 61**.
 - Web, release Android pubblica e manifest di parità sono verificati sul commit
   `f433aee`.
@@ -28,6 +28,9 @@ Aggiornato il 6 agosto 2026.
   offline mentre l'app è visibile.
 - Task, progetti, sezioni, priorità, date civili, ricorrenze e tombstone sono
   sincronizzati. Non si sincronizzano segreti o contenuti dei log.
+- Le occorrenze ricorrenti hanno ID deterministici condivisi tra dispositivi;
+  il client riconcilia anche le collisioni storiche `23505` scegliendo la
+  versione Lamport più recente.
 
 ## Esperienza corrente
 
@@ -46,7 +49,7 @@ Aggiornato il 6 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 100 test automatici superati.
+- 103 test automatici superati.
 - Build web release completata localmente.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
