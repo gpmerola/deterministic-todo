@@ -7,6 +7,9 @@ Aggiornato il 6 agosto 2026.
 - Canali supportati: Android nativo e browser Chrome/Edge.
 - Versione sorgente corrente: **2.16.16 build 60**.
 - Ultima release pubblica verificata: **2.16.15 build 59**.
+- La 2.16.16 build 60 è verificata e compilata; la promozione resta sospesa
+  finché GitHub Pages non completa il deployment coordinato entro il limite
+  del servizio.
 - Il test interno Google Play è attivo; la 2.16.15 build 59 è disponibile alla
   lista `Test interno`. La produzione resta subordinata al test chiuso Google.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
