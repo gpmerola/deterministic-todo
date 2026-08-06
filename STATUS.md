@@ -6,8 +6,8 @@ Aggiornato il 6 agosto 2026.
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
 - Versione sorgente corrente: **2.16.14 build 58**.
-- Ultima release pubblica verificata: **2.16.13 build 57**.
-- Il test interno Google Play è attivo; la 2.16.13 build 57 è disponibile alla
+- Ultima release pubblica verificata: **2.16.14 build 58**.
+- Il test interno Google Play è attivo; la 2.16.14 build 58 è disponibile alla
   lista `Test interno`. La produzione resta subordinata al test chiuso Google.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
