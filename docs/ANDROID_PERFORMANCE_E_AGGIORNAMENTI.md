@@ -207,6 +207,10 @@ Flutter: disattivarla può lasciare nel registrant release plugin destinati ai
 soli test. Firma, test, APK universale e per ABI, AAB Play e controlli di parità
 restano invariati.
 
+Il deployment Pages tollera fino a 15 minuti di coda lato GitHub. Questo non
+allunga le build normali: evita soltanto di ricompilare Android quando il
+servizio Pages supera il proprio timeout predefinito di 10 minuti.
+
 La stessa versione evita retry artificiali della sincronizzazione: le modifiche
 ai soli metadati `attempts` e `last_error` dell'outbox non sono nuovo lavoro. Un
 nuovo tentativo avviene soltanto per una nuova operazione, per il timer di retry

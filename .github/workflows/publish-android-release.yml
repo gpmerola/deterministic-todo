@@ -220,6 +220,8 @@ jobs:
       - name: Deploy coordinated web release
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 900000
 
       - name: Verify deployed web identity
         env:
