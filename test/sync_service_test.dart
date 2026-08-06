@@ -30,4 +30,14 @@ void main() {
     expect(SyncService.shouldSyncForAuthChange('user-a', 'user-b'), isTrue);
     expect(SyncService.shouldSyncForAuthChange('user-a', null), isFalse);
   });
+
+  test('l aggiornamento dei tentativi non riavvia la coda outbox', () {
+    expect(outboxOperationsChanged({}, {'operation-a'}), isTrue);
+    expect(outboxOperationsChanged({'operation-a'}, {'operation-a'}), isFalse);
+    expect(
+      outboxOperationsChanged({'operation-a'}, {'operation-a', 'operation-b'}),
+      isTrue,
+    );
+    expect(outboxOperationsChanged({'operation-a'}, {}), isTrue);
+  });
 }

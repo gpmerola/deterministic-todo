@@ -41,7 +41,7 @@ jobs:
       build: ${{ steps.version.outputs.build }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate unpublished version
         id: version
@@ -82,7 +82,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -94,7 +94,7 @@ jobs:
       - name: Build web client
         run: |
           flutter pub get
-          flutter build web --release \
+          flutter build web --release --no-pub --no-wasm-dry-run \
             --base-href /deterministic-todo/ \
             --dart-define-from-file=supabase/config.json
           python3 - <<'PY'
@@ -128,7 +128,7 @@ jobs:
     environment: android-release
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -154,15 +154,15 @@ jobs:
       - name: Build signed APKs per CPU
         run: |
           flutter pub get
-          flutter build appbundle --release --flavor play \
+          flutter build appbundle --release --no-pub --flavor play \
             --split-debug-info=build/private-symbols/play \
             --dart-define=DISTRIBUTION_CHANNEL=play \
             --dart-define-from-file=supabase/config.json
-          flutter build apk --release --flavor direct \
+          flutter build apk --release --no-pub --flavor direct \
             --split-debug-info=build/private-symbols/universal \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
-          flutter build apk --release --flavor direct --split-per-abi \
+          flutter build apk --release --no-pub --flavor direct --split-per-abi \
             --split-debug-info=build/private-symbols \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json

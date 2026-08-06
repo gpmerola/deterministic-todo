@@ -45,6 +45,7 @@ class SyncService {
   bool _pullAllRequested = false;
   bool _paused = false;
   int _consecutiveFailures = 0;
+  Set<String> _observedOutboxOperations = const {};
   final Map<String, Set<String>> _pendingRealtimeIds = {
     'tasks': <String>{},
     'projects': <String>{},
@@ -83,7 +84,13 @@ class SyncService {
       }
     });
     _outbox = db.select(db.outboxEntries).watch().listen((entries) {
-      if (entries.isNotEmpty) _scheduleOutboxSync();
+      final operations = entries.map((entry) => entry.operationId).toSet();
+      final hasNewWork = outboxOperationsChanged(
+        _observedOutboxOperations,
+        operations,
+      );
+      _observedOutboxOperations = operations;
+      if (entries.isNotEmpty && hasNewWork) _scheduleOutboxSync();
     });
     _connectivity = Connectivity().onConnectivityChanged.listen((result) {
       if (result.contains(ConnectivityResult.none)) {
@@ -730,6 +737,9 @@ Duration syncRetryDelay(int failureIndex) {
   ];
   return delays[failureIndex.clamp(0, delays.length - 1)];
 }
+
+bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>
+    previous.length != current.length || !previous.containsAll(current);
 
 bool isTransientSyncError(Object error) {
   final type = error.runtimeType.toString().toLowerCase();
