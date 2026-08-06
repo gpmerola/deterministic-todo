@@ -5,8 +5,8 @@ Aggiornato il 7 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.16.18 build 62**.
-- Ultima release pubblica verificata: **2.16.17 build 61**.
+- Versione sorgente corrente: **2.16.19 build 63**.
+- Ultima release pubblica verificata: **2.16.18 build 62**.
 - Web, release Android pubblica e manifest di parità sono verificati sul commit
   `f433aee`.
 - Il test interno Google Play è attivo; la 2.16.17 build 61 è disponibile alla
@@ -21,7 +21,8 @@ Aggiornato il 7 agosto 2026.
 - SQLite Drift è la fonte locale immediata; Supabase con RLS è la replica
   personale facoltativa.
 - Le scritture locali entrano in una outbox persistente e vengono inviate
-  subito.
+  subito. Le ricevute remote sono immutabili e i retry usano inserimenti
+  idempotenti senza richiedere permessi di aggiornamento.
 - Supabase Realtime notifica Android e browser; dalla 2.16.0 vengono richiesti
   soltanto gli ID cambiati. Il canale si riapre dopo errori o timeout; un
   controllo completo ogni minuto recupera eventi persi, riprese e periodi

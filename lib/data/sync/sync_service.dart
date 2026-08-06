@@ -333,15 +333,22 @@ class SyncService {
         uploadedEntities = pendingTasks.length;
       }
       if (acknowledged.isNotEmpty) {
-        await client.from('sync_operations').upsert([
-          for (final entry in acknowledged)
-            {
-              'operation_id': entry.operationId,
-              'entity_id': entry.entityId,
-              'operation': entry.operation,
-              'payload': jsonDecode(entry.payload) as Map<String, Object?>,
-            },
-        ], onConflict: 'operation_id');
+        await client
+            .from('sync_operations')
+            .upsert(
+              [
+                for (final entry in acknowledged)
+                  {
+                    'operation_id': entry.operationId,
+                    'entity_id': entry.entityId,
+                    'operation': entry.operation,
+                    'payload':
+                        jsonDecode(entry.payload) as Map<String, Object?>,
+                  },
+              ],
+              onConflict: 'operation_id',
+              ignoreDuplicates: true,
+            );
         await db.transaction(() async {
           for (final entry in acknowledged) {
             await (db.delete(

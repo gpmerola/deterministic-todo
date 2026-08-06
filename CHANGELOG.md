@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.19
+
+- Le ricevute remote dell'outbox sono ora trattate come record immutabili:
+  durante un retry, un `operation_id` già confermato viene ignorato invece di
+  richiedere un aggiornamento vietato dalla RLS Supabase (`42501`).
+- La riconciliazione delle collisioni ricorrenti può quindi completare anche
+  quando la coda contiene ricevute già registrate da un tentativo precedente.
+
 ## 2.16.18
 
 - Il sync riconcilia automaticamente le vecchie collisioni tra occorrenze
