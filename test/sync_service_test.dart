@@ -1,10 +1,24 @@
 import 'package:deterministic_todo/data/sync/sync_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
-  test('il controllo periodico di sicurezza non usa polling frequente', () {
-    expect(SyncService.periodicInterval, const Duration(minutes: 15));
+  test('la riconciliazione limita le finestre silenziose di Realtime', () {
+    expect(SyncService.periodicInterval, const Duration(minutes: 1));
     expect(SyncService.eventDebounce, lessThan(const Duration(seconds: 1)));
+  });
+
+  test('un canale Realtime interrotto viene riaperto', () {
+    expect(
+      shouldReconnectRealtime(RealtimeSubscribeStatus.channelError),
+      isTrue,
+    );
+    expect(shouldReconnectRealtime(RealtimeSubscribeStatus.closed), isTrue);
+    expect(shouldReconnectRealtime(RealtimeSubscribeStatus.timedOut), isTrue);
+    expect(
+      shouldReconnectRealtime(RealtimeSubscribeStatus.subscribed),
+      isFalse,
+    );
   });
 
   test(

@@ -5,11 +5,10 @@ Aggiornato il 6 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.16.16 build 60**.
+- Versione sorgente corrente: **2.16.17 build 61**.
 - Ultima release pubblica verificata: **2.16.15 build 59**.
-- La 2.16.16 build 60 è verificata e compilata; la promozione resta sospesa
-  finché GitHub Pages non completa il deployment coordinato entro il limite
-  del servizio.
+- La 2.16.17 build 61 attende la ripresa di GitHub Actions/Pages per la release
+  coordinata.
 - Il test interno Google Play è attivo; la 2.16.15 build 59 è disponibile alla
   lista `Test interno`. La produzione resta subordinata al test chiuso Google.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -24,8 +23,9 @@ Aggiornato il 6 agosto 2026.
 - Le scritture locali entrano in una outbox persistente e vengono inviate
   subito.
 - Supabase Realtime notifica Android e browser; dalla 2.16.0 vengono richiesti
-  soltanto gli ID cambiati. Un controllo completo ogni 15 minuti recupera
-  eventi persi, riprese e periodi offline.
+  soltanto gli ID cambiati. Il canale si riapre dopo errori o timeout; un
+  controllo completo ogni minuto recupera eventi persi, riprese e periodi
+  offline mentre l'app è visibile.
 - Task, progetti, sezioni, priorità, date civili, ricorrenze e tombstone sono
   sincronizzati. Non si sincronizzano segreti o contenuti dei log.
 

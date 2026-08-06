@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.17
+
+- Realtime ora rileva chiusure, timeout ed errori del canale e si riconnette
+  automaticamente dopo due secondi.
+- Ogni nuova sottoscrizione esegue una riconciliazione completa, recuperando
+  modifiche avvenute durante la disconnessione senza attendere un evento nuovo.
+- La rete di sicurezza in foreground passa da 15 a 1 minuto: Realtime resta il
+  percorso immediato, mentre il pull periodico garantisce convergenza rapida.
+
 ## 2.16.16
 
 - La coda di sincronizzazione non interpreta più l'aggiornamento interno del

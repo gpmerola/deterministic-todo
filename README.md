@@ -83,8 +83,9 @@ client. Sul progetto personale devono essere state applicate, nell’ordine:
 
 Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
 Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e
-quindi l’interfaccia senza ricaricare la pagina. Il controllo ogni 15 minuti
-rimane soltanto come recupero dopo assenza di rete o sospensione del processo.
+quindi l’interfaccia senza ricaricare la pagina. Il canale si riapre dopo
+errori o timeout; il controllo ogni minuto mentre l'app è visibile rimane come
+recupero dopo assenza di rete o sospensione del processo.
 Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
 
 Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e

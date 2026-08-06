@@ -26,7 +26,7 @@ class SyncSnapshot {
 
 class SyncService {
   SyncService(this.db, this.client);
-  static const periodicInterval = Duration(minutes: 15);
+  static const periodicInterval = Duration(minutes: 1);
   static const eventDebounce = Duration(milliseconds: 120);
   final AppDatabase db;
   final SupabaseClient client;
@@ -39,6 +39,7 @@ class SyncService {
   Timer? _timer;
   Timer? _outboxTimer;
   Timer? _realtimeTimer;
+  Timer? _realtimeReconnectTimer;
   Timer? _retryTimer;
   Future<void>? _inFlight;
   bool _syncAgain = false;
@@ -122,6 +123,8 @@ class SyncService {
     _outboxTimer = null;
     _realtimeTimer?.cancel();
     _realtimeTimer = null;
+    _realtimeReconnectTimer?.cancel();
+    _realtimeReconnectTimer = null;
     _retryTimer?.cancel();
     _retryTimer = null;
   }
@@ -161,7 +164,45 @@ class SyncService {
         callback: (payload) => _queueRealtimeChange(table, payload),
       );
     }
-    _realtime = channel..subscribe();
+    _realtime = channel
+      ..subscribe((status, error) {
+        unawaited(_handleRealtimeStatus(channel, status, error));
+      });
+  }
+
+  Future<void> _handleRealtimeStatus(
+    RealtimeChannel channel,
+    RealtimeSubscribeStatus status,
+    Object? error,
+  ) async {
+    if (!identical(_realtime, channel)) return;
+    unawaited(
+      DiagnosticLogService.instance.event(
+        'realtime_status',
+        level: shouldReconnectRealtime(status) ? 'warning' : 'info',
+        fields: {'status': status.name},
+      ),
+    );
+    if (status == RealtimeSubscribeStatus.subscribed) {
+      _realtimeReconnectTimer?.cancel();
+      _realtimeReconnectTimer = null;
+      if (!_paused) unawaited(sync());
+      return;
+    }
+    if (!shouldReconnectRealtime(status)) return;
+    _realtime = null;
+    try {
+      await client.removeChannel(channel);
+    } on Object {
+      // La riconnessione deve proseguire anche se il vecchio canale è già
+      // irraggiungibile o è stato rimosso dal server.
+    }
+    if (_paused || client.auth.currentUser == null) return;
+    _realtimeReconnectTimer?.cancel();
+    _realtimeReconnectTimer = Timer(const Duration(seconds: 2), () {
+      _realtimeReconnectTimer = null;
+      if (!_paused) unawaited(_subscribeRealtime());
+    });
   }
 
   void _queueRealtimeChange(String table, PostgresChangePayload payload) {
@@ -217,6 +258,8 @@ class SyncService {
   }
 
   Future<void> _removeRealtime() async {
+    _realtimeReconnectTimer?.cancel();
+    _realtimeReconnectTimer = null;
     final channel = _realtime;
     _realtime = null;
     if (channel != null) await client.removeChannel(channel);
@@ -716,6 +759,7 @@ class SyncService {
     _timer?.cancel();
     _outboxTimer?.cancel();
     _realtimeTimer?.cancel();
+    _realtimeReconnectTimer?.cancel();
     _retryTimer?.cancel();
     await _connectivity?.cancel();
     await _auth?.cancel();
@@ -740,6 +784,14 @@ Duration syncRetryDelay(int failureIndex) {
 
 bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>
     previous.length != current.length || !previous.containsAll(current);
+
+bool shouldReconnectRealtime(RealtimeSubscribeStatus status) =>
+    switch (status) {
+      RealtimeSubscribeStatus.channelError ||
+      RealtimeSubscribeStatus.closed ||
+      RealtimeSubscribeStatus.timedOut => true,
+      RealtimeSubscribeStatus.subscribed => false,
+    };
 
 bool isTransientSyncError(Object error) {
   final type = error.runtimeType.toString().toLowerCase();
