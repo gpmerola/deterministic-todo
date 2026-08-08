@@ -465,7 +465,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        duration: const Duration(seconds: 6),
+        duration: const Duration(seconds: 5),
+        persist: false,
         content: const Text('Diagnostica prestazioni disponibile'),
         action: SnackBarAction(
           label: 'Apri',
@@ -1228,13 +1229,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
-                        if (selectedDesktopTask != null) ...[
-                          const VerticalDivider(width: 1),
-                          SizedBox(
-                            width: 330,
-                            child: _desktopTaskDetails(selectedDesktopTask),
-                          ),
-                        ],
+                        AnimatedSize(
+                          duration: _pageMotion,
+                          reverseDuration: _pageMotionOut,
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.centerRight,
+                          child: selectedDesktopTask == null
+                              ? const SizedBox.shrink()
+                              : SizedBox(
+                                  width: 331,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      const VerticalDivider(width: 1),
+                                      Expanded(
+                                        child: ClipRect(
+                                          child: AnimatedSwitcher(
+                                            duration: _microMotion,
+                                            child: _desktopTaskDetails(
+                                              selectedDesktopTask,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
                       ],
                     ),
                   ),

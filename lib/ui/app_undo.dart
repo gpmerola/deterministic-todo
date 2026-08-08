@@ -13,6 +13,10 @@ abstract final class AppUndo {
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          // Anche con servizi di accessibilità attivi l'annuncio non deve
+          // diventare un elemento permanente dell'interfaccia.
+          persist: false,
           content: Text(message),
           action: SnackBarAction(
             label: 'Annulla',

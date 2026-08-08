@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.17.2
+
+- Gli annunci con azioni, incluso Undo, ora scompaiono dopo cinque secondi
+  anche quando Android o il browser hanno l'accessibilità di navigazione attiva.
+- Il pannello dettagli desktop entra, esce e cambia attività con una breve
+  transizione coordinata, senza modificare l'apertura istantanea del `+`.
+
 ## 2.17.1
 
 - Il composer mostra ora il titolo come riga larga sopra descrizione, priorità,

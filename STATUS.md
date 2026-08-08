@@ -5,7 +5,7 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.17.1 build 67**.
+- Versione sorgente in pubblicazione: **2.17.2 build 68**.
 - Ultima release pubblica verificata: **2.17.1 build 67**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
   verificati sul commit `b366e97`.
@@ -56,7 +56,7 @@ Aggiornato l'8 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 111 test automatici superati, incluso uno scenario di convergenza con due
+- 112 test automatici superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
 - Build web release completata localmente. La build Android locale non è
   disponibile su questo Mac perché manca l'Android SDK; la pipeline firmata

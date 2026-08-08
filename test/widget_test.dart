@@ -366,6 +366,25 @@ void main() {
     await db.close();
   });
 
+  testWidgets('l annuncio con Undo scompare automaticamente', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Annuncio temporaneo');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.drag(find.text('Annuncio temporaneo'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Spostata nel cestino'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.text('Spostata nel cestino'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('lo swipe elimina solo verso sinistra oltre una soglia lunga', (
     tester,
   ) async {

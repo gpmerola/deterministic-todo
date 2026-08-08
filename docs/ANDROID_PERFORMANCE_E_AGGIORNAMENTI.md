@@ -160,6 +160,12 @@ Il composer rapido resta escluso: `sheetAnimationStyle` mantiene durata e
 durata inversa a zero, così il percorso `+` → tastiera → invio non subisce
 regressioni.
 
+La 2.17.2 limita a cinque secondi gli annunci con azione e imposta
+esplicitamente `persist: false`: Undo e promemoria non restano bloccati quando
+il sistema segnala navigazione accessibile. Il pannello dettagli desktop usa
+una sola transizione di dimensione da 140 ms e un cambio contenuto da 110 ms;
+il composer continua ad avere durata zero.
+
 ## Telemetria prestazionale locale
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:
