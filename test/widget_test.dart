@@ -115,6 +115,47 @@ void main() {
     await db.close();
   });
 
+  testWidgets('Oggi separa visivamente attività arretrate e correnti', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final today = CivilDate.fromDateTime(DateTime.now());
+    await repository.create(
+      'Task arretrata',
+      status: TaskStatus.available,
+      showDate: today.addDays(-1).toString(),
+    );
+    await repository.create(
+      'Task odierna',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+    );
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    final overdueHeader = find.byKey(const ValueKey('today-group-overdue'));
+    final currentHeader = find.byKey(const ValueKey('today-group-current'));
+    expect(overdueHeader, findsOneWidget);
+    expect(currentHeader, findsOneWidget);
+    expect(
+      tester.getTopLeft(overdueHeader).dy,
+      lessThan(tester.getTopLeft(find.text('Task arretrata')).dy),
+    );
+    expect(
+      tester.getTopLeft(find.text('Task arretrata')).dy,
+      lessThan(tester.getTopLeft(currentHeader).dy),
+    );
+    expect(
+      tester.getTopLeft(currentHeader).dy,
+      lessThan(tester.getTopLeft(find.text('Task odierna')).dy),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('Impostazioni è raggiungibile su uno schermo Android', (
     tester,
   ) async {

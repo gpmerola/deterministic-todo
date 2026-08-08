@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.5
+
+- La vista Oggi separa ora le attività arretrate dalle attività odierne con due
+  intestazioni leggere; le arretrate restano in alto e non vengono
+  riprogrammate automaticamente.
+- Priorità e ordinamento stabile continuano ad applicarsi all'interno di ogni
+  gruppo senza caricare anticipatamente l'intera lista nell'interfaccia.
+
 ## 2.18.4
 
 - `Esc` chiude ora prima l'editor laterale Web senza cambiare sezione.

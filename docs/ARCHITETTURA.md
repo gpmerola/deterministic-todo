@@ -70,6 +70,11 @@ Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltant
 
 La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta navigazione e larghezza al mouse e alla tastiera e presenta la task selezionata come editor inline nella colonna destra; riusa `TaskEditor`, repository e stream esistenti senza duplicare il dominio. Non sono registrate scorciatoie globali di creazione o ricerca: resta soltanto `Esc`, che chiude prima l'editor laterale e poi torna indietro, mentre Invio fisico nel titolo viene gestito localmente dall'editor e salva. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete. Il repository restituisce alla UI la data civile realmente materializzata dopo il completamento di una ricorrenza, evitando di duplicare nel livello grafico il calcolo del calendario.
 
+La vista Oggi partiziona in memoria il solo snapshot attivo già osservato in
+Arretrate (`show_date < data civile locale`) e Oggi, conservando la lista lazy e
+l'ordinamento per priorità dentro ogni gruppo. La partizione è esclusivamente
+visiva: non modifica stato, data o sincronizzazione delle attività.
+
 ## Privacy e backup
 
 Titoli e note risiedono nel database locale e, dopo login/sync, nel progetto Supabase dell'utente. Non ci sono analytics né logging del contenuto. La diagnostica salva esclusivamente eventi e conteggi consentiti, con versione/build e un ID casuale limitato alla singola apertura; ruota su file Android o IndexedDB browser e viene esportata soltanto su comando. JSON versionato è il formato completo e validato; CSV è interoperabile ma non costituisce un backup completo. L'interfaccia di backup separa serializzazione e destinazione, così potrà aggiungere cifratura autenticata senza cambiare il dominio.

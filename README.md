@@ -100,6 +100,8 @@ scrittura. Clic destro e pressione lunga
 aprono le sole azioni essenziali.
 Gli avvisi temporanei possono essere chiusi immediatamente con la `X`; quando
 si completa una ricorrenza mostrano anche la data della prossima occorrenza.
+In Oggi, le attività non concluse nei giorni precedenti restano visibili in un
+gruppo Arretrate separato, senza modificare automaticamente la loro data.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.

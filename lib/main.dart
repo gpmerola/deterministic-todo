@@ -1472,34 +1472,109 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               ? 'Nessuna attività completata'
                               : 'Nessuna attività',
                         )
+                      : section == AppSection.today
+                      ? _todayList(visible, today)
                       : ListView.builder(
                           key: PageStorageKey('task-list-${section.name}'),
                           padding: const EdgeInsets.only(bottom: 24),
                           itemCount: visible.length,
-                          itemBuilder: (context, index) => TaskTile(
-                            key: ValueKey(visible[index].id),
-                            task: visible[index],
-                            repository: widget.repository,
-                            highlightRemote: recentlySyncedTaskIds.contains(
-                              visible[index].id,
-                            ),
-                            dense: section == AppSection.completed,
-                            showDateMetadata:
-                                section != AppSection.today &&
-                                section != AppSection.upcoming,
-                            onSelected: MediaQuery.sizeOf(context).width >= 900
-                                ? () => setState(
-                                    () => selectedDesktopTaskId =
-                                        visible[index].id,
-                                  )
-                                : null,
-                          ),
+                          itemBuilder: (context, index) =>
+                              _taskTile(visible[index]),
                         ),
                 ),
         ),
       ],
     );
   }
+
+  Widget _taskTile(Task task) => TaskTile(
+    key: ValueKey(task.id),
+    task: task,
+    repository: widget.repository,
+    highlightRemote: recentlySyncedTaskIds.contains(task.id),
+    dense: section == AppSection.completed,
+    showDateMetadata:
+        section != AppSection.today && section != AppSection.upcoming,
+    onSelected: MediaQuery.sizeOf(context).width >= 900
+        ? () => setState(() => selectedDesktopTaskId = task.id)
+        : null,
+  );
+
+  Widget _todayList(List<Task> tasks, String today) {
+    final overdue = <Task>[];
+    final current = <Task>[];
+    for (final task in tasks) {
+      if (task.showDate != null && task.showDate!.compareTo(today) < 0) {
+        overdue.add(task);
+      } else {
+        current.add(task);
+      }
+    }
+    if (overdue.isEmpty) {
+      return ListView.builder(
+        key: const PageStorageKey('task-list-today'),
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: current.length,
+        itemBuilder: (_, index) => _taskTile(current[index]),
+      );
+    }
+    final currentHeaderIndex = overdue.length + 1;
+    final itemCount =
+        currentHeaderIndex + (current.isEmpty ? 0 : 1) + current.length;
+    return ListView.builder(
+      key: const PageStorageKey('task-list-today'),
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: itemCount,
+      itemBuilder: (_, index) {
+        if (index == 0) {
+          return _todayGroupHeader(
+            key: const ValueKey('today-group-overdue'),
+            label: 'Arretrate',
+            overdue: true,
+          );
+        }
+        if (index <= overdue.length) return _taskTile(overdue[index - 1]);
+        if (current.isNotEmpty && index == currentHeaderIndex) {
+          return _todayGroupHeader(
+            key: const ValueKey('today-group-current'),
+            label: 'Oggi',
+          );
+        }
+        final currentIndex = index - currentHeaderIndex - 1;
+        return _taskTile(current[currentIndex]);
+      },
+    );
+  }
+
+  Widget _todayGroupHeader({
+    required Key key,
+    required String label,
+    bool overdue = false,
+  }) => Padding(
+    key: key,
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+    child: Row(
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: overdue
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Divider(
+            color: overdue
+                ? Theme.of(context).colorScheme.error.withValues(alpha: 0.28)
+                : null,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _desktopItemDetails(Task task) => Padding(
     key: ValueKey('desktop-detail-${task.id}'),
