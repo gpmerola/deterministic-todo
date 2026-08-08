@@ -220,7 +220,7 @@ void main() {
       find.byKey(const ValueKey('task-editor-title')),
       'Dettaglio modificato',
     );
-    await tester.tap(find.byKey(const ValueKey('task-editor-save')));
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.text('Dettaglio modificato'), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -886,6 +886,16 @@ void main() {
     expect(
       tester.getSize(find.byType(TaskEditor)).height,
       lessThanOrEqualTo(460),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('task-editor-title')),
+      'Editor confermato con Invio',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(
+      (await db.select(db.tasks).getSingle()).title,
+      'Editor confermato con Invio',
     );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

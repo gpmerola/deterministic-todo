@@ -5,11 +5,11 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in preparazione: **2.17.4 build 70**.
-- Ultima release pubblica verificata: **2.17.3 build 69**.
+- Versione sorgente in preparazione: **2.17.5 build 71**.
+- Ultima release pubblica verificata: **2.17.4 build 70**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
-  verificati sul commit `63f6031`.
-- Il test interno Google Play è attivo; la 2.17.3 build 69 è disponibile alla
+  verificati sul commit `f25278b`.
+- Il test interno Google Play è attivo; la 2.17.4 build 70 è disponibile alla
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -44,6 +44,8 @@ Aggiornato l'8 agosto 2026.
 - Il composer riconosce linguaggio naturale, `#Progetto`, `p1`–`p4` e link;
   ricorda il progetto recente, parte sempre senza priorità e resta fermo durante
   gli assestamenti della tastiera Android.
+- Nel campo titolo Invio conferma sia la creazione sia la modifica in ogni
+  sezione; la descrizione conserva il comportamento multilinea.
 - La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
   non possono più avviare per errore il trascinamento verso il cestino.
 - L'Undo usa un solo comportamento per task, progetti e sezioni e, sulle

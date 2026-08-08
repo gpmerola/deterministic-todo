@@ -176,6 +176,11 @@ soltanto mentre una task è selezionata e viene ricreata quando cambia la sua
 versione locale. Non aggiunge query, timer o dipendenze; elimina invece il
 secondo passaggio e la seconda route necessari per modificare dal browser.
 
+La 2.17.5 instrada Invio e il pulsante Salva nella stessa funzione dell'editor.
+Un flag locale ignora conferme duplicate durante la singola transazione; non
+aggiunge timer, listener o lavoro a riposo. Il campo descrizione resta
+multilinea e non intercetta Invio.
+
 ## Telemetria prestazionale locale
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:

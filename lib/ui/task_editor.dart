@@ -35,6 +35,7 @@ class _TaskEditorState extends State<TaskEditor> {
   late String? projectId = widget.task.projectId;
   late String? projectSectionId = widget.task.sectionId;
   late int priority = widget.task.priority;
+  bool saving = false;
 
   @override
   void dispose() {
@@ -102,6 +103,27 @@ class _TaskEditorState extends State<TaskEditor> {
     return refreshed;
   }
 
+  Future<void> _commit() async {
+    if (saving) return;
+    setState(() => saving = true);
+    try {
+      final saved = await _save();
+      if (!mounted) return;
+      if (widget.embedded) {
+        widget.onSaved?.call(saved);
+      } else {
+        Navigator.pop(context);
+      }
+    } on FormatException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   Future<void> _saveAndExportToCalendar() async {
     try {
       final saved = await _save();
@@ -154,6 +176,8 @@ class _TaskEditorState extends State<TaskEditor> {
                       autofocus: !widget.embedded,
                       minLines: 1,
                       maxLines: 3,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _commit(),
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         hintText: 'Cosa devi fare?',
@@ -278,17 +302,9 @@ class _TaskEditorState extends State<TaskEditor> {
                 ),
                 FilledButton.icon(
                   key: const ValueKey('task-editor-save'),
-                  onPressed: () async {
-                    final saved = await _save();
-                    if (!context.mounted) return;
-                    if (widget.embedded) {
-                      widget.onSaved?.call(saved);
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
+                  onPressed: saving ? null : _commit,
                   icon: const Icon(Icons.check),
-                  label: const Text('Salva'),
+                  label: Text(saving ? 'Salvataggio' : 'Salva'),
                 ),
               ],
             ),

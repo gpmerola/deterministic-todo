@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.17.5
+
+- Invio nel titolo conferma ora anche la modifica, sia nell'editor inline web
+  sia nel foglio Android; la descrizione resta intenzionalmente multilinea.
+- Creazione e modifica condividono una sola operazione di conferma, protetta da
+  doppi invii mentre il salvataggio locale è in corso.
+
 ## 2.17.4
 
 - Sul desktop il pannello laterale è ora direttamente un editor: titolo,

@@ -92,7 +92,9 @@ Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
 `p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende
 leggibili i link incollati. Su desktop `N` crea, `/` cerca ed `Esc` torna
 indietro; selezionare una task apre sulla destra l'editor completo senza un
-secondo dialogo. Clic destro e pressione lunga aprono le sole azioni essenziali.
+secondo dialogo. Invio conferma il titolo sia in creazione sia in modifica;
+nelle descrizioni rimane un normale a capo. Clic destro e pressione lunga
+aprono le sole azioni essenziali.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.
