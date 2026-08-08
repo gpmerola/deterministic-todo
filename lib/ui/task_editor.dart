@@ -116,9 +116,9 @@ class _TaskEditorState extends State<TaskEditor> {
       }
     } on FormatException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message.toString()), showCloseIcon: true),
+      );
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -145,7 +145,10 @@ class _TaskEditorState extends State<TaskEditor> {
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       messenger.showSnackBar(
-        SnackBar(content: Text('Aggiunta a ${result.calendarName}')),
+        SnackBar(
+          content: Text('Aggiunta a ${result.calendarName}'),
+          showCloseIcon: true,
+        ),
       );
     } on Object catch (error) {
       if (!mounted) return;
@@ -154,7 +157,7 @@ class _TaskEditorState extends State<TaskEditor> {
           : 'Impossibile aggiungere al calendario.';
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(SnackBar(content: Text(message), showCloseIcon: true));
     }
   }
 
@@ -457,14 +460,20 @@ class _TaskEditorState extends State<TaskEditor> {
 
   void _showSelectLinkedTextMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Seleziona il testo collegato.')),
+      const SnackBar(
+        content: Text('Seleziona il testo collegato.'),
+        showCloseIcon: true,
+      ),
     );
   }
 
   Future<void> _addLinkToSelection(LinkTextEditingController controller) async {
     if (controller.selectedText?.trim().isEmpty ?? true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Prima seleziona il testo da collegare.')),
+        const SnackBar(
+          content: Text('Prima seleziona il testo da collegare.'),
+          showCloseIcon: true,
+        ),
       );
       return;
     }
@@ -495,7 +504,10 @@ class _TaskEditorState extends State<TaskEditor> {
     if (value == null || !mounted) return;
     if (!controller.addLink(value)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inserisci un indirizzo valido.')),
+        const SnackBar(
+          content: Text('Inserisci un indirizzo valido.'),
+          showCloseIcon: true,
+        ),
       );
     } else {
       setState(() {});

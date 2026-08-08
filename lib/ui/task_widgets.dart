@@ -47,7 +47,7 @@ class _TaskTileState extends State<TaskTile> {
     // Previously the stream rebuilt the list midway through the 200–220 ms
     // animation, which made the surrounding rows jump.
     await Future<void>.delayed(const Duration(milliseconds: 145));
-    await widget.repository.setCompleted(widget.task, true);
+    final nextDate = await widget.repository.setCompleted(widget.task, true);
     elapsed.stop();
     unawaited(
       DiagnosticLogService.instance.event(
@@ -62,9 +62,9 @@ class _TaskTileState extends State<TaskTile> {
     if (mounted) {
       AppUndo.show(
         context,
-        message: widget.task.recurrence == null
+        message: nextDate == null
             ? 'Attività completata'
-            : 'Completata e riprogrammata',
+            : 'Completata · prossima: ${DateFormat('EEEE d MMMM yyyy', 'it').format(nextDate.asLocalDate)}',
         undo: () => widget.repository.undoCompletion(widget.task),
       );
     }

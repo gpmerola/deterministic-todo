@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.4
+
+- `Esc` chiude ora prima l'editor laterale Web senza cambiare sezione.
+- Completando una ricorrenza, l'avviso indica il giorno esatto della prossima
+  occorrenza generata.
+- Tutti gli avvisi temporanei espongono un pulsante di chiusura immediata su
+  Android e Web, mantenendo la scomparsa automatica.
+
 ## 2.18.3
 
 - Rimosse tutte le scorciatoie globali di creazione e ricerca, incluse le

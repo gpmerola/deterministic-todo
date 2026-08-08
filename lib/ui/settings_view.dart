@@ -82,7 +82,10 @@ class SettingsView extends StatelessWidget {
       await service.importValidated(source);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Importazione completata')),
+          const SnackBar(
+            content: Text('Importazione completata'),
+            showCloseIcon: true,
+          ),
         );
       }
     }
@@ -242,7 +245,9 @@ class SettingsView extends StatelessWidget {
         );
       }
     } on FormatException catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(error.message), showCloseIcon: true),
+      );
     } on PostgrestException {
       messenger.showSnackBar(
         const SnackBar(
@@ -250,12 +255,14 @@ class SettingsView extends StatelessWidget {
             'Prima esegui in Supabase la migrazione '
             '202608040002_todoist_import.sql. Nessun dato è stato importato.',
           ),
+          showCloseIcon: true,
         ),
       );
     } on Object {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Import Todoist non riuscito: nessun dato modificato.'),
+          showCloseIcon: true,
         ),
       );
     }
@@ -322,9 +329,12 @@ class SettingsView extends StatelessWidget {
     if (confirmed != true) return;
     await repository.resetAllLocalData();
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Dati locali cancellati')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dati locali cancellati'),
+          showCloseIcon: true,
+        ),
+      );
     }
   }
 

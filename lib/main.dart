@@ -361,6 +361,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
     unawaited(_initializeProjectCaches());
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted(limit: 200);
@@ -455,6 +456,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       SnackBar(
         duration: const Duration(seconds: 5),
         persist: false,
+        showCloseIcon: true,
         content: const Text('Diagnostica prestazioni disponibile'),
         action: SnackBarAction(
           label: 'Apri',
@@ -634,9 +636,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       status = await PlayUpdateService().check(startIfAvailable: true);
       if (!automatic && mounted) {
         if (status == PlayUpdateStatus.unavailable) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('L’app è aggiornata')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('L’app è aggiornata'),
+              showCloseIcon: true,
+            ),
+          );
         } else if (status == PlayUpdateStatus.available ||
             status == PlayUpdateStatus.unsupported ||
             status == PlayUpdateStatus.error) {
@@ -680,7 +685,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     );
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossibile aprire Google Play')),
+        const SnackBar(
+          content: Text('Impossibile aprire Google Play'),
+          showCloseIcon: true,
+        ),
       );
     }
   }
@@ -764,11 +772,22 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
     remoteHighlightTimer?.cancel();
     remoteTaskSubscription?.cancel();
     search.dispose();
     super.dispose();
+  }
+
+  bool _handleDesktopEscape(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape ||
+        selectedDesktopTaskId == null) {
+      return false;
+    }
+    setState(() => selectedDesktopTaskId = null);
+    return true;
   }
 
   Future<bool> _createFrom(
@@ -839,9 +858,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ),
       );
       if (!mounted) return false;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message.toString()), showCloseIcon: true),
+      );
       return false;
     }
   }
@@ -1125,7 +1144,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   void _handleBack() {
     setState(() {
-      if (section == AppSection.projects && selectedProjectId != null) {
+      if (selectedDesktopTaskId != null) {
+        selectedDesktopTaskId = null;
+      } else if (section == AppSection.projects && selectedProjectId != null) {
         selectedProjectId = null;
       } else if (sectionHistory.isNotEmpty) {
         section = sectionHistory.removeLast();
@@ -1503,12 +1524,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: TaskEditor(
-            key: ValueKey('desktop-inline-editor-${task.id}-${task.updatedAt}'),
-            task: task,
-            repository: widget.repository,
-            embedded: true,
-            onDeleted: () => setState(() => selectedDesktopTaskId = null),
+          child: Focus(
+            onKeyEvent: (_, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.escape) {
+                setState(() => selectedDesktopTaskId = null);
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TaskEditor(
+              key: ValueKey(
+                'desktop-inline-editor-${task.id}-${task.updatedAt}',
+              ),
+              task: task,
+              repository: widget.repository,
+              embedded: true,
+              onDeleted: () => setState(() => selectedDesktopTaskId = null),
+            ),
           ),
         ),
       ],

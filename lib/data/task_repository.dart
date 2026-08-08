@@ -272,7 +272,7 @@ class TaskRepository {
         ),
       );
 
-  Future<void> setCompleted(Task task, bool completed) async {
+  Future<CivilDate?> setCompleted(Task task, bool completed) async {
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     await _update(
       task,
@@ -287,10 +287,9 @@ class TaskRepository {
     if (completed && rule != null) {
       final today = CivilDate.fromDateTime(DateTime.now());
       if (rule.type == RecurrenceType.afterCompletion) {
-        await _insertOccurrence(
-          task,
-          afterCompletionOccurrence(completedOn: today, rule: rule),
-        );
+        final next = afterCompletionOccurrence(completedOn: today, rule: rule);
+        await _insertOccurrence(task, next);
+        return next;
       } else if (task.showDate != null) {
         final anchor = await _seriesAnchor(task);
         var next = nextOccurrence(
@@ -302,8 +301,10 @@ class TaskRepository {
           next = nextOccurrence(anchor, next, rule);
         }
         await _insertOccurrence(task, next);
+        return next;
       }
     }
+    return null;
   }
 
   Future<void> undoCompletion(Task task) async {

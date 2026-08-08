@@ -133,10 +133,11 @@ void main() {
       db.tasks,
     )..where((row) => row.id.equals(id))).getSingle();
 
-    await repository.setCompleted(current, true);
+    final nextDate = await repository.setCompleted(current, true);
 
     final tasks = await db.select(db.tasks).get();
     expect(tasks, hasLength(2));
+    expect(nextDate, today.addDays(1));
     expect(
       tasks
           .singleWhere((task) => task.status != TaskStatus.completed.name)

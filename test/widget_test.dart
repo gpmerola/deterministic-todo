@@ -8,6 +8,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   test('la descrizione accessibile non dipende solo dal colore', () {
@@ -226,6 +227,10 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.text('Dettaglio modificato'), findsWidgets);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.text('Dettagli'), findsNothing);
+    expect(find.byKey(const ValueKey('task-editor-title')), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
@@ -425,7 +430,27 @@ void main() {
     await tester.drag(find.text('Annuncio temporaneo'), const Offset(-500, 0));
     await tester.pumpAndSettle();
     expect(find.text('Spostata nel cestino'), findsOneWidget);
+    expect(find.byTooltip('Chiudi'), findsOneWidget);
     await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.text('Spostata nel cestino'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('il pulsante Chiudi rimuove subito un avviso', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Chiudi annuncio');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.drag(find.text('Chiudi annuncio'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Spostata nel cestino'), findsOneWidget);
+    await tester.tap(find.byTooltip('Chiudi'));
     await tester.pumpAndSettle();
     expect(find.text('Spostata nel cestino'), findsNothing);
 
@@ -887,6 +912,39 @@ void main() {
 
     await tester.pumpAndSettle();
     expect((await db.select(db.tasks).getSingle()).status, 'completed');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('una ricorrenza completata annuncia la prossima data', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final today = CivilDate.fromDateTime(DateTime.now());
+    await repository.create(
+      'Ricorrenza annunciata',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump(const Duration(milliseconds: 220));
+    await tester.pump();
+
+    final expected = DateFormat(
+      'EEEE d MMMM yyyy',
+      'it',
+    ).format(today.addDays(1).asLocalDate);
+    expect(find.text('Completata · prossima: $expected'), findsOneWidget);
+    expect(find.byTooltip('Chiudi'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

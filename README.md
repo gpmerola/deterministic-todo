@@ -98,6 +98,8 @@ nelle descrizioni rimane un normale a capo. Non sono attive scorciatoie globali
 di creazione o ricerca: `Esc` chiude o torna indietro senza interferire con la
 scrittura. Clic destro e pressione lunga
 aprono le sole azioni essenziali.
+Gli avvisi temporanei possono essere chiusi immediatamente con la `X`; quando
+si completa una ricorrenza mostrano anche la data della prossima occorrenza.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.

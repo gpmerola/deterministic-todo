@@ -5,7 +5,7 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.18.3 build 75**.
+- Versione sorgente in preparazione: **2.18.4 build 76**.
 - Ultima release pubblica verificata: **2.18.3 build 75** (commit `410f78a`).
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
   verificati sul commit `410f78a`.

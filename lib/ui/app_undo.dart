@@ -17,6 +17,7 @@ abstract final class AppUndo {
           // Anche con servizi di accessibilità attivi l'annuncio non deve
           // diventare un elemento permanente dell'interfaccia.
           persist: false,
+          showCloseIcon: true,
           content: Text(message),
           action: SnackBarAction(
             label: 'Annulla',
