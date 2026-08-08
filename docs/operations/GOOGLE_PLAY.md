@@ -8,7 +8,7 @@
 - Lingua predefinita: italiano; app gratuita.
 - Protezione automatica Play disattivata per conservare il canale APK diretto.
 - Test interno attivo dal 5 agosto 2026; lista `Test interno` configurata e
-  build 61 (2.16.17) disponibile ai tester autorizzati dal 7 agosto 2026.
+  build 64 (2.16.20) disponibile ai tester autorizzati dall'8 agosto 2026.
 
 ## Firma e transizione
 
@@ -35,14 +35,29 @@ degli APK diretti: per passare dall'APK già installato alla build Play occorre
 sincronizzare, disinstallare una sola volta e reinstallare dal link di test.
 Non tentare un aggiornamento in-place tra i due canali.
 
+## Pubblicazione automatica
+
+La pipeline pubblica automaticamente l'AAB firmato nel track `internal` solo
+dopo che test, build Android e deploy Web sono riusciti. L'identità dedicata
+`deterministic-todo-play-publis@deterministic-todo-play-api.iam.gserviceaccount.com`
+ha accesso esclusivamente a Deterministic Todo e alle release dei canali di
+test: non possiede autorizzazioni di produzione o finanziarie. La credenziale è
+conservata soltanto nel secret `PLAY_SERVICE_ACCOUNT_JSON` dell'environment
+GitHub `android-release`.
+
+Il job `publish-google-play` è una dipendenza obbligatoria del controllo finale
+di parità: una release non risulta completata se Play rifiuta l'AAB. La
+produzione resta sempre manuale.
+
 ## Procedura di release
 
 1. Incrementare versione e build in `pubspec.yaml`.
 2. Commit e push avviano `.github/workflows/publish-android-release.yml`.
 3. Verificare test, deploy web e parità pubblica.
-4. Scaricare `DeterministicTodo-Android.aab` dalla release corrispondente.
-5. Caricare l'AAB nel track interno o chiuso di Play Console.
-6. Verificare versione, package ID e certificato di upload prima di promuovere.
+4. La pipeline carica automaticamente `DeterministicTodo-Android.aab` nel test
+   interno e verifica che Google Play accetti la build.
+5. Verificare la disponibilità ai tester prima di promuovere manualmente verso
+   un altro canale.
 
 ## Vincolo nuovo account personale
 

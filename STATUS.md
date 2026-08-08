@@ -5,12 +5,13 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.16.20 build 64**.
+- Versione sorgente corrente: **2.16.21 build 65**.
 - Ultima release pubblica verificata: **2.16.20 build 64**.
 - Web, release Android pubblica e manifest di parità sono verificati sul commit
   `3cf8a77`.
-- Il test interno Google Play è attivo; la 2.16.17 build 61 è disponibile alla
-  lista `Test interno`. La produzione resta subordinata al test chiuso Google.
+- Il test interno Google Play è attivo; la 2.16.20 build 64 è disponibile alla
+  lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
+  test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti.
 - La stessa pipeline produce APK per gli aggiornamenti diretti e AAB firmato

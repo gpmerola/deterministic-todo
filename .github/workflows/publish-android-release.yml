@@ -281,8 +281,35 @@ jobs:
             --output published-manifest.json
           cmp release-assets/manifest.json published-manifest.json
 
+  publish-google-play:
+    needs: [verify, build-android, deploy-web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: android-release
+    steps:
+      - name: Download staged Android release
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-${{ needs.verify.outputs.version }}
+          path: release-assets
+
+      - name: Require dedicated Google Play identity
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: test -n "$PLAY_SERVICE_ACCOUNT_JSON"
+
+      - name: Publish automatically to the internal test track
+        # v1.1.5 pinned to its immutable commit.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.deterministic.todo.deterministic_todo
+          releaseFiles: release-assets/DeterministicTodo-Android.aab
+          tracks: internal
+          status: completed
+
   verify-release-parity:
-    needs: [verify, deploy-web, publish-android]
+    needs: [verify, deploy-web, publish-android, publish-google-play]
     runs-on: ubuntu-latest
     steps:
       - name: Compare public Android and web identities

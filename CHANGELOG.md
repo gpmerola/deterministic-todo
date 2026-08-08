@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.21
+
+- Automatizzata la pubblicazione dell'AAB firmato nel test interno Google Play
+  dopo la riuscita coordinata di test, Android e Web.
+- Limitata l'identità CI alla sola app e ai soli canali di test; la produzione
+  resta manuale.
+
 ## 2.16.20
 
 - Aggiunti temi ad alto contrasto, target di tocco da almeno 48 px e descrizioni
