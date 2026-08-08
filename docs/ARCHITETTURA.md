@@ -48,7 +48,7 @@ Le migrazioni locali verificano colonne e tabelle prima di crearle. Dallo schema
 
 Le pianificazioni sono esclusivamente date civili `YYYY-MM-DD`: non contengono un istante né un fuso e quindi non slittano attraversando mezzanotte, ora legale o confini geografici. Gli anni bisestili sono gestiti dal calendario civile locale. Le colonne legacy `time_minutes` e `time_zone` restano nello schema sincronizzato per compatibilità, ma ogni nuovo comando le normalizza a `null`.
 
-Il comando esplicito “Salva + calendario” interroga il Calendar Provider Android, preferisce deterministicamente un calendario Google primario e crea un evento di 30 minuti oppure un evento giornaliero se manca l’ora. La coppia task/evento è salvata in `app_settings`; ripetere il comando aggiorna l’evento esistente. Non c’è pull dal calendario, nessun evento modifica una task e nessun export parte automaticamente.
+Il comando esplicito “Salva + calendario” interroga il Calendar Provider Android, preferisce deterministicamente un calendario Google primario e crea sempre un evento giornaliero, perché l'app non modella orari. La coppia task/evento è salvata in `app_settings`; ripetere il comando aggiorna l’evento esistente. Non c’è pull dal calendario, nessun evento modifica una task e nessun export parte automaticamente.
 
 ## Ricorrenze
 
@@ -68,7 +68,7 @@ Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltant
 
 `QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano una data civile, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. URL `http://`, `https://` e `www.` vengono convertiti localmente nel formato Markdown canonico e resi cliccabili in titolo e descrizione, inclusi gli import Todoist. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario crea un evento giornaliero per singola attività e non altera la fonte di verità SQLite.
 
-La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta soltanto navigazione e larghezza al mouse e alla tastiera; dominio e comandi restano identici. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete.
+La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta navigazione e larghezza al mouse e alla tastiera e presenta la task selezionata come editor inline nella colonna destra; riusa `TaskEditor`, repository e stream esistenti senza duplicare il dominio. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete.
 
 ## Privacy e backup
 

@@ -5,11 +5,11 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in preparazione: **2.17.3 build 69**.
-- Ultima release pubblica verificata: **2.17.2 build 68**.
+- Versione sorgente in preparazione: **2.17.4 build 70**.
+- Ultima release pubblica verificata: **2.17.3 build 69**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
-  verificati sul commit `0a0b80a`.
-- Il test interno Google Play è attivo; la 2.17.2 build 68 è disponibile alla
+  verificati sul commit `63f6031`.
+- Il test interno Google Play è attivo; la 2.17.3 build 69 è disponibile alla
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -40,7 +40,7 @@ Aggiornato l'8 agosto 2026.
   Android e web, con layout desktop adattivo.
 - `Ctrl/⌘ K` apre il comando universale: testo libero cerca, `+` crea, `>`
   naviga e `#` limita la ricerca a un progetto. Sul desktop una task selezionata
-  usa il pannello dettagli laterale opzionale.
+  si modifica direttamente nel pannello laterale opzionale.
 - Il composer riconosce linguaggio naturale, `#Progetto`, `p1`–`p4` e link;
   ricorda il progetto recente, parte sempre senza priorità e resta fermo durante
   gli assestamenti della tastiera Android.

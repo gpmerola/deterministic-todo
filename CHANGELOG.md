@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.17.4
+
+- Sul desktop il pannello laterale è ora direttamente un editor: titolo,
+  descrizione, data, priorità, ricorrenza, progetto e sezione si modificano
+  senza aprire un secondo foglio.
+- La documentazione operativa è stata riallineata al default senza priorità,
+  alle release correnti e agli eventi Google Calendar esclusivamente giornalieri.
+
 ## 2.17.3
 
 - Il pannello dettagli desktop espone ora la modifica nell'intestazione, sempre

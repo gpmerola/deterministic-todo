@@ -171,6 +171,11 @@ ogni composer nasce in P4, cioè nessuna priorità, e conserva soltanto il
 progetto recente. La modifica nel pannello desktop riusa l'editor esistente e
 non introduce stream, controller o dipendenze aggiuntive.
 
+La 2.17.4 incorpora lo stesso `TaskEditor` nella colonna desktop: l'istanza vive
+soltanto mentre una task è selezionata e viene ricreata quando cambia la sua
+versione locale. Non aggiunge query, timer o dipendenze; elimina invece il
+secondo passaggio e la seconda route necessari per modificare dal browser.
+
 ## Telemetria prestazionale locale
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:

@@ -89,11 +89,13 @@ recupero dopo assenza di rete o sospensione del processo.
 Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
 
 Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
-`p1`–`p4`, ricorda le ultime scelte e rende leggibili i link incollati. Su
-desktop `N` crea, `/` cerca ed `Esc` torna indietro; clic destro e pressione
-lunga aprono le sole azioni essenziali. La ricerca copre anche progetti e URL e
-offre filtri compatti. “Salute dati” nelle Impostazioni raccoglie sync, outbox,
-backup, quantità locali e versione senza aggiungere indicatori alla home.
+`p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende
+leggibili i link incollati. Su desktop `N` crea, `/` cerca ed `Esc` torna
+indietro; selezionare una task apre sulla destra l'editor completo senza un
+secondo dialogo. Clic destro e pressione lunga aprono le sole azioni essenziali.
+La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
+nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
+senza aggiungere indicatori alla home.
 Priorità, date e ricorrenze hanno anche descrizioni accessibili indipendenti
 dal colore; l'app rispetta testo di sistema, alto contrasto e navigazione da
 tastiera. Sul Web SQLite WebAssembly e il worker Drift vengono precaricati,

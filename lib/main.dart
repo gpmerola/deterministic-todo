@@ -1511,58 +1511,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               ),
             ),
             IconButton(
-              key: const ValueKey('desktop-detail-edit'),
-              tooltip: 'Modifica attività',
-              onPressed: () => _openTaskEditor(task),
-              icon: const Icon(Icons.edit_outlined),
-            ),
-            IconButton(
               tooltip: 'Chiudi dettagli',
               onPressed: () => setState(() => selectedDesktopTaskId = null),
               icon: const Icon(Icons.close),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        TodoistLinkText(
-          task.title,
-          style: Theme.of(context).textTheme.titleLarge,
+        const SizedBox(height: 8),
+        Expanded(
+          child: TaskEditor(
+            key: ValueKey('desktop-inline-editor-${task.id}-${task.updatedAt}'),
+            task: task,
+            repository: widget.repository,
+            embedded: true,
+            onDeleted: () => setState(() => selectedDesktopTaskId = null),
+          ),
         ),
-        if (task.notes?.trim().isNotEmpty ?? false) ...[
-          const SizedBox(height: 12),
-          TodoistLinkText(
-            task.notes!,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-        const SizedBox(height: 16),
-        if (task.showDate != null)
-          Text(
-            DateFormat(
-              'EEEE d MMMM yyyy',
-              'it',
-            ).format(CivilDate.parse(task.showDate!).asLocalDate),
-          ),
-        if (task.recurrence != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(recurrenceSmartLabel(task.recurrence, task.showDate)),
-          ),
-        const Spacer(),
       ],
     ),
-  );
-
-  Future<void> _openTaskEditor(Task task) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    sheetAnimationStyle: const AnimationStyle(
-      duration: Duration(milliseconds: 45),
-      reverseDuration: Duration(milliseconds: 25),
-    ),
-    builder: (_) => TaskEditor(task: task, repository: widget.repository),
   );
 
   Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(

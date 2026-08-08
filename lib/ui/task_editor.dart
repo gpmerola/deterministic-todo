@@ -1,10 +1,20 @@
 part of '../main.dart';
 
 class TaskEditor extends StatefulWidget {
-  const TaskEditor({required this.task, required this.repository, super.key});
+  const TaskEditor({
+    required this.task,
+    required this.repository,
+    this.embedded = false,
+    this.onSaved,
+    this.onDeleted,
+    super.key,
+  });
 
   final Task task;
   final TaskRepository repository;
+  final bool embedded;
+  final ValueChanged<Task>? onSaved;
+  final VoidCallback? onDeleted;
 
   @override
   State<TaskEditor> createState() => _TaskEditorState();
@@ -124,7 +134,10 @@ class _TaskEditorState extends State<TaskEditor> {
           MediaQuery.viewPaddingOf(context).bottom,
     ),
     child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560, maxHeight: 460),
+      constraints: BoxConstraints(
+        maxWidth: 560,
+        maxHeight: widget.embedded ? double.infinity : 460,
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: Column(
@@ -138,7 +151,7 @@ class _TaskEditorState extends State<TaskEditor> {
                     TextField(
                       key: const ValueKey('task-editor-title'),
                       controller: title,
-                      autofocus: true,
+                      autofocus: !widget.embedded,
                       minLines: 1,
                       maxLines: 3,
                       textCapitalization: TextCapitalization.sentences,
@@ -254,7 +267,11 @@ class _TaskEditorState extends State<TaskEditor> {
                       message: 'Spostata nel cestino',
                       undo: () => widget.repository.restore(widget.task),
                     );
-                    Navigator.pop(context);
+                    if (widget.embedded) {
+                      widget.onDeleted?.call();
+                    } else {
+                      Navigator.pop(context);
+                    }
                   },
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Cestino'),
@@ -262,8 +279,13 @@ class _TaskEditorState extends State<TaskEditor> {
                 FilledButton.icon(
                   key: const ValueKey('task-editor-save'),
                   onPressed: () async {
-                    await _save();
-                    if (context.mounted) Navigator.pop(context);
+                    final saved = await _save();
+                    if (!context.mounted) return;
+                    if (widget.embedded) {
+                      widget.onSaved?.call(saved);
+                    } else {
+                      Navigator.pop(context);
+                    }
                   },
                   icon: const Icon(Icons.check),
                   label: const Text('Salva'),
@@ -363,12 +385,13 @@ class _TaskEditorState extends State<TaskEditor> {
                 ),
               ],
             ),
-          IconButton(
-            tooltip: 'Chiudi',
-            visualDensity: VisualDensity.compact,
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.keyboard_arrow_down),
-          ),
+          if (!widget.embedded)
+            IconButton(
+              tooltip: 'Chiudi',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.keyboard_arrow_down),
+            ),
         ],
       ),
     );

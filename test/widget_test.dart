@@ -214,11 +214,8 @@ void main() {
     await tester.tap(find.text('Apri dettaglio'));
     await tester.pumpAndSettle();
     expect(find.text('Dettagli'), findsOneWidget);
-    expect(find.byTooltip('Modifica attività'), findsOneWidget);
     expect(find.byTooltip('Chiudi dettagli'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Modifica attività'));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('task-editor-title')), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('task-editor-title')),
       'Dettaglio modificato',
