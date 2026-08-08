@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.1
+
+- Rimossa Riferimenti dall'interfaccia: Progetti torna a essere l'unico sistema
+  per organizzare materiale e attività. Eventuali record creati nella 2.18.0
+  restano visibili come normali task, senza perdita di titolo, note o link.
+- Invio fisico salva ora una modifica anche nell'editor laterale Web; non
+  dipende più dalla sola azione `Done` della tastiera virtuale.
+- Il controllo completo Supabase in foreground passa da uno a dieci minuti,
+  riducendo del 90% i risvegli periodici. Realtime, modifiche locali,
+  riconnessione e ritorno in primo piano restano immediati.
+
 ## 2.18.0
 
 - Aggiunta la sezione autonoma Riferimenti per conservare link e note

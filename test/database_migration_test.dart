@@ -73,7 +73,7 @@ void main() {
         .customSelect('PRAGMA user_version')
         .map((row) => row.read<int>('user_version'))
         .getSingle();
-    expect(version, 5);
+    expect(version, 6);
     final columns = await database
         .customSelect('PRAGMA table_info(tasks)')
         .get();
@@ -86,7 +86,39 @@ void main() {
         .get();
     expect(
       indexes.any((row) => row.read<String>('name') == 'tasks_kind_order_idx'),
-      isTrue,
+      isFalse,
+    );
+  });
+
+  test('rimuove l indice riferimenti da un database versione 5', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'todo-db-v5-migration-',
+    );
+    final file = File('${directory.path}/todo.sqlite');
+    final initial = AppDatabase.forTesting(NativeDatabase(file));
+    await initial.select(initial.tasks).get();
+    await initial.close();
+
+    final versionFive = sqlite.sqlite3.open(file.path);
+    versionFive.execute(
+      'CREATE INDEX tasks_kind_order_idx '
+      'ON tasks (item_kind, deleted_at, position, created_at, id)',
+    );
+    versionFive.execute('PRAGMA user_version = 5');
+    versionFive.close();
+
+    final upgraded = AppDatabase.forTesting(NativeDatabase(file));
+    addTearDown(() async {
+      await upgraded.close();
+      await directory.delete(recursive: true);
+    });
+    await upgraded.select(upgraded.tasks).get();
+    final indexes = await upgraded
+        .customSelect("PRAGMA index_list('tasks')")
+        .get();
+    expect(
+      indexes.any((row) => row.read<String>('name') == 'tasks_kind_order_idx'),
+      isFalse,
     );
   });
 }

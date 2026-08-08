@@ -30,7 +30,6 @@ class TaskRepository {
             ..where(
               (task) =>
                   task.deletedAt.isNull() &
-                  task.itemKind.equals('task') &
                   task.status.equals(TaskStatus.completed.name).not(),
             )
             ..orderBy([
@@ -45,7 +44,6 @@ class TaskRepository {
             ..where(
               (task) =>
                   task.deletedAt.isNull() &
-                  task.itemKind.equals('task') &
                   task.status.equals(TaskStatus.completed.name),
             )
             ..orderBy([
@@ -56,19 +54,6 @@ class TaskRepository {
               (task) => OrderingTerm(expression: task.id),
             ])
             ..limit(limit))
-          .watch();
-
-  Stream<List<Task>> watchReferences() =>
-      (db.select(db.tasks)
-            ..where(
-              (task) =>
-                  task.deletedAt.isNull() & task.itemKind.equals('reference'),
-            )
-            ..orderBy([
-              (task) => OrderingTerm(expression: task.position),
-              (task) => OrderingTerm(expression: task.createdAt),
-              (task) => OrderingTerm(expression: task.id),
-            ]))
           .watch();
 
   Stream<List<Task>> watchTrash({int limit = 200}) =>
@@ -154,13 +139,6 @@ class TaskRepository {
     });
     return id;
   }
-
-  Future<String> createReference(String title, {String? notes}) => create(
-    title,
-    notes: notes,
-    itemKind: 'reference',
-    status: TaskStatus.inbox,
-  );
 
   Future<String> createProject(String rawName, {String? color}) async {
     final name = rawName.trim();

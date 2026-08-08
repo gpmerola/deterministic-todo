@@ -46,7 +46,6 @@ dati del sito se vuoi conservare la copia offline.
 ## Funzioni principali
 
 - Oggi, Prossime e Progetti con UI minimale;
-- Riferimenti separati dalle attività per conservare link e note persistenti;
 - date civili senza ora, stabili tra fusi e ora legale;
 - linguaggio naturale italiano evidenziato (`oggi`, `domani`, `ogni martedì`,
   `ogni 3 giorni`, `ogni terzo martedì`, date annuali e altre varianti);
@@ -86,7 +85,7 @@ client. Sul progetto personale devono essere state applicate, nell’ordine:
 Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
 Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e
 quindi l’interfaccia senza ricaricare la pagina. Il canale si riapre dopo
-errori o timeout; il controllo ogni minuto mentre l'app è visibile rimane come
+errori o timeout; il controllo ogni dieci minuti mentre l'app è visibile rimane come
 recupero dopo assenza di rete o sospensione del processo.
 Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
 
@@ -94,7 +93,7 @@ Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
 `p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende
 leggibili i link incollati. Su desktop `N` crea, `/` cerca ed `Esc` torna
 indietro; selezionare una task apre sulla destra l'editor completo senza un
-secondo dialogo. Invio conferma il titolo sia in creazione sia in modifica;
+secondo dialogo. Invio fisico conferma il titolo sia in creazione sia in modifica;
 nelle descrizioni rimane un normale a capo. Clic destro e pressione lunga
 aprono le sole azioni essenziali.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”

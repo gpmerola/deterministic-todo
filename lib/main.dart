@@ -45,7 +45,6 @@ part 'ui/sync_account_card.dart';
 part 'ui/trash_view.dart';
 part 'ui/task_widgets.dart';
 part 'ui/task_editor.dart';
-part 'ui/reference_widgets.dart';
 part 'ui/app_undo.dart';
 
 const isPlayDistribution =
@@ -295,7 +294,6 @@ enum AppSection {
   upcoming,
   waiting,
   projects,
-  references,
   completed,
   settings,
 }
@@ -307,7 +305,6 @@ extension on AppSection {
     AppSection.upcoming => 'Prossime',
     AppSection.waiting => 'In attesa',
     AppSection.projects => 'Progetti',
-    AppSection.references => 'Riferimenti',
     AppSection.completed => 'Completate',
     AppSection.settings => 'Impostazioni',
   };
@@ -318,7 +315,6 @@ extension on AppSection {
     AppSection.upcoming => Icons.event_outlined,
     AppSection.waiting => Icons.hourglass_empty,
     AppSection.projects => Icons.folder_outlined,
-    AppSection.references => Icons.bookmark_outline,
     AppSection.completed => Icons.check_circle_outline,
     AppSection.settings => Icons.settings_outlined,
   };
@@ -350,7 +346,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final search = TextEditingController();
   late final Stream<List<Task>> activeTasks;
   late final Stream<List<Task>> completedTasks;
-  late final Stream<List<Task>> referenceItems;
   bool backgroundSnapshotTaken = false;
   Timer? updateTimer;
   DateTime? lastUpdateCheck;
@@ -369,7 +364,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     unawaited(_initializeProjectCaches());
     activeTasks = widget.repository.watchActive();
     completedTasks = widget.repository.watchCompleted(limit: 200);
-    referenceItems = widget.repository.watchReferences();
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
       ids,
     ) {
@@ -1164,9 +1158,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       child: Actions(
         actions: {
           _NewIntent: CallbackAction<_NewIntent>(
-            onInvoke: (_) => section == AppSection.references
-                ? _showReferenceAddSheet()
-                : _showQuickAddSheet(),
+            onInvoke: (_) => _showQuickAddSheet(),
           ),
           _SearchIntent: CallbackAction<_SearchIntent>(
             onInvoke: (_) => _showUniversalCommand(),
@@ -1181,8 +1173,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         child: StreamBuilder<List<Task>>(
           stream: section == AppSection.completed
               ? completedTasks
-              : section == AppSection.references
-              ? referenceItems
               : activeTasks,
           builder: (context, snapshot) {
             final tasks = snapshot.data ?? const [];
@@ -1190,7 +1180,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
-              AppSection.references,
             ];
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -1323,9 +1312,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: IconButton.filled(
                                   tooltip: 'Nuova attività (Ctrl/⌘ N)',
-                                  onPressed: section == AppSection.references
-                                      ? _showReferenceAddSheet
-                                      : _showQuickAddSheet,
+                                  onPressed: _showQuickAddSheet,
                                   icon: const Icon(Icons.add),
                                 ),
                               ),
@@ -1348,12 +1335,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           section != AppSection.projects &&
                           section != AppSection.completed
                       ? FloatingActionButton(
-                          tooltip: section == AppSection.references
-                              ? 'Nuovo riferimento'
-                              : 'Nuova attività',
-                          onPressed: section == AppSection.references
-                              ? _showReferenceAddSheet
-                              : _showQuickAddSheet,
+                          tooltip: 'Nuova attività',
+                          onPressed: _showQuickAddSheet,
                           child: const Icon(Icons.add),
                         )
                       : null,
@@ -1434,9 +1417,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
     }
     if (section == AppSection.projects) return _projectsView(all);
-    if (section == AppSection.references) {
-      return _referencesView(all);
-    }
     final today = CivilDate.fromDateTime(DateTime.now()).toString();
     final visible = all.where((task) {
       return switch (section) {
@@ -1453,7 +1433,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               task.showDate!.compareTo(today) > 0,
         AppSection.waiting => task.status == TaskStatus.waiting.name,
         AppSection.projects => false,
-        AppSection.references => false,
         AppSection.completed => task.status == TaskStatus.completed.name,
         AppSection.settings => false,
       };
@@ -1540,125 +1519,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: task.itemKind == 'reference'
-              ? ReferenceEditor(
-                  key: ValueKey(
-                    'desktop-inline-reference-${task.id}-${task.updatedAt}',
-                  ),
-                  item: task,
-                  repository: widget.repository,
-                  embedded: true,
-                  onDeleted: () => setState(() => selectedDesktopTaskId = null),
-                )
-              : TaskEditor(
-                  key: ValueKey(
-                    'desktop-inline-editor-${task.id}-${task.updatedAt}',
-                  ),
-                  task: task,
-                  repository: widget.repository,
-                  embedded: true,
-                  onDeleted: () => setState(() => selectedDesktopTaskId = null),
-                ),
+          child: TaskEditor(
+            key: ValueKey('desktop-inline-editor-${task.id}-${task.updatedAt}'),
+            task: task,
+            repository: widget.repository,
+            embedded: true,
+            onDeleted: () => setState(() => selectedDesktopTaskId = null),
+          ),
         ),
       ],
     ),
   );
-
-  Widget _referencesView(List<Task> items) => items.isEmpty
-      ? _emptyState(
-          key: const ValueKey('empty-references'),
-          icon: Icons.bookmarks_outlined,
-          label: 'Nessun riferimento',
-        )
-      : ListView.separated(
-          key: const PageStorageKey('references-list'),
-          padding: const EdgeInsets.only(bottom: 24),
-          itemCount: items.length,
-          separatorBuilder: (_, _) => const Divider(height: 1, indent: 56),
-          itemBuilder: (context, index) => ReferenceTile(
-            item: items[index],
-            repository: widget.repository,
-            onSelected: MediaQuery.sizeOf(context).width >= 900
-                ? () => setState(() => selectedDesktopTaskId = items[index].id)
-                : null,
-          ),
-        );
-
-  Future<void> _showReferenceAddSheet() async {
-    final title = TextEditingController();
-    final notes = TextEditingController();
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      requestFocus: true,
-      sheetAnimationStyle: const AnimationStyle(
-        duration: Duration.zero,
-        reverseDuration: Duration.zero,
-      ),
-      builder: (sheetContext) {
-        Future<void> submit() async {
-          final rawTitle = title.text.trim();
-          if (rawTitle.isEmpty) return;
-          await widget.repository.createReference(
-            linkifyPlainUrls(rawTitle),
-            notes: notes.text.trim().isEmpty
-                ? null
-                : linkifyPlainUrls(notes.text.trim()),
-          );
-          if (sheetContext.mounted) Navigator.pop(sheetContext);
-        }
-
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            0,
-            16,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 12,
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  key: const ValueKey('reference-add-title'),
-                  controller: title,
-                  autofocus: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => submit(),
-                  decoration: const InputDecoration(
-                    hintText: 'Titolo del riferimento',
-                    prefixIcon: Icon(Icons.bookmark_outline),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  key: const ValueKey('reference-add-notes'),
-                  controller: notes,
-                  minLines: 2,
-                  maxLines: 5,
-                  decoration: const InputDecoration(hintText: 'Testo o link'),
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.icon(
-                    key: const ValueKey('reference-add-submit'),
-                    onPressed: submit,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Salva'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    title.dispose();
-    notes.dispose();
-  }
 
   Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(
     stream:

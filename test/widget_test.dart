@@ -6,6 +6,7 @@ import 'package:deterministic_todo/ui/todoist_link_text.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -221,7 +222,8 @@ void main() {
       find.byKey(const ValueKey('task-editor-title')),
       'Dettaglio modificato',
     );
-    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.tap(find.byKey(const ValueKey('task-editor-title')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.text('Dettaglio modificato'), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -852,43 +854,22 @@ void main() {
     await db.close();
   });
 
-  testWidgets('Riferimenti resta separato da attività e Progetti', (
+  testWidgets('i vecchi riferimenti restano accessibili come attività', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(400, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create(
+      'Vecchio riferimento',
+      notes: 'Nota conservata',
+      itemKind: 'reference',
+    );
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    await tester.tap(find.text('Riferimenti'));
-    await tester.pumpAndSettle();
-    expect(find.text('Nessun riferimento'), findsOneWidget);
-    await tester.tap(find.byTooltip('Nuovo riferimento'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('reference-add-title')),
-      'Thread Claude',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('reference-add-notes')),
-      'https://claude.ai/example',
-    );
-    await tester.tap(find.byKey(const ValueKey('reference-add-submit')));
-    await tester.pumpAndSettle();
-
-    final reference = await db.select(db.tasks).getSingle();
-    expect(reference.itemKind, 'reference');
-    expect(reference.notes, contains('(https://claude.ai/example)'));
-    expect(find.text('Thread Claude'), findsOneWidget);
-    expect(find.byType(Checkbox), findsNothing);
-
-    await tester.tap(find.text('Oggi'));
-    await tester.pumpAndSettle();
-    expect(find.text('Thread Claude'), findsNothing);
+    expect(find.text('Riferimenti'), findsNothing);
+    expect(find.text('Vecchio riferimento'), findsOneWidget);
+    expect(find.byType(Checkbox), findsOneWidget);
     expect(find.text('Progetti'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

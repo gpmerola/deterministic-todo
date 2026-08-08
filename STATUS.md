@@ -5,7 +5,7 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.18.0 build 72**.
+- Versione sorgente in preparazione: **2.18.1 build 73**.
 - Ultima release pubblica verificata: **2.18.0 build 72**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
   verificati sul commit `b9fa219`.
@@ -26,11 +26,11 @@ Aggiornato l'8 agosto 2026.
   idempotenti senza richiedere permessi di aggiornamento.
 - Supabase Realtime notifica Android e browser; dalla 2.16.0 vengono richiesti
   soltanto gli ID cambiati. Il canale si riapre dopo errori o timeout; un
-  controllo completo ogni minuto recupera eventi persi, riprese e periodi
+  controllo completo ogni dieci minuti recupera eventi persi, riprese e periodi
   offline mentre l'app è visibile.
-- Task, riferimenti, progetti, sezioni, priorità, date civili, ricorrenze e
-  tombstone sono sincronizzati. Non si sincronizzano segreti o contenuti dei
-  log.
+- Task, progetti, sezioni, priorità, date civili, ricorrenze e tombstone sono
+  sincronizzati. Il tipo `reference` della 2.18.0 resta leggibile come normale
+  task per non perdere dati. Non si sincronizzano segreti o contenuti dei log.
 - Le occorrenze ricorrenti hanno ID deterministici condivisi tra dispositivi;
   il client riconcilia anche le collisioni storiche `23505` scegliendo la
   versione Lamport più recente.
@@ -38,17 +38,16 @@ Aggiornato l'8 agosto 2026.
 ## Esperienza corrente
 
 - Oggi, Prossime, Progetti, ricerca e composer condividono lo stesso modello su
-  Android e web, con layout desktop adattivo. Riferimenti è una sezione
-  autonoma per link e note persistenti: non alimenta le viste delle attività e
-  non modifica la gerarchia importata da Todoist.
+  Android e web, con layout desktop adattivo. Progetti è l'unico sistema di
+  organizzazione persistente esposto nell'interfaccia.
 - `Ctrl/⌘ K` apre il comando universale: testo libero cerca, `+` crea, `>`
   naviga e `#` limita la ricerca a un progetto. Sul desktop una task selezionata
   si modifica direttamente nel pannello laterale opzionale.
 - Il composer riconosce linguaggio naturale, `#Progetto`, `p1`–`p4` e link;
   ricorda il progetto recente, parte sempre senza priorità e resta fermo durante
   gli assestamenti della tastiera Android.
-- Nel campo titolo Invio conferma sia la creazione sia la modifica in ogni
-  sezione; la descrizione conserva il comportamento multilinea.
+- Nel campo titolo Invio fisico conferma sia la creazione sia la modifica in
+  ogni sezione; la descrizione conserva il comportamento multilinea.
 - La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
   non possono più avviare per errore il trascinamento verso il cestino. La riga
   resta ferma durante la conferma e viene rimossa solo dopo la dissolvenza.
@@ -62,7 +61,7 @@ Aggiornato l'8 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 113 test automatici superati, incluso uno scenario di convergenza con due
+- 114 test automatici superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
 - Build Web locale e pipeline coordinata completate. La build Android locale
   non è disponibile su questo Mac perché manca l'Android SDK; la pipeline

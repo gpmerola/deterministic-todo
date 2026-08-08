@@ -124,6 +124,17 @@ class _TaskEditorState extends State<TaskEditor> {
     }
   }
 
+  KeyEventResult _submitTitleFromKeyboard(FocusNode _, KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        (event.logicalKey != LogicalKeyboardKey.enter &&
+            event.logicalKey != LogicalKeyboardKey.numpadEnter) ||
+        HardwareKeyboard.instance.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    unawaited(_commit());
+    return KeyEventResult.handled;
+  }
+
   Future<void> _saveAndExportToCalendar() async {
     try {
       final saved = await _save();
@@ -170,38 +181,42 @@ class _TaskEditorState extends State<TaskEditor> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(
-                      key: const ValueKey('task-editor-title'),
-                      controller: title,
-                      autofocus: !widget.embedded,
-                      minLines: 1,
-                      maxLines: 3,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _commit(),
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: 'Cosa devi fare?',
-                        prefixIcon: const Icon(Icons.check_circle_outline),
-                        suffixIcon: PopupMenuButton<String>(
-                          tooltip: 'Link nel titolo',
-                          icon: const Icon(Icons.link),
-                          onSelected: (value) {
-                            if (value == 'add') {
-                              _addLinkToSelection(title);
-                            } else if (!title.removeSelectedLink()) {
-                              _showSelectLinkedTextMessage();
-                            }
-                          },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(
-                              value: 'add',
-                              child: Text('Aggiungi link'),
-                            ),
-                            PopupMenuItem(
-                              value: 'remove',
-                              child: Text('Togli link'),
-                            ),
-                          ],
+                    Focus(
+                      key: const ValueKey('task-editor-title-keyboard'),
+                      onKeyEvent: _submitTitleFromKeyboard,
+                      child: TextField(
+                        key: const ValueKey('task-editor-title'),
+                        controller: title,
+                        autofocus: !widget.embedded,
+                        minLines: 1,
+                        maxLines: 3,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _commit(),
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Cosa devi fare?',
+                          prefixIcon: const Icon(Icons.check_circle_outline),
+                          suffixIcon: PopupMenuButton<String>(
+                            tooltip: 'Link nel titolo',
+                            icon: const Icon(Icons.link),
+                            onSelected: (value) {
+                              if (value == 'add') {
+                                _addLinkToSelection(title);
+                              } else if (!title.removeSelectedLink()) {
+                                _showSelectLinkedTextMessage();
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'add',
+                                child: Text('Aggiungi link'),
+                              ),
+                              PopupMenuItem(
+                                value: 'remove',
+                                child: Text('Togli link'),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

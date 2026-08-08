@@ -107,7 +107,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -122,7 +122,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5 && !await _columnExists('tasks', tasks.itemKind.$name)) {
         await migrator.addColumn(tasks, tasks.itemKind);
       }
-      if (from < 5) await _createReferenceIndex();
+      if (from < 6) {
+        await customStatement('DROP INDEX IF EXISTS tasks_kind_order_idx');
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -172,13 +174,7 @@ class AppDatabase extends _$AppDatabase {
       'CREATE INDEX IF NOT EXISTS tasks_dates_idx '
       'ON tasks (deleted_at, show_date, due_date)',
     );
-    await _createReferenceIndex();
   }
-
-  Future<void> _createReferenceIndex() => customStatement(
-    'CREATE INDEX IF NOT EXISTS tasks_kind_order_idx '
-    'ON tasks (item_kind, deleted_at, position, created_at, id)',
-  );
 
   Future<void> _createImportIndexes() async {
     await customStatement(

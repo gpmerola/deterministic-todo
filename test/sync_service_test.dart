@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   test('la riconciliazione limita le finestre silenziose di Realtime', () {
-    expect(SyncService.periodicInterval, const Duration(minutes: 1));
+    expect(SyncService.periodicInterval, const Duration(minutes: 10));
     expect(SyncService.eventDebounce, lessThan(const Duration(seconds: 1)));
   });
 

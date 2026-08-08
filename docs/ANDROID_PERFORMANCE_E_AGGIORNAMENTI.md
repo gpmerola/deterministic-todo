@@ -68,13 +68,13 @@ quando il pacchetto è pronto. La dipendenza è `playImplementation`, quindi APK
 diretto e browser non la includono. In caso di API non disponibile, soltanto il
 controllo manuale apre la scheda Store come fallback.
 
-Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione reagisce a modifica, riconnessione e ritorno in primo piano. Il controllo di sicurezza ogni minuto esiste soltanto mentre l’app è visibile e viene sospeso in background. Per il singolo account personale privilegia la convergenza rapida con una query incrementale economica; Realtime resta il percorso normale immediato. Progetti e sezioni già confermati dal server sono identificati tramite la coppia Lamport `(logical_version, device_id)` e non vengono reinviati finché non cambiano.
+Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione reagisce a modifica, riconnessione e ritorno in primo piano. Il controllo di sicurezza ogni dieci minuti esiste soltanto mentre l’app è visibile e viene sospeso in background. Per il singolo account personale privilegia la convergenza rapida con una query incrementale economica; Realtime resta il percorso normale immediato. Progetti e sezioni già confermati dal server sono identificati tramite la coppia Lamport `(logical_version, device_id)` e non vengono reinviati finché non cambiano.
 
 Prima del push, l’outbox viene compattata logicamente per `entity_id`: più modifiche pendenti della stessa attività causano un solo `merge_task` della versione finale, mentre tutte le operazioni vengono comunque riconosciute e rimosse soltanto dopo il successo. Il pull carica le attività locali interessate con una sola query SQLite e applica poi il confronto Lamport in memoria, evitando una query per ogni riga remota.
 
 Una nuova riga nell'outbox avvia il sync dopo 120 ms, così più tocchi ravvicinati
 restano accorpati. Realtime gestisce il percorso immediato sul dispositivo
-ricevente; il controllo completo ogni minuto rimane come recovery. Quando
+ricevente; il controllo completo ogni dieci minuti rimane come recovery. Quando
 l'app è in background gli eventi non avviano lavoro e il rientro forza un sync.
 Errori, timeout o chiusure di Realtime riaprono il canale dopo due secondi e la
 nuova sottoscrizione forza una riconciliazione completa.
@@ -187,6 +187,15 @@ visiva, evitando ricostruzioni intermedie della lista. Riferimenti usa un solo
 stream SQLite filtrato, attivo soltanto nella relativa sezione, e riusa outbox,
 sync e componenti link già presenti: nessun polling, dipendenza o servizio in
 background aggiuntivo.
+
+La 2.18.1 rimuove lo stream dedicato ai Riferimenti insieme alla relativa UI:
+gli eventuali record esistenti riusano lo stream attività, senza query o copie.
+La migrazione locale elimina anche l'indice del tipo non più interrogato,
+riducendo marginalmente spazio e lavoro su ogni scrittura.
+Il controllo completo Supabase passa da uno a dieci minuti, riducendo del 90%
+i wake-up periodici in foreground senza rallentare Realtime, outbox,
+riconnessione o sincronizzazione al resume. Invio fisico nell'editor Web viene
+intercettato localmente e non aggiunge listener persistenti globali.
 
 ## Telemetria prestazionale locale
 

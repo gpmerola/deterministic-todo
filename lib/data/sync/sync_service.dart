@@ -26,7 +26,7 @@ class SyncSnapshot {
 
 class SyncService {
   SyncService(this.db, this.client);
-  static const periodicInterval = Duration(minutes: 1);
+  static const periodicInterval = Duration(minutes: 10);
   static const eventDebounce = Duration(milliseconds: 120);
   final AppDatabase db;
   final SupabaseClient client;
@@ -253,7 +253,8 @@ class SyncService {
         );
       }
     } on Object {
-      // Il controllo completo periodico recupera qualunque evento perso.
+      // Il controllo periodico recupera qualunque evento perso. Realtime,
+      // outbox, connettività e resume restano i percorsi immediati.
     }
   }
 
