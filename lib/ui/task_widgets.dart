@@ -207,6 +207,28 @@ class _TaskTileState extends State<TaskTile> {
                     child: TodoistLinkText(widget.task.title),
                   ),
                   subtitle: _subtitle(widget.task),
+                  trailing: PopupMenuButton<String>(
+                    tooltip: 'Azioni attività',
+                    onSelected: _runAction,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('Modifica'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.delete_outline),
+                          title: Text('Cestino'),
+                        ),
+                      ),
+                    ],
+                  ),
                   onTap: confirmingCompletion
                       ? null
                       : widget.onSelected ?? _showEditor,

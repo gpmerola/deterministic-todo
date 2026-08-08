@@ -445,6 +445,60 @@ void main() {
     await db.close();
   });
 
+  testWidgets('il composer desktop usa una riga e Invio crea la task', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Nuova attività (Ctrl/⌘ N)'));
+    await tester.pump();
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+    );
+    expect(field.maxLines, 1);
+    await tester.enterText(
+      find.byKey(const ValueKey('mobile-quick-add-field')),
+      'Creata con invio',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect((await db.select(db.tasks).getSingle()).title, 'Creata con invio');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('il menu visibile manda una task nel Cestino con Undo', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Elimina intuitivamente');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Azioni attività'));
+    await tester.pumpAndSettle();
+    final deleteItem = find.widgetWithText(PopupMenuItem<String>, 'Cestino');
+    final deleteRect = tester.getRect(deleteItem);
+    await tester.tapAt(Offset(deleteRect.left + 24, deleteRect.center.dy));
+    await tester.pump();
+    expect((await db.select(db.tasks).getSingle()).deletedAt, isNotNull);
+    expect(find.text('Annulla'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('il composer mobile appare al primo frame senza attendere I/O', (
     tester,
   ) async {

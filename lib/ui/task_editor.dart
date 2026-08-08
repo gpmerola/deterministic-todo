@@ -241,9 +241,24 @@ class _TaskEditorState extends State<TaskEditor> {
             ),
             const SizedBox(height: 8),
             OverflowBar(
-              alignment: MainAxisAlignment.end,
+              alignment: MainAxisAlignment.spaceBetween,
               spacing: 8,
               children: [
+                TextButton.icon(
+                  key: const ValueKey('task-editor-delete'),
+                  onPressed: () async {
+                    await widget.repository.softDelete(widget.task);
+                    if (!context.mounted) return;
+                    AppUndo.show(
+                      context,
+                      message: 'Spostata nel cestino',
+                      undo: () => widget.repository.restore(widget.task),
+                    );
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Cestino'),
+                ),
                 FilledButton.icon(
                   key: const ValueKey('task-editor-save'),
                   onPressed: () async {

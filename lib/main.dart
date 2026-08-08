@@ -951,6 +951,21 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           final composerInset = keyboardWasVisible
               ? stableKeyboardInset
               : currentKeyboardInset;
+          final desktopComposer = MediaQuery.sizeOf(context).width >= 900;
+          Future<void> submit() async {
+            if (await _createFrom(
+                  controller,
+                  projects: availableProjects,
+                  notesController: notesController,
+                  priority: priority,
+                  projectId: projectId,
+                  sectionId: sectionId,
+                ) &&
+                sheetContext.mounted) {
+              Navigator.pop(sheetContext);
+            }
+          }
+
           return Padding(
             key: const ValueKey('mobile-quick-add-keyboard-padding'),
             padding: EdgeInsets.fromLTRB(16, 0, 16, composerInset + 12),
@@ -959,39 +974,25 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  TextField(
+                    key: const ValueKey('mobile-quick-add-field'),
+                    controller: controller,
+                    focusNode: titleFocusNode,
+                    minLines: 1,
+                    maxLines: desktopComposer ? 1 : 3,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (_) => setSheetState(() {}),
+                    onSubmitted: (_) => submit(),
+                    decoration: InputDecoration(
+                      hintText: 'Cosa devi fare?',
+                      helperText: _quickAddHelper(controller.text),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('mobile-quick-add-field'),
-                          controller: controller,
-                          focusNode: titleFocusNode,
-                          minLines: 1,
-                          maxLines: 3,
-                          textCapitalization: TextCapitalization.sentences,
-                          textInputAction: TextInputAction.done,
-                          onChanged: (_) => setSheetState(() {}),
-                          onSubmitted: (_) async {
-                            if (await _createFrom(
-                                  controller,
-                                  projects: availableProjects,
-                                  notesController: notesController,
-                                  priority: priority,
-                                  projectId: projectId,
-                                  sectionId: sectionId,
-                                ) &&
-                                sheetContext.mounted) {
-                              Navigator.pop(sheetContext);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Nuova attività',
-                            hintText: 'Cosa devi fare?',
-                            helperText: _quickAddHelper(controller.text),
-                          ),
-                        ),
-                      ),
                       IconButton(
                         key: const ValueKey('mobile-quick-add-notes'),
                         tooltip: 'Aggiungi descrizione',
@@ -1059,22 +1060,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               ),
                           ],
                         ),
+                      const Spacer(),
                       IconButton.filled(
                         key: const ValueKey('mobile-quick-add-submit'),
                         tooltip: 'Aggiungi attività',
-                        onPressed: () async {
-                          if (await _createFrom(
-                                controller,
-                                projects: availableProjects,
-                                notesController: notesController,
-                                priority: priority,
-                                projectId: projectId,
-                                sectionId: sectionId,
-                              ) &&
-                              sheetContext.mounted) {
-                            Navigator.pop(sheetContext);
-                          }
-                        },
+                        onPressed: submit,
                         icon: const Icon(Icons.arrow_upward),
                       ),
                     ],

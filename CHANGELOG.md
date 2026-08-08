@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.17.1
+
+- Il composer mostra ora il titolo come riga larga sopra descrizione, priorità,
+  progetto e invio; su desktop Invio crea sempre la task senza andare a capo.
+- Lo stesso composer resta la fonte unica per Oggi, Prossime e Progetti; il
+  contesto cambia soltanto progetto e sezione predefiniti.
+- Ogni attività espone un menu `⋮` con Modifica e Cestino. L'editor offre anche
+  Cestino accanto a Salva e tutte le eliminazioni mantengono l'Undo.
+
 ## 2.17.0
 
 - Aggiunto il comando universale: `Ctrl/⌘ K` cerca attività, `+` crea con
