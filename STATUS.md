@@ -5,7 +5,7 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.18.1 build 73**.
+- Versione sorgente in preparazione: **2.18.2 build 74**.
 - Ultima release pubblica verificata: **2.18.1 build 73**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
   verificati sul commit `12a7dc2`.
@@ -48,6 +48,8 @@ Aggiornato l'8 agosto 2026.
   gli assestamenti della tastiera Android.
 - Nel campo titolo Invio fisico conferma sia la creazione sia la modifica in
   ogni sezione; la descrizione conserva il comportamento multilinea.
+- Le scorciatoie globali richiedono Ctrl/⌘: caratteri come `n` e `/` restano
+  testo normale quando un editor è attivo.
 - La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
   non possono più avviare per errore il trascinamento verso il cestino. La riga
   resta ferma durante la conferma e viene rimossa solo dopo la dissolvenza.
@@ -61,7 +63,7 @@ Aggiornato l'8 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 114 test automatici superati, incluso uno scenario di convergenza con due
+- 115 test automatici superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
 - Build Web locale e pipeline coordinata completate. La build Android locale
   non è disponibile su questo Mac perché manca l'Android SDK; la pipeline

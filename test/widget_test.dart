@@ -232,6 +232,34 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('scrivere nell editor non attiva le scorciatoie globali', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Modifica senza interruzioni');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Modifica senza interruzioni'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('task-editor-title')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyN);
+    await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('mobile-quick-add-field')), findsNothing);
+    expect(find.text('Cerca, + crea, > apri, # progetto'), findsNothing);
+    expect(find.byKey(const ValueKey('task-editor-title')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('le transizioni UI sono brevi e non coinvolgono il composer', (
     tester,
   ) async {

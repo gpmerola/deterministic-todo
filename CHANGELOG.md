@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.2
+
+- Corretto l'editor laterale Web: digitare `n` o `/` non apre più il composer
+  o la ricerca interrompendo la modifica.
+- Le azioni globali Nuova attività e Cerca richiedono ora Ctrl/⌘; Invio resta
+  dedicato al salvataggio dell'editor attivo.
+
 ## 2.18.1
 
 - Rimossa Riferimenti dall'interfaccia: Progetti torna a essere l'unico sistema

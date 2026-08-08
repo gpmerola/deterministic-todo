@@ -8,9 +8,9 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente verificata: 2.18.1 build 73, con Progetti
-  nuovamente unico sistema organizzativo, Invio fisico nell'editor Web e sync
-  periodico ridotto.
+- Release coordinata precedente verificata: 2.18.1 build 73.
+- Versione in preparazione: 2.18.2 build 74, con scorciatoie globali protette
+  durante la scrittura nell'editor Web.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 

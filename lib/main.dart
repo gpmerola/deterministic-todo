@@ -1145,14 +1145,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       shortcuts: const {
         SingleActivator(LogicalKeyboardKey.keyN, meta: true): _NewIntent(),
         SingleActivator(LogicalKeyboardKey.keyN, control: true): _NewIntent(),
-        SingleActivator(LogicalKeyboardKey.keyN): _NewIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, control: true):
             _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, meta: true): _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, control: true):
             _SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.slash): _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
       },
       child: Actions(
