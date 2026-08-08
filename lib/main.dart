@@ -1143,24 +1143,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     },
     child: Shortcuts(
       shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.keyN, meta: true): _NewIntent(),
-        SingleActivator(LogicalKeyboardKey.keyN, control: true): _NewIntent(),
-        SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.keyF, control: true):
-            _SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.keyK, meta: true): _SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.keyK, control: true):
-            _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
       },
       child: Actions(
         actions: {
-          _NewIntent: CallbackAction<_NewIntent>(
-            onInvoke: (_) => _showQuickAddSheet(),
-          ),
-          _SearchIntent: CallbackAction<_SearchIntent>(
-            onInvoke: (_) => _showUniversalCommand(),
-          ),
           _BackIntent: CallbackAction<_BackIntent>(
             onInvoke: (_) {
               _handleBack();
@@ -1284,7 +1270,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         SyncStatusAction(service: widget.syncService!),
                       if (section != AppSection.settings) ...[
                         IconButton(
-                          tooltip: 'Comando universale (Ctrl/⌘ K)',
+                          tooltip: 'Comando universale',
                           onPressed: _showUniversalCommand,
                           icon: const Icon(Icons.search_rounded),
                         ),
@@ -1309,7 +1295,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               leading: Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: IconButton.filled(
-                                  tooltip: 'Nuova attività (Ctrl/⌘ N)',
+                                  tooltip: 'Nuova attività',
                                   onPressed: _showQuickAddSheet,
                                   icon: const Icon(Icons.add),
                                 ),
@@ -2288,14 +2274,6 @@ enum _TaskSearchFilter {
 
   const _TaskSearchFilter(this.label);
   final String label;
-}
-
-class _NewIntent extends Intent {
-  const _NewIntent();
-}
-
-class _SearchIntent extends Intent {
-  const _SearchIntent();
 }
 
 class _BackIntent extends Intent {

@@ -91,11 +91,12 @@ Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
 
 Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
 `p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende
-leggibili i link incollati. Su desktop `N` crea, `/` cerca ed `Esc` torna
-indietro; selezionare una task apre sulla destra l'editor completo senza un
+leggibili i link incollati. Su desktop `Esc` torna indietro; selezionare una
+task apre sulla destra l'editor completo senza un
 secondo dialogo. Invio fisico conferma il titolo sia in creazione sia in modifica;
-nelle descrizioni rimane un normale a capo. Le scorciatoie globali richiedono
-Ctrl/⌘ e non intercettano caratteri mentre si modifica. Clic destro e pressione lunga
+nelle descrizioni rimane un normale a capo. Non sono attive scorciatoie globali
+di creazione o ricerca: `Esc` chiude o torna indietro senza interferire con la
+scrittura. Clic destro e pressione lunga
 aprono le sole azioni essenziali.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione

@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.3
+
+- Rimosse tutte le scorciatoie globali di creazione e ricerca, incluse le
+  combinazioni Ctrl/⌘, per impedire qualsiasi interferenza con l'editor Web.
+- Restano soltanto `Esc` per tornare indietro o chiudere e `Invio` per
+  confermare il titolo nell'editor attivo.
+
 ## 2.18.2
 
 - Corretto l'editor laterale Web: digitare `n` o `/` non apre più il composer

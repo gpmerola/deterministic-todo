@@ -165,7 +165,7 @@ void main() {
     expect(find.text('Oggi'), findsWidgets);
     expect(find.text('Prossime'), findsOneWidget);
     expect(find.text('Progetti'), findsOneWidget);
-    expect(find.byTooltip('Nuova attività (Ctrl/⌘ N)'), findsOneWidget);
+    expect(find.byTooltip('Nuova attività'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -184,7 +184,7 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    await tester.tap(find.byTooltip('Comando universale (Ctrl/⌘ K)'));
+    await tester.tap(find.byTooltip('Comando universale'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(EditableText).first, '+ Report domani');
     await tester.pump();
@@ -232,7 +232,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('scrivere nell editor non attiva le scorciatoie globali', (
+  testWidgets('l editor ignora tutte le vecchie scorciatoie globali', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1200, 800);
@@ -250,6 +250,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('task-editor-title')));
     await tester.sendKeyEvent(LogicalKeyboardKey.keyN);
     await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyN);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyN);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
 
     expect(find.byKey(const ValueKey('mobile-quick-add-field')), findsNothing);
@@ -515,7 +525,7 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    await tester.tap(find.byTooltip('Nuova attività (Ctrl/⌘ N)'));
+    await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pump();
     final field = tester.widget<TextField>(
       find.byKey(const ValueKey('mobile-quick-add-field')),
