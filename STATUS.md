@@ -5,11 +5,11 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in preparazione: **2.18.0 build 72**.
-- Ultima release pubblica verificata: **2.17.5 build 71**.
+- Versione sorgente corrente: **2.18.0 build 72**.
+- Ultima release pubblica verificata: **2.18.0 build 72**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
-  verificati sul commit `6d0d77c`.
-- Il test interno Google Play è attivo; la 2.17.4 build 70 è disponibile alla
+  verificati sul commit `b9fa219`.
+- Il test interno Google Play è attivo; la 2.18.0 build 72 è disponibile alla
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -64,9 +64,9 @@ Aggiornato l'8 agosto 2026.
 - Analisi statica senza errori.
 - 113 test automatici superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- Build web release completata localmente. La build Android locale non è
-  disponibile su questo Mac perché manca l'Android SDK; la pipeline firmata
-  esegue build AAB/APK e applica il budget prima di distribuire.
+- Build Web locale e pipeline coordinata completate. La build Android locale
+  non è disponibile su questo Mac perché manca l'Android SDK; la pipeline
+  firmata ha verificato e distribuito AAB/APK applicando il budget.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
 
