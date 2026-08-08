@@ -57,137 +57,154 @@ class _TaskTileState extends State<TaskTile> {
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedSlide(
-    key: ValueKey('completion-slide-${widget.task.id}'),
-    duration: const Duration(milliseconds: 220),
-    curve: Curves.easeInCubic,
-    offset: leavingAfterCompletion ? const Offset(0.12, 0) : Offset.zero,
-    child: AnimatedOpacity(
-      key: ValueKey('completion-opacity-${widget.task.id}'),
-      duration: const Duration(milliseconds: 200),
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    label: taskAccessibilityLabel(widget.task),
+    child: AnimatedSlide(
+      key: ValueKey('completion-slide-${widget.task.id}'),
+      duration: const Duration(milliseconds: 220),
       curve: Curves.easeInCubic,
-      opacity: leavingAfterCompletion ? 0 : 1,
-      child: Dismissible(
-        key: ValueKey('dismiss-${widget.task.id}'),
-        direction: DismissDirection.endToStart,
-        dismissThresholds: const {DismissDirection.endToStart: 0.62},
-        movementDuration: const Duration(milliseconds: 110),
-        resizeDuration: const Duration(milliseconds: 100),
-        background: const SizedBox.shrink(),
-        secondaryBackground: Container(
-          color: Theme.of(context).colorScheme.errorContainer,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 24),
-          child: Icon(
-            Icons.delete_outline,
-            color: Theme.of(context).colorScheme.onErrorContainer,
-          ),
-        ),
-        onDismissed: (_) async {
-          final messenger = ScaffoldMessenger.of(context);
-          await widget.repository.softDelete(widget.task);
-          if (!mounted) return;
-          messenger.hideCurrentSnackBar();
-          messenger.showSnackBar(
-            SnackBar(
-              content: const Text('Spostata nel cestino'),
-              action: SnackBarAction(
-                label: 'Annulla',
-                onPressed: () => widget.repository.restore(widget.task),
-              ),
+      offset: leavingAfterCompletion ? const Offset(0.12, 0) : Offset.zero,
+      child: AnimatedOpacity(
+        key: ValueKey('completion-opacity-${widget.task.id}'),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInCubic,
+        opacity: leavingAfterCompletion ? 0 : 1,
+        child: Dismissible(
+          key: ValueKey('dismiss-${widget.task.id}'),
+          direction: DismissDirection.endToStart,
+          dismissThresholds: const {DismissDirection.endToStart: 0.62},
+          movementDuration: const Duration(milliseconds: 110),
+          resizeDuration: const Duration(milliseconds: 100),
+          background: const SizedBox.shrink(),
+          secondaryBackground: Container(
+            color: Theme.of(context).colorScheme.errorContainer,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            child: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.onErrorContainer,
             ),
-          );
-        },
-        child: AnimatedContainer(
-          key: ValueKey('task-surface-${widget.task.id}'),
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            color: confirmingCompletion
-                ? Colors.green.withValues(alpha: 0.10)
-                : widget.highlightRemote
-                ? Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.55)
-                : widget.task.priority == 1
-                ? Colors.transparent
-                : _priorityColor(widget.task.priority).withValues(alpha: 0.035),
-            border: widget.task.priority == 1
-                ? null
-                : Border(
-                    left: BorderSide(
-                      color: _priorityColor(widget.task.priority),
-                      width: 3,
-                    ),
-                  ),
-            borderRadius: BorderRadius.circular(14),
           ),
-          child: Material(
-            type: MaterialType.transparency,
-            borderRadius: BorderRadius.circular(14),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) =>
-                  _showDesktopMenu(details.globalPosition),
-              child: ListTile(
-                dense: widget.dense,
-                visualDensity: widget.dense
-                    ? const VisualDensity(vertical: -2)
-                    : null,
-                leading: GestureDetector(
-                  key: const ValueKey('completion-no-swipe-zone'),
-                  behavior: HitTestBehavior.opaque,
-                  // A horizontal gesture that starts on the completion target
-                  // belongs to this control, never to the parent Dismissible.
-                  onHorizontalDragStart: (_) {},
-                  child: AnimatedScale(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutBack,
-                    scale: confirmingCompletion ? 1.22 : 1,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 120),
-                      transitionBuilder: (child, animation) => ScaleTransition(
-                        scale: animation,
-                        child: FadeTransition(opacity: animation, child: child),
+          onDismissed: (_) async {
+            final messenger = ScaffoldMessenger.of(context);
+            await widget.repository.softDelete(widget.task);
+            if (!mounted) return;
+            messenger.hideCurrentSnackBar();
+            messenger.showSnackBar(
+              SnackBar(
+                content: const Text('Spostata nel cestino'),
+                action: SnackBarAction(
+                  label: 'Annulla',
+                  onPressed: () => widget.repository.restore(widget.task),
+                ),
+              ),
+            );
+          },
+          child: AnimatedContainer(
+            key: ValueKey('task-surface-${widget.task.id}'),
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              color: confirmingCompletion
+                  ? Colors.green.withValues(alpha: 0.10)
+                  : widget.highlightRemote
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.55)
+                  : widget.task.priority == 1
+                  ? Colors.transparent
+                  : _priorityColor(
+                      widget.task.priority,
+                    ).withValues(alpha: 0.035),
+              border: widget.task.priority == 1
+                  ? null
+                  : Border(
+                      left: BorderSide(
+                        color: _priorityColor(widget.task.priority),
+                        width: 3,
                       ),
-                      child: confirmingCompletion
-                          ? const Icon(
-                              Icons.check_circle_rounded,
-                              key: ValueKey('completed-check'),
-                              color: Colors.green,
-                              size: 30,
-                            )
-                          : Checkbox(
-                              key: const ValueKey('task-checkbox'),
-                              value:
-                                  widget.task.status ==
-                                  TaskStatus.completed.name,
-                              onChanged: (value) =>
-                                  _setCompleted(value ?? false),
-                              activeColor: Colors.green,
-                              side: BorderSide(
-                                color: _priorityColor(widget.task.priority),
-                                width: widget.task.priority == 1 ? 1.5 : 2.5,
+                    ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              borderRadius: BorderRadius.circular(14),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: (details) =>
+                    _showDesktopMenu(details.globalPosition),
+                child: ListTile(
+                  dense: widget.dense,
+                  visualDensity: widget.dense
+                      ? const VisualDensity(vertical: -2)
+                      : null,
+                  leading: GestureDetector(
+                    key: const ValueKey('completion-no-swipe-zone'),
+                    behavior: HitTestBehavior.opaque,
+                    // A horizontal gesture that starts on the completion target
+                    // belongs to this control, never to the parent Dismissible.
+                    onHorizontalDragStart: (_) {},
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutBack,
+                      scale: confirmingCompletion ? 1.22 : 1,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 120),
+                        transitionBuilder: (child, animation) =>
+                            ScaleTransition(
+                              scale: animation,
+                              child: FadeTransition(
+                                opacity: animation,
+                                child: child,
                               ),
                             ),
+                        child: confirmingCompletion
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                key: ValueKey('completed-check'),
+                                color: Colors.green,
+                                size: 30,
+                              )
+                            : Semantics(
+                                label: 'Completa ${widget.task.title}',
+                                child: Checkbox(
+                                  key: const ValueKey('task-checkbox'),
+                                  value:
+                                      widget.task.status ==
+                                      TaskStatus.completed.name,
+                                  onChanged: (value) =>
+                                      _setCompleted(value ?? false),
+                                  activeColor: Colors.green,
+                                  side: BorderSide(
+                                    color: _priorityColor(widget.task.priority),
+                                    width: widget.task.priority == 1
+                                        ? 1.5
+                                        : 2.5,
+                                  ),
+                                ),
+                              ),
+                      ),
                     ),
                   ),
-                ),
-                title: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                    color: confirmingCompletion ? Colors.green.shade700 : null,
-                    decoration: confirmingCompletion
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
+                  title: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 180),
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                      color: confirmingCompletion
+                          ? Colors.green.shade700
+                          : null,
+                      decoration: confirmingCompletion
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                    child: TodoistLinkText(widget.task.title),
                   ),
-                  child: TodoistLinkText(widget.task.title),
+                  subtitle: _subtitle(widget.task),
+                  onTap: confirmingCompletion ? null : _showEditor,
+                  onLongPress: confirmingCompletion
+                      ? null
+                      : () => unawaited(_showMobileMenu()),
                 ),
-                subtitle: _subtitle(widget.task),
-                onTap: confirmingCompletion ? null : _showEditor,
-                onLongPress: confirmingCompletion
-                    ? null
-                    : () => unawaited(_showMobileMenu()),
               ),
             ),
           ),
@@ -333,4 +350,15 @@ class _TaskTileState extends State<TaskTile> {
     );
     if (action != null) await _runAction(action);
   }
+}
+
+String taskAccessibilityLabel(Task task) {
+  final details = <String>[
+    task.title,
+    'Priorità P${5 - task.priority}',
+    if (task.showDate != null) 'Data ${task.showDate}',
+    if (task.recurrence != null)
+      'Ripetizione ${recurrenceSmartLabel(task.recurrence, task.showDate)}',
+  ];
+  return details.join(', ');
 }

@@ -166,6 +166,12 @@ La 2.16.14 inizializza l'identità auth prima di ascoltare gli eventi Supabase:
 la notifica iniziale della stessa sessione non duplica più il primo sync
 completo; login e cambio account continuano invece a forzarlo.
 
+La 2.16.20 sovrappone durante il bootstrap diagnostica, attivazione delle task
+pianificate e inizializzazione Supabase. Sul Web il documento precarica
+`sqlite3.wasm` e `drift_worker.js` e mostra uno stato HTML immediato prima del
+primo frame Flutter. Il report reale del 5–8 agosto 2026 è in
+[`diagnostics/2026-08-08-web-android.md`](diagnostics/2026-08-08-web-android.md).
+
 I dati restano in due blocchi rotanti da 512 KiB e si esportano esplicitamente da Impostazioni: file applicativi su Android e IndexedDB nel browser. L'export include sia il blocco precedente sia quello corrente. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. Ogni riga include versione/build, schema log e un identificatore casuale valido soltanto per l'apertura corrente. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
 
 ## Flusso OTA

@@ -94,6 +94,10 @@ desktop `N` crea, `/` cerca ed `Esc` torna indietro; clic destro e pressione
 lunga aprono le sole azioni essenziali. La ricerca copre anche progetti e URL e
 offre filtri compatti. “Salute dati” nelle Impostazioni raccoglie sync, outbox,
 backup, quantità locali e versione senza aggiungere indicatori alla home.
+Priorità, date e ricorrenze hanno anche descrizioni accessibili indipendenti
+dal colore; l'app rispetta testo di sistema, alto contrasto e navigazione da
+tastiera. Sul Web SQLite WebAssembly e il worker Drift vengono precaricati,
+mentre le inizializzazioni indipendenti partono in parallelo.
 
 La creazione di nuovi account è disabilitata nel progetto Supabase. I dispositivi
 esistenti si collegano con l’account personale già creato.

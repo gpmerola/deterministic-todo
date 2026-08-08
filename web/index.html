@@ -35,8 +35,30 @@
 
   <title>Deterministic Todo</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preload" href="sqlite3.wasm" as="fetch" type="application/wasm" crossorigin>
+  <link rel="preload" href="drift_worker.js" as="script">
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #1f1f1f; }
+    #app-loading {
+      position: fixed; inset: 0; display: grid; place-items: center;
+      color: #f5f5f5; font: 500 16px system-ui, sans-serif;
+    }
+    #app-loading::before {
+      content: ""; width: 36px; height: 36px; margin: 0 auto 14px;
+      display: block; border-radius: 10px; background: #db4035;
+    }
+    body:has(flutter-view) #app-loading { display: none; }
+    @media (prefers-color-scheme: light) {
+      html, body { background: #fafafa; }
+      #app-loading { color: #292929; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; }
+    }
+  </style>
 </head>
 <body>
+  <div id="app-loading" role="status" aria-live="polite">Apro le attività…</div>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

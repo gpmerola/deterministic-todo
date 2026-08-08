@@ -9,6 +9,71 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('la descrizione accessibile non dipende solo dal colore', () {
+    final task = Task(
+      id: 'task-a',
+      title: 'Vitamine',
+      status: TaskStatus.available.name,
+      showDate: '2026-08-08',
+      priority: 4,
+      position: 1,
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+      createdAt: 1,
+      updatedAt: 1,
+      logicalVersion: 1,
+      deviceId: 'device-a',
+    );
+
+    expect(taskAccessibilityLabel(task), contains('Priorità P1'));
+    expect(taskAccessibilityLabel(task), contains('Ripetizione ogni giorno'));
+    expect(taskAccessibilityLabel(task), contains('Data 2026-08-08'));
+  });
+
+  testWidgets('target tattili e semantica restano accessibili', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final semantics = tester.ensureSemantics();
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create(
+      'Prioritaria',
+      status: TaskStatus.available,
+      showDate: '2026-08-08',
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+      priority: 4,
+    );
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+        child: TodoApp(repository: repository),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final settingsSize = tester.getSize(find.byTooltip('Impostazioni'));
+    expect(settingsSize.width, greaterThanOrEqualTo(48));
+    expect(settingsSize.height, greaterThanOrEqualTo(48));
+    final taskSemantics = tester.getSemantics(find.byType(TaskTile));
+    expect(taskSemantics.label, contains('Priorità P1'));
+    expect(taskSemantics.label, contains('Ripetizione ogni giorno'));
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
   testWidgets('creazione rapida con Invio aggiorna Inbox', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');

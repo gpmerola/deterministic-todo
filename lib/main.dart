@@ -69,11 +69,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   Future<_AppRuntime> _initialize() async {
     final startup = Stopwatch()..start();
-    try {
-      await DiagnosticLogService.instance.initialize();
-    } on Object {
-      // La diagnostica non deve mai impedire l'avvio offline.
-    }
+    final diagnosticInitialization = DiagnosticLogService.instance
+        .initialize()
+        .catchError((Object _) {
+          // La diagnostica non deve mai impedire l'avvio offline.
+        });
     final database = AppDatabase();
     final storedDevice = await (database.select(
       database.appSettings,
@@ -98,21 +98,21 @@ class _BootstrapAppState extends State<BootstrapApp> {
     final repository = TaskRepository(database, deviceId: deviceId);
     const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
     const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+    final supabaseInitialization = _initializeSupabase(
+      url: supabaseUrl,
+      key: supabaseKey,
+    );
+    await Future.wait<void>([
+      diagnosticInitialization,
+      repository
+          .activateScheduled(CivilDate.fromDateTime(DateTime.now()))
+          .then((_) {}),
+    ]);
+    final syncClient = await supabaseInitialization;
     SyncService? syncService;
-    SupabaseClient? syncClient;
-    if (supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty) {
-      await Supabase.initialize(
-        url: supabaseUrl,
-        publishableKey: supabaseKey,
-        authOptions: const FlutterAuthClientOptions(
-          localStorage: SecureSupabaseStorage(),
-          autoRefreshToken: true,
-        ),
-      );
-      syncClient = Supabase.instance.client;
+    if (syncClient != null) {
       syncService = SyncService(database, syncClient)..start();
     }
-    await repository.activateScheduled(CivilDate.fromDateTime(DateTime.now()));
     PerformanceMonitor.instance.start();
     startup.stop();
     unawaited(
@@ -123,6 +123,22 @@ class _BootstrapAppState extends State<BootstrapApp> {
       ),
     );
     return _AppRuntime(repository, syncClient, syncService);
+  }
+
+  Future<SupabaseClient?> _initializeSupabase({
+    required String url,
+    required String key,
+  }) async {
+    if (url.isEmpty || key.isEmpty) return null;
+    await Supabase.initialize(
+      url: url,
+      publishableKey: key,
+      authOptions: const FlutterAuthClientOptions(
+        localStorage: SecureSupabaseStorage(),
+        autoRefreshToken: true,
+      ),
+    );
+    return Supabase.instance.client;
   }
 
   @override
@@ -198,6 +214,8 @@ class TodoApp extends StatelessWidget {
     themeMode: ThemeMode.system,
     theme: _theme(Brightness.light),
     darkTheme: _theme(Brightness.dark),
+    highContrastTheme: _theme(Brightness.light, highContrast: true),
+    highContrastDarkTheme: _theme(Brightness.dark, highContrast: true),
     home: TaskShell(
       repository: repository,
       syncClient: syncClient,
@@ -205,7 +223,7 @@ class TodoApp extends StatelessWidget {
     ),
   );
 
-  ThemeData _theme(Brightness brightness) {
+  ThemeData _theme(Brightness brightness, {bool highContrast = false}) {
     final dark = brightness == Brightness.dark;
     final scheme =
         ColorScheme.fromSeed(
@@ -214,6 +232,7 @@ class TodoApp extends StatelessWidget {
         ).copyWith(
           primary: brandRed,
           onPrimary: Colors.white,
+          outline: highContrast ? (dark ? Colors.white : Colors.black) : null,
           surface: dark ? const Color(0xff1f1f1f) : const Color(0xfffafafa),
           surfaceContainerLow: dark
               ? const Color(0xff242424)
@@ -230,6 +249,17 @@ class TodoApp extends StatelessWidget {
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
       useMaterial3: true,
+      visualDensity: VisualDensity.standard,
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(Size.square(48)),
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+      ),
+      checkboxTheme: const CheckboxThemeData(
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      focusColor: scheme.primary.withValues(alpha: highContrast ? 0.28 : 0.16),
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
       ),

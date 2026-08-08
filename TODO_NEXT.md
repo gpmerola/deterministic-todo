@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 ## Stato corrente
 
@@ -8,9 +8,9 @@ Aggiornato il 5 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata precedente verificata: 2.16.8 build 52.
-- Versione in preparazione: 2.16.9 build 53, con release Android/web unica,
-  identità pubblica verificabile e logging browser persistente.
+- Release coordinata precedente verificata: 2.16.19 build 63.
+- Versione in preparazione: 2.16.20 build 64, con accessibilità, bootstrap Web
+  parallelo e test di convergenza Android–Web.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
@@ -56,6 +56,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 ## P2 — Performance
 
 Misurare prima di ottimizzare ulteriormente:
+
+- baseline reale 5–8 agosto registrata in
+  `docs/diagnostics/2026-08-08-web-android.md`;
 
 - cold/warm start Android;
 - RAM e frame pacing con 100, 1.000 e 10.000 task;

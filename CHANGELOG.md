@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.16.20
+
+- Aggiunti temi ad alto contrasto, target di tocco da almeno 48 px e descrizioni
+  semantiche di priorità, data e ricorrenza: le informazioni non dipendono più
+  soltanto dal colore e restano leggibili dagli screen reader.
+- L'avvio Web sovrappone inizializzazione diagnostica, attivazione delle task e
+  bootstrap Supabase; SQLite WebAssembly e worker Drift vengono precaricati e
+  una schermata HTML immediata copre il tempo prima del primo frame Flutter.
+- Aggiunto un test automatico con database Android e Web indipendenti che
+  verifica ID ricorrenti deterministici e convergenza Lamport dopo modifiche
+  offline concorrenti.
+- Analizzati i report reali del 5–8 agosto: la Web 2.16.19 non mostra fallimenti
+  di sync; su Android 2.16.17 resta un solo errore di rete transitorio.
+
+
 ## 2.16.19
 
 - Le ricevute remote dell'outbox sono ora trattate come record immutabili:
