@@ -9,8 +9,8 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
 - Release coordinata precedente verificata: 2.16.21 build 65.
-- Versione in preparazione: 2.17.2 build 68, con annunci temporanei anche in
-  accessibilità e pannello dettagli desktop animato senza toccare il composer.
+- Versione in preparazione: 2.17.3 build 69, con modifica sempre visibile nel
+  dettaglio desktop e composer che parte sempre senza priorità.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 

@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.17.3
+
+- Il pannello dettagli desktop espone ora la modifica nell'intestazione, sempre
+  visibile senza dover raggiungere il fondo della colonna.
+- Ogni apertura del composer parte da nessuna priorità; una scelta precedente
+  non viene più memorizzata, mentre `p1`–`p4` nel titolo resta supportato.
+
 ## 2.17.2
 
 - Gli annunci con azioni, incluso Undo, ora scompaiono dopo cinque secondi

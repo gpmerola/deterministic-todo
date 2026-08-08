@@ -166,6 +166,11 @@ il sistema segnala navigazione accessibile. Il pannello dettagli desktop usa
 una sola transizione di dimensione da 140 ms e un cambio contenuto da 110 ms;
 il composer continua ad avere durata zero.
 
+La 2.17.3 non legge né scrive più una preferenza per l'ultima priorità rapida:
+ogni composer nasce in P4, cioè nessuna priorità, e conserva soltanto il
+progetto recente. La modifica nel pannello desktop riusa l'editor esistente e
+non introduce stream, controller o dipendenze aggiuntive.
+
 ## Telemetria prestazionale locale
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:

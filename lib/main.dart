@@ -355,7 +355,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   StreamSubscription<Set<String>>? remoteTaskSubscription;
   Timer? remoteHighlightTimer;
   List<Project> quickAddProjects = const [];
-  int lastQuickPriority = 1;
   String? lastQuickProjectId;
 
   @override
@@ -410,27 +409,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     projects ??= await widget.repository.db
         .select(widget.repository.db.projects)
         .get();
-    final settings =
-        await (widget.repository.db.select(widget.repository.db.appSettings)
-              ..where(
-                (row) => row.key.isIn(const [
-                  'last_quick_priority',
-                  'last_quick_project',
-                ]),
-              ))
-            .get();
+    final settings = await (widget.repository.db.select(
+      widget.repository.db.appSettings,
+    )..where((row) => row.key.equals('last_quick_project'))).get();
     final values = {for (final setting in settings) setting.key: setting.value};
-    final savedPriority = int.tryParse(values['last_quick_priority'] ?? '');
     quickAddProjects = projects
         .where(
           (item) =>
               !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
         )
         .toList();
-    lastQuickPriority =
-        savedPriority != null && savedPriority >= 1 && savedPriority <= 4
-        ? savedPriority
-        : 1;
     lastQuickProjectId = values['last_quick_project'];
   }
 
@@ -822,9 +810,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         projectId: metadata.projectId,
         sectionId: metadata.projectId == projectId ? sectionId : null,
       );
-      await _savePreference('last_quick_priority', '${metadata.priority}');
       await _savePreference('last_quick_project', metadata.projectId ?? '');
-      lastQuickPriority = metadata.priority;
       lastQuickProjectId = metadata.projectId;
       controller.clear();
       elapsed.stop();
@@ -904,7 +890,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     var stableKeyboardInset = 0.0;
     var closing = false;
     var showNotes = false;
-    var priority = lastQuickPriority;
+    // Ogni nuova attività parte senza priorità, indipendentemente dalla scelta
+    // usata nel composer precedente.
+    var priority = 1;
     if (!mounted) return;
     // Refresh in background for the next opening. The current sheet must be
     // mounted immediately, without waiting for SQLite or preferences.
@@ -1009,7 +997,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       ),
                       PopupMenuButton<int>(
                         key: const ValueKey('mobile-quick-add-priority'),
-                        tooltip: 'Priorità P${5 - priority}',
+                        tooltip: priority == 1
+                            ? 'Nessuna priorità'
+                            : 'Priorità P${5 - priority}',
                         icon: Icon(
                           Icons.circle,
                           size: 20,
@@ -1029,7 +1019,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                     color: _priorityColor(raw),
                                   ),
                                   const SizedBox(width: 10),
-                                  Text('P${5 - raw}'),
+                                  Text(
+                                    raw == 1
+                                        ? 'Nessuna priorità'
+                                        : 'P${5 - raw}',
+                                  ),
                                 ],
                               ),
                             ),
@@ -1517,6 +1511,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               ),
             ),
             IconButton(
+              key: const ValueKey('desktop-detail-edit'),
+              tooltip: 'Modifica attività',
+              onPressed: () => _openTaskEditor(task),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
               tooltip: 'Chiudi dettagli',
               onPressed: () => setState(() => selectedDesktopTaskId = null),
               icon: const Icon(Icons.close),
@@ -1549,24 +1549,20 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             child: Text(recurrenceSmartLabel(task.recurrence, task.showDate)),
           ),
         const Spacer(),
-        FilledButton.icon(
-          onPressed: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            showDragHandle: true,
-            sheetAnimationStyle: const AnimationStyle(
-              duration: Duration(milliseconds: 45),
-              reverseDuration: Duration(milliseconds: 25),
-            ),
-            builder: (_) =>
-                TaskEditor(task: task, repository: widget.repository),
-          ),
-          icon: const Icon(Icons.edit_outlined),
-          label: const Text('Modifica'),
-        ),
       ],
     ),
+  );
+
+  Future<void> _openTaskEditor(Task task) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    sheetAnimationStyle: const AnimationStyle(
+      duration: Duration(milliseconds: 45),
+      reverseDuration: Duration(milliseconds: 25),
+    ),
+    builder: (_) => TaskEditor(task: task, repository: widget.repository),
   );
 
   Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(

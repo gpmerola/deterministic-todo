@@ -212,9 +212,20 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.text('Apri dettaglio'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('Dettagli'), findsOneWidget);
+    expect(find.byTooltip('Modifica attività'), findsOneWidget);
     expect(find.byTooltip('Chiudi dettagli'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Modifica attività'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('task-editor-title')),
+      'Dettaglio modificato',
+    );
+    await tester.tap(find.byKey(const ValueKey('task-editor-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Dettaglio modificato'), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
@@ -802,6 +813,10 @@ void main() {
     final task = await db.select(db.tasks).getSingle();
     expect(task.notes, 'Concentrati sui metodi');
     expect(task.priority, 4);
+
+    await tester.tap(find.byTooltip('Nuova attività'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Nessuna priorità'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
