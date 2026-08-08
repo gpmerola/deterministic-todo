@@ -45,6 +45,18 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _itemKindMeta = const VerificationMeta(
+    'itemKind',
+  );
+  @override
+  late final GeneratedColumn<String> itemKind = GeneratedColumn<String>(
+    'item_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('task'),
+  );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -271,6 +283,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     userId,
     title,
     notes,
+    itemKind,
     status,
     showDate,
     dueDate,
@@ -327,6 +340,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('item_kind')) {
+      context.handle(
+        _itemKindMeta,
+        itemKind.isAcceptableOrUnknown(data['item_kind']!, _itemKindMeta),
       );
     }
     if (data.containsKey('status')) {
@@ -503,6 +522,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      itemKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_kind'],
+      )!,
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
@@ -597,6 +620,7 @@ class Task extends DataClass implements Insertable<Task> {
   final String? userId;
   final String title;
   final String? notes;
+  final String itemKind;
   final String status;
   final String? showDate;
   final String? dueDate;
@@ -622,6 +646,7 @@ class Task extends DataClass implements Insertable<Task> {
     this.userId,
     required this.title,
     this.notes,
+    required this.itemKind,
     required this.status,
     this.showDate,
     this.dueDate,
@@ -654,6 +679,7 @@ class Task extends DataClass implements Insertable<Task> {
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    map['item_kind'] = Variable<String>(itemKind);
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || showDate != null) {
       map['show_date'] = Variable<String>(showDate);
@@ -713,6 +739,7 @@ class Task extends DataClass implements Insertable<Task> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      itemKind: Value(itemKind),
       status: Value(status),
       showDate: showDate == null && nullToAbsent
           ? const Value.absent()
@@ -772,6 +799,7 @@ class Task extends DataClass implements Insertable<Task> {
       userId: serializer.fromJson<String?>(json['userId']),
       title: serializer.fromJson<String>(json['title']),
       notes: serializer.fromJson<String?>(json['notes']),
+      itemKind: serializer.fromJson<String>(json['itemKind']),
       status: serializer.fromJson<String>(json['status']),
       showDate: serializer.fromJson<String?>(json['showDate']),
       dueDate: serializer.fromJson<String?>(json['dueDate']),
@@ -802,6 +830,7 @@ class Task extends DataClass implements Insertable<Task> {
       'userId': serializer.toJson<String?>(userId),
       'title': serializer.toJson<String>(title),
       'notes': serializer.toJson<String?>(notes),
+      'itemKind': serializer.toJson<String>(itemKind),
       'status': serializer.toJson<String>(status),
       'showDate': serializer.toJson<String?>(showDate),
       'dueDate': serializer.toJson<String?>(dueDate),
@@ -830,6 +859,7 @@ class Task extends DataClass implements Insertable<Task> {
     Value<String?> userId = const Value.absent(),
     String? title,
     Value<String?> notes = const Value.absent(),
+    String? itemKind,
     String? status,
     Value<String?> showDate = const Value.absent(),
     Value<String?> dueDate = const Value.absent(),
@@ -855,6 +885,7 @@ class Task extends DataClass implements Insertable<Task> {
     userId: userId.present ? userId.value : this.userId,
     title: title ?? this.title,
     notes: notes.present ? notes.value : this.notes,
+    itemKind: itemKind ?? this.itemKind,
     status: status ?? this.status,
     showDate: showDate.present ? showDate.value : this.showDate,
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
@@ -886,6 +917,7 @@ class Task extends DataClass implements Insertable<Task> {
       userId: data.userId.present ? data.userId.value : this.userId,
       title: data.title.present ? data.title.value : this.title,
       notes: data.notes.present ? data.notes.value : this.notes,
+      itemKind: data.itemKind.present ? data.itemKind.value : this.itemKind,
       status: data.status.present ? data.status.value : this.status,
       showDate: data.showDate.present ? data.showDate.value : this.showDate,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
@@ -930,6 +962,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('userId: $userId, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
+          ..write('itemKind: $itemKind, ')
           ..write('status: $status, ')
           ..write('showDate: $showDate, ')
           ..write('dueDate: $dueDate, ')
@@ -960,6 +993,7 @@ class Task extends DataClass implements Insertable<Task> {
     userId,
     title,
     notes,
+    itemKind,
     status,
     showDate,
     dueDate,
@@ -989,6 +1023,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.userId == this.userId &&
           other.title == this.title &&
           other.notes == this.notes &&
+          other.itemKind == this.itemKind &&
           other.status == this.status &&
           other.showDate == this.showDate &&
           other.dueDate == this.dueDate &&
@@ -1016,6 +1051,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String?> userId;
   final Value<String> title;
   final Value<String?> notes;
+  final Value<String> itemKind;
   final Value<String> status;
   final Value<String?> showDate;
   final Value<String?> dueDate;
@@ -1042,6 +1078,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.userId = const Value.absent(),
     this.title = const Value.absent(),
     this.notes = const Value.absent(),
+    this.itemKind = const Value.absent(),
     this.status = const Value.absent(),
     this.showDate = const Value.absent(),
     this.dueDate = const Value.absent(),
@@ -1069,6 +1106,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.userId = const Value.absent(),
     required String title,
     this.notes = const Value.absent(),
+    this.itemKind = const Value.absent(),
     required String status,
     this.showDate = const Value.absent(),
     this.dueDate = const Value.absent(),
@@ -1102,6 +1140,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? userId,
     Expression<String>? title,
     Expression<String>? notes,
+    Expression<String>? itemKind,
     Expression<String>? status,
     Expression<String>? showDate,
     Expression<String>? dueDate,
@@ -1129,6 +1168,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (userId != null) 'user_id': userId,
       if (title != null) 'title': title,
       if (notes != null) 'notes': notes,
+      if (itemKind != null) 'item_kind': itemKind,
       if (status != null) 'status': status,
       if (showDate != null) 'show_date': showDate,
       if (dueDate != null) 'due_date': dueDate,
@@ -1158,6 +1198,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String?>? userId,
     Value<String>? title,
     Value<String?>? notes,
+    Value<String>? itemKind,
     Value<String>? status,
     Value<String?>? showDate,
     Value<String?>? dueDate,
@@ -1185,6 +1226,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       userId: userId ?? this.userId,
       title: title ?? this.title,
       notes: notes ?? this.notes,
+      itemKind: itemKind ?? this.itemKind,
       status: status ?? this.status,
       showDate: showDate ?? this.showDate,
       dueDate: dueDate ?? this.dueDate,
@@ -1223,6 +1265,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
+    }
+    if (itemKind.present) {
+      map['item_kind'] = Variable<String>(itemKind.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
@@ -1297,6 +1342,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('userId: $userId, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
+          ..write('itemKind: $itemKind, ')
           ..write('status: $status, ')
           ..write('showDate: $showDate, ')
           ..write('dueDate: $dueDate, ')
@@ -3377,6 +3423,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String?> userId,
       required String title,
       Value<String?> notes,
+      Value<String> itemKind,
       required String status,
       Value<String?> showDate,
       Value<String?> dueDate,
@@ -3405,6 +3452,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String?> userId,
       Value<String> title,
       Value<String?> notes,
+      Value<String> itemKind,
       Value<String> status,
       Value<String?> showDate,
       Value<String?> dueDate,
@@ -3453,6 +3501,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get itemKind => $composableBuilder(
+    column: $table.itemKind,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3586,6 +3639,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get itemKind => $composableBuilder(
+    column: $table.itemKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -3708,6 +3766,9 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
+  GeneratedColumn<String> get itemKind =>
+      $composableBuilder(column: $table.itemKind, builder: (column) => column);
+
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
@@ -3815,6 +3876,7 @@ class $$TasksTableTableManager
                 Value<String?> userId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String> itemKind = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> showDate = const Value.absent(),
                 Value<String?> dueDate = const Value.absent(),
@@ -3841,6 +3903,7 @@ class $$TasksTableTableManager
                 userId: userId,
                 title: title,
                 notes: notes,
+                itemKind: itemKind,
                 status: status,
                 showDate: showDate,
                 dueDate: dueDate,
@@ -3869,6 +3932,7 @@ class $$TasksTableTableManager
                 Value<String?> userId = const Value.absent(),
                 required String title,
                 Value<String?> notes = const Value.absent(),
+                Value<String> itemKind = const Value.absent(),
                 required String status,
                 Value<String?> showDate = const Value.absent(),
                 Value<String?> dueDate = const Value.absent(),
@@ -3895,6 +3959,7 @@ class $$TasksTableTableManager
                 userId: userId,
                 title: title,
                 notes: notes,
+                itemKind: itemKind,
                 status: status,
                 showDate: showDate,
                 dueDate: dueDate,

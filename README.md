@@ -46,6 +46,7 @@ dati del sito se vuoi conservare la copia offline.
 ## Funzioni principali
 
 - Oggi, Prossime e Progetti con UI minimale;
+- Riferimenti separati dalle attività per conservare link e note persistenti;
 - date civili senza ora, stabili tra fusi e ora legale;
 - linguaggio naturale italiano evidenziato (`oggi`, `domani`, `ogni martedì`,
   `ogni 3 giorni`, `ogni terzo martedì`, date annuali e altre varianti);
@@ -80,6 +81,7 @@ client. Sul progetto personale devono essere state applicate, nell’ordine:
 1. `supabase/migrations/202608040001_initial.sql`;
 2. `supabase/migrations/202608040002_todoist_import.sql`;
 3. `supabase/migrations/202608050001_realtime_sync.sql`.
+4. `supabase/migrations/202608080001_references.sql`.
 
 Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
 Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e

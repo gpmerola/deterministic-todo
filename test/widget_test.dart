@@ -13,6 +13,7 @@ void main() {
     final task = Task(
       id: 'task-a',
       title: 'Vitamine',
+      itemKind: 'task',
       status: TaskStatus.available.name,
       showDate: '2026-08-08',
       priority: 4,
@@ -838,22 +839,57 @@ void main() {
             find.byKey(ValueKey('completion-opacity-$taskId')),
           )
           .opacity,
-      1,
+      0,
     );
-
-    await tester.pump(const Duration(milliseconds: 20));
-    expect(
-      tester
-          .widget<AnimatedOpacity>(
-            find.byKey(ValueKey('completion-opacity-$taskId')),
-          )
-          .opacity,
-      lessThan(1),
-    );
+    expect(find.byType(AnimatedSlide), findsNothing);
+    await tester.pump(const Duration(milliseconds: 130));
     expect((await db.select(db.tasks).getSingle()).status, 'inbox');
 
     await tester.pumpAndSettle();
     expect((await db.select(db.tasks).getSingle()).status, 'completed');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('Riferimenti resta separato da attività e Progetti', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Riferimenti'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nessun riferimento'), findsOneWidget);
+    await tester.tap(find.byTooltip('Nuovo riferimento'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('reference-add-title')),
+      'Thread Claude',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('reference-add-notes')),
+      'https://claude.ai/example',
+    );
+    await tester.tap(find.byKey(const ValueKey('reference-add-submit')));
+    await tester.pumpAndSettle();
+
+    final reference = await db.select(db.tasks).getSingle();
+    expect(reference.itemKind, 'reference');
+    expect(reference.notes, contains('(https://claude.ai/example)'));
+    expect(find.text('Thread Claude'), findsOneWidget);
+    expect(find.byType(Checkbox), findsNothing);
+
+    await tester.tap(find.text('Oggi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Thread Claude'), findsNothing);
+    expect(find.text('Progetti'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

@@ -73,6 +73,20 @@ void main() {
         .customSelect('PRAGMA user_version')
         .map((row) => row.read<int>('user_version'))
         .getSingle();
-    expect(version, 4);
+    expect(version, 5);
+    final columns = await database
+        .customSelect('PRAGMA table_info(tasks)')
+        .get();
+    expect(
+      columns.any((row) => row.read<String>('name') == 'item_kind'),
+      isTrue,
+    );
+    final indexes = await database
+        .customSelect("PRAGMA index_list('tasks')")
+        .get();
+    expect(
+      indexes.any((row) => row.read<String>('name') == 'tasks_kind_order_idx'),
+      isTrue,
+    );
   });
 }

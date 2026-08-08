@@ -5,10 +5,10 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in preparazione: **2.17.5 build 71**.
-- Ultima release pubblica verificata: **2.17.4 build 70**.
+- Versione sorgente in preparazione: **2.18.0 build 72**.
+- Ultima release pubblica verificata: **2.17.5 build 71**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
-  verificati sul commit `f25278b`.
+  verificati sul commit `6d0d77c`.
 - Il test interno Google Play è attivo; la 2.17.4 build 70 è disponibile alla
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
@@ -28,8 +28,9 @@ Aggiornato l'8 agosto 2026.
   soltanto gli ID cambiati. Il canale si riapre dopo errori o timeout; un
   controllo completo ogni minuto recupera eventi persi, riprese e periodi
   offline mentre l'app è visibile.
-- Task, progetti, sezioni, priorità, date civili, ricorrenze e tombstone sono
-  sincronizzati. Non si sincronizzano segreti o contenuti dei log.
+- Task, riferimenti, progetti, sezioni, priorità, date civili, ricorrenze e
+  tombstone sono sincronizzati. Non si sincronizzano segreti o contenuti dei
+  log.
 - Le occorrenze ricorrenti hanno ID deterministici condivisi tra dispositivi;
   il client riconcilia anche le collisioni storiche `23505` scegliendo la
   versione Lamport più recente.
@@ -37,7 +38,9 @@ Aggiornato l'8 agosto 2026.
 ## Esperienza corrente
 
 - Oggi, Prossime, Progetti, ricerca e composer condividono lo stesso modello su
-  Android e web, con layout desktop adattivo.
+  Android e web, con layout desktop adattivo. Riferimenti è una sezione
+  autonoma per link e note persistenti: non alimenta le viste delle attività e
+  non modifica la gerarchia importata da Todoist.
 - `Ctrl/⌘ K` apre il comando universale: testo libero cerca, `+` crea, `>`
   naviga e `#` limita la ricerca a un progetto. Sul desktop una task selezionata
   si modifica direttamente nel pannello laterale opzionale.
@@ -47,7 +50,8 @@ Aggiornato l'8 agosto 2026.
 - Nel campo titolo Invio conferma sia la creazione sia la modifica in ogni
   sezione; la descrizione conserva il comportamento multilinea.
 - La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
-  non possono più avviare per errore il trascinamento verso il cestino.
+  non possono più avviare per errore il trascinamento verso il cestino. La riga
+  resta ferma durante la conferma e viene rimossa solo dopo la dissolvenza.
 - L'Undo usa un solo comportamento per task, progetti e sezioni e, sulle
   ricorrenze, inverte atomicamente anche la nuova occorrenza.
 - L'import Todoist supporta aggiornamento e sostituzione idempotente di task,
@@ -58,7 +62,7 @@ Aggiornato l'8 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 112 test automatici superati, incluso uno scenario di convergenza con due
+- 113 test automatici superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
 - Build web release completata localmente. La build Android locale non è
   disponibile su questo Mac perché manca l'Android SDK; la pipeline firmata

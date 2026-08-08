@@ -12,6 +12,7 @@ class Tasks extends Table {
   TextColumn get userId => text().nullable()();
   TextColumn get title => text().withLength(min: 1)();
   TextColumn get notes => text().nullable()();
+  TextColumn get itemKind => text().withDefault(const Constant('task'))();
   TextColumn get status => text()();
   TextColumn get showDate => text().nullable()();
   TextColumn get dueDate => text().nullable()();
@@ -106,7 +107,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -118,6 +119,10 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (migrator, from, to) async {
       if (from < 2) await _createPerformanceIndexes();
       if (from < 4) await _ensureImportSchema(migrator);
+      if (from < 5 && !await _columnExists('tasks', tasks.itemKind.$name)) {
+        await migrator.addColumn(tasks, tasks.itemKind);
+      }
+      if (from < 5) await _createReferenceIndex();
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -128,6 +133,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _ensureImportSchema(Migrator migrator) async {
     for (final column in [
       tasks.priority,
+      tasks.itemKind,
       tasks.projectId,
       tasks.sectionId,
       tasks.externalSource,
@@ -166,7 +172,13 @@ class AppDatabase extends _$AppDatabase {
       'CREATE INDEX IF NOT EXISTS tasks_dates_idx '
       'ON tasks (deleted_at, show_date, due_date)',
     );
+    await _createReferenceIndex();
   }
+
+  Future<void> _createReferenceIndex() => customStatement(
+    'CREATE INDEX IF NOT EXISTS tasks_kind_order_idx '
+    'ON tasks (item_kind, deleted_at, position, created_at, id)',
+  );
 
   Future<void> _createImportIndexes() async {
     await customStatement(

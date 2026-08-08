@@ -37,6 +37,7 @@ class ExportService {
       'id',
       'title',
       'notes',
+      'item_kind',
       'status',
       'show_date',
       'due_date',
@@ -50,6 +51,7 @@ class ExportService {
           task.id,
           task.title,
           task.notes ?? '',
+          task.itemKind,
           task.status,
           task.showDate ?? '',
           task.dueDate ?? '',
@@ -103,9 +105,10 @@ class ExportService {
     final rawTasks = root['tasks']! as List<Object?>;
     await db.transaction(() async {
       for (final raw in rawTasks) {
-        final task = Task.fromJson(
-          (raw! as Map<String, Object?>).cast<String, dynamic>(),
-        );
+        final normalized = (raw! as Map<String, Object?>)
+            .cast<String, dynamic>();
+        normalized.putIfAbsent('itemKind', () => 'task');
+        final task = Task.fromJson(normalized);
         final existing = await (db.select(
           db.tasks,
         )..where((row) => row.id.equals(task.id))).getSingleOrNull();

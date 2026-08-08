@@ -6,9 +6,9 @@ Un solo client Flutter/Dart genera l’app nativa Android e la web app per Chrom
 
 ## Dati e tempo
 
-`tasks` conserva UUID v4, proprietario, titolo, note, stato, `show_date` e `due_date` legacy come date civili ISO `YYYY-MM-DD`, posizione manuale, ricorrenza, serie/occorrenza, metadati di versione e tombstone. Le colonne orarie legacy restano nullable solo per compatibilità. Le date civili non vengono convertite in UTC: questo impedisce che cambino giorno attraversando un fuso. Gli istanti (`created_at`, `updated_at`, `completed_at`, `deleted_at`) sono microsecondi UTC Unix.
+`tasks` conserva UUID v4, proprietario, titolo, note, `item_kind`, stato, `show_date` e `due_date` legacy come date civili ISO `YYYY-MM-DD`, posizione manuale, ricorrenza, serie/occorrenza, metadati di versione e tombstone. `item_kind` distingue `task` da `reference`; il default `task` mantiene compatibili database, backup e import precedenti. Le colonne orarie legacy restano nullable solo per compatibilità. Le date civili non vengono convertite in UTC: questo impedisce che cambino giorno attraversando un fuso. Gli istanti (`created_at`, `updated_at`, `completed_at`, `deleted_at`) sono microsecondi UTC Unix.
 
-Lo schema locale 4 prepara importazioni esterne complete e rende idempotente il recupero di migrazioni interrotte: `projects` e `project_sections` conservano gerarchia e ordine, mentre `tasks` aggiunge priorità, riferimenti progetto/sezione e la coppia univoca `external_source`/`external_id`. Gli identificativi esterni servono soltanto a rendere l'import idempotente; gli UUID interni restano l'identità usata dall'app e dalla sincronizzazione.
+Lo schema locale 4 prepara importazioni esterne complete e rende idempotente il recupero di migrazioni interrotte: `projects` e `project_sections` conservano gerarchia e ordine, mentre `tasks` aggiunge priorità, riferimenti progetto/sezione e la coppia univoca `external_source`/`external_id`. Lo schema 5 aggiunge `item_kind` in modo non distruttivo. Gli identificativi esterni servono soltanto a rendere l'import idempotente; gli UUID interni restano l'identità usata dall'app e dalla sincronizzazione.
 
 L'import Todoist separa tre fasi: parsing/anteprima senza scritture, piano tipizzato validato e applicazione in una singola transazione SQLite. Importa solo record attivi; progetti, sezioni e task ricevono UUID v5 stabili derivati dall'ID Todoist. I checkpoint `updated_at` permettono reimport incrementali senza duplicati. La modalità di sostituzione riattiva e sovrascrive i record presenti nel file e applica tombstone/archiviazione ai soli record Todoist assenti, così la cancellazione si propaga in modo sicuro nella sincronizzazione. Il sync remoto applica lo stesso confronto Lamport a task, progetti e sezioni.
 
@@ -22,7 +22,7 @@ Gli stati persistiti sono `inbox`, `available`, `scheduled`, `waiting`, `complet
 
 Oggi usa gruppi esclusivi con precedenza: (1) scadenza oggi, (2) scaduta, (3) mostra oggi, (4) disponibile senza data. Dentro ogni gruppo: posizione, creazione, UUID. Prossime raggruppa `scheduled` con `show_date > oggi`, prima per data e poi con lo stesso ordinamento manuale. Ricerca titolo/note è locale, case-insensitive, e ordina per stato, posizione, creazione, UUID.
 
-Le viste attive osservano uno stream SQLite che esclude completate e tombstone; Completate usa uno stream separato. Gli stream sono creati una volta per shell e supportati dagli indici della migrazione locale 2. Questo mantiene fuori dalla RAM la cronologia non pertinente.
+Le viste attive osservano uno stream SQLite che esclude completate, tombstone e riferimenti; Completate usa uno stream separato. Riferimenti osserva un proprio stream filtrato e non partecipa a Oggi, Prossime, Progetti o ricorrenze. I due sistemi sono quindi separati nell'interfaccia e nel dominio visibile, pur riusando persistenza, outbox e conflitti Lamport per evitare un secondo motore di sincronizzazione. Gli stream sono creati una volta per shell e supportati dagli indici della migrazione locale 2; lo schema 5 aggiunge un indice composto per tipo e ordine dei riferimenti. Questo mantiene fuori dalla RAM la cronologia non pertinente.
 
 Il controller del composer usa gli stessi pattern del parser per costruire gli span evidenziati, mantenendo feedback visivo e salvataggio coerenti. L'agenda genera pigramente soltanto i giorni visibili, fino a dieci anni, e usa un date picker per i salti lunghi: non apre stream, timer o richieste di rete aggiuntivi.
 
@@ -42,7 +42,7 @@ Le ricorrenze naturali sono regole calendario persistite, non testo decorativo. 
 
 Il bootstrap non carica database dei fusi e non richiede permessi di notifica: il supporto orario è assente e le date sono sempre civili. Il controllo del piccolo manifest release avviene una volta a ogni apertura, post-frame e senza bloccare la UI. Un unico workflow verifica il codice una volta, costruisce web e APK per ABI, distribuisce prima il browser e pubblica Android soltanto dopo il successo web. Manifest Android e `release-info.json` web espongono versione, build e commit e vengono confrontati pubblicamente. Il dettaglio operativo e i budget sono in [ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
 
-Le migrazioni locali verificano colonne e tabelle prima di crearle. Dallo schema 4 una migrazione interrotta può quindi riprendere senza cancellare il database o ripetere operazioni già applicate.
+Le migrazioni locali verificano colonne e tabelle prima di crearle. Dallo schema 4 una migrazione interrotta può quindi riprendere senza cancellare il database o ripetere operazioni già applicate. La migrazione 5 assegna automaticamente `task` ai record esistenti; la migrazione Supabase equivalente aggiorna anche la RPC di merge.
 
 ## Fuso del dispositivo e calendario Android
 

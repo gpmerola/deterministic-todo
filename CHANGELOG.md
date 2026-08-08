@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.0
+
+- Aggiunta la sezione autonoma Riferimenti per conservare link e note
+  persistenti senza mostrarli in Oggi, Prossime o Progetti. Il sistema Progetti
+  e l'import Todoist restano invariati e reversibili.
+- Riferimenti sincronizzati tra Android e Web e inclusi nei backup JSON/CSV;
+  i backup precedenti restano compatibili e vengono interpretati come attività.
+- Il completamento non sposta più lateralmente la riga: mostra una conferma
+  verde, conclude una dissolvenza breve e solo allora aggiorna la lista, così
+  gli elementi circostanti non saltano durante il tocco.
+
 ## 2.17.5
 
 - Invio nel titolo conferma ora anche la modifica, sia nell'editor inline web

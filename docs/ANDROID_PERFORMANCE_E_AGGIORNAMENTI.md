@@ -181,6 +181,13 @@ Un flag locale ignora conferme duplicate durante la singola transazione; non
 aggiunge timer, listener o lavoro a riposo. Il campo descrizione resta
 multilinea e non intercetta Invio.
 
+La 2.18.0 sostituisce il movimento laterale del completamento con una conferma
+verde e una dissolvenza di 140 ms; la scrittura avviene dopo la conclusione
+visiva, evitando ricostruzioni intermedie della lista. Riferimenti usa un solo
+stream SQLite filtrato, attivo soltanto nella relativa sezione, e riusa outbox,
+sync e componenti link già presenti: nessun polling, dipendenza o servizio in
+background aggiuntivo.
+
 ## Telemetria prestazionale locale
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:

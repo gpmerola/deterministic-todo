@@ -690,6 +690,7 @@ class SyncService {
             userId: Value(raw['user_id'] as String?),
             title: Value(raw['title'] as String),
             notes: Value(raw['notes'] as String?),
+            itemKind: Value(raw['item_kind'] as String? ?? 'task'),
             status: Value(raw['status'] as String),
             showDate: Value(raw['show_date'] as String?),
             // Legacy column retained in the remote schema for compatibility.
@@ -764,6 +765,7 @@ class SyncService {
     'user_id': client.auth.currentUser!.id,
     'title': task.title,
     'notes': task.notes,
+    'item_kind': task.itemKind,
     'status': task.status,
     'show_date': task.showDate,
     'due_date': null,
