@@ -304,6 +304,37 @@ class TaskRepository {
     }
   }
 
+  Future<void> undoCompletion(Task task) async {
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(task.id))).getSingleOrNull();
+    if (current == null || current.status != TaskStatus.completed.name) return;
+    await db.transaction(() async {
+      final completedAt = current.completedAt;
+      final seriesId = current.seriesId;
+      if (completedAt != null && seriesId != null) {
+        final generated =
+            await (db.select(db.tasks)
+                  ..where(
+                    (row) =>
+                        row.id.equals(current.id).not() &
+                        row.seriesId.equals(seriesId) &
+                        row.createdAt.isBiggerOrEqualValue(completedAt),
+                  )
+                  ..orderBy([
+                    (row) => OrderingTerm(
+                      expression: row.createdAt,
+                      mode: OrderingMode.desc,
+                    ),
+                  ])
+                  ..limit(1))
+                .getSingleOrNull();
+        if (generated != null) await softDelete(generated);
+      }
+      await setCompleted(current, false);
+    });
+  }
+
   Future<void> softDelete(Task task) async {
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     await _update(

@@ -170,6 +170,57 @@ void main() {
     await db.close();
   });
 
+  testWidgets('il comando universale crea con + e linguaggio naturale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Comando universale (Ctrl/⌘ K)'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText).first, '+ Report domani');
+    await tester.pump();
+    await tester.tap(find.text('Report'));
+    await tester.pump();
+
+    final task = await db.select(db.tasks).getSingle();
+    expect(task.title, 'Report');
+    expect(task.showDate, isNotNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+    await tester.pump();
+  });
+
+  testWidgets('il desktop mostra il dettaglio laterale opzionale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Apri dettaglio');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Apri dettaglio'));
+    await tester.pump();
+    expect(find.text('Dettagli'), findsOneWidget);
+    expect(find.byTooltip('Chiudi dettagli'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+    await tester.pump();
+  });
+
   testWidgets('le transizioni UI sono brevi e non coinvolgono il composer', (
     tester,
   ) async {

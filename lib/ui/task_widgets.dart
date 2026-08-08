@@ -14,6 +14,7 @@ class TaskTile extends StatefulWidget {
     this.showDateMetadata = true,
     this.dense = false,
     this.highlightRemote = false,
+    this.onSelected,
     super.key,
   });
 
@@ -22,6 +23,7 @@ class TaskTile extends StatefulWidget {
   final bool showDateMetadata;
   final bool dense;
   final bool highlightRemote;
+  final VoidCallback? onSelected;
 
   @override
   State<TaskTile> createState() => _TaskTileState();
@@ -54,6 +56,15 @@ class _TaskTileState extends State<TaskTile> {
         },
       ),
     );
+    if (mounted) {
+      AppUndo.show(
+        context,
+        message: widget.task.recurrence == null
+            ? 'Attività completata'
+            : 'Completata e riprogrammata',
+        undo: () => widget.repository.undoCompletion(widget.task),
+      );
+    }
   }
 
   @override
@@ -87,18 +98,12 @@ class _TaskTileState extends State<TaskTile> {
             ),
           ),
           onDismissed: (_) async {
-            final messenger = ScaffoldMessenger.of(context);
             await widget.repository.softDelete(widget.task);
-            if (!mounted) return;
-            messenger.hideCurrentSnackBar();
-            messenger.showSnackBar(
-              SnackBar(
-                content: const Text('Spostata nel cestino'),
-                action: SnackBarAction(
-                  label: 'Annulla',
-                  onPressed: () => widget.repository.restore(widget.task),
-                ),
-              ),
+            if (!context.mounted) return;
+            AppUndo.show(
+              context,
+              message: 'Spostata nel cestino',
+              undo: () => widget.repository.restore(widget.task),
             );
           },
           child: AnimatedContainer(
@@ -135,8 +140,10 @@ class _TaskTileState extends State<TaskTile> {
                 onSecondaryTapDown: (details) =>
                     _showDesktopMenu(details.globalPosition),
                 child: ListTile(
-                  dense: widget.dense,
-                  visualDensity: widget.dense
+                  dense:
+                      widget.dense || MediaQuery.sizeOf(context).width >= 900,
+                  visualDensity:
+                      widget.dense || MediaQuery.sizeOf(context).width >= 900
                       ? const VisualDensity(vertical: -2)
                       : null,
                   leading: GestureDetector(
@@ -200,7 +207,9 @@ class _TaskTileState extends State<TaskTile> {
                     child: TodoistLinkText(widget.task.title),
                   ),
                   subtitle: _subtitle(widget.task),
-                  onTap: confirmingCompletion ? null : _showEditor,
+                  onTap: confirmingCompletion
+                      ? null
+                      : widget.onSelected ?? _showEditor,
                   onLongPress: confirmingCompletion
                       ? null
                       : () => unawaited(_showMobileMenu()),
@@ -286,14 +295,10 @@ class _TaskTileState extends State<TaskTile> {
     } else if (action == 'delete') {
       await widget.repository.softDelete(widget.task);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Spostata nel cestino'),
-          action: SnackBarAction(
-            label: 'Annulla',
-            onPressed: () => widget.repository.restore(widget.task),
-          ),
-        ),
+      AppUndo.show(
+        context,
+        message: 'Spostata nel cestino',
+        undo: () => widget.repository.restore(widget.task),
       );
     }
   }

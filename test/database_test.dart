@@ -145,6 +145,30 @@ void main() {
     );
   });
 
+  test('Undo della ricorrenza ripristina la task senza duplicati', () async {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final id = await repository.create(
+      'Vitamine',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(current, true);
+    await repository.undoCompletion(current);
+
+    final active = await repository.watchActive().first;
+    expect(active, hasLength(1));
+    expect(active.single.id, id);
+    expect(active.single.status, TaskStatus.available.name);
+  });
+
   test('le viste attive e completate non caricano record inutili', () async {
     final activeId = await repository.create('Attiva');
     final completedId = await repository.create('Completata');

@@ -5,7 +5,7 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.16.21 build 65**.
+- Versione sorgente in pubblicazione: **2.17.0 build 66**.
 - Ultima release pubblica verificata: **2.16.21 build 65**.
 - Web, release Android pubblica e manifest di parità sono verificati sul commit
   `5217992`.
@@ -38,11 +38,16 @@ Aggiornato l'8 agosto 2026.
 
 - Oggi, Prossime, Progetti, ricerca e composer condividono lo stesso modello su
   Android e web, con layout desktop adattivo.
+- `Ctrl/⌘ K` apre il comando universale: testo libero cerca, `+` crea, `>`
+  naviga e `#` limita la ricerca a un progetto. Sul desktop una task selezionata
+  usa il pannello dettagli laterale opzionale.
 - Il composer riconosce linguaggio naturale, `#Progetto`, `p1`–`p4` e link;
   ricorda progetto e priorità recenti e resta fermo durante gli assestamenti
   della tastiera Android.
 - La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
   non possono più avviare per errore il trascinamento verso il cestino.
+- L'Undo usa un solo comportamento per task, progetti e sezioni e, sulle
+  ricorrenze, inverte atomicamente anche la nuova occorrenza.
 - L'import Todoist supporta aggiornamento e sostituzione idempotente di task,
   progetti e sezioni e produce un rapporto prima del backup.
 - Impostazioni contiene Cestino, attività completate, diagnostica e Salute dati;
@@ -51,9 +56,11 @@ Aggiornato l'8 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 106 test automatici superati, incluso uno scenario di convergenza con due
+- 109 test automatici superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- Build web release completata localmente.
+- Build web release completata localmente. La build Android locale non è
+  disponibile su questo Mac perché manca l'Android SDK; la pipeline firmata
+  esegue build AAB/APK e applica il budget prima di distribuire.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
 

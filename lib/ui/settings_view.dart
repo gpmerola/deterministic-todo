@@ -100,7 +100,10 @@ class SettingsView extends StatelessWidget {
       final bytes = picked.files.single.bytes;
       final source = await readPickedText(bytes, picked.files.single.path);
       const service = TodoistImportService();
-      final preview = service.preview(source);
+      // JSON e normalizzazione possono essere costosi su export grandi. Su
+      // Android compute usa un isolate; sul Web mantiene la stessa API.
+      final plan = await compute(parseTodoistImportPlan, source);
+      final preview = plan.preview;
       if (!context.mounted) return;
       final priorities = List.generate(
         4,
@@ -181,7 +184,7 @@ class SettingsView extends StatelessWidget {
         await syncClient!.from('project_sections').select('id').limit(1);
       }
       final result = await service.importPlan(
-        plan: service.plan(source),
+        plan: plan,
         db: repository.db,
         deviceId: repository.deviceId,
         mode: mode,

@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.17.0
+
+- Aggiunto il comando universale: `Ctrl/⌘ K` cerca attività, `+` crea con
+  linguaggio naturale, `>` apre una sezione e `#` filtra per progetto.
+- Centralizzato l'Undo di completamento, cestino, progetto e sezione. Per le
+  ricorrenze annulla anche l'occorrenza successiva appena generata.
+- Il desktop usa una vista master–detail opzionale; liste e tipografia sono più
+  dense sul computer, mantenendo target ampi su Android.
+- L'import Todoist analizza JSON e ricorrenze fuori dal frame UI su Android.
+- Aggiunti profili Android di avvio e baseline, più un budget CI di 25 MiB per
+  ogni APK specifico per CPU.
+
 ## 2.16.21
 
 - Automatizzata la pubblicazione dell'AAB firmato nel test interno Google Play

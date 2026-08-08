@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -44,6 +45,7 @@ part 'ui/sync_account_card.dart';
 part 'ui/trash_view.dart';
 part 'ui/task_widgets.dart';
 part 'ui/task_editor.dart';
+part 'ui/app_undo.dart';
 
 const isPlayDistribution =
     String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
@@ -250,6 +252,25 @@ class TodoApp extends StatelessWidget {
       scaffoldBackgroundColor: scheme.surface,
       useMaterial3: true,
       visualDensity: VisualDensity.standard,
+      textTheme: ThemeData(brightness: brightness).textTheme.copyWith(
+        headlineSmall: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w500,
+          height: 1.15,
+        ),
+        titleLarge: const TextStyle(
+          fontSize: 21,
+          fontWeight: FontWeight.w600,
+          height: 1.2,
+        ),
+        titleSmall: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          height: 1.25,
+        ),
+        bodyMedium: const TextStyle(fontSize: 15, height: 1.3),
+        bodySmall: const TextStyle(fontSize: 12, height: 1.25),
+      ),
       iconButtonTheme: const IconButtonThemeData(
         style: ButtonStyle(
           minimumSize: WidgetStatePropertyAll(Size.square(48)),
@@ -321,6 +342,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final Set<String> inboxProjectIds = {};
   String? selectedUpcomingDate;
   String? selectedProjectId;
+  String? selectedDesktopTaskId;
   final search = TextEditingController();
   late final Stream<List<Task>> activeTasks;
   late final Stream<List<Task>> completedTasks;
@@ -1142,6 +1164,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.keyF, control: true):
             _SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK, meta: true): _SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.slash): _SearchIntent(),
         SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
       },
@@ -1151,10 +1176,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             onInvoke: (_) => _showQuickAddSheet(),
           ),
           _SearchIntent: CallbackAction<_SearchIntent>(
-            onInvoke: (_) => showSearch<void>(
-              context: context,
-              delegate: TaskSearchDelegate(widget.repository),
-            ),
+            onInvoke: (_) => _showUniversalCommand(),
           ),
           _BackIntent: CallbackAction<_BackIntent>(
             onInvoke: (_) {
@@ -1180,30 +1202,50 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                 final pageIdentity =
                     '${section.name}:'
                     '${section == AppSection.projects ? selectedProjectId ?? 'root' : ''}';
+                final selectedDesktopTask = desktop
+                    ? tasks
+                          .where((task) => task.id == selectedDesktopTaskId)
+                          .firstOrNull
+                    : null;
                 final content = Align(
                   alignment: Alignment.topCenter,
                   child: SizedBox(
-                    width: desktop ? 960 : 720,
-                    child: AnimatedSwitcher(
-                      key: const ValueKey('page-motion'),
-                      duration: _pageMotion,
-                      reverseDuration: _pageMotionOut,
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.012, 0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
+                    width: desktop ? 1180 : 720,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            key: const ValueKey('page-motion'),
+                            duration: _pageMotion,
+                            reverseDuration: _pageMotionOut,
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.012, 0),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                            child: KeyedSubtree(
+                              key: ValueKey('page-$pageIdentity'),
+                              child: _content(tasks),
+                            ),
+                          ),
                         ),
-                      ),
-                      child: KeyedSubtree(
-                        key: ValueKey('page-$pageIdentity'),
-                        child: _content(tasks),
-                      ),
+                        if (selectedDesktopTask != null) ...[
+                          const VerticalDivider(width: 1),
+                          SizedBox(
+                            width: 330,
+                            child: _desktopTaskDetails(selectedDesktopTask),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 );
@@ -1238,12 +1280,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                         SyncStatusAction(service: widget.syncService!),
                       if (section != AppSection.settings) ...[
                         IconButton(
-                          tooltip: 'Cerca (Ctrl/⌘ F)',
-                          onPressed: () => showSearch<void>(
-                            context: context,
-                            delegate: TaskSearchDelegate(widget.repository),
-                          ),
-                          icon: const Icon(Icons.search),
+                          tooltip: 'Comando universale (Ctrl/⌘ K)',
+                          onPressed: _showUniversalCommand,
+                          icon: const Icon(Icons.search_rounded),
                         ),
                         IconButton(
                           tooltip: 'Impostazioni',
@@ -1329,6 +1368,38 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
+  Future<void> _showUniversalCommand() => showSearch<void>(
+    context: context,
+    delegate: TaskSearchDelegate(
+      widget.repository,
+      onNavigate: (destination) {
+        _navigateTo(destination);
+      },
+      onCreate: (raw) async {
+        final metadata = parseQuickAddMetadata(
+          raw,
+          defaultPriority: 1,
+          projectsByName: const {},
+        );
+        final parsed = const QuickAddParser().parse(metadata.text);
+        await widget.repository.create(
+          parsed.title,
+          status: parsed.showDate == null
+              ? TaskStatus.inbox
+              : parsed.showDate!.compareTo(
+                      CivilDate.fromDateTime(DateTime.now()),
+                    ) <=
+                    0
+              ? TaskStatus.available
+              : TaskStatus.scheduled,
+          showDate: parsed.showDate?.toString(),
+          recurrence: parsed.recurrence,
+          priority: metadata.priority,
+        );
+      },
+    ),
+  );
+
   Widget _content(List<Task> all) {
     if (section == AppSection.settings) {
       return SettingsView(
@@ -1405,6 +1476,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             showDateMetadata:
                                 section != AppSection.today &&
                                 section != AppSection.upcoming,
+                            onSelected: MediaQuery.sizeOf(context).width >= 900
+                                ? () => setState(
+                                    () => selectedDesktopTaskId =
+                                        visible[index].id,
+                                  )
+                                : null,
                           ),
                         ),
                 ),
@@ -1412,6 +1489,73 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ],
     );
   }
+
+  Widget _desktopTaskDetails(Task task) => Padding(
+    key: ValueKey('desktop-detail-${task.id}'),
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Dettagli',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Chiudi dettagli',
+              onPressed: () => setState(() => selectedDesktopTaskId = null),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        TodoistLinkText(
+          task.title,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        if (task.notes?.trim().isNotEmpty ?? false) ...[
+          const SizedBox(height: 12),
+          TodoistLinkText(
+            task.notes!,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+        const SizedBox(height: 16),
+        if (task.showDate != null)
+          Text(
+            DateFormat(
+              'EEEE d MMMM yyyy',
+              'it',
+            ).format(CivilDate.parse(task.showDate!).asLocalDate),
+          ),
+        if (task.recurrence != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(recurrenceSmartLabel(task.recurrence, task.showDate)),
+          ),
+        const Spacer(),
+        FilledButton.icon(
+          onPressed: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            showDragHandle: true,
+            sheetAnimationStyle: const AnimationStyle(
+              duration: Duration(milliseconds: 45),
+              reverseDuration: Duration(milliseconds: 25),
+            ),
+            builder: (_) =>
+                TaskEditor(task: task, repository: widget.repository),
+          ),
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Modifica'),
+        ),
+      ],
+    ),
+  );
 
   Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(
     stream:
@@ -1760,22 +1904,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         setState(() => selectedProjectId = null);
       }
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Progetto “${project.name}” eliminato'),
-          action: SnackBarAction(
-            label: 'Annulla',
-            onPressed: () async {
-              final current = await (widget.repository.db.select(
-                widget.repository.db.projects,
-              )..where((row) => row.id.equals(project.id))).getSingle();
-              await widget.repository.updateProject(current, isArchived: false);
-              await widget.syncService?.sync();
-            },
-          ),
-        ),
+      AppUndo.show(
+        context,
+        message: 'Progetto “${project.name}” eliminato',
+        undo: () async {
+          final current = await (widget.repository.db.select(
+            widget.repository.db.projects,
+          )..where((row) => row.id.equals(project.id))).getSingle();
+          await widget.repository.updateProject(current, isArchived: false);
+          await widget.syncService?.sync();
+        },
       );
     }
     await widget.syncService?.sync();
@@ -1830,25 +1968,19 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     } else if (action == 'delete') {
       await widget.repository.updateProjectSection(section, isArchived: true);
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Sezione “${section.name}” eliminata'),
-          action: SnackBarAction(
-            label: 'Annulla',
-            onPressed: () async {
-              final current = await (widget.repository.db.select(
-                widget.repository.db.projectSections,
-              )..where((row) => row.id.equals(section.id))).getSingle();
-              await widget.repository.updateProjectSection(
-                current,
-                isArchived: false,
-              );
-              await widget.syncService?.sync();
-            },
-          ),
-        ),
+      AppUndo.show(
+        context,
+        message: 'Sezione “${section.name}” eliminata',
+        undo: () async {
+          final current = await (widget.repository.db.select(
+            widget.repository.db.projectSections,
+          )..where((row) => row.id.equals(section.id))).getSingle();
+          await widget.repository.updateProjectSection(
+            current,
+            isArchived: false,
+          );
+          await widget.syncService?.sync();
+        },
       );
     }
     await widget.syncService?.sync();
@@ -2014,14 +2146,19 @@ int _stableCompare(Task a, Task b, String today) {
 }
 
 class TaskSearchDelegate extends SearchDelegate<void> {
-  TaskSearchDelegate(this.repository)
-    : _projects = repository.db.select(repository.db.projects).get();
+  TaskSearchDelegate(
+    this.repository, {
+    required this.onNavigate,
+    required this.onCreate,
+  }) : _projects = repository.db.select(repository.db.projects).get();
   final TaskRepository repository;
+  final ValueChanged<AppSection> onNavigate;
+  final Future<void> Function(String raw) onCreate;
   final Future<List<Project>> _projects;
   final Set<_TaskSearchFilter> _filters = {};
 
   @override
-  String get searchFieldLabel => 'Cerca titolo e note';
+  String get searchFieldLabel => 'Cerca, + crea, > apri, # progetto';
 
   @override
   List<Widget> buildActions(BuildContext context) => [
@@ -2045,12 +2182,16 @@ class TaskSearchDelegate extends SearchDelegate<void> {
     builder: (context, projectSnapshot) => StreamBuilder<List<Task>>(
       stream: repository.watchAll(),
       builder: (context, snapshot) {
-        final needle = query.trim().toLowerCase();
+        final rawQuery = query.trim();
+        final needle = rawQuery
+            .replaceFirst(RegExp(r'^[+#>]\s*'), '')
+            .toLowerCase();
         final projectNames = {
           for (final project in projectSnapshot.data ?? const <Project>[])
             project.id: project.name.toLowerCase(),
         };
         final today = CivilDate.fromDateTime(DateTime.now()).toString();
+        final projectQuery = rawQuery.startsWith('#');
         final results = (snapshot.data ?? const <Task>[]).where((task) {
           final matchesText =
               needle.isEmpty ||
@@ -2058,6 +2199,10 @@ class TaskSearchDelegate extends SearchDelegate<void> {
               (task.notes?.toLowerCase().contains(needle) ?? false) ||
               (projectNames[task.projectId]?.contains(needle) ?? false);
           if (!matchesText) return false;
+          if (projectQuery &&
+              !(projectNames[task.projectId]?.contains(needle) ?? false)) {
+            return false;
+          }
           if (_filters.contains(_TaskSearchFilter.today) &&
               task.showDate != today) {
             return false;
@@ -2076,6 +2221,54 @@ class TaskSearchDelegate extends SearchDelegate<void> {
           }
           return true;
         }).toList();
+        if (rawQuery.startsWith('+')) {
+          final command = rawQuery.substring(1).trim();
+          final parsed = command.isEmpty
+              ? null
+              : const QuickAddParser().parse(command);
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              ListTile(
+                enabled: parsed != null && parsed.title.isNotEmpty,
+                leading: const Icon(Icons.add_circle_outline),
+                title: Text(parsed?.title ?? 'Scrivi una nuova attività'),
+                subtitle: parsed?.showDate == null
+                    ? null
+                    : Text(parsed!.showDate.toString()),
+                onTap: parsed == null
+                    ? null
+                    : () async {
+                        await onCreate(command);
+                        if (context.mounted) close(context, null);
+                      },
+              ),
+            ],
+          );
+        }
+        if (rawQuery.startsWith('>')) {
+          final destinations = <AppSection>[
+            AppSection.today,
+            AppSection.upcoming,
+            AppSection.projects,
+            AppSection.completed,
+            AppSection.settings,
+          ].where((item) => item.label.toLowerCase().contains(needle));
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              for (final destination in destinations)
+                ListTile(
+                  leading: Icon(destination.icon),
+                  title: Text(destination.label),
+                  onTap: () {
+                    close(context, null);
+                    onNavigate(destination);
+                  },
+                ),
+            ],
+          );
+        }
         return Column(
           children: [
             SingleChildScrollView(

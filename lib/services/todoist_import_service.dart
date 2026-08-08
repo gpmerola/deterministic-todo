@@ -7,6 +7,9 @@ import '../data/local/database.dart';
 import '../domain/link_syntax.dart';
 import '../domain/quick_add_parser.dart';
 
+TodoistImportPlan parseTodoistImportPlan(String source) =>
+    const TodoistImportService().plan(source);
+
 class TodoistImportResult {
   const TodoistImportResult({
     required this.addedProjects,

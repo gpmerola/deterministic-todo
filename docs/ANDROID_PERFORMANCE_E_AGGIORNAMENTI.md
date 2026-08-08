@@ -30,6 +30,12 @@ Android è ottimizzato prima per uso offline rapido e poi per dimensione. I budg
 
 Ogni aumento significativo va misurato e documentato. Flutter porta un costo minimo non eliminabile: ogni APK include motore Flutter, snapshot AOT Dart e librerie native necessarie. Cambiare toolkit potrebbe ridurre il minimo, ma eliminerebbe la base di codice multipiattaforma richiesta.
 
+Dalla 2.17.0 il workflow applica automaticamente il budget ai tre APK per CPU:
+una release oltre 25 MiB si ferma prima della pubblicazione. Le regole
+`baseline-prof.txt` e `startup-prof.txt` includono il percorso Android di avvio;
+vanno rigenerate da hardware reale quando cambia l'embedding Flutter, non
+estese a tentativi con classi non osservate.
+
 ## Risultati misurati
 
 La build universale 1.0.3 era circa 59 MB perché conteneva tre copie delle librerie native. La build 1.0.4 con `--split-per-abi`, misurata sugli artefatti GitHub Actions, produce:
@@ -48,6 +54,10 @@ Il client 1.0.4 interroga l’ABI tramite il plugin OTA e seleziona la voce esat
 ## Avvio e CPU
 
 Il bootstrap apre Drift su un isolate nativo in background e attiva WAL. Dalla 2.8.0 non registra plugin di notifiche o fusi, non richiede i relativi permessi e non installa receiver al riavvio.
+
+La preparazione di un import Todoist usa `compute`: parsing JSON, validazione e
+normalizzazione non competono con il frame UI su Android. Le scritture Drift
+restano transazionali sul database e il Web conserva lo stesso contratto.
 
 Il controllo aggiornamenti parte dopo il primo frame, non blocca la UI e memorizza `last_update_check_us` in `app_settings`. I controlli automatici successivi sono saltati per sei ore. Il controllo manuale nelle Impostazioni ignora intenzionalmente questo limite.
 

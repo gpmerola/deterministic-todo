@@ -72,7 +72,7 @@ jobs:
           flutter pub get
           dart run build_runner build
           git diff --exit-code
-          python3 -m unittest tools/test_generate_release_manifest.py
+          python3 -m unittest discover -s tools -p 'test_*.py'
           flutter analyze
           flutter test
 
@@ -168,6 +168,10 @@ jobs:
             --split-debug-info=build/private-symbols \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
+          python3 tools/check_release_budgets.py \
+            build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk \
+            build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk \
+            build/app/outputs/flutter-apk/app-x86_64-direct-release.apk
         env:
           ANDROID_KEYSTORE_PATH: release-key.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
