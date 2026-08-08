@@ -5,11 +5,11 @@ Aggiornato l'8 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in preparazione: **2.18.1 build 73**.
-- Ultima release pubblica verificata: **2.18.0 build 72**.
+- Versione sorgente corrente: **2.18.1 build 73**.
+- Ultima release pubblica verificata: **2.18.1 build 73**.
 - Web, release Android pubblica, Google Play interno e manifest di parità sono
-  verificati sul commit `b9fa219`.
-- Il test interno Google Play è attivo; la 2.18.0 build 72 è disponibile alla
+  verificati sul commit `12a7dc2`.
+- Il test interno Google Play è attivo; la 2.18.1 build 73 è disponibile alla
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
