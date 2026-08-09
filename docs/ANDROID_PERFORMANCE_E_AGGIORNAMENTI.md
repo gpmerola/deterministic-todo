@@ -192,6 +192,9 @@ La 2.18.7 riduce il completamento a un solo controllo circolare animato dalla
 Checkbox Material, senza cambio di widget, overshoot o tinta dell'intera riga.
 La breve conferma precede una contrazione verticale controllata e la scrittura
 SQLite: nessun ticker resta attivo e non vengono aggiunte query o dipendenze.
+La 2.18.8 porta la sequenza da 430 a 370 ms senza aggiungere animazioni: 200 ms
+di conferma e 170 ms di contrazione usano due costanti condivise, evitando che
+durata visiva e attesa della persistenza possano divergere.
 
 La 2.18.1 rimuove lo stream dedicato ai Riferimenti insieme alla relativa UI:
 gli eventuali record esistenti riusano lo stream attività, senza query o copie.

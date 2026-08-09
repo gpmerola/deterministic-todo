@@ -30,6 +30,9 @@ class TaskTile extends StatefulWidget {
 }
 
 class _TaskTileState extends State<TaskTile> {
+  static const _completionConfirmationDuration = Duration(milliseconds: 200);
+  static const _completionCollapseDuration = Duration(milliseconds: 170);
+
   bool confirmingCompletion = false;
   bool leavingAfterCompletion = false;
   bool deleteThresholdFeedbackSent = false;
@@ -46,9 +49,9 @@ class _TaskTileState extends State<TaskTile> {
     unawaited(HapticFeedback.lightImpact());
     // Keep the check visible without moving the row. Only after the user has
     // perceived the confirmation do the surrounding rows close the gap.
-    await Future<void>.delayed(const Duration(milliseconds: 240));
+    await Future<void>.delayed(_completionConfirmationDuration);
     if (mounted) setState(() => leavingAfterCompletion = true);
-    await Future<void>.delayed(const Duration(milliseconds: 190));
+    await Future<void>.delayed(_completionCollapseDuration);
     final nextDate = await widget.repository.setCompleted(widget.task, true);
     elapsed.stop();
     unawaited(
@@ -79,7 +82,7 @@ class _TaskTileState extends State<TaskTile> {
     child: ClipRect(
       child: AnimatedAlign(
         key: ValueKey('completion-collapse-${widget.task.id}'),
-        duration: const Duration(milliseconds: 190),
+        duration: _completionCollapseDuration,
         curve: Curves.easeInOutCubic,
         alignment: Alignment.topCenter,
         heightFactor: leavingAfterCompletion ? 0 : 1,

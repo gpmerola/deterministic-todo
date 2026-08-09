@@ -969,7 +969,7 @@ void main() {
           .heightFactor,
       0,
     );
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 100));
     expect((await db.select(db.tasks).getSingle()).status, 'inbox');
 
     await tester.pumpAndSettle();

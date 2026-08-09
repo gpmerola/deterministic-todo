@@ -84,7 +84,7 @@ preservando l'ordine delle operazioni senza bloccare l'interfaccia.
 
 Il completamento mantiene un controllo circolare con area Material costante:
 il tap produce subito spunta e feedback tattile, ma non sposta la riga. Dopo
-240 ms la riga riduce verticalmente il proprio spazio per 190 ms e soltanto al
+200 ms la riga riduce verticalmente il proprio spazio per 170 ms e soltanto al
 termine aggiorna SQLite; così lo stream non può rimuoverla durante la conferma
 né causare un salto degli elementi vicini. Un guard locale ignora tocchi doppi.
 

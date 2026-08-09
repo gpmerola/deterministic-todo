@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.8
+
+- Accorciata leggermente la scomparsa dopo il completamento: conferma visiva
+  da 240 a 200 ms e chiusura verticale da 190 a 170 ms. Spunta, area di tocco,
+  feedback tattile e stabilità della riga restano invariati.
+
 ## 2.18.7
 
 - Reso il completamento mobile stabile e vicino a Todoist: un unico controllo

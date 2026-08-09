@@ -12,6 +12,8 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
   circolare stabile, conferma immediata e chiusura verticale controllata della
   riga; Web, manifest Android e Google Play internal track derivano dal commit
   `373c125` e hanno superato il controllo di parità.
+- In preparazione: 2.18.8 build 80, che accorcia leggermente la scomparsa dopo
+  il completamento senza cambiare area di tocco o stabilità della riga.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
