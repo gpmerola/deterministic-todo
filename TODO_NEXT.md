@@ -75,10 +75,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Passi e distanza quotidiana
 
-- implementare prima un MVP solo telefono con `TYPE_STEP_COUNTER`, gestione
-  reboot/reset e permesso `ACTIVITY_RECOGNITION`;
-- conservare in Room passi, data civile/fuso e provenienza tramite migrazione
-  versionata;
+- collaudare la 2.20.0 sul Galaxy S21: autorizzare `READ_STEPS`, chiudere l'app,
+  camminare e verificare al riavvio il recupero del totale Health Connect;
+- aggiungere profilo locale con peso e falcata, calibrazione tramite sessione
+  GPS e stima calorica versionata; i valori 70 kg/0,72 m sono solo provvisori;
+- aggiungere fallback `TYPE_STEP_COUNTER`, gestione reboot/reset e permesso
+  `ACTIVITY_RECOGNITION` quando il conteggio Health Connect non è disponibile;
+- valutare `WorkManager` e lettura Health Connect in background solo dopo una
+  misura reale: il conteggio di sistema non richiede polling dell'app;
 - mostrare separatamente distanza GPS di una sessione e distanza quotidiana
   stimata dai passi, senza doppio conteggio;
 - supportare sessioni manuali `Camminata` e `Corsa` riusando il servizio GPS;

@@ -37,6 +37,21 @@ Il GPX 1.1 contiene punti accettati in `trkseg` e scarti come `wpt` con tipo
 `rejected:<reason>`. In questo modo il file è utilizzabile normalmente ma
 conserva evidenza per affinare le soglie.
 
+## Passi e stime quotidiane
+
+Dallo schema Room 2 `daily_movement` conserva giorno civile, fuso IANA,
+provenienza, passi e stime di distanza e calorie attive. La sorgente primaria è
+l'aggregazione `StepsRecord.COUNT_TOTAL` di Health Connect: l'aggregatore di
+sistema riduce il rischio di doppio conteggio tra sorgenti sovrapposte e può
+continuare ad acquisire passi anche quando il processo dell'app non è attivo.
+L'app riconcilia con un upsert idempotente quando la schermata Movimento viene
+aperta.
+
+Le stime iniziali usano 0,72 metri per passo, 70 kg e 0,50 kcal/(kg·km). Sono
+fallback dichiarati, non un profilo personale né una misura clinica. Il
+prossimo schema dovrà versionare parametri e algoritmo, aggiungere calibrazione
+tramite sessioni GPS e conservare il valore precedente per la riproducibilità.
+
 ## BLE e confine di sicurezza
 
 La prima fase BLE richiede solo scansione e connessione, seleziona un nome che

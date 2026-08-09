@@ -5,7 +5,7 @@
 1. Attendere che Google Play mostri la build 83 nel test interno e premere
    **Aggiorna**. In alternativa installare l'APK `arm64-v8a` firmato della
    release 2.19.0; non alternare firme diverse.
-2. Aprire **Impostazioni → Corsa · Amazfit Bip U**.
+2. Aprire **Impostazioni → Movimento · passi, calorie e GPS**.
 3. Alla prima corsa concedere **Posizione precisa** e **Notifiche**. Non serve
    Posizione sempre: il servizio viene avviato dalla schermata visibile e resta
    esplicitamente in foreground.

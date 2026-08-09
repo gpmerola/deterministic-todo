@@ -36,8 +36,19 @@
     <p>
       L’accesso al calendario avviene solo quando l’utente sceglie di esportare
       un’attività. Import ed export leggono o scrivono esclusivamente i file
-      selezionati dall’utente. Deterministic Todo non accede a contatti,
-      posizione, foto, microfono o fotocamera.
+      selezionati dall’utente. Deterministic Todo non accede a contatti, foto,
+      microfono o fotocamera.
+    </p>
+
+    <h2>Movimento e posizione</h2>
+    <p>
+      Su Android, dopo consenso esplicito, il modulo Movimento legge da Health
+      Connect i passi necessari al totale giornaliero e calcola sul dispositivo
+      stime di distanza e calorie attive. La posizione precisa viene usata solo
+      durante una sessione GPS avviata manualmente. Passi, stime, tracce GPS e
+      futuri dati dell’orologio restano nel database locale separato e non sono
+      sincronizzati con Supabase né inviati automaticamente ad altri servizi.
+      I permessi possono essere revocati dalle impostazioni Android.
     </p>
 
     <h2>Diagnostica e conservazione</h2>

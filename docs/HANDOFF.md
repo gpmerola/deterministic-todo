@@ -31,8 +31,8 @@ di cambiare architettura.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
 - Ultima release verificata end-to-end: **2.19.0 build 83**, commit `dc6d4ea`.
-- Sorgente successiva: **2.19.1 build 84**, commit `3a33911`, che rende
-  espliciti permesso, provider e stato di acquisizione GPS. Non chiamarla
+- Sorgente successiva: **2.20.0 build 85**, che aggiunge il primo lettore
+  Health Connect e le stime locali di distanza/calorie. Non chiamarla
   pubblicata finché pipeline e dispositivo non lo confermano.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
@@ -99,10 +99,20 @@ I GPX contengono soltanto GPS, timestamp, accuratezza e motivi di scarto. **Non
 contengono passi, cadenza o frequenza cardiaca e non provengono da Google Fit o
 dal Bip U.** Non committare GPX reali: rivelano il percorso personale.
 
+### Incremento passi in verifica
+
+La 2.20.0 legge tramite l'API di aggregazione il totale passi della giornata da
+Health Connect e lo salva nello schema Room 2 con giorno civile, fuso e
+provenienza. Health Connect può continuare il conteggio di sistema quando
+l'app è chiusa; l'app riconcilia il totale quando viene aperta. Distanza e
+calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
+provvisori di 0,72 m per passo e 70 kg. Manca ancora il profilo personale e non
+esiste una validazione comparativa con Google Fit/Zepp.
+
 ### Cosa non esiste ancora
 
-- conteggio passi del telefono;
-- distanza quotidiana passiva;
+- fallback diretto `TYPE_STEP_COUNTER` quando Health Connect non è disponibile;
+- calibrazione personale di falcata, peso e modello calorico;
 - distinzione automatica camminata/corsa;
 - autenticazione BLE Huami;
 - download delle sessioni sportive dal Bip U;

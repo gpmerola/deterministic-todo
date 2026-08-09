@@ -2,6 +2,7 @@ package app.deterministic.todo.runtracker;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 
@@ -11,6 +12,12 @@ import java.util.List;
 public interface RunDao {
     @Insert long insertSession(RunSession session);
     @Insert long insertPoint(TrackPoint point);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void upsertDailyMovement(DailyMovement movement);
+
+    @Query("SELECT * FROM daily_movement WHERE day = :day AND zoneId = :zoneId ORDER BY updatedAtMillis DESC LIMIT 1")
+    DailyMovement dailyMovement(String day, String zoneId);
 
     @Query("SELECT * FROM run_sessions ORDER BY startedAtMillis DESC")
     List<RunSession> sessions();

@@ -2,6 +2,22 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.20.0
+
+- Aggiunta la prima schermata Android Movimento con passi odierni aggregati da
+  Health Connect, così il sistema può continuare a registrarli anche quando
+  Deterministic Todo non è aperta.
+- Distanza e calorie attive sono mostrate esplicitamente come stime locali
+  derivate dai passi; la sorgente aggregata evita di sommare due volte record
+  sovrapposti provenienti da telefono e future integrazioni.
+- Il database separato `run_tracker.sqlite` passa allo schema 2 con una
+  migrazione non distruttiva e conserva giorno civile, fuso, provenienza,
+  passi, distanza e calorie stimate.
+- Aggiunta una pagina privacy dedicata ai permessi salute. Passi e stime
+  restano locali e non entrano nel database Todo o in Supabase.
+- Il requisito minimo Android passa da API 24 ad API 26, minimo supportato dal
+  client stabile Health Connect; il Galaxy S21 di riferimento non è coinvolto.
+
 ## 2.19.1
 
 - Corretto l'avvio GPS su Android richiedendo insieme posizione approssimativa

@@ -5,8 +5,9 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.19.1 build 84**, con diagnostica esplicita
-  del fix GPS. Ultima release pubblica verificata: **2.19.0 build 83** (commit
+- Versione sorgente in verifica: **2.20.0 build 85**, con primo incremento
+  Health Connect per passi e stime locali. Ultima release pubblica verificata:
+  **2.19.0 build 83** (commit
   `dc6d4ea`).
 - Il test interno Google Play è attivo; la 2.19.0 build 83 è stata caricata nella
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
@@ -61,11 +62,12 @@ Aggiornato il 9 agosto 2026.
 - Android contiene il modulo separato `runtracker`: registra corse usando il
   GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
   GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
-- Il modulo non conta ancora passi e i GPX reali verificati non contengono
-  battito, cadenza o dati del Bip U. Il prossimo incremento pianificato è un
-  contatore passi del telefono con distanza quotidiana stimata e sessioni GPS
-  distinte per camminata/corsa; l'integrazione Amazfit resta una fase successiva
-  in sola lettura. Il quadro completo è in
+- Il modulo in verifica legge ora il totale passi aggregato da Health Connect e
+  conserva distanza e calorie attive stimate in Room. Falcata e peso sono
+  ancora valori predefiniti: calibrazione personale, fallback sensore diretto,
+  lavoro periodico e sessioni distinte camminata/corsa restano da completare.
+  I GPX reali verificati non contengono battito, cadenza o dati del Bip U;
+  l'integrazione Amazfit resta una fase successiva in sola lettura. Il quadro è in
   [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Verifica
@@ -73,6 +75,12 @@ Aggiornato il 9 agosto 2026.
 - Analisi statica senza errori.
 - 121 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
+- Nella sorgente 2.20.0 passano anche gli 11 test JVM del modulo movimento,
+  inclusi due test deterministici nuovi per distanza e calorie da passi; build
+  Web release e sei APK release firmati separati per distribuzione/ABI sono
+  stati generati localmente. Il comando Flutter segnala erroneamente di non
+  trovare gli APK perché il progetto usa due flavor, ma gli output Gradle sono
+  presenti e l'APK diretto arm64 supera verifica firma e manifest.
 - Build Android e test Java del modulo sono passati nella pipeline firmata. Il
   collaudo GPS/BLE richiede ancora il Galaxy S21 e il Bip U reali.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio

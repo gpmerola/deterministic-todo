@@ -16,6 +16,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +31,7 @@ import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -40,10 +42,19 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView distanceView;
     private TextView paceView;
     private TextView accuracyView;
+    private TextView dailyStepsView;
+    private TextView dailyDistanceView;
+    private TextView dailyCaloriesView;
+    private TextView movementStatusView;
+    private Button healthPermissionButton;
     private Button primaryButton;
     private long sessionId;
     private long startedAt;
     private double distance;
+
+    private final ActivityResultLauncher<Set<String>> healthPermissions = registerForActivityResult(
+        HealthConnectGateway.permissionContract(), granted -> refreshDailyMovement()
+    );
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
@@ -72,7 +83,7 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
-        setTitle("Corsa · Bip U");
+        setTitle("Movimento");
         setContentView(content());
         io.execute(() -> {
             RunSession active = RunDatabase.get(this).runs().activeSession();
@@ -85,6 +96,7 @@ public final class RunTrackerActivity extends ComponentActivity {
             });
         });
         clock.post(clockTick);
+        refreshDailyMovement();
     }
 
     private View content() {
@@ -94,7 +106,32 @@ public final class RunTrackerActivity extends ComponentActivity {
         root.setPadding(pad, pad, pad, pad);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        TextView title = label("CORSA CON GPS DEL TELEFONO", 13);
+        TextView movementTitle = label("OGGI · PASSI DEL TELEFONO", 13);
+        movementTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        root.addView(movementTitle, matchWrap(0));
+        dailyStepsView = metric("—", 38);
+        root.addView(dailyStepsView, matchWrap(dp(12)));
+
+        LinearLayout dailyMetrics = new LinearLayout(this);
+        dailyMetrics.setOrientation(LinearLayout.HORIZONTAL);
+        dailyMetrics.setGravity(Gravity.CENTER);
+        dailyDistanceView = metric("— km", 22);
+        dailyCaloriesView = metric("— kcal", 22);
+        dailyMetrics.addView(metricBlock("DISTANZA STIMATA", dailyDistanceView), weighted());
+        dailyMetrics.addView(metricBlock("CALORIE ATTIVE STIMATE", dailyCaloriesView), weighted());
+        root.addView(dailyMetrics, matchWrap(dp(10)));
+
+        movementStatusView = label("Controllo Health Connect…", 14);
+        movementStatusView.setGravity(Gravity.CENTER);
+        root.addView(movementStatusView, matchWrap(dp(12)));
+
+        healthPermissionButton = new Button(this);
+        healthPermissionButton.setText("Consenti accesso ai passi");
+        healthPermissionButton.setOnClickListener(v -> healthPermissions.launch(HealthConnectGateway.permissions()));
+        healthPermissionButton.setVisibility(View.GONE);
+        root.addView(healthPermissionButton, matchWrap(dp(8)));
+
+        TextView title = label("SESSIONE GPS DEL TELEFONO", 13);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(title, matchWrap(0));
         durationView = metric("00:00:00", 44);
@@ -131,7 +168,35 @@ public final class RunTrackerActivity extends ComponentActivity {
         watch.setText("Bip U · prova BLE in sola lettura");
         watch.setOnClickListener(v -> BipUBleActivity.open(this));
         root.addView(watch, matchWrap(dp(8)));
-        return root;
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
+        return scroll;
+    }
+
+    private void refreshDailyMovement() {
+        HealthConnectGateway.refreshToday(this, new HealthConnectGateway.Callback() {
+            @Override public void onSuccess(DailyMovement movement) {
+                dailyStepsView.setText(String.format(Locale.ITALY, "%,d passi", movement.steps));
+                dailyDistanceView.setText(String.format(Locale.ITALY, "%.2f km", movement.estimatedDistanceMeters / 1000));
+                dailyCaloriesView.setText(String.format(Locale.ITALY, "%.0f kcal", movement.estimatedActiveCalories));
+                movementStatusView.setText("Health Connect · aggiornato ora · valori di distanza e calorie stimati");
+                healthPermissionButton.setVisibility(View.GONE);
+            }
+
+            @Override public void onPermissionRequired() {
+                movementStatusView.setText("Autorizza Health Connect: continuerà a raccogliere i passi anche quando l’app è chiusa");
+                healthPermissionButton.setVisibility(View.VISIBLE);
+            }
+
+            @Override public void onUnavailable() {
+                movementStatusView.setText("Health Connect non disponibile o da aggiornare su questo dispositivo");
+                healthPermissionButton.setVisibility(View.GONE);
+            }
+
+            @Override public void onError() {
+                movementStatusView.setText("Impossibile aggiornare i passi; riproveremo alla prossima apertura");
+            }
+        });
     }
 
     private void ensurePermissions() {

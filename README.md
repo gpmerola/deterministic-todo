@@ -8,8 +8,9 @@ Distribuito con licenza [MIT](LICENSE).
 
 ## Piattaforme
 
-- **Android:** app firmata, aggiornata automaticamente tramite il manifest
-  pubblico e APK separati per CPU.
+- **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite
+  il manifest pubblico e APK separati per CPU. Il minimo API 26 deriva dal
+  client stabile Health Connect usato dal modulo Movimento.
 - **Browser desktop:** web app Flutter pubblicata su GitHub Pages. Usa la stessa
   struttura minimale di Android con un adattamento per mouse, tastiera e
   schermi larghi; conserva un database SQLite locale persistente e si
@@ -56,12 +57,24 @@ dati del sito se vuoi conservare la copia offline.
 - import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
 - export/import JSON e CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
-- modulo Android isolato **Corsa · Amazfit Bip U** con GPS del telefono,
-  registrazione a schermo spento, archivio Room separato ed export GPX.
+- modulo Android isolato **Movimento** con passi del telefono tramite Health
+  Connect, distanza e calorie attive stimate, sessioni GPS, archivio Room
+  separato ed export GPX.
 
-## Corsa con Amazfit Bip U (Android)
+## Movimento e corsa (Android)
 
-Da **Impostazioni → Corsa · Amazfit Bip U** si avvia una traccia GPS del
+La schermata **Impostazioni → Movimento · passi, calorie e GPS** richiede una
+volta l'accesso ai passi in Health Connect. Il conteggio di sistema può quindi
+continuare anche quando l'app non è aperta; alla riapertura l'app importa in
+modo idempotente il totale aggregato della giornata, evitando la somma diretta
+di record sovrapposti.
+
+La distanza quotidiana e le calorie attive sono per ora stime esplicite basate
+su passi, falcata e peso predefiniti. Non sono ancora calibrate sul profilo
+personale e non vanno considerate misure cliniche o equivalenti a Google Fit
+finché non superano il confronto controllato sul Galaxy S21.
+
+Da **Impostazioni → Movimento · passi, calorie e GPS** si avvia una traccia GPS del
 telefono. Una notifica persistente mantiene la registrazione attiva anche a
 schermo spento e consente di terminarla. La schermata mostra durata, distanza,
 passo medio e accuratezza corrente.

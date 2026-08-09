@@ -408,7 +408,7 @@ class SettingsView extends StatelessWidget {
       if (isAndroidPlatform)
         ListTile(
           leading: const Icon(Icons.directions_run_outlined),
-          title: const Text('Corsa · Amazfit Bip U'),
+          title: const Text('Movimento · passi, calorie e GPS'),
           subtitle: const Text('GPS del telefono e collegamento BLE'),
           trailing: const Icon(Icons.chevron_right),
           onTap: RunTrackerService.open,
