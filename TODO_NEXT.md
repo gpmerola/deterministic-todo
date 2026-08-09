@@ -12,6 +12,8 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
   esplicito, stati vuoti uniformi, editor Web stabile durante il sync e avviso
   di completamento più breve; Web, manifest Android e Google Play internal
   track derivano dal commit `f0d45fb` e hanno superato il controllo di parità.
+- In preparazione: 2.18.10 build 82, che riduce a due secondi l'avviso Annulla
+  del completamento mantenendo cinque secondi per le cancellazioni.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 

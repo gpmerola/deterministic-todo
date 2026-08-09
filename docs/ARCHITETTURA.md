@@ -89,7 +89,7 @@ termine aggiorna SQLite; così lo stream non può rimuoverla durante la conferma
 né causare un salto degli elementi vicini. Un guard locale ignora tocchi doppi.
 La riga usa un feedback Material a bassa opacità, così titolo e descrizione
 comunicano l'area interattiva senza nuovi controlli. L'Undo di completamento
-dura quattro secondi; quello delle cancellazioni resta di cinque secondi.
+dura due secondi; quello delle cancellazioni resta di cinque secondi.
 
 ## Privacy e backup
 

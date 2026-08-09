@@ -71,7 +71,7 @@ class _TaskTileState extends State<TaskTile> {
             ? 'Attività completata'
             : 'Completata · prossima: ${DateFormat('EEEE d MMMM yyyy', 'it').format(nextDate.asLocalDate)}',
         undo: () => widget.repository.undoCompletion(widget.task),
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 2),
       );
     }
   }

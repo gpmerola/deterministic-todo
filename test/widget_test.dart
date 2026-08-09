@@ -1027,7 +1027,7 @@ void main() {
     expect(find.text('Attività completata'), findsOneWidget);
     expect(
       tester.widget<SnackBar>(find.byType(SnackBar)).duration,
-      const Duration(seconds: 4),
+      const Duration(seconds: 2),
     );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

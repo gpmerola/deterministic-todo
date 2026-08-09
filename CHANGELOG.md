@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.10
+
+- Ridotta a due secondi la permanenza dell'avviso Annulla dopo il completamento.
+  Gli avvisi di cancellazione restano a cinque secondi.
+
 ## 2.18.9
 
 - L'intera riga attività offre un feedback visivo leggero e uniforme al tocco,
