@@ -8,10 +8,10 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente verificata: 2.18.6 build 78, con cancellazione
-  swipe più deliberata, stabile e vicina alla micro-interazione Todoist.
-- In preparazione: 2.18.7 build 79, con completamento circolare stabile,
-  conferma immediata e chiusura verticale controllata della riga.
+- Release coordinata corrente verificata: 2.18.7 build 79, con completamento
+  circolare stabile, conferma immediata e chiusura verticale controllata della
+  riga; Web, manifest Android e Google Play internal track derivano dal commit
+  `373c125` e hanno superato il controllo di parità.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
