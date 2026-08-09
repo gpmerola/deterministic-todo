@@ -11,4 +11,5 @@ public class RunSession {
     @Nullable public Long endedAtMillis;
     public double distanceMeters;
     public String status = "recording";
+    public String activityType = "run";
 }

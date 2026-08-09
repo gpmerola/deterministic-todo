@@ -15,6 +15,7 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -48,6 +49,8 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView movementStatusView;
     private Button healthPermissionButton;
     private Button primaryButton;
+    private Button walkButton;
+    private String pendingActivityType = "run";
     private long sessionId;
     private long startedAt;
     private double distance;
@@ -63,12 +66,15 @@ public final class RunTrackerActivity extends ComponentActivity {
             distance = intent.getDoubleExtra(RunRecordingService.EXTRA_DISTANCE, 0);
             float accuracy = intent.getFloatExtra(RunRecordingService.EXTRA_ACCURACY, 0);
             String gpsStatus = intent.getStringExtra(RunRecordingService.EXTRA_STATUS);
+            String activityType = intent.getStringExtra(RunRecordingService.EXTRA_ACTIVITY_TYPE);
             accuracyView.setText(
                 gpsStatus == null
                     ? (accuracy <= 0 ? "Ricerca del segnale GPS…" : String.format(Locale.ROOT, "Accuratezza ± %.0f m", accuracy))
                     : (accuracy <= 0 ? gpsStatus : gpsStatus + String.format(Locale.ROOT, " · ± %.0f m", accuracy))
             );
             primaryButton.setText(sessionId == 0 ? "Avvia corsa" : "Termina");
+            walkButton.setEnabled(sessionId == 0);
+            if (sessionId != 0 && "walk".equals(activityType)) primaryButton.setText("Termina camminata");
             renderClock();
         }
     };
@@ -76,7 +82,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     private final ActivityResultLauncher<String[]> permissions = registerForActivityResult(
         new ActivityResultContracts.RequestMultiplePermissions(), result -> {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) startRun();
+                == PackageManager.PERMISSION_GRANTED) startRun(pendingActivityType);
             else Toast.makeText(this, "La posizione precisa è necessaria per registrare il percorso", Toast.LENGTH_LONG).show();
         }
     );
@@ -92,6 +98,7 @@ public final class RunTrackerActivity extends ComponentActivity {
                 startedAt = active.startedAtMillis;
                 distance = active.distanceMeters;
                 primaryButton.setText("Termina");
+                walkButton.setEnabled(false);
                 renderClock();
             });
         });
@@ -156,11 +163,24 @@ public final class RunTrackerActivity extends ComponentActivity {
 
         primaryButton = new Button(this);
         primaryButton.setText("Avvia corsa");
-        primaryButton.setOnClickListener(v -> { if (sessionId == 0) ensurePermissions(); else stopRun(); });
+        primaryButton.setOnClickListener(v -> { if (sessionId == 0) ensurePermissions("run"); else stopRun(); });
         root.addView(primaryButton, matchWrap(dp(24)));
 
+        walkButton = new Button(this);
+        walkButton.setText("Avvia camminata");
+        walkButton.setOnClickListener(v -> ensurePermissions("walk"));
+        root.addView(walkButton, matchWrap(dp(8)));
+
+        CheckBox automaticExport = new CheckBox(this);
+        automaticExport.setText("Test: salva automaticamente il GPX in Download/DeterministicTodoTests");
+        automaticExport.setChecked(AutomaticTestGpxExporter.isEnabled(this));
+        automaticExport.setEnabled(Build.VERSION.SDK_INT >= 29);
+        automaticExport.setOnCheckedChangeListener((button, checked) ->
+            AutomaticTestGpxExporter.setEnabled(this, checked));
+        root.addView(automaticExport, matchWrap(dp(12)));
+
         Button export = new Button(this);
-        export.setText("Esporta ultima corsa in GPX");
+        export.setText("Esporta ultima attività in GPX");
         export.setOnClickListener(v -> exportLatest());
         root.addView(export, matchWrap(dp(8)));
 
@@ -199,22 +219,26 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
     }
 
-    private void ensurePermissions() {
+    private void ensurePermissions(String activityType) {
+        pendingActivityType = activityType;
         ArrayList<String> required = new ArrayList<>();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.POST_NOTIFICATIONS);
-        if (required.isEmpty()) startRun(); else permissions.launch(required.toArray(new String[0]));
+        if (required.isEmpty()) startRun(activityType); else permissions.launch(required.toArray(new String[0]));
     }
 
-    private void startRun() {
-        ContextCompat.startForegroundService(this, new Intent(this, RunRecordingService.class).setAction(RunRecordingService.ACTION_START));
+    private void startRun(String activityType) {
+        ContextCompat.startForegroundService(this, new Intent(this, RunRecordingService.class)
+            .setAction(RunRecordingService.ACTION_START)
+            .putExtra(RunRecordingService.EXTRA_ACTIVITY_TYPE, activityType));
     }
 
     private void stopRun() {
         startService(new Intent(this, RunRecordingService.class).setAction(RunRecordingService.ACTION_STOP));
         sessionId = 0;
         primaryButton.setText("Avvia corsa");
+        walkButton.setEnabled(true);
     }
 
     private void exportLatest() {
@@ -227,7 +251,7 @@ public final class RunTrackerActivity extends ComponentActivity {
                 String gpx = GpxExporter.export(latest, dao.points(latest.id));
                 File dir = new File(getCacheDir(), "runtracker");
                 if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Impossibile creare la cartella GPX");
-                File file = new File(dir, "corsa-" + latest.startedAtMillis + ".gpx");
+                File file = new File(dir, latest.activityType + "-" + latest.startedAtMillis + ".gpx");
                 try (FileOutputStream output = new FileOutputStream(file)) {
                     output.write(gpx.getBytes(StandardCharsets.UTF_8));
                 }

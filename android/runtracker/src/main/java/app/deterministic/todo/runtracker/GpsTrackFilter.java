@@ -6,13 +6,27 @@ import java.util.Locale;
 public final class GpsTrackFilter {
     public static final float MAX_ACCURACY_METERS = 35f;
     public static final double MAX_RUNNING_SPEED_MPS = 12.0;
+    // This is a GPS-segment plausibility ceiling, not a classification threshold.
+    // Headroom avoids discarding ordinary fixes affected by several metres of uncertainty.
+    public static final double MAX_WALKING_SPEED_MPS = 6.0;
 
     public record Sample(long timeMillis, double latitude, double longitude, float accuracyMeters) {}
     public record Decision(boolean accepted, String reason, double segmentMeters, double totalMeters) {}
 
     private Sample previous;
     private Sample last;
+    private Sample discontinuityCandidate;
     private double totalMeters;
+    private final double maximumSpeedMps;
+
+    public GpsTrackFilter() { this(MAX_RUNNING_SPEED_MPS); }
+
+    public GpsTrackFilter(double maximumSpeedMps) {
+        if (!Double.isFinite(maximumSpeedMps) || maximumSpeedMps <= 0) {
+            throw new IllegalArgumentException("maximumSpeedMps must be positive");
+        }
+        this.maximumSpeedMps = maximumSpeedMps;
+    }
 
     public Decision evaluate(Sample sample) {
         String invalid = invalidReason(sample);
@@ -24,12 +38,32 @@ public final class GpsTrackFilter {
         long elapsedMillis = sample.timeMillis - last.timeMillis;
         if (elapsedMillis <= 0) return reject("timestamp_non_monotonic");
 
+        if (discontinuityCandidate != null) {
+            long candidateElapsed = sample.timeMillis - discontinuityCandidate.timeMillis;
+            if (candidateElapsed > 0) {
+                double candidateSegment = distanceMeters(discontinuityCandidate, sample);
+                double candidateSpeed = candidateSegment / (candidateElapsed / 1000.0);
+                if (candidateSpeed <= maximumSpeedMps) {
+                    // Two coherent fixes on the new track confirm a GPS discontinuity.
+                    // Re-anchor without ever adding the jump to the distance.
+                    last = sample;
+                    previous = null;
+                    discontinuityCandidate = null;
+                    return reject("gps_discontinuity_reanchor");
+                }
+            }
+            discontinuityCandidate = null;
+        }
+
         double segment = distanceMeters(last, sample);
         double noiseRadius = Math.max(2.5, Math.min(last.accuracyMeters, sample.accuracyMeters) * 0.35);
         if (segment <= noiseRadius) return reject("stationary_accuracy_noise");
 
         double speed = segment / (elapsedMillis / 1000.0);
-        if (speed > MAX_RUNNING_SPEED_MPS) return reject("implausible_speed_jump");
+        if (speed > maximumSpeedMps) {
+            discontinuityCandidate = sample;
+            return reject("implausible_speed_jump");
+        }
 
         if (previous != null && segment < 30 && distanceMeters(previous, last) < 30) {
             double turn = turnDegrees(previous, last, sample);

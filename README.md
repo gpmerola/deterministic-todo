@@ -86,6 +86,13 @@ timestamp non valido). L'export GPX include la traccia accettata e i punti
 scartati come waypoint diagnostici. Questi dati non entrano nel database Todo,
 nei backup Todo o nella sincronizzazione Supabase.
 
+Per i collaudi ripetuti si può selezionare **Test: salva automaticamente il
+GPX**. Al termine di una camminata o corsa Android scrive il file in
+`Download/DeterministicTodoTests`; con il telefono collegato e autorizzato via
+USB, `tools/pull_latest_movement_gpx.sh` copia l’ultimo file in
+`/tmp/deterministic-todo-gpx/latest.gpx`. La modalità è opzionale perché il GPX
+contiene un percorso personale e non viene caricato né versionato.
+
 La prima prova BLE cerca il Bip U e legge soltanto il servizio standard della
 batteria, quando esposto. La chiave Huami opzionale viene cifrata con Android
 Keystore e non viene mai inserita in log o repository. Autenticazione Huami,

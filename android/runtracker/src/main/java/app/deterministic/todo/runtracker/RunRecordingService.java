@@ -36,15 +36,17 @@ public final class RunRecordingService extends Service implements LocationListen
     public static final String EXTRA_ACCURACY = "accuracy";
     public static final String EXTRA_ACCEPTED = "accepted";
     public static final String EXTRA_STATUS = "gps_status";
+    public static final String EXTRA_ACTIVITY_TYPE = "activity_type";
     private static final int NOTIFICATION_ID = 7401;
     private static final String CHANNEL_ID = "run_recording";
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-    private final GpsTrackFilter filter = new GpsTrackFilter();
+    private GpsTrackFilter filter;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private LocationManager locationManager;
     private long sessionId;
     private long startedAt;
+    private String activityType = "run";
     private volatile float lastAccuracy;
     private volatile String gpsStatus = "Avvio GPS…";
     private volatile boolean receivedLocation;
@@ -59,9 +61,9 @@ public final class RunRecordingService extends Service implements LocationListen
         super.onCreate();
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         NotificationChannel channel = new NotificationChannel(
-            CHANNEL_ID, "Registrazione corsa", NotificationManager.IMPORTANCE_LOW
+            CHANNEL_ID, "Registrazione movimento", NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Mantiene attivo il GPS durante una corsa");
+        channel.setDescription("Mantiene attivo il GPS durante un’attività");
         getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
 
@@ -79,10 +81,19 @@ public final class RunRecordingService extends Service implements LocationListen
             RunSession active = dao.activeSession();
             if (active == null) {
                 startedAt = System.currentTimeMillis();
-                sessionId = dao.start(startedAt);
+                String requestedType = intent == null ? "run" : intent.getStringExtra(EXTRA_ACTIVITY_TYPE);
+                activityType = "walk".equals(requestedType) ? "walk" : "run";
+                sessionId = dao.start(startedAt, activityType);
+                active = dao.session(sessionId);
             } else {
                 sessionId = active.id;
                 startedAt = active.startedAtMillis;
+                activityType = active.activityType;
+            }
+            filter = new GpsTrackFilter("walk".equals(active.activityType)
+                ? GpsTrackFilter.MAX_WALKING_SPEED_MPS
+                : GpsTrackFilter.MAX_RUNNING_SPEED_MPS);
+            if (active.distanceMeters > 0) {
                 // Rehydrate the deterministic filter after process recreation.
                 for (TrackPoint point : dao.points(sessionId)) {
                     if (point.accepted) {
@@ -127,7 +138,7 @@ public final class RunRecordingService extends Service implements LocationListen
     }
 
     @Override public void onLocationChanged(Location location) {
-        if (sessionId == 0) return;
+        if (sessionId == 0 || filter == null) return;
         receivedLocation = true;
         mainHandler.removeCallbacks(noFixWarning);
         final GpsTrackFilter.Sample sample = new GpsTrackFilter.Sample(
@@ -176,7 +187,7 @@ public final class RunRecordingService extends Service implements LocationListen
         );
         return new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("Corsa in registrazione")
+            .setContentTitle("walk".equals(activityType) ? "Camminata in registrazione" : "Corsa in registrazione")
             .setContentText(String.format(java.util.Locale.ROOT, "%.2f km", meters / 1000.0))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -188,10 +199,11 @@ public final class RunRecordingService extends Service implements LocationListen
     private void broadcast(boolean accepted) {
         Intent state = new Intent(ACTION_STATE).setPackage(getPackageName());
         state.putExtra(EXTRA_SESSION_ID, sessionId);
-        state.putExtra(EXTRA_DISTANCE, filter.totalMeters());
+        state.putExtra(EXTRA_DISTANCE, filter == null ? 0 : filter.totalMeters());
         state.putExtra(EXTRA_ACCURACY, lastAccuracy);
         state.putExtra(EXTRA_ACCEPTED, accepted);
         state.putExtra(EXTRA_STATUS, gpsStatus);
+        state.putExtra(EXTRA_ACTIVITY_TYPE, activityType);
         state.putExtra("started_at", startedAt);
         sendBroadcast(state);
     }
@@ -199,10 +211,15 @@ public final class RunRecordingService extends Service implements LocationListen
     private void finishAndStop() {
         try { locationManager.removeUpdates(this); } catch (RuntimeException ignored) {}
         long id = sessionId;
-        double distance = filter.totalMeters();
+        double distance = filter == null ? 0 : filter.totalMeters();
         sessionId = 0;
         startedAt = 0;
-        if (id != 0) io.execute(() -> RunDatabase.get(this).runs().finish(id, distance, System.currentTimeMillis()));
+        if (id != 0) io.execute(() -> {
+            RunDao dao = RunDatabase.get(this).runs();
+            dao.finish(id, distance, System.currentTimeMillis());
+            RunSession session = dao.session(id);
+            if (session != null) AutomaticTestGpxExporter.export(this, session, dao.points(id));
+        });
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
         broadcast(true);

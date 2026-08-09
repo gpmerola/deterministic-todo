@@ -13,7 +13,8 @@ public final class GpxExporter {
             .append("<gpx version=\"1.1\" creator=\"Deterministic Todo Run Tracker\" ")
             .append("xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
             .append("<metadata><time>").append(Instant.ofEpochMilli(session.startedAtMillis))
-            .append("</time></metadata>\n<trk><name>Corsa ")
+            .append("</time></metadata>\n<trk><name>")
+            .append("walk".equals(session.activityType) ? "Camminata " : "Corsa ")
             .append(Instant.ofEpochMilli(session.startedAtMillis)).append("</name><trkseg>\n");
         for (TrackPoint point : points) {
             if (!point.accepted) continue;

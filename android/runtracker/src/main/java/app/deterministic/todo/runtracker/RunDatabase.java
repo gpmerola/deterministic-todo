@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {RunSession.class, TrackPoint.class, DailyMovement.class}, version = 2, exportSchema = false)
+@Database(entities = {RunSession.class, TrackPoint.class, DailyMovement.class}, version = 3, exportSchema = false)
 public abstract class RunDatabase extends RoomDatabase {
     private static volatile RunDatabase instance;
     public abstract RunDao runs();
@@ -19,6 +19,12 @@ public abstract class RunDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE `run_sessions` ADD COLUMN `activityType` TEXT NOT NULL DEFAULT 'run'");
+        }
+    };
+
     public static RunDatabase get(Context context) {
         RunDatabase current = instance;
         if (current != null) return current;
@@ -26,7 +32,7 @@ public abstract class RunDatabase extends RoomDatabase {
             if (instance == null) {
                 instance = Room.databaseBuilder(
                     context.getApplicationContext(), RunDatabase.class, "run_tracker.sqlite"
-                ).addMigrations(MIGRATION_1_2).build();
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build();
             }
             return instance;
         }

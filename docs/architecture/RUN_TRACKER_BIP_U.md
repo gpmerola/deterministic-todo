@@ -37,9 +37,13 @@ Il GPX 1.1 contiene punti accettati in `trkseg` e scarti come `wpt` con tipo
 `rejected:<reason>`. In questo modo il file è utilizzabile normalmente ma
 conserva evidenza per affinare le soglie.
 
+Le sessioni persistono il tipo `walk` o `run`. Il filtro camminata limita a
+6 m/s i segmenti GPS plausibili, mentre il profilo corsa mantiene 12 m/s; la scelta
+esplicita evita che salti GPS incompatibili con una camminata vengano sommati.
+
 ## Passi e stime quotidiane
 
-Dallo schema Room 2 `daily_movement` conserva giorno civile, fuso IANA,
+Dallo schema Room 3 `daily_movement` conserva giorno civile, fuso IANA,
 provenienza, passi e stime di distanza e calorie attive. La sorgente primaria è
 l'aggregazione `StepsRecord.COUNT_TOTAL` di Health Connect: l'aggregatore di
 sistema riduce il rischio di doppio conteggio tra sorgenti sovrapposte e può

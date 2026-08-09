@@ -12,9 +12,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente verificata: 2.19.0 build 83, con modulo corsa Bip
-  U isolato; Web, manifest Android e Google Play internal track derivano dal
-  commit `dc6d4ea` e hanno superato il controllo di parità.
+- Release coordinata corrente verificata: 2.20.0 build 85, con Health Connect e
+  modulo corsa Bip U isolato; Web, manifest Android e Google Play internal
+  track derivano dal commit `fa234cbc` e hanno superato il controllo di parità.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
@@ -59,7 +59,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- installare la 2.19.0 sul Galaxy S21 e concedere posizione precisa e
+- installare la 2.20.1 sul Galaxy S21 e concedere posizione precisa e
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare almeno 20 minuti con schermo spento, includendo una sosta, e
   confrontare distanza/GPX con un percorso noto;
@@ -75,7 +75,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Passi e distanza quotidiana
 
-- collaudare la 2.20.0 sul Galaxy S21: autorizzare `READ_STEPS`, chiudere l'app,
+- collaudare la 2.20.1 sul Galaxy S21: autorizzare `READ_STEPS`, chiudere l'app,
   camminare e verificare al riavvio il recupero del totale Health Connect;
 - aggiungere profilo locale con peso e falcata, calibrazione tramite sessione
   GPS e stima calorica versionata; i valori 70 kg/0,72 m sono solo provvisori;
@@ -85,7 +85,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   misura reale: il conteggio di sistema non richiede polling dell'app;
 - mostrare separatamente distanza GPS di una sessione e distanza quotidiana
   stimata dai passi, senza doppio conteggio;
-- supportare sessioni manuali `Camminata` e `Corsa` riusando il servizio GPS;
+- calibrare separatamente i profili manuali `Camminata` e `Corsa` sul telefono;
 - non mantenere GPS, BLE o un foreground service permanente per il conteggio
   quotidiano;
 - misurare batteria sul Galaxy S21 prima di ampliare il lavoro in background;

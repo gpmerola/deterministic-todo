@@ -30,8 +30,8 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Ultima release verificata end-to-end: **2.19.0 build 83**, commit `dc6d4ea`.
-- Sorgente successiva: **2.20.0 build 85**, che aggiunge il primo lettore
+- Ultima release verificata end-to-end: **2.20.0 build 85**, commit `fa234cbc`.
+- Sorgente successiva: **2.20.1 build 86**, che aggiunge il primo lettore
   Health Connect e le stime locali di distanza/calorie. Non chiamarla
   pubblicata finché pipeline e dispositivo non lo confermano.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
@@ -69,7 +69,7 @@ database Todo; non è sincronizzato con Supabase.
 
 ### Cosa funziona oggi
 
-- Avvio manuale di una corsa dall’app.
+- Avvio manuale distinto di camminata o corsa dall’app.
 - `RunRecordingService` foreground di tipo `location`, compatibile con Android
   14 e persistente a schermo spento.
 - Posizione dal solo provider GPS del telefono ogni secondo.
@@ -78,7 +78,8 @@ database Todo; non è sincronizzato con Supabase.
 - Conservazione in Room sia dei punti accettati sia degli scarti con motivo.
 - Distanza cumulativa dai soli punti accettati.
 - UI con durata, distanza, passo medio, accuratezza e stato del GPS.
-- Export GPX 1.1 esplicito tramite FileProvider.
+- Export GPX 1.1 esplicito tramite FileProvider e auto-export locale opzionale
+  per i test in `Download/DeterministicTodoTests`.
 - Prova BLE in sola lettura: scansione, connessione e tentativo di leggere la
   batteria standard.
 - Inserimento facoltativo della chiave Huami, validata come 16 byte
@@ -91,9 +92,12 @@ Una breve prova sul Galaxy S21 ha prodotto GPX validi. Nel campione principale
 sono stati accettati 31 punti e scartati 70 punti come rumore da fermo, con
 circa 117 m in 99 secondi, accuratezza mediana 6 m e massimo intervallo tra
 punti accettati di 14 s. Un secondo campione aveva 11 punti accettati, 32
-scartati e circa 47 m in 40 s. Non sono emersi salti o velocità palesemente
-impossibili, ma il filtro va valutato su una prova lunga: potrebbe essere
-troppo aggressivo nel movimento lento.
+scartati e circa 47 m in 40 s. Un confronto successivo ha trovato 711 m contro
+550 m di Google Fit (+29%), inclusa una discontinuità di circa 110 m in 10 s.
+La 2.20.1 separa il profilo camminata (soglia segmento GPS 6 m/s) da quello
+corsa (12 m/s)
+e ri-ancora la traccia dopo due fix coerenti senza sommare il salto. Serve
+ancora conferma su hardware.
 
 I GPX contengono soltanto GPS, timestamp, accuratezza e motivi di scarto. **Non
 contengono passi, cadenza o frequenza cardiaca e non provengono da Google Fit o
@@ -101,8 +105,8 @@ dal Bip U.** Non committare GPX reali: rivelano il percorso personale.
 
 ### Incremento passi in verifica
 
-La 2.20.0 legge tramite l'API di aggregazione il totale passi della giornata da
-Health Connect e lo salva nello schema Room 2 con giorno civile, fuso e
+La 2.20.1 legge tramite l'API di aggregazione il totale passi della giornata da
+Health Connect e lo salva nello schema Room 3 con giorno civile, fuso e
 provenienza. Health Connect può continuare il conteggio di sistema quando
 l'app è chiusa; l'app riconcilia il totale quando viene aperta. Distanza e
 calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
@@ -113,7 +117,7 @@ esiste una validazione comparativa con Google Fit/Zepp.
 
 - fallback diretto `TYPE_STEP_COUNTER` quando Health Connect non è disponibile;
 - calibrazione personale di falcata, peso e modello calorico;
-- distinzione automatica camminata/corsa;
+- riconoscimento automatico camminata/corsa (la selezione manuale è disponibile);
 - autenticazione BLE Huami;
 - download delle sessioni sportive dal Bip U;
 - battito, cadenza o passi dell’orologio;

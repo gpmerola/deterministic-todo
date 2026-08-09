@@ -5,11 +5,10 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.20.0 build 85**, con primo incremento
+- Versione sorgente in verifica: **2.20.1 build 86**, con primo incremento
   Health Connect per passi e stime locali. Ultima release pubblica verificata:
-  **2.19.0 build 83** (commit
-  `dc6d4ea`).
-- Il test interno Google Play è attivo; la 2.19.0 build 83 è stata caricata nella
+  **2.20.0 build 85** (commit `fa234cbc`).
+- Il test interno Google Play è attivo; la 2.20.0 build 85 è stata caricata nella
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -65,7 +64,8 @@ Aggiornato il 9 agosto 2026.
 - Il modulo in verifica legge ora il totale passi aggregato da Health Connect e
   conserva distanza e calorie attive stimate in Room. Falcata e peso sono
   ancora valori predefiniti: calibrazione personale, fallback sensore diretto,
-  lavoro periodico e sessioni distinte camminata/corsa restano da completare.
+  lavoro periodico resta da completare. Camminata e corsa sono ora sessioni
+  distinte; la camminata applica un limite anti-salto GPS dedicato di 6 m/s.
   I GPX reali verificati non contengono battito, cadenza o dati del Bip U;
   l'integrazione Amazfit resta una fase successiva in sola lettura. Il quadro è in
   [docs/HANDOFF.md](docs/HANDOFF.md).
@@ -75,7 +75,7 @@ Aggiornato il 9 agosto 2026.
 - Analisi statica senza errori.
 - 121 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- Nella sorgente 2.20.0 passano anche gli 11 test JVM del modulo movimento,
+- Nella sorgente 2.20.1 passano anche i 13 test JVM del modulo movimento,
   inclusi due test deterministici nuovi per distanza e calorie da passi; build
   Web release e sei APK release firmati separati per distribuzione/ABI sono
   stati generati localmente. Il comando Flutter segnala erroneamente di non

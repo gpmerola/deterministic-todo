@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.20.1
+
+- Separate le sessioni GPS `camminata` e `corsa`: il profilo camminata usa una
+  soglia GPS dedicata e ri-ancora le discontinuità senza sommarne la distanza.
+- Aggiunta una modalità di test opzionale che salva automaticamente ogni GPX
+  in `Download/DeterministicTodoTests` al termine dell’attività.
+- Aggiunto `tools/pull_latest_movement_gpx.sh` per copiare via USB/ADB l’ultimo
+  GPX in una cartella temporanea, senza passare da Google Drive.
+- Database movimento migrato senza perdita di dati allo schema 3, conservando
+  il tipo di attività per ogni sessione.
+
 ## 2.20.0
 
 - Aggiunta la prima schermata Android Movimento con passi odierni aggregati da

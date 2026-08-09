@@ -38,9 +38,10 @@ public interface RunDao {
     void finish(long id, double distance, long endedAt);
 
     @Transaction
-    default long start(long startedAt) {
+    default long start(long startedAt, String activityType) {
         RunSession session = new RunSession();
         session.startedAtMillis = startedAt;
+        session.activityType = activityType;
         return insertSession(session);
     }
 }
