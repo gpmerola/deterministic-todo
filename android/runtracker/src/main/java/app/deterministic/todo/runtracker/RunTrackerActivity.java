@@ -36,8 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class RunTrackerActivity extends ComponentActivity {
-    private final ActivityResultLauncher<Uri> driveFolder = registerForActivityResult(
-        new ActivityResultContracts.OpenDocumentTree(), uri -> { if (uri != null) { DriveTestExportManager.setFolder(this, uri); Toast.makeText(this, "Cartella test collegata", Toast.LENGTH_SHORT).show(); } });
+    private static final int DRIVE_FOLDER_REQUEST = 7410;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler clock = new Handler(Looper.getMainLooper());
     private TextView durationView;
@@ -174,7 +173,12 @@ public final class RunTrackerActivity extends ComponentActivity {
 
         Button drive = new Button(this);
         drive.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
-        drive.setOnClickListener(v -> driveFolder.launch(null));
+        drive.setOnClickListener(v -> {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+            startActivityForResult(picker, DRIVE_FOLDER_REQUEST);
+        });
         root.addView(drive, matchWrap(dp(12)));
 
         Button export = new Button(this);
@@ -266,6 +270,17 @@ public final class RunTrackerActivity extends ComponentActivity {
     private final Runnable clockTick = new Runnable() {
         @Override public void run() { renderClock(); clock.postDelayed(this, 1000); }
     };
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != DRIVE_FOLDER_REQUEST || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        try {
+            DriveTestExportManager.setFolder(this, data.getData());
+            Toast.makeText(this, "Cartella test collegata", Toast.LENGTH_SHORT).show();
+        } catch (RuntimeException error) {
+            Toast.makeText(this, "Impossibile conservare l’accesso alla cartella scelta", Toast.LENGTH_LONG).show();
+        }
+    }
 
     private void renderClock() {
         long elapsed = startedAt == 0 ? 0 : Math.max(0, System.currentTimeMillis() - startedAt);

@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.21.1
+
+- Reso il selettore della cartella Drive indipendente dal registro moderno dei
+  permessi Health Connect, evitando la chiusura silenziosa di Movimento vista
+  sul Galaxy S21 con la build 87.
+- Gli errori nel conservare il permesso Drive vengono ora mostrati senza
+  chiudere la schermata.
+
 ## 2.21.0
 
 - Sostituito il trasferimento USB con una cartella Google Drive scelta una sola
