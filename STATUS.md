@@ -1,15 +1,14 @@
 # Stato corrente
 
-Aggiornato l'8 agosto 2026.
+Aggiornato il 9 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente corrente: **2.18.6 build 78**.
-- Ultima release pubblica verificata: **2.18.6 build 78** (commit `bf0cc09`).
-- Web, release Android pubblica, Google Play interno e manifest di parità sono
-  verificati sul commit `bf0cc09`.
-- Il test interno Google Play è attivo; la 2.18.6 build 78 è disponibile alla
+- Versione sorgente in verifica: **2.19.0 build 83**.
+- Ultima release pubblica verificata prima di questo incremento: **2.18.10
+  build 82** (commit `5ef280e`).
+- Il test interno Google Play è attivo; la 2.18.10 build 82 è disponibile alla
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -59,15 +58,18 @@ Aggiornato l'8 agosto 2026.
   progetti e sezioni e produce un rapporto prima del backup.
 - Impostazioni contiene Cestino, attività completate, diagnostica e Salute dati;
   gli stati sani restano fuori dall'interfaccia principale.
+- Android contiene il modulo separato `runtracker`: registra corse usando il
+  GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
+  GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
 
 ## Verifica
 
 - Analisi statica senza errori.
-- 115 test automatici superati, incluso uno scenario di convergenza con due
+- 121 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- Build Web locale e pipeline coordinata completate. La build Android locale
-  non è disponibile su questo Mac perché manca l'Android SDK; la pipeline
-  firmata ha verificato e distribuito AAB/APK applicando il budget.
+- La build Android 2.19.0 e i test Java del modulo attendono la pipeline perché
+  su questo Mac manca l'Android SDK. Il collaudo GPS/BLE richiede inoltre il
+  Galaxy S21 e il Bip U reali.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
 

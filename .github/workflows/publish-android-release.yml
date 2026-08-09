@@ -156,6 +156,9 @@ jobs:
       - name: Build signed APKs per CPU
         run: |
           flutter pub get
+          cd android
+          ./gradlew :runtracker:testDebugUnitTest
+          cd ..
           flutter build appbundle --release --flavor play \
             --split-debug-info=build/private-symbols/play \
             --dart-define=DISTRIBUTION_CHANNEL=play \

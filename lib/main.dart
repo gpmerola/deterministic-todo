@@ -33,6 +33,7 @@ import 'services/picked_file_reader_native.dart'
 import 'services/platform_runtime_native.dart'
     if (dart.library.js_interop) 'services/platform_runtime_web.dart';
 import 'services/play_update_service.dart';
+import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
 import 'ui/link_text_editing_controller.dart';

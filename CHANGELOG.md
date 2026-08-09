@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.19.0
+
+- Aggiunto un modulo Android isolato e rimovibile per corsa con Amazfit Bip U:
+  GPS del telefono tramite foreground service Android 14, funzionamento a
+  schermo spento, durata, distanza, passo medio e accuratezza.
+- I campioni sono salvati in un database Room separato. Coordinate imprecise,
+  salti, zigzag, rumore da fermo e timestamp non monotoni non aumentano la
+  distanza ma restano disponibili con il motivo dello scarto.
+- Aggiunto export GPX con traccia valida e waypoint diagnostici scartati.
+- Aggiunta una prova BLE conservativa che cerca il Bip U e legge la batteria
+  standard senza modificare orologio o firmware; la chiave Huami può essere
+  conservata cifrata tramite Android Keystore.
+- Scelta un'implementazione indipendente del protocollo: non è stato copiato o
+  adattato codice AGPLv3 di Gadgetbridge, preservando la licenza MIT dell'app.
+
 ## 2.18.10
 
 - Ridotta a due secondi la permanenza dell'avviso Annulla dopo il completamento.

@@ -56,6 +56,29 @@ dati del sito se vuoi conservare la copia offline.
 - import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
 - export/import JSON e CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
+- modulo Android isolato **Corsa · Amazfit Bip U** con GPS del telefono,
+  registrazione a schermo spento, archivio Room separato ed export GPX.
+
+## Corsa con Amazfit Bip U (Android)
+
+Da **Impostazioni → Corsa · Amazfit Bip U** si avvia una traccia GPS del
+telefono. Una notifica persistente mantiene la registrazione attiva anche a
+schermo spento e consente di terminarla. La schermata mostra durata, distanza,
+passo medio e accuratezza corrente.
+
+Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
+validi alimentano la distanza, quelli esclusi conservano il motivo
+(`poor_accuracy`, `implausible_speed_jump`, `gps_zigzag`, rumore da fermo o
+timestamp non valido). L'export GPX include la traccia accettata e i punti
+scartati come waypoint diagnostici. Questi dati non entrano nel database Todo,
+nei backup Todo o nella sincronizzazione Supabase.
+
+La prima prova BLE cerca il Bip U e legge soltanto il servizio standard della
+batteria, quando esposto. La chiave Huami opzionale viene cifrata con Android
+Keystore e non viene mai inserita in log o repository. Autenticazione Huami,
+download delle sessioni, allineamento con GPS e battito live restano disattivati
+finché l'implementazione indipendente non sarà validata su hardware. Non sono
+presenti funzioni di aggiornamento firmware.
 
 ## Import e reimport Todoist
 
@@ -172,6 +195,7 @@ Struttura canonica:
   Android e web;
 - `web/`: shell browser e asset SQLite WebAssembly;
 - `android/`: client Android;
+- `android/runtracker/`: modulo corsa nativo, database Room, GPS, GPX e BLE;
 - `supabase/migrations/`: schema remoto e RLS;
 - `tools/launchers/`: utilità Android opzionali.
 

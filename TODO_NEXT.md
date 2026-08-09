@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 9 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 ## Stato corrente
 
@@ -53,6 +53,22 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - valutare commenti, allegati, etichette e sotto-attività Todoist solo se
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
+
+## P0 — Collaudo corsa Bip U
+
+- installare la 2.19.0 sul Galaxy S21 e concedere posizione precisa e
+  notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
+- registrare almeno 20 minuti con schermo spento, includendo una sosta, e
+  confrontare distanza/GPX con un percorso noto;
+- verificare che la notifica termini la sessione e che riaprire l'attività dopo
+  una sospensione conservi durata e distanza;
+- provare scansione e batteria con Zepp completamente chiusa. Se il servizio
+  batteria non è esposto prima dell'autenticazione, non aggirare la protezione;
+- implementare in modo indipendente autenticazione Huami e download attività
+  solo dopo capture BLE autorizzate sul dispositivo personale; aggiungere
+  fixture sintetiche prive di chiave/MAC e test di allineamento timestamp;
+- abilitare battito live soltanto dopo conferma sul Bip U reale. Firmware,
+  risorse e impostazioni dell'orologio restano fuori ambito.
 
 ## P2 — Performance
 
