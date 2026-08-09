@@ -447,7 +447,7 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    await tester.drag(find.text('Non eliminarmi'), const Offset(-500, 0));
+    await tester.drag(find.text('Non eliminarmi'), const Offset(-700, 0));
     await tester.pumpAndSettle();
     expect(find.text('Spostata nel cestino'), findsOneWidget);
     expect(find.text('Annulla'), findsOneWidget);
@@ -468,7 +468,7 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    await tester.drag(find.text('Annuncio temporaneo'), const Offset(-500, 0));
+    await tester.drag(find.text('Annuncio temporaneo'), const Offset(-700, 0));
     await tester.pumpAndSettle();
     expect(find.text('Spostata nel cestino'), findsOneWidget);
     expect(find.byTooltip('Chiudi'), findsOneWidget);
@@ -488,7 +488,7 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pump();
 
-    await tester.drag(find.text('Chiudi annuncio'), const Offset(-500, 0));
+    await tester.drag(find.text('Chiudi annuncio'), const Offset(-700, 0));
     await tester.pumpAndSettle();
     expect(find.text('Spostata nel cestino'), findsOneWidget);
     await tester.tap(find.byTooltip('Chiudi'));
@@ -513,8 +513,19 @@ void main() {
     expect(dismissible.direction, DismissDirection.endToStart);
     expect(
       dismissible.dismissThresholds[DismissDirection.endToStart],
-      greaterThan(0.6),
+      greaterThanOrEqualTo(0.7),
     );
+    expect(
+      dismissible.movementDuration,
+      greaterThanOrEqualTo(const Duration(milliseconds: 200)),
+    );
+    expect(
+      dismissible.resizeDuration,
+      greaterThanOrEqualTo(const Duration(milliseconds: 220)),
+    );
+    await tester.drag(find.text('Swipe sicuro'), const Offset(-180, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Swipe sicuro'), findsOneWidget);
 
     expect((await db.select(db.tasks).getSingle()).deletedAt, isNull);
     await tester.pumpWidget(const SizedBox.shrink());

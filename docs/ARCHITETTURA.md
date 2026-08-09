@@ -75,6 +75,13 @@ Arretrate (`show_date < data civile locale`) e Oggi, conservando la lista lazy e
 l'ordinamento per priorità dentro ogni gruppo. La partizione è esclusivamente
 visiva: non modifica stato, data o sincronizzazione delle attività.
 
+La cancellazione gestuale è confinata da destra verso sinistra e richiede il
+72% della larghezza. Il superamento della soglia produce una sola conferma
+tattile; movimento e riduzione della riga hanno durate distinte per evitare il
+salto percettivo degli elementi vicini. La cancellazione SQLite parte insieme
+all'uscita visiva e l'azione Undo ne attende il completamento prima del restore,
+preservando l'ordine delle operazioni senza bloccare l'interfaccia.
+
 ## Privacy e backup
 
 Titoli e note risiedono nel database locale e, dopo login/sync, nel progetto Supabase dell'utente. Non ci sono analytics né logging del contenuto. La diagnostica salva esclusivamente eventi e conteggi consentiti, con versione/build e un ID casuale limitato alla singola apertura; ruota su file Android o IndexedDB browser e viene esportata soltanto su comando. JSON versionato è il formato completo e validato; CSV è interoperabile ma non costituisce un backup completo. L'interfaccia di backup separa serializzazione e destinazione, così potrà aggiungere cifratura autenticata senza cambiare il dominio.

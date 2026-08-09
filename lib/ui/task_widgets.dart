@@ -32,6 +32,7 @@ class TaskTile extends StatefulWidget {
 class _TaskTileState extends State<TaskTile> {
   bool confirmingCompletion = false;
   bool leavingAfterCompletion = false;
+  bool deleteThresholdFeedbackSent = false;
 
   Future<void> _setCompleted(bool completed) async {
     final elapsed = Stopwatch()..start();
@@ -82,27 +83,52 @@ class _TaskTileState extends State<TaskTile> {
       child: Dismissible(
         key: ValueKey('dismiss-${widget.task.id}'),
         direction: DismissDirection.endToStart,
-        dismissThresholds: const {DismissDirection.endToStart: 0.62},
-        movementDuration: const Duration(milliseconds: 110),
-        resizeDuration: const Duration(milliseconds: 100),
+        dismissThresholds: const {DismissDirection.endToStart: 0.72},
+        movementDuration: const Duration(milliseconds: 220),
+        resizeDuration: const Duration(milliseconds: 260),
         background: const SizedBox.shrink(),
         secondaryBackground: Container(
           color: Theme.of(context).colorScheme.errorContainer,
           alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 24),
-          child: Icon(
-            Icons.delete_outline,
-            color: Theme.of(context).colorScheme.onErrorContainer,
+          padding: const EdgeInsets.only(right: 22),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Cestino',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
-        onDismissed: (_) async {
-          await widget.repository.softDelete(widget.task);
+        onUpdate: (details) {
+          if (details.progress >= 0.72 && !deleteThresholdFeedbackSent) {
+            deleteThresholdFeedbackSent = true;
+            unawaited(HapticFeedback.mediumImpact());
+          } else if (details.progress < 0.12) {
+            deleteThresholdFeedbackSent = false;
+          }
+        },
+        onDismissed: (_) {
+          final deletion = widget.repository.softDelete(widget.task);
           if (!context.mounted) return;
           AppUndo.show(
             context,
             message: 'Spostata nel cestino',
-            undo: () => widget.repository.restore(widget.task),
+            undo: () async {
+              await deletion;
+              await widget.repository.restore(widget.task);
+            },
           );
+          unawaited(deletion);
         },
         child: AnimatedContainer(
           key: ValueKey('task-surface-${widget.task.id}'),

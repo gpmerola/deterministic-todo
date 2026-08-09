@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.6
+
+- Resa più stabile la cancellazione mobile ispirandosi alla micro-interazione
+  Todoist: soglia swipe più deliberata, azione Cestino esplicita e feedback
+  tattile soltanto quando la cancellazione è realmente armata.
+- Rallentati il completamento del gesto e il riassestamento della lista; uno
+  swipe incompleto torna al suo posto senza modificare i dati e Undo resta
+  disponibile dopo la cancellazione.
+
 ## 2.18.5
 
 - La vista Oggi separa ora le attività arretrate dalle attività odierne con due
