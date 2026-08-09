@@ -29,6 +29,13 @@ GPS. `GpsTrackFilter` decide in modo deterministico senza alterare coordinate:
 4. velocità non superiore a 12 m/s;
 5. esclusione dei ritorni brevi compatibili con zigzag.
 
+Durante una sessione, un incremento del contatore passi hardware costituisce
+una prova locale di movimento. In quel caso soltanto la soglia minima
+anti-rumore viene ridotta, per riacquisire rapidamente una camminata dopo una
+sosta quando il fix GPS si muove poco. Il segnale passi non aggira mai i limiti
+di accuratezza, velocità, discontinuità o zigzag e non viene convertito
+direttamente in metri GPS.
+
 Ogni campione produce una riga `TrackPoint`; `accepted=false` conserva sempre
 `rejectionReason`. Soltanto i punti accettati incrementano `distanceMeters`.
 La sessione e i punti sono archiviati in `run_tracker.sqlite` tramite Room.

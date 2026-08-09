@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.22.1
+
+- La ripartenza dopo una sosta usa l'incremento del contatore passi hardware
+  come prova di movimento per ridurre soltanto la soglia anti-rumore GPS.
+- Accuratezza, velocità massima, discontinuità e zigzag restano vincoli
+  obbligatori, così i passi non possono trasformare un salto GPS in distanza.
+- Il consumo attribuibile all'app continua a essere rappresentato da CPU e
+  memoria del processo; la variazione percentuale di batteria è dell'intero
+  dispositivo e può includere YouTube, schermo e rete.
+
 ## 2.22.0
 
 - Le sessioni contano i passi direttamente con `TYPE_STEP_COUNTER`, anche a

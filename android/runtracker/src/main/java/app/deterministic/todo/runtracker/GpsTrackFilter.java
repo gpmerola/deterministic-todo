@@ -29,6 +29,15 @@ public final class GpsTrackFilter {
     }
 
     public Decision evaluate(Sample sample) {
+        return evaluate(sample, false);
+    }
+
+    /**
+     * Evaluates a fix, optionally using a hardware step increment as evidence that the
+     * phone is moving. Step evidence only lowers the stationary-noise gate; all accuracy,
+     * speed, discontinuity and zigzag protections remain active.
+     */
+    public Decision evaluate(Sample sample, boolean stepMovementObserved) {
         String invalid = invalidReason(sample);
         if (invalid != null) return reject(invalid);
         if (last == null) {
@@ -69,6 +78,7 @@ public final class GpsTrackFilter {
 
         double segment = distanceMeters(last, sample);
         double noiseRadius = Math.max(2.5, Math.min(last.accuracyMeters, sample.accuracyMeters) * 0.35);
+        if (stepMovementObserved) noiseRadius = Math.max(1.0, noiseRadius * 0.45);
         if (segment <= noiseRadius) return reject("stationary_accuracy_noise");
 
         double speed = segment / (elapsedMillis / 1000.0);

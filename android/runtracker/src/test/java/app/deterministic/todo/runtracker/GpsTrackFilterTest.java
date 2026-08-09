@@ -22,6 +22,32 @@ public class GpsTrackFilterTest {
         assertEquals(0, filter.totalMeters(), 0.001);
     }
 
+    @Test public void stepEvidenceRecoversSmallMovementAfterStop() {
+        GpsTrackFilter filter = new GpsTrackFilter(GpsTrackFilter.MAX_WALKING_SPEED_MPS);
+        assertTrue(filter.evaluate(sample(0, 51.500000, -0.120000, 10)).accepted());
+
+        GpsTrackFilter.Decision stopped = filter.evaluate(
+            sample(5_000, 51.500010, -0.120000, 10), false
+        );
+        assertFalse(stopped.accepted());
+        assertEquals("stationary_accuracy_noise", stopped.reason());
+
+        GpsTrackFilter.Decision resumed = filter.evaluate(
+            sample(6_000, 51.500018, -0.120000, 10), true
+        );
+        assertTrue(resumed.accepted());
+        assertTrue(resumed.segmentMeters() > 1.9 && resumed.segmentMeters() < 2.1);
+    }
+
+    @Test public void stepEvidenceDoesNotBypassAccuracyOrSpeedProtections() {
+        GpsTrackFilter filter = new GpsTrackFilter(GpsTrackFilter.MAX_WALKING_SPEED_MPS);
+        filter.evaluate(sample(0, 51.5000, -0.1200, 5));
+        assertEquals("poor_accuracy",
+            filter.evaluate(sample(1_000, 51.50001, -0.1200, 80), true).reason());
+        assertEquals("implausible_speed_jump",
+            filter.evaluate(sample(2_000, 51.5010, -0.1200, 5), true).reason());
+    }
+
     @Test public void rejectsImpossibleRunningJump() {
         GpsTrackFilter filter = new GpsTrackFilter();
         filter.evaluate(sample(0, 51.5000, -0.1200, 5));

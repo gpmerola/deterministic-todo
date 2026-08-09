@@ -54,6 +54,7 @@ public final class RunRecordingService extends Service implements LocationListen
     private Sensor stepCounterSensor;
     private StepCounterSession stepCounter;
     private volatile long sessionSteps;
+    private volatile long stepsAtLastAcceptedFix;
     private volatile String stepStatus = "not_started";
     private long sessionId;
     private long startedAt;
@@ -135,6 +136,7 @@ public final class RunRecordingService extends Service implements LocationListen
 
     private void startStepCounter() {
         sessionSteps = DriveTestExportManager.directSteps(this, sessionId);
+        stepsAtLastAcceptedFix = sessionSteps;
         stepCounter = new StepCounterSession(sessionSteps);
         if (stepCounterSensor == null) {
             stepStatus = "sensor_unavailable";
@@ -187,7 +189,10 @@ public final class RunRecordingService extends Service implements LocationListen
         final GpsTrackFilter.Sample sample = new GpsTrackFilter.Sample(
             location.getTime(), location.getLatitude(), location.getLongitude(), location.getAccuracy()
         );
-        final GpsTrackFilter.Decision decision = filter.evaluate(sample);
+        final GpsTrackFilter.Decision decision = filter.evaluate(
+            sample, sessionSteps > stepsAtLastAcceptedFix
+        );
+        if (decision.accepted()) stepsAtLastAcceptedFix = sessionSteps;
         lastAccuracy = location.getAccuracy();
         gpsStatus = location.getAccuracy() > GpsTrackFilter.MAX_ACCURACY_METERS
             ? String.format(java.util.Locale.ROOT, "Segnale debole · ± %.0f m (punto scartato)", location.getAccuracy())
