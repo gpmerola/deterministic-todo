@@ -2,6 +2,10 @@
 
 Aggiornato il 9 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
+Handoff completo, architettura corrente e prossimo obiettivo movimento:
+[`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
+non duplicare qui i dettagli tecnici.
+
 ## Stato corrente
 
 - Repository sorgente pubblico: `gpmerola/deterministic-todo`.
@@ -68,6 +72,20 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   fixture sintetiche prive di chiave/MAC e test di allineamento timestamp;
 - abilitare battito live soltanto dopo conferma sul Bip U reale. Firmware,
   risorse e impostazioni dell'orologio restano fuori ambito.
+
+## P0 — Passi e distanza quotidiana
+
+- implementare prima un MVP solo telefono con `TYPE_STEP_COUNTER`, gestione
+  reboot/reset e permesso `ACTIVITY_RECOGNITION`;
+- conservare in Room passi, data civile/fuso e provenienza tramite migrazione
+  versionata;
+- mostrare separatamente distanza GPS di una sessione e distanza quotidiana
+  stimata dai passi, senza doppio conteggio;
+- supportare sessioni manuali `Camminata` e `Corsa` riusando il servizio GPS;
+- non mantenere GPS, BLE o un foreground service permanente per il conteggio
+  quotidiano;
+- misurare batteria sul Galaxy S21 prima di ampliare il lavoro in background;
+- rimandare autenticazione e import Amazfit finché questo MVP non è collaudato.
 
 ## P2 — Performance
 

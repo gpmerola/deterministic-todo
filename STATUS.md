@@ -61,6 +61,12 @@ Aggiornato il 9 agosto 2026.
 - Android contiene il modulo separato `runtracker`: registra corse usando il
   GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
   GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
+- Il modulo non conta ancora passi e i GPX reali verificati non contengono
+  battito, cadenza o dati del Bip U. Il prossimo incremento pianificato è un
+  contatore passi del telefono con distanza quotidiana stimata e sessioni GPS
+  distinte per camminata/corsa; l'integrazione Amazfit resta una fase successiva
+  in sola lettura. Il quadro completo è in
+  [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Verifica
 

@@ -211,7 +211,9 @@ definitiva di dispositivo e cloud non è ancora offerta: richiede una funzione
 Supabase transazionale. Il reset locale richiede prima di scollegare Supabase,
 altrimenti i dati verrebbero scaricati nuovamente.
 
-La documentazione tecnica è in [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md), le
-procedure sono in [docs/operations/](docs/operations/), lo stato corrente in
-[STATUS.md](STATUS.md), le versioni in [CHANGELOG.md](CHANGELOG.md) e il lavoro
-residuo in [TODO_NEXT.md](TODO_NEXT.md).
+Il punto di ingresso per riprendere lo sviluppo è
+[docs/HANDOFF.md](docs/HANDOFF.md). La documentazione tecnica è in
+[docs/ARCHITETTURA.md](docs/ARCHITETTURA.md), le procedure sono in
+[docs/operations/](docs/operations/), lo stato corrente in [STATUS.md](STATUS.md),
+le versioni in [CHANGELOG.md](CHANGELOG.md) e il lavoro residuo in
+[TODO_NEXT.md](TODO_NEXT.md).

@@ -2,7 +2,9 @@
 
 Queste regole si applicano a ogni modifica nel repository.
 
-All’inizio di ogni nuova sessione leggere integralmente `TODO_NEXT.md` oltre a questo file: contiene stato reale, blocchi esterni, priorità e verifiche ancora mancanti.
+All’inizio di ogni nuova sessione leggere integralmente `TODO_NEXT.md` e
+`docs/HANDOFF.md` oltre a questo file: contengono stato reale, blocchi esterni,
+priorità, architettura e verifiche ancora mancanti.
 
 ## Obblighi di consegna
 
@@ -36,3 +38,25 @@ All’inizio di ogni nuova sessione leggere integralmente `TODO_NEXT.md` oltre a
 - Non registrare titoli o note nei log e non introdurre analytics o tracking.
 
 Il riferimento operativo per performance e release Android è `docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md`.
+
+## Modulo movimento e Amazfit
+
+- Il codice salute/movimento deve restare confinato in `android/runtracker` e
+  nel suo sottile canale Flutter. Non mescolare database, permessi, log o sync
+  con il dominio Todo o Supabase.
+- Distinguere sempre: passi quotidiani del telefono, distanza quotidiana
+  stimata, sessioni GPS esplicite e dati sportivi importati dall’orologio. Non
+  presentarli come misure equivalenti o fonderli senza provenienza.
+- Il GPS in foreground è ammesso soltanto durante una sessione avviata
+  esplicitamente. Il conteggio quotidiano non deve mantenere GPS, BLE o polling
+  continuo e deve rispettare i vincoli di batteria Android.
+- Conservare timestamp UTC e data civile/fuso di attribuzione; gestire reboot,
+  reset del contatore hardware, cambio di giorno e cambio di fuso senza creare
+  passi negativi o doppi.
+- Dati di posizione, attività e battito sono sensibili e solo locali per
+  impostazione predefinita. Non inserirli nei log, nel repository o in
+  Supabase; export e condivisione devono essere espliciti.
+- L’integrazione Amazfit/Huami resta in sola lettura. Sono vietati firmware,
+  reset e scritture rischiose. Non copiare codice Gadgetbridge AGPLv3 nel
+  progetto MIT: continuare con implementazione indipendente oppure adottare
+  AGPLv3 soltanto dopo una decisione esplicita e documentata.
