@@ -68,7 +68,7 @@ Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltant
 
 `QuickAddParser` è una regola pura, locale e testabile. Estrae dal testo italiano una data civile, poi restituisce il titolo ripulito; la stessa regola alimenta l'anteprima durante la digitazione. URL `http://`, `https://` e `www.` vengono convertiti localmente nel formato Markdown canonico e resi cliccabili in titolo e descrizione, inclusi gli import Todoist. Una data futura crea direttamente una task `scheduled`; oggi crea `available`; senza data resta `inbox`. Il repository salva titolo, stato e pianificazione nella stessa transazione con l'outbox. La vista Prossime ordina prima per `show_date` e presenta gruppi giornalieri, senza introdurre query di rete. L'esportazione calendario crea un evento giornaliero per singola attività e non altera la fonte di verità SQLite.
 
-La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta navigazione e larghezza al mouse e alla tastiera e presenta la task selezionata come editor inline nella colonna destra; riusa `TaskEditor`, repository e stream esistenti senza duplicare il dominio. Non sono registrate scorciatoie globali di creazione o ricerca: resta soltanto `Esc`, che chiude prima l'editor laterale e poi torna indietro, mentre Invio fisico nel titolo viene gestito localmente dall'editor e salva. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete. Il repository restituisce alla UI la data civile realmente materializzata dopo il completamento di una ricorrenza, evitando di duplicare nel livello grafico il calcolo del calendario.
+La creazione usa lo stesso modal bottom sheet rapido su Android e browser. Sopra 900 px il browser adatta navigazione e larghezza al mouse e alla tastiera e presenta la task selezionata come editor inline nella colonna destra; riusa `TaskEditor`, repository e stream esistenti senza duplicare il dominio. L'editor è identificato dal solo UUID della task: un aggiornamento remoto non ricrea widget, focus o controller. Se i campi corrispondono ancora alla versione precedente, i nuovi valori remoti vengono applicati; una bozza locale divergente resta invece intatta. Non sono registrate scorciatoie globali di creazione o ricerca: resta soltanto `Esc`, che chiude prima l'editor laterale e poi torna indietro, mentre Invio fisico nel titolo viene gestito localmente dall'editor e salva. La timeline futura deriva dai task attivi già osservati e materializza pigramente soltanto i giorni visibili: non apre nuovi stream, timer o query di rete. Il repository restituisce alla UI la data civile realmente materializzata dopo il completamento di una ricorrenza, evitando di duplicare nel livello grafico il calcolo del calendario.
 
 La vista Oggi partiziona in memoria il solo snapshot attivo già osservato in
 Arretrate (`show_date < data civile locale`) e Oggi, conservando la lista lazy e
@@ -87,6 +87,9 @@ il tap produce subito spunta e feedback tattile, ma non sposta la riga. Dopo
 200 ms la riga riduce verticalmente il proprio spazio per 170 ms e soltanto al
 termine aggiorna SQLite; così lo stream non può rimuoverla durante la conferma
 né causare un salto degli elementi vicini. Un guard locale ignora tocchi doppi.
+La riga usa un feedback Material a bassa opacità, così titolo e descrizione
+comunicano l'area interattiva senza nuovi controlli. L'Undo di completamento
+dura quattro secondi; quello delle cancellazioni resta di cinque secondi.
 
 ## Privacy e backup
 

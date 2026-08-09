@@ -108,6 +108,9 @@ riassesta con un movimento controllato; Undo rimane disponibile.
 Il completamento usa invece una spunta circolare immobile: conferma subito il
 tocco e chiude gradualmente la riga soltanto dopo aver mostrato il risultato,
 senza rimbalzi o cambi di dimensione del controllo.
+Titolo e descrizione rispondono con un feedback leggero sull'intera riga; gli
+stati vuoti restano una sola riga discreta. Sul Web una sincronizzazione non
+interrompe la bozza aperta nel pannello laterale.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.

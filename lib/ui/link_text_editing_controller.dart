@@ -63,6 +63,15 @@ class LinkTextEditingController extends TextEditingController {
     notifyListeners();
   }
 
+  void replaceMarkdown(String? markdown) {
+    final value = markdown ?? '';
+    links
+      ..clear()
+      ..addAll(_extractLinks(value));
+    text = _plainText(value);
+    selection = TextSelection.collapsed(offset: text.length);
+  }
+
   @override
   TextSpan buildTextSpan({
     required BuildContext context,

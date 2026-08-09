@@ -51,4 +51,18 @@ void main() {
       'e [example.com](https://www.example.com).',
     );
   });
+
+  test('sostituisce contenuto remoto conservando link leggibili', () {
+    final controller = LinkTextEditingController.fromMarkdown('Prima');
+    controller.replaceMarkdown(
+      'Apri [documento](https://example.com/documento)',
+    );
+
+    expect(controller.text, 'Apri documento');
+    expect(
+      controller.toMarkdown(),
+      'Apri [documento](https://example.com/documento)',
+    );
+    controller.dispose();
+  });
 }

@@ -196,6 +196,11 @@ La 2.18.8 porta la sequenza da 430 a 370 ms senza aggiungere animazioni: 200 ms
 di conferma e 170 ms di contrazione usano due costanti condivise, evitando che
 durata visiva e attesa della persistenza possano divergere.
 
+La 2.18.9 rende esplicito il feedback di pressione riusando il ripple Material
+della riga e rimuove icone decorative dagli stati vuoti. Sul Web l'editor resta
+montato durante gli aggiornamenti dello stream: evita ricreazione dei controller
+e perdita di focus, senza buffer, timer, query o dipendenze aggiuntive.
+
 La 2.18.1 rimuove lo stream dedicato ai Riferimenti insieme alla relativa UI:
 gli eventuali record esistenti riusano lo stream attività, senza query o copie.
 La migrazione locale elimina anche l'indice del tipo non più interrogato,

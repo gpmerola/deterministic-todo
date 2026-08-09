@@ -1465,9 +1465,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   child: visible.isEmpty
                       ? _emptyState(
                           key: ValueKey('empty-${section.name}'),
-                          icon: section == AppSection.completed
-                              ? Icons.task_alt
-                              : Icons.checklist_rounded,
                           label: section == AppSection.completed
                               ? 'Nessuna attività completata'
                               : 'Nessuna attività',
@@ -1609,9 +1606,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               return KeyEventResult.ignored;
             },
             child: TaskEditor(
-              key: ValueKey(
-                'desktop-inline-editor-${task.id}-${task.updatedAt}',
-              ),
+              key: ValueKey('desktop-inline-editor-${task.id}'),
               task: task,
               repository: widget.repository,
               embedded: true,
@@ -1682,7 +1677,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                 child: activeProjects.isEmpty
                     ? _emptyState(
                         key: const ValueKey('empty-projects'),
-                        icon: Icons.folder_open_outlined,
                         label: 'Nessun progetto',
                       )
                     : ListView.separated(
@@ -2171,28 +2165,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     return label[0].toUpperCase() + label.substring(1);
   }
 
-  Widget _emptyState({
-    required Key key,
-    required IconData icon,
-    required String label,
-  }) => Center(
+  Widget _emptyState({required Key key, required String label}) => Align(
     key: key,
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 30,
+    alignment: Alignment.topCenter,
+    child: Padding(
+      padding: const EdgeInsets.only(top: 32),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+      ),
     ),
   );
 }

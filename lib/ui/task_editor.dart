@@ -37,6 +37,33 @@ class _TaskEditorState extends State<TaskEditor> {
   late int priority = widget.task.priority;
   bool saving = false;
 
+  bool _matchesTask(Task task) =>
+      title.toMarkdown() == task.title &&
+      notes.toMarkdown().trim() == (task.notes ?? '').trim() &&
+      showDate.text == (task.showDate ?? '') &&
+      recurrence == (task.recurrence ?? 'none') &&
+      projectId == task.projectId &&
+      projectSectionId == task.sectionId &&
+      priority == task.priority;
+
+  @override
+  void didUpdateWidget(covariant TaskEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task.id != widget.task.id ||
+        oldWidget.task.updatedAt == widget.task.updatedAt ||
+        !_matchesTask(oldWidget.task) ||
+        saving) {
+      return;
+    }
+    title.replaceMarkdown(widget.task.title);
+    notes.replaceMarkdown(widget.task.notes);
+    showDate.text = widget.task.showDate ?? '';
+    recurrence = widget.task.recurrence ?? 'none';
+    projectId = widget.task.projectId;
+    projectSectionId = widget.task.sectionId;
+    priority = widget.task.priority;
+  }
+
   @override
   void dispose() {
     title.dispose();

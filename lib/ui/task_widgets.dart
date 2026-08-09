@@ -71,6 +71,7 @@ class _TaskTileState extends State<TaskTile> {
             ? 'Attività completata'
             : 'Completata · prossima: ${DateFormat('EEEE d MMMM yyyy', 'it').format(nextDate.asLocalDate)}',
         undo: () => widget.repository.undoCompletion(widget.task),
+        duration: const Duration(seconds: 4),
       );
     }
   }
@@ -167,79 +168,93 @@ class _TaskTileState extends State<TaskTile> {
                 behavior: HitTestBehavior.opaque,
                 onSecondaryTapDown: (details) =>
                     _showDesktopMenu(details.globalPosition),
-                child: ListTile(
-                  dense:
-                      widget.dense || MediaQuery.sizeOf(context).width >= 900,
-                  visualDensity:
-                      widget.dense || MediaQuery.sizeOf(context).width >= 900
-                      ? const VisualDensity(vertical: -2)
-                      : null,
-                  leading: GestureDetector(
-                    key: const ValueKey('completion-no-swipe-zone'),
-                    behavior: HitTestBehavior.opaque,
-                    // A horizontal gesture that starts on the completion target
-                    // belongs to this control, never to the parent Dismissible.
-                    onHorizontalDragStart: (_) {},
-                    child: Semantics(
-                      label: 'Completa ${widget.task.title}',
-                      child: Checkbox(
-                        key: const ValueKey('task-checkbox'),
-                        value:
-                            confirmingCompletion ||
-                            widget.task.status == TaskStatus.completed.name,
-                        onChanged: (value) => _setCompleted(value ?? false),
-                        shape: const CircleBorder(),
-                        activeColor: Colors.green,
-                        checkColor: Colors.white,
-                        side: BorderSide(
-                          color: _priorityColor(widget.task.priority),
-                          width: widget.task.priority == 1 ? 1.5 : 2.5,
+                child: Theme(
+                  key: ValueKey('task-row-feedback-${widget.task.id}'),
+                  data: Theme.of(context).copyWith(
+                    highlightColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.07),
+                    splashColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.035),
+                    hoverColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.025),
+                  ),
+                  child: ListTile(
+                    dense:
+                        widget.dense || MediaQuery.sizeOf(context).width >= 900,
+                    visualDensity:
+                        widget.dense || MediaQuery.sizeOf(context).width >= 900
+                        ? const VisualDensity(vertical: -2)
+                        : null,
+                    leading: GestureDetector(
+                      key: const ValueKey('completion-no-swipe-zone'),
+                      behavior: HitTestBehavior.opaque,
+                      // A horizontal gesture that starts on the completion target
+                      // belongs to this control, never to the parent Dismissible.
+                      onHorizontalDragStart: (_) {},
+                      child: Semantics(
+                        label: 'Completa ${widget.task.title}',
+                        child: Checkbox(
+                          key: const ValueKey('task-checkbox'),
+                          value:
+                              confirmingCompletion ||
+                              widget.task.status == TaskStatus.completed.name,
+                          onChanged: (value) => _setCompleted(value ?? false),
+                          shape: const CircleBorder(),
+                          activeColor: Colors.green,
+                          checkColor: Colors.white,
+                          side: BorderSide(
+                            color: _priorityColor(widget.task.priority),
+                            width: widget.task.priority == 1 ? 1.5 : 2.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  title: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 120),
-                    curve: Curves.easeOutCubic,
-                    style: DefaultTextStyle.of(context).style.copyWith(
-                      color: confirmingCompletion
-                          ? Theme.of(context).colorScheme.onSurfaceVariant
-                          : null,
-                      decoration: confirmingCompletion
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
+                    title: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOutCubic,
+                      style: DefaultTextStyle.of(context).style.copyWith(
+                        color: confirmingCompletion
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : null,
+                        decoration: confirmingCompletion
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                      child: TodoistLinkText(widget.task.title),
                     ),
-                    child: TodoistLinkText(widget.task.title),
-                  ),
-                  subtitle: _subtitle(widget.task),
-                  trailing: PopupMenuButton<String>(
-                    tooltip: 'Azioni attività',
-                    onSelected: _runAction,
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.edit_outlined),
-                          title: Text('Modifica'),
+                    subtitle: _subtitle(widget.task),
+                    trailing: PopupMenuButton<String>(
+                      tooltip: 'Azioni attività',
+                      onSelected: _runAction,
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.edit_outlined),
+                            title: Text('Modifica'),
+                          ),
                         ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.delete_outline),
-                          title: Text('Cestino'),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.delete_outline),
+                            title: Text('Cestino'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    onTap: confirmingCompletion
+                        ? null
+                        : widget.onSelected ?? _showEditor,
+                    onLongPress: confirmingCompletion
+                        ? null
+                        : () => unawaited(_showMobileMenu()),
                   ),
-                  onTap: confirmingCompletion
-                      ? null
-                      : widget.onSelected ?? _showEditor,
-                  onLongPress: confirmingCompletion
-                      ? null
-                      : () => unawaited(_showMobileMenu()),
                 ),
               ),
             ),

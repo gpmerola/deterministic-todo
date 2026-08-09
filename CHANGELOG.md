@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.9
+
+- L'intera riga attività offre un feedback visivo leggero e uniforme al tocco,
+  senza aggiungere icone o cambiare la geometria della lista.
+- Oggi, Completate e Progetti condividono uno stato vuoto su una sola riga;
+  Prossime mantiene lo stesso stile discreto per i giorni senza attività.
+- Il pannello editor Web non viene più ricreato durante gli aggiornamenti
+  sincronizzati: conserva focus e bozze locali e assorbe dati remoti soltanto
+  quando non esistono modifiche in corso.
+- L'avviso Annulla dopo un completamento dura quattro secondi; eliminazioni e
+  altre azioni più rischiose conservano cinque secondi.
+
 ## 2.18.8
 
 - Accorciata leggermente la scomparsa dopo il completamento: conferma visiva

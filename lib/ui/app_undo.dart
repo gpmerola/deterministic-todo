@@ -6,6 +6,7 @@ abstract final class AppUndo {
     BuildContext context, {
     required String message,
     required Future<void> Function() undo,
+    Duration duration = const Duration(seconds: 5),
   }) {
     final messenger = ScaffoldMessenger.of(context);
     messenger
@@ -13,7 +14,7 @@ abstract final class AppUndo {
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
+          duration: duration,
           // Anche con servizi di accessibilità attivi l'annuncio non deve
           // diventare un elemento permanente dell'interfaccia.
           persist: false,

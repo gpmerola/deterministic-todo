@@ -12,6 +12,9 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
   circolare stabile e scomparsa ridotta a 370 ms; Web, manifest Android e
   Google Play internal track derivano dal commit `562ca5c` e hanno superato il
   controllo di parità.
+- In preparazione: 2.18.9 build 81, con feedback riga esplicito, stati vuoti
+  uniformi, editor Web stabile durante il sync e avviso di completamento più
+  breve.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 

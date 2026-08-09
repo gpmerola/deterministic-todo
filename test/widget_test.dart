@@ -278,6 +278,40 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('il sync non ricrea il pannello né sovrascrive una bozza web', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final id = await repository.create('Titolo iniziale');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.text('Titolo iniziale'));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('task-editor-title'));
+    await tester.enterText(field, 'Bozza ancora in scrittura');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await repository.updateDetails(task, title: 'Titolo remoto');
+    await tester.pump();
+
+    expect(find.text('Dettagli'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(field).controller!.text,
+      'Bozza ancora in scrittura',
+    );
+    expect(find.byKey(ValueKey('desktop-inline-editor-$id')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('l editor ignora tutte le vecchie scorciatoie globali', (
     tester,
   ) async {
@@ -974,6 +1008,27 @@ void main() {
 
     await tester.pumpAndSettle();
     expect((await db.select(db.tasks).getSingle()).status, 'completed');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('l Undo del completamento dura meno della cancellazione', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await repository.create('Completa rapidamente');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Attività completata'), findsOneWidget);
+    expect(
+      tester.widget<SnackBar>(find.byType(SnackBar)).duration,
+      const Duration(seconds: 4),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
