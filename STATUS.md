@@ -5,8 +5,9 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente e release pubblica verificata: **2.19.0 build 83** (commit
-  `dc6d4ea`). Web, APK diretti e Google Play interno hanno superato la parità.
+- Versione sorgente in verifica: **2.19.1 build 84**, con diagnostica esplicita
+  del fix GPS. Ultima release pubblica verificata: **2.19.0 build 83** (commit
+  `dc6d4ea`).
 - Il test interno Google Play è attivo; la 2.19.0 build 83 è stata caricata nella
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.

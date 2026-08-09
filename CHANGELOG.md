@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.19.1
+
+- Corretto l'avvio GPS su Android richiedendo insieme posizione approssimativa
+  e precisa, come previsto dal modello permessi recente.
+- La schermata corsa distingue ora ricerca satelliti, GPS di sistema spento,
+  permesso preciso assente, segnale debole e fix attivo. Dopo venti secondi
+  senza coordinate suggerisce esplicitamente di spostarsi all'aperto.
+
 ## 2.19.0
 
 - Aggiunto un modulo Android isolato e rimovibile per corsa con Amazfit Bip U:

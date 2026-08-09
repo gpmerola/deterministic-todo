@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
@@ -34,15 +35,25 @@ public final class RunRecordingService extends Service implements LocationListen
     public static final String EXTRA_DISTANCE = "distance";
     public static final String EXTRA_ACCURACY = "accuracy";
     public static final String EXTRA_ACCEPTED = "accepted";
+    public static final String EXTRA_STATUS = "gps_status";
     private static final int NOTIFICATION_ID = 7401;
     private static final String CHANNEL_ID = "run_recording";
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final GpsTrackFilter filter = new GpsTrackFilter();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private LocationManager locationManager;
     private long sessionId;
     private long startedAt;
     private volatile float lastAccuracy;
+    private volatile String gpsStatus = "Avvio GPS…";
+    private volatile boolean receivedLocation;
+    private final Runnable noFixWarning = () -> {
+        if (!receivedLocation) {
+            gpsStatus = "Nessun segnale GPS: vai all’aperto e controlla che Posizione sia attiva";
+            broadcast(false);
+        }
+    };
 
     @Override public void onCreate() {
         super.onCreate();
@@ -81,30 +92,52 @@ public final class RunRecordingService extends Service implements LocationListen
                     }
                 }
             }
-            requestLocations();
+            if (!requestLocations()) {
+                dao.finish(sessionId, filter.totalMeters(), System.currentTimeMillis());
+                sessionId = 0;
+                startedAt = 0;
+                broadcast(false);
+                stopForeground(STOP_FOREGROUND_REMOVE);
+                stopSelf();
+                return;
+            }
             broadcast(true);
         });
         return START_STICKY;
     }
 
-    private void requestLocations() {
+    private boolean requestLocations() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) {
-            stopSelf();
-            return;
+            gpsStatus = "Posizione precisa non concessa";
+            return false;
         }
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            gpsStatus = "GPS del telefono disattivato: attiva Posizione nelle impostazioni Android";
+            return false;
+        }
+        gpsStatus = "Ricerca del segnale GPS…";
+        broadcast(false);
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, 1_000L, 0f, this, Looper.getMainLooper()
         );
+        mainHandler.removeCallbacks(noFixWarning);
+        mainHandler.postDelayed(noFixWarning, 20_000L);
+        return true;
     }
 
     @Override public void onLocationChanged(Location location) {
         if (sessionId == 0) return;
+        receivedLocation = true;
+        mainHandler.removeCallbacks(noFixWarning);
         final GpsTrackFilter.Sample sample = new GpsTrackFilter.Sample(
             location.getTime(), location.getLatitude(), location.getLongitude(), location.getAccuracy()
         );
         final GpsTrackFilter.Decision decision = filter.evaluate(sample);
         lastAccuracy = location.getAccuracy();
+        gpsStatus = location.getAccuracy() > GpsTrackFilter.MAX_ACCURACY_METERS
+            ? String.format(java.util.Locale.ROOT, "Segnale debole · ± %.0f m (punto scartato)", location.getAccuracy())
+            : "GPS attivo";
         io.execute(() -> {
             TrackPoint point = new TrackPoint();
             point.sessionId = sessionId;
@@ -127,7 +160,10 @@ public final class RunRecordingService extends Service implements LocationListen
 
     @SuppressWarnings("deprecation") @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
     @Override public void onProviderEnabled(String provider) {}
-    @Override public void onProviderDisabled(String provider) { broadcast(false); }
+    @Override public void onProviderDisabled(String provider) {
+        gpsStatus = "GPS del telefono disattivato";
+        broadcast(false);
+    }
 
     private Notification notification(double meters) {
         Intent open = new Intent(this, RunTrackerActivity.class);
@@ -155,6 +191,7 @@ public final class RunRecordingService extends Service implements LocationListen
         state.putExtra(EXTRA_DISTANCE, filter.totalMeters());
         state.putExtra(EXTRA_ACCURACY, lastAccuracy);
         state.putExtra(EXTRA_ACCEPTED, accepted);
+        state.putExtra(EXTRA_STATUS, gpsStatus);
         state.putExtra("started_at", startedAt);
         sendBroadcast(state);
     }
@@ -173,6 +210,7 @@ public final class RunRecordingService extends Service implements LocationListen
 
     @Nullable @Override public IBinder onBind(Intent intent) { return null; }
     @Override public void onDestroy() {
+        mainHandler.removeCallbacks(noFixWarning);
         try { locationManager.removeUpdates(this); } catch (RuntimeException ignored) {}
         io.shutdown();
         super.onDestroy();

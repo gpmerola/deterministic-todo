@@ -51,7 +51,12 @@ public final class RunTrackerActivity extends ComponentActivity {
             startedAt = intent.getLongExtra("started_at", 0);
             distance = intent.getDoubleExtra(RunRecordingService.EXTRA_DISTANCE, 0);
             float accuracy = intent.getFloatExtra(RunRecordingService.EXTRA_ACCURACY, 0);
-            accuracyView.setText(accuracy <= 0 ? "In attesa del GPS" : String.format(Locale.ROOT, "Accuratezza ± %.0f m", accuracy));
+            String gpsStatus = intent.getStringExtra(RunRecordingService.EXTRA_STATUS);
+            accuracyView.setText(
+                gpsStatus == null
+                    ? (accuracy <= 0 ? "Ricerca del segnale GPS…" : String.format(Locale.ROOT, "Accuratezza ± %.0f m", accuracy))
+                    : (accuracy <= 0 ? gpsStatus : gpsStatus + String.format(Locale.ROOT, " · ± %.0f m", accuracy))
+            );
             primaryButton.setText(sessionId == 0 ? "Avvia corsa" : "Termina");
             renderClock();
         }
@@ -104,7 +109,7 @@ public final class RunTrackerActivity extends ComponentActivity {
         metrics.addView(metricBlock("PASSO MEDIO", paceView), weighted());
         root.addView(metrics, matchWrap(dp(18)));
 
-        accuracyView = label("In attesa del GPS", 16);
+        accuracyView = label("Premi Avvia corsa per attivare il GPS", 16);
         accuracyView.setGravity(Gravity.CENTER);
         root.addView(accuracyView, matchWrap(dp(20)));
 
@@ -131,6 +136,7 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     private void ensurePermissions() {
         ArrayList<String> required = new ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.POST_NOTIFICATIONS);
         if (required.isEmpty()) startRun(); else permissions.launch(required.toArray(new String[0]));
