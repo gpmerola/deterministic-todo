@@ -38,6 +38,12 @@ public final class GpsTrackFilter {
      * speed, discontinuity and zigzag protections remain active.
      */
     public Decision evaluate(Sample sample, boolean stepMovementObserved) {
+        return evaluate(sample, stepMovementObserved, false);
+    }
+
+    public Decision evaluate(
+        Sample sample, boolean stepMovementObserved, boolean requireStepMovement
+    ) {
         String invalid = invalidReason(sample);
         if (invalid != null) return reject(invalid);
         if (last == null) {
@@ -46,6 +52,11 @@ public final class GpsTrackFilter {
         }
         long elapsedMillis = sample.timeMillis - last.timeMillis;
         if (elapsedMillis <= 0) return reject("timestamp_non_monotonic");
+
+        if (requireStepMovement && !stepMovementObserved) {
+            discontinuityCandidate = null;
+            return reject("stationary_step_gate");
+        }
 
         if (discontinuityCandidate != null) {
             long candidateElapsed = sample.timeMillis - discontinuityCandidate.timeMillis;

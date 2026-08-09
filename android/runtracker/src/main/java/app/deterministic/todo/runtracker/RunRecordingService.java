@@ -56,7 +56,7 @@ public final class RunRecordingService extends Service implements LocationListen
     private DirectStepTimeline directStepTimeline;
     private long lastStepTimelineCheckpointAt;
     private volatile long sessionSteps;
-    private volatile long stepsAtLastAcceptedFix;
+    private volatile long stepsAtPreviousGpsFix;
     private volatile String stepStatus = "not_started";
     private long sessionId;
     private long startedAt;
@@ -138,7 +138,7 @@ public final class RunRecordingService extends Service implements LocationListen
 
     private void startStepCounter() {
         sessionSteps = DriveTestExportManager.directSteps(this, sessionId);
-        stepsAtLastAcceptedFix = sessionSteps;
+        stepsAtPreviousGpsFix = sessionSteps;
         directStepTimeline = DriveTestExportManager.directStepTimeline(this, sessionId);
         stepCounter = new StepCounterSession(sessionSteps);
         if (stepCounterSensor == null) {
@@ -199,10 +199,13 @@ public final class RunRecordingService extends Service implements LocationListen
         final GpsTrackFilter.Sample sample = new GpsTrackFilter.Sample(
             location.getTime(), location.getLatitude(), location.getLongitude(), location.getAccuracy()
         );
+        long currentSteps = sessionSteps;
+        boolean stepMovementObserved = currentSteps > stepsAtPreviousGpsFix;
+        stepsAtPreviousGpsFix = currentSteps;
+        boolean requireStepMovement = "walk".equals(activityType) && "active".equals(stepStatus);
         final GpsTrackFilter.Decision decision = filter.evaluate(
-            sample, sessionSteps > stepsAtLastAcceptedFix
+            sample, stepMovementObserved, requireStepMovement
         );
-        if (decision.accepted()) stepsAtLastAcceptedFix = sessionSteps;
         lastAccuracy = location.getAccuracy();
         gpsStatus = location.getAccuracy() > GpsTrackFilter.MAX_ACCURACY_METERS
             ? String.format(java.util.Locale.ROOT, "Segnale debole · ± %.0f m (punto scartato)", location.getAccuracy())

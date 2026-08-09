@@ -48,6 +48,36 @@ public class GpsTrackFilterTest {
             filter.evaluate(sample(2_000, 51.5010, -0.1200, 5), true).reason());
     }
 
+    @Test public void activeStepGateRejectsGpsDriftWithoutNewSteps() {
+        GpsTrackFilter filter = new GpsTrackFilter(GpsTrackFilter.MAX_WALKING_SPEED_MPS);
+        assertTrue(filter.evaluate(sample(0, 51.5000, -0.1200, 5), false, true).accepted());
+
+        GpsTrackFilter.Decision drift = filter.evaluate(
+            sample(10_000, 51.5002, -0.1200, 5), false, true
+        );
+        assertFalse(drift.accepted());
+        assertEquals("stationary_step_gate", drift.reason());
+        assertEquals(0, drift.totalMeters(), 0.001);
+    }
+
+    @Test public void newStepAfterPauseRecoversPlausibleChord() {
+        GpsTrackFilter filter = new GpsTrackFilter(GpsTrackFilter.MAX_WALKING_SPEED_MPS);
+        filter.evaluate(sample(0, 51.5000, -0.1200, 5), false, true);
+        filter.evaluate(sample(10_000, 51.5001, -0.1200, 5), false, true);
+
+        GpsTrackFilter.Decision resumed = filter.evaluate(
+            sample(20_000, 51.5002, -0.1200, 5), true, true
+        );
+        assertTrue(resumed.accepted());
+        assertTrue(resumed.segmentMeters() > 22 && resumed.segmentMeters() < 23);
+    }
+
+    @Test public void unavailableStepCounterKeepsGpsFallback() {
+        GpsTrackFilter filter = new GpsTrackFilter(GpsTrackFilter.MAX_WALKING_SPEED_MPS);
+        filter.evaluate(sample(0, 51.5000, -0.1200, 5), false, false);
+        assertTrue(filter.evaluate(sample(10_000, 51.5002, -0.1200, 5), false, false).accepted());
+    }
+
     @Test public void rejectsImpossibleRunningJump() {
         GpsTrackFilter filter = new GpsTrackFilter();
         filter.evaluate(sample(0, 51.5000, -0.1200, 5));

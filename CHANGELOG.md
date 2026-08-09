@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.22.3
+
+- Durante una camminata con contatore hardware attivo, un intervallo GPS senza
+  nuovi passi viene conservato ma non incrementa più la distanza.
+- Alla ripartenza, il primo nuovo passo consente di recuperare il segmento
+  plausibile dall'ultimo punto valido; corsa e dispositivi senza sensore
+  mantengono il filtro GPS precedente come fallback.
+
 ## 2.22.2
 
 - Il JSON diagnostico registra ora timestamp, totale progressivo e stato di

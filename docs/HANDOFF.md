@@ -31,7 +31,7 @@ di cambiare architettura.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
 - Ultima release verificata end-to-end: **2.20.0 build 85**, commit `fa234cbc`.
-- Sorgente successiva: **2.22.2 build 94**, che aggiunge il primo lettore
+- Sorgente successiva: **2.22.3 build 95**, che aggiunge il primo lettore
   Health Connect, le stime locali di distanza/calorie, il recupero dei segmenti
   GPS complessivamente plausibili e l'export Drive verificabile. Non chiamarla
   pubblicata finché pipeline e dispositivo non lo confermano.
@@ -116,7 +116,7 @@ calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
 provvisori di 0,72 m per passo e 70 kg. Manca ancora il profilo personale e non
 esiste una validazione comparativa con Google Fit/Zepp.
 
-La build 94 aggiunge `TYPE_STEP_COUNTER` direttamente al servizio delle
+La build 95 aggiunge `TYPE_STEP_COUNTER` direttamente al servizio delle
 sessioni: il delta è visibile nella UI, continua a schermo spento e viene
 esportato nel JSON con stato esplicito. Un confronto in-app aggrega inoltre,
 nello stesso intervallo locale, passi, distanza e calorie attive filtrati per
@@ -129,6 +129,10 @@ Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e
 Health Connect continuano a contare a processo chiuso, mentre l'app riconcilia
 il totale quando viene aperta, senza servizio permanente o GPS quotidiano.
+
+Nelle camminate della build 95, quando il sensore è attivo, i fix ricevuti
+senza nuovi passi restano nella diagnostica come `stationary_step_gate` ma non
+aggiungono metri. Il primo nuovo passo riabilita il segmento GPS plausibile.
 
 ### Cosa non esiste ancora
 
