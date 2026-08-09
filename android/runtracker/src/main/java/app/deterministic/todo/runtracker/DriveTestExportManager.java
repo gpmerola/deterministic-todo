@@ -58,6 +58,7 @@ final class DriveTestExportManager {
         e.putLong(id + ".rx", TrafficStats.getUidRxBytes(Process.myUid()));
         e.putLong(id + ".tx", TrafficStats.getUidTxBytes(Process.myUid()));
         e.putInt(id + ".battery", battery(context));
+        e.remove(id + ".direct_step_timeline");
         e.apply();
         HealthConnectGateway.refreshToday(context, new HealthConnectGateway.Callback() {
             public void onSuccess(DailyMovement m) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(id + ".steps", m.steps).apply(); }
@@ -76,6 +77,17 @@ final class DriveTestExportManager {
     static long directSteps(Context context, long id) {
         return Math.max(0, context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getLong(id + ".direct_steps", 0));
+    }
+
+    static DirectStepTimeline directStepTimeline(Context context, long id) {
+        return DirectStepTimeline.decode(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(id + ".direct_step_timeline", null));
+    }
+
+    static void captureDirectStepTimeline(Context context, long id, DirectStepTimeline timeline) {
+        if (id == 0 || timeline == null) return;
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(id + ".direct_step_timeline", timeline.encode()).apply();
     }
 
     static String status(Context context) {
@@ -144,6 +156,11 @@ final class DriveTestExportManager {
         long rx0 = p.getLong(s.id + ".rx", -1), tx0 = p.getLong(s.id + ".tx", -1), steps0 = p.getLong(s.id + ".steps", -1);
         long directSteps = p.getLong(s.id + ".direct_steps", -1);
         String directStepStatus = p.getString(s.id + ".direct_step_status", "not_recorded");
+        JSONArray directStepSamples = new JSONArray();
+        for (DirectStepTimeline.Sample sample : directStepTimeline(c, s.id).snapshot()) {
+            directStepSamples.put(new JSONObject().put("time_ms", sample.timeMillis())
+                .put("steps", sample.steps()).put("status", sample.status()));
+        }
         long exportedAt = System.currentTimeMillis();
         ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo(); ((ActivityManager)c.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memory);
         return new JSONObject().put("schema_version", 1).put("session_id", s.id).put("activity", s.activityType)
@@ -156,6 +173,7 @@ final class DriveTestExportManager {
             .put("steps_end_status", healthStatus)
             .put("session_steps_direct", directSteps < 0 ? JSONObject.NULL : directSteps)
             .put("session_steps_direct_status", directStepStatus)
+            .put("session_steps_direct_samples", directStepSamples)
             .put("gps", new JSONObject().put("samples", points.size()).put("accepted", accepted).put("rejected", points.size()-accepted)
                 .put("rejection_reasons", reasons).put("accuracy_mean_m", points.isEmpty()?JSONObject.NULL:accuracySum/points.size()).put("accuracy_max_m", accuracyMax))
             .put("resources", new JSONObject().put("battery_start_pct", p.getInt(s.id + ".battery", -1)).put("battery_end_pct", battery(c))

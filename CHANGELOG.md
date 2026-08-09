@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.22.2
+
+- Il JSON diagnostico registra ora timestamp, totale progressivo e stato di
+  ogni variazione del contatore passi durante la sessione.
+- La timeline viene mantenuta in memoria e salvata al massimo ogni 30 secondi,
+  oltre che alla chiusura, per limitare I/O e consumo energetico.
+- Il conteggio quotidiano resta affidato a Health Connect quando l'app è
+  chiusa; non viene introdotto un servizio permanente né GPS in background.
+
 ## 2.22.1
 
 - La ripartenza dopo una sosta usa l'incremento del contatore passi hardware

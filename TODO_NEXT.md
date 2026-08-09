@@ -59,7 +59,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 93 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
+- collaudare la build 94 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare almeno 20 minuti con schermo spento, includendo una sosta, e
   confrontare distanza/GPX con un percorso noto;

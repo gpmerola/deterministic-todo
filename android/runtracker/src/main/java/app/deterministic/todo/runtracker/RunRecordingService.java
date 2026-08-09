@@ -53,6 +53,8 @@ public final class RunRecordingService extends Service implements LocationListen
     private SensorManager sensorManager;
     private Sensor stepCounterSensor;
     private StepCounterSession stepCounter;
+    private DirectStepTimeline directStepTimeline;
+    private long lastStepTimelineCheckpointAt;
     private volatile long sessionSteps;
     private volatile long stepsAtLastAcceptedFix;
     private volatile String stepStatus = "not_started";
@@ -137,6 +139,7 @@ public final class RunRecordingService extends Service implements LocationListen
     private void startStepCounter() {
         sessionSteps = DriveTestExportManager.directSteps(this, sessionId);
         stepsAtLastAcceptedFix = sessionSteps;
+        directStepTimeline = DriveTestExportManager.directStepTimeline(this, sessionId);
         stepCounter = new StepCounterSession(sessionSteps);
         if (stepCounterSensor == null) {
             stepStatus = "sensor_unavailable";
@@ -148,6 +151,7 @@ public final class RunRecordingService extends Service implements LocationListen
             stepStatus = sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL)
                 ? "awaiting_first_sample" : "registration_failed";
         }
+        directStepTimeline.add(System.currentTimeMillis(), sessionSteps, stepStatus);
         DriveTestExportManager.captureDirectSteps(this, sessionId, sessionSteps, stepStatus);
     }
 
@@ -156,6 +160,12 @@ public final class RunRecordingService extends Service implements LocationListen
         StepCounterSession.Reading reading = stepCounter.accept(event.values[0]);
         sessionSteps = reading.steps();
         stepStatus = reading.status();
+        directStepTimeline.add(System.currentTimeMillis(), sessionSteps, stepStatus);
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - lastStepTimelineCheckpointAt >= 30_000) {
+            lastStepTimelineCheckpointAt = now;
+            DriveTestExportManager.captureDirectStepTimeline(this, sessionId, directStepTimeline);
+        }
         DriveTestExportManager.captureDirectSteps(this, sessionId, sessionSteps, stepStatus);
         broadcast(true);
     }
@@ -265,6 +275,7 @@ public final class RunRecordingService extends Service implements LocationListen
         sensorManager.unregisterListener(this);
         long id = sessionId;
         double distance = filter == null ? 0 : filter.totalMeters();
+        DriveTestExportManager.captureDirectStepTimeline(this, id, directStepTimeline);
         sessionId = 0;
         startedAt = 0;
         gpsStatus = "Salvataggio attività ed export Drive…";

@@ -36,6 +36,11 @@ sosta quando il fix GPS si muove poco. Il segnale passi non aggira mai i limiti
 di accuratezza, velocità, discontinuità o zigzag e non viene convertito
 direttamente in metri GPS.
 
+Per diagnosticare le ripartenze, ogni variazione del contatore durante una
+sessione viene conservata con timestamp e stato. La timeline vive in memoria,
+ha un limite esplicito e viene salvata al massimo ogni 30 secondi e alla fine;
+non aggiunge polling né mantiene il processo attivo fuori dalle sessioni.
+
 Ogni campione produce una riga `TrackPoint`; `accepted=false` conserva sempre
 `rejectionReason`. Soltanto i punti accettati incrementano `distanceMeters`.
 La sessione e i punti sono archiviati in `run_tracker.sqlite` tramite Room.

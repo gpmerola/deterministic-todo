@@ -5,9 +5,9 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.22.1 build 93**, con ripartenza GPS
-  assistita dal contatore passi, confronto Google Fit via Health Connect ed
-  export Drive completo.
+- Versione sorgente in verifica: **2.22.2 build 94**, con timeline temporale
+  dei passi, ripartenza GPS assistita dal contatore, confronto Google Fit via
+  Health Connect ed export Drive completo.
   Ultima release pubblica verificata:
   **2.20.0 build 85** (commit `fa234cbc`).
 - Il test interno Google Play è attivo; la 2.20.0 build 85 è stata caricata nella
