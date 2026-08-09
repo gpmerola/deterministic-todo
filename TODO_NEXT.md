@@ -8,12 +8,10 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente verificata: 2.18.9 build 81, con feedback riga
-  esplicito, stati vuoti uniformi, editor Web stabile durante il sync e avviso
-  di completamento più breve; Web, manifest Android e Google Play internal
-  track derivano dal commit `f0d45fb` e hanno superato il controllo di parità.
-- In preparazione: 2.18.10 build 82, che riduce a due secondi l'avviso Annulla
-  del completamento mantenendo cinque secondi per le cancellazioni.
+- Release coordinata corrente verificata: 2.18.10 build 82, con avviso Annulla
+  del completamento ridotto a due secondi e cancellazioni mantenute a cinque;
+  Web, manifest Android e Google Play internal track derivano dal commit
+  `5ef280e` e hanno superato il controllo di parità.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
