@@ -5,10 +5,9 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.19.0 build 83**.
-- Ultima release pubblica verificata prima di questo incremento: **2.18.10
-  build 82** (commit `5ef280e`).
-- Il test interno Google Play è attivo; la 2.18.10 build 82 è disponibile alla
+- Versione sorgente e release pubblica verificata: **2.19.0 build 83** (commit
+  `dc6d4ea`). Web, APK diretti e Google Play interno hanno superato la parità.
+- Il test interno Google Play è attivo; la 2.19.0 build 83 è stata caricata nella
   lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -67,9 +66,8 @@ Aggiornato il 9 agosto 2026.
 - Analisi statica senza errori.
 - 121 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- La build Android 2.19.0 e i test Java del modulo attendono la pipeline perché
-  su questo Mac manca l'Android SDK. Il collaudo GPS/BLE richiede inoltre il
-  Galaxy S21 e il Bip U reali.
+- Build Android e test Java del modulo sono passati nella pipeline firmata. Il
+  collaudo GPS/BLE richiede ancora il Galaxy S21 e il Bip U reali.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
 
