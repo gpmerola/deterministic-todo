@@ -1,6 +1,8 @@
 package app.deterministic.todo.runtracker;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
@@ -11,5 +13,7 @@ public class RunSession {
     @Nullable public Long endedAtMillis;
     public double distanceMeters;
     public String status = "recording";
+    @NonNull
+    @ColumnInfo(defaultValue = "'run'")
     public String activityType = "run";
 }

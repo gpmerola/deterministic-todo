@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.21.2
+
+- Corretto il contratto Room di `run_sessions.activityType`: ora nullabilità e
+  default del modello coincidono con la migrazione 2→3 già applicata.
+- Risolto il crash silenzioso che chiudeva Movimento sulle installazioni
+  aggiornate da uno schema precedente; i dati esistenti vengono conservati.
+
 ## 2.21.1
 
 - Reso il selettore della cartella Drive indipendente dal registro moderno dei
