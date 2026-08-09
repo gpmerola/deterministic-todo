@@ -10,6 +10,8 @@ Aggiornato l'8 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
 - Release coordinata corrente verificata: 2.18.6 build 78, con cancellazione
   swipe più deliberata, stabile e vicina alla micro-interazione Todoist.
+- In preparazione: 2.18.7 build 79, con completamento circolare stabile,
+  conferma immediata e chiusura verticale controllata della riga.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 

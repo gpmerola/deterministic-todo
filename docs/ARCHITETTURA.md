@@ -82,6 +82,12 @@ salto percettivo degli elementi vicini. La cancellazione SQLite parte insieme
 all'uscita visiva e l'azione Undo ne attende il completamento prima del restore,
 preservando l'ordine delle operazioni senza bloccare l'interfaccia.
 
+Il completamento mantiene un controllo circolare con area Material costante:
+il tap produce subito spunta e feedback tattile, ma non sposta la riga. Dopo
+240 ms la riga riduce verticalmente il proprio spazio per 190 ms e soltanto al
+termine aggiorna SQLite; così lo stream non può rimuoverla durante la conferma
+né causare un salto degli elementi vicini. Un guard locale ignora tocchi doppi.
+
 ## Privacy e backup
 
 Titoli e note risiedono nel database locale e, dopo login/sync, nel progetto Supabase dell'utente. Non ci sono analytics né logging del contenuto. La diagnostica salva esclusivamente eventi e conteggi consentiti, con versione/build e un ID casuale limitato alla singola apertura; ruota su file Android o IndexedDB browser e viene esportata soltanto su comando. JSON versionato è il formato completo e validato; CSV è interoperabile ma non costituisce un backup completo. L'interfaccia di backup separa serializzazione e destinazione, così potrà aggiungere cifratura autenticata senza cambiare il dominio.

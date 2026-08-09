@@ -188,6 +188,11 @@ stream SQLite filtrato, attivo soltanto nella relativa sezione, e riusa outbox,
 sync e componenti link già presenti: nessun polling, dipendenza o servizio in
 background aggiuntivo.
 
+La 2.18.7 riduce il completamento a un solo controllo circolare animato dalla
+Checkbox Material, senza cambio di widget, overshoot o tinta dell'intera riga.
+La breve conferma precede una contrazione verticale controllata e la scrittura
+SQLite: nessun ticker resta attivo e non vengono aggiunte query o dipendenze.
+
 La 2.18.1 rimuove lo stream dedicato ai Riferimenti insieme alla relativa UI:
 gli eventuali record esistenti riusano lo stream attività, senza query o copie.
 La migrazione locale elimina anche l'indice del tipo non più interrogato,

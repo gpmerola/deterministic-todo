@@ -35,6 +35,7 @@ class _TaskTileState extends State<TaskTile> {
   bool deleteThresholdFeedbackSent = false;
 
   Future<void> _setCompleted(bool completed) async {
+    if (confirmingCompletion || leavingAfterCompletion) return;
     final elapsed = Stopwatch()..start();
     if (!completed) {
       await widget.repository.setCompleted(widget.task, false);
@@ -42,12 +43,12 @@ class _TaskTileState extends State<TaskTile> {
       return;
     }
     setState(() => confirmingCompletion = true);
-    await Future<void>.delayed(const Duration(milliseconds: 45));
+    unawaited(HapticFeedback.lightImpact());
+    // Keep the check visible without moving the row. Only after the user has
+    // perceived the confirmation do the surrounding rows close the gap.
+    await Future<void>.delayed(const Duration(milliseconds: 240));
     if (mounted) setState(() => leavingAfterCompletion = true);
-    // Let the visual confirmation finish before removing the database row.
-    // Previously the stream rebuilt the list midway through the 200–220 ms
-    // animation, which made the surrounding rows jump.
-    await Future<void>.delayed(const Duration(milliseconds: 145));
+    await Future<void>.delayed(const Duration(milliseconds: 190));
     final nextDate = await widget.repository.setCompleted(widget.task, true);
     elapsed.stop();
     unawaited(
@@ -75,179 +76,168 @@ class _TaskTileState extends State<TaskTile> {
   Widget build(BuildContext context) => Semantics(
     container: true,
     label: taskAccessibilityLabel(widget.task),
-    child: AnimatedOpacity(
-      key: ValueKey('completion-opacity-${widget.task.id}'),
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOutCubic,
-      opacity: leavingAfterCompletion ? 0 : 1,
-      child: Dismissible(
-        key: ValueKey('dismiss-${widget.task.id}'),
-        direction: DismissDirection.endToStart,
-        dismissThresholds: const {DismissDirection.endToStart: 0.72},
-        movementDuration: const Duration(milliseconds: 220),
-        resizeDuration: const Duration(milliseconds: 260),
-        background: const SizedBox.shrink(),
-        secondaryBackground: Container(
-          color: Theme.of(context).colorScheme.errorContainer,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 22),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Icon(
-                Icons.delete_outline,
-                color: Theme.of(context).colorScheme.onErrorContainer,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Cestino',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+    child: ClipRect(
+      child: AnimatedAlign(
+        key: ValueKey('completion-collapse-${widget.task.id}'),
+        duration: const Duration(milliseconds: 190),
+        curve: Curves.easeInOutCubic,
+        alignment: Alignment.topCenter,
+        heightFactor: leavingAfterCompletion ? 0 : 1,
+        child: Dismissible(
+          key: ValueKey('dismiss-${widget.task.id}'),
+          direction: DismissDirection.endToStart,
+          dismissThresholds: const {DismissDirection.endToStart: 0.72},
+          movementDuration: const Duration(milliseconds: 220),
+          resizeDuration: const Duration(milliseconds: 260),
+          background: const SizedBox.shrink(),
+          secondaryBackground: Container(
+            color: Theme.of(context).colorScheme.errorContainer,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 22),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Icon(
+                  Icons.delete_outline,
                   color: Theme.of(context).colorScheme.onErrorContainer,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  'Cestino',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        onUpdate: (details) {
-          if (details.progress >= 0.72 && !deleteThresholdFeedbackSent) {
-            deleteThresholdFeedbackSent = true;
-            unawaited(HapticFeedback.mediumImpact());
-          } else if (details.progress < 0.12) {
-            deleteThresholdFeedbackSent = false;
-          }
-        },
-        onDismissed: (_) {
-          final deletion = widget.repository.softDelete(widget.task);
-          if (!context.mounted) return;
-          AppUndo.show(
-            context,
-            message: 'Spostata nel cestino',
-            undo: () async {
-              await deletion;
-              await widget.repository.restore(widget.task);
-            },
-          );
-          unawaited(deletion);
-        },
-        child: AnimatedContainer(
-          key: ValueKey('task-surface-${widget.task.id}'),
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            color: confirmingCompletion
-                ? Colors.green.withValues(alpha: 0.10)
-                : widget.highlightRemote
-                ? Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.55)
-                : widget.task.priority == 1
-                ? Colors.transparent
-                : _priorityColor(widget.task.priority).withValues(alpha: 0.035),
-            border: widget.task.priority == 1
-                ? null
-                : Border(
-                    left: BorderSide(
-                      color: _priorityColor(widget.task.priority),
-                      width: 3,
-                    ),
-                  ),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Material(
-            type: MaterialType.transparency,
-            borderRadius: BorderRadius.circular(14),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) =>
-                  _showDesktopMenu(details.globalPosition),
-              child: ListTile(
-                dense: widget.dense || MediaQuery.sizeOf(context).width >= 900,
-                visualDensity:
-                    widget.dense || MediaQuery.sizeOf(context).width >= 900
-                    ? const VisualDensity(vertical: -2)
-                    : null,
-                leading: GestureDetector(
-                  key: const ValueKey('completion-no-swipe-zone'),
-                  behavior: HitTestBehavior.opaque,
-                  // A horizontal gesture that starts on the completion target
-                  // belongs to this control, never to the parent Dismissible.
-                  onHorizontalDragStart: (_) {},
-                  child: AnimatedScale(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutBack,
-                    scale: confirmingCompletion ? 1.22 : 1,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 120),
-                      transitionBuilder: (child, animation) => ScaleTransition(
-                        scale: animation,
-                        child: FadeTransition(opacity: animation, child: child),
-                      ),
-                      child: confirmingCompletion
-                          ? const Icon(
-                              Icons.check_circle_rounded,
-                              key: ValueKey('completed-check'),
-                              color: Colors.green,
-                              size: 30,
-                            )
-                          : Semantics(
-                              label: 'Completa ${widget.task.title}',
-                              child: Checkbox(
-                                key: const ValueKey('task-checkbox'),
-                                value:
-                                    widget.task.status ==
-                                    TaskStatus.completed.name,
-                                onChanged: (value) =>
-                                    _setCompleted(value ?? false),
-                                activeColor: Colors.green,
-                                side: BorderSide(
-                                  color: _priorityColor(widget.task.priority),
-                                  width: widget.task.priority == 1 ? 1.5 : 2.5,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                title: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                    color: confirmingCompletion ? Colors.green.shade700 : null,
-                    decoration: confirmingCompletion
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                  ),
-                  child: TodoistLinkText(widget.task.title),
-                ),
-                subtitle: _subtitle(widget.task),
-                trailing: PopupMenuButton<String>(
-                  tooltip: 'Azioni attività',
-                  onSelected: _runAction,
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('Modifica'),
+          onUpdate: (details) {
+            if (details.progress >= 0.72 && !deleteThresholdFeedbackSent) {
+              deleteThresholdFeedbackSent = true;
+              unawaited(HapticFeedback.mediumImpact());
+            } else if (details.progress < 0.12) {
+              deleteThresholdFeedbackSent = false;
+            }
+          },
+          onDismissed: (_) {
+            final deletion = widget.repository.softDelete(widget.task);
+            if (!context.mounted) return;
+            AppUndo.show(
+              context,
+              message: 'Spostata nel cestino',
+              undo: () async {
+                await deletion;
+                await widget.repository.restore(widget.task);
+              },
+            );
+            unawaited(deletion);
+          },
+          child: AnimatedContainer(
+            key: ValueKey('task-surface-${widget.task.id}'),
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              color: widget.highlightRemote
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.55)
+                  : widget.task.priority == 1
+                  ? Colors.transparent
+                  : _priorityColor(
+                      widget.task.priority,
+                    ).withValues(alpha: 0.035),
+              border: widget.task.priority == 1
+                  ? null
+                  : Border(
+                      left: BorderSide(
+                        color: _priorityColor(widget.task.priority),
+                        width: 3,
                       ),
                     ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.delete_outline),
-                        title: Text('Cestino'),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              borderRadius: BorderRadius.circular(14),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: (details) =>
+                    _showDesktopMenu(details.globalPosition),
+                child: ListTile(
+                  dense:
+                      widget.dense || MediaQuery.sizeOf(context).width >= 900,
+                  visualDensity:
+                      widget.dense || MediaQuery.sizeOf(context).width >= 900
+                      ? const VisualDensity(vertical: -2)
+                      : null,
+                  leading: GestureDetector(
+                    key: const ValueKey('completion-no-swipe-zone'),
+                    behavior: HitTestBehavior.opaque,
+                    // A horizontal gesture that starts on the completion target
+                    // belongs to this control, never to the parent Dismissible.
+                    onHorizontalDragStart: (_) {},
+                    child: Semantics(
+                      label: 'Completa ${widget.task.title}',
+                      child: Checkbox(
+                        key: const ValueKey('task-checkbox'),
+                        value:
+                            confirmingCompletion ||
+                            widget.task.status == TaskStatus.completed.name,
+                        onChanged: (value) => _setCompleted(value ?? false),
+                        shape: const CircleBorder(),
+                        activeColor: Colors.green,
+                        checkColor: Colors.white,
+                        side: BorderSide(
+                          color: _priorityColor(widget.task.priority),
+                          width: widget.task.priority == 1 ? 1.5 : 2.5,
+                        ),
                       ),
                     ),
-                  ],
+                  ),
+                  title: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 120),
+                    curve: Curves.easeOutCubic,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                      color: confirmingCompletion
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : null,
+                      decoration: confirmingCompletion
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                    child: TodoistLinkText(widget.task.title),
+                  ),
+                  subtitle: _subtitle(widget.task),
+                  trailing: PopupMenuButton<String>(
+                    tooltip: 'Azioni attività',
+                    onSelected: _runAction,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('Modifica'),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.delete_outline),
+                          title: Text('Cestino'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: confirmingCompletion
+                      ? null
+                      : widget.onSelected ?? _showEditor,
+                  onLongPress: confirmingCompletion
+                      ? null
+                      : () => unawaited(_showMobileMenu()),
                 ),
-                onTap: confirmingCompletion
-                    ? null
-                    : widget.onSelected ?? _showEditor,
-                onLongPress: confirmingCompletion
-                    ? null
-                    : () => unawaited(_showMobileMenu()),
               ),
             ),
           ),

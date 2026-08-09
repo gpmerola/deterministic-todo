@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.18.7
+
+- Reso il completamento mobile stabile e vicino a Todoist: un unico controllo
+  circolare conserva posizione e dimensione durante tutta l'interazione.
+- Rimossi rimbalzo, cambio di icona, tinta verde della riga e dissolvenza
+  simultanea. La spunta e il feedback tattile sono immediati; dopo una breve
+  conferma la riga chiude gradualmente il proprio spazio e Undo resta presente.
+
 ## 2.18.6
 
 - Resa più stabile la cancellazione mobile ispirandosi alla micro-interazione

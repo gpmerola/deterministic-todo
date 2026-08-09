@@ -949,17 +949,27 @@ void main() {
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 50));
     expect((await db.select(db.tasks).getSingle()).status, 'inbox');
-    expect(find.byKey(const ValueKey('completed-check')), findsOneWidget);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isTrue);
     expect(
       tester
-          .widget<AnimatedOpacity>(
-            find.byKey(ValueKey('completion-opacity-$taskId')),
+          .widget<AnimatedAlign>(
+            find.byKey(ValueKey('completion-collapse-$taskId')),
           )
-          .opacity,
-      0,
+          .heightFactor,
+      1,
     );
     expect(find.byType(AnimatedSlide), findsNothing);
-    await tester.pump(const Duration(milliseconds: 130));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect((await db.select(db.tasks).getSingle()).status, 'inbox');
+    expect(
+      tester
+          .widget<AnimatedAlign>(
+            find.byKey(ValueKey('completion-collapse-$taskId')),
+          )
+          .heightFactor,
+      0,
+    );
+    await tester.pump(const Duration(milliseconds: 150));
     expect((await db.select(db.tasks).getSingle()).status, 'inbox');
 
     await tester.pumpAndSettle();
@@ -988,7 +998,7 @@ void main() {
     await tester.pump();
 
     await tester.tap(find.byType(Checkbox).first);
-    await tester.pump(const Duration(milliseconds: 220));
+    await tester.pump(const Duration(milliseconds: 450));
     await tester.pump();
 
     final expected = DateFormat(

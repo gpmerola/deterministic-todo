@@ -105,6 +105,9 @@ gruppo Arretrate separato, senza modificare automaticamente la loro data.
 La cancellazione tramite swipe richiede un gesto lungo da destra verso sinistra:
 la riga rivela chiaramente Cestino, conferma la soglia con feedback tattile e si
 riassesta con un movimento controllato; Undo rimane disponibile.
+Il completamento usa invece una spunta circolare immobile: conferma subito il
+tocco e chiude gradualmente la riga soltanto dopo aver mostrato il risultato,
+senza rimbalzi o cambi di dimensione del controllo.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.
