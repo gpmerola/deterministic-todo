@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.22.4
+
+- Estratta dal servizio Android la politica che combina attività, stato del
+  sensore e incremento passi; aggiunti test per camminata, corsa, sensore
+  indisponibile e reset del contatore.
+- Allineati README, stato, handoff e checklist operativa ai collaudi reali
+  delle build 93–95 e al test lungo ancora necessario sul Galaxy S21.
+- Rimossa un'importazione Java inutilizzata senza cambiare l'algoritmo GPS.
+
 ## 2.22.3
 
 - Durante una camminata con contatore hardware attivo, un intervallo GPS senza

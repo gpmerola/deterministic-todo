@@ -46,6 +46,10 @@ privo di nuovi passi viene escluso dalla distanza con motivo
 `stationary_step_gate`. Il punto non diventa una nuova ancora: alla ripresa il
 filtro può recuperare il collegamento plausibile dall'ultimo fix in movimento.
 Il gate non si applica alla corsa né quando il sensore è indisponibile.
+`StepMotionGate` mantiene questa politica separata dal lifecycle del servizio:
+riceve il totale monotono della sessione, il tipo attività e lo stato sensore,
+e restituisce evidenza di nuovi passi e obbligatorietà del gate. Reset del
+contatore e fallback sono coperti da test JVM senza dipendenze Android.
 
 Ogni campione produce una riga `TrackPoint`; `accepted=false` conserva sempre
 `rejectionReason`. Soltanto i punti accettati incrementano `distanceMeters`.

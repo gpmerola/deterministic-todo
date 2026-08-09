@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 9 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 10 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,11 +30,10 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Ultima release verificata end-to-end: **2.20.0 build 85**, commit `fa234cbc`.
-- Sorgente successiva: **2.22.3 build 95**, che aggiunge il primo lettore
-  Health Connect, le stime locali di distanza/calorie, il recupero dei segmenti
-  GPS complessivamente plausibili e l'export Drive verificabile. Non chiamarla
-  pubblicata finché pipeline e dispositivo non lo confermano.
+- Versione coordinata corrente: **2.22.4 build 96**. La base funzionale
+  **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
+  Google Play interno, Web e controllo di parità; la 96 consolida codice,
+  test e documentazione.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
@@ -114,15 +113,15 @@ provenienza. Health Connect può continuare il conteggio di sistema quando
 l'app è chiusa; l'app riconcilia il totale quando viene aperta. Distanza e
 calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
 provvisori di 0,72 m per passo e 70 kg. Manca ancora il profilo personale e non
-esiste una validazione comparativa con Google Fit/Zepp.
+esiste ancora una calibrazione personale sufficientemente lunga.
 
-La build 95 aggiunge `TYPE_STEP_COUNTER` direttamente al servizio delle
+La build 96 include `TYPE_STEP_COUNTER` direttamente nel servizio delle
 sessioni: il delta è visibile nella UI, continua a schermo spento e viene
 esportato nel JSON con stato esplicito. Un confronto in-app aggrega inoltre,
 nello stesso intervallo locale, passi, distanza e calorie attive filtrati per
-l'origine Google Fit. Dopo una sosta, nuovi passi riducono soltanto la soglia
-anti-rumore per riacquisire prima il movimento GPS, senza aggirare i controlli
-di accuratezza e velocità. La disponibilità del confronto dipende dalla
+l'origine Google Fit. Durante una camminata, i fix senza nuovi passi non
+incrementano la distanza; alla ripresa il collegamento plausibile riparte
+dall'ultima ancora valida. La disponibilità del confronto dipende dalla
 sincronizzazione Google Fit → Health Connect.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
@@ -133,6 +132,12 @@ il totale quando viene aperta, senza servizio permanente o GPS quotidiano.
 Nelle camminate della build 95, quando il sensore è attivo, i fix ricevuti
 senza nuovi passi restano nella diagnostica come `stationary_step_gate` ma non
 aggiungono metri. Il primo nuovo passo riabilita il segmento GPS plausibile.
+
+I test reali brevi hanno mostrato passi entro circa 0,5–3,5% da Google Fit. La
+distanza è variata da -8,2% a +19,1%: la timeline della build 94 ha attribuito
+la sovrastima maggiore al drift GPS durante due soste senza passi. La build 95
+introduce il gate conseguente; manca ancora il test definitivo di 10–15 minuti
+a schermo spento con una sosta di circa 30 secondi.
 
 ### Cosa non esiste ancora
 

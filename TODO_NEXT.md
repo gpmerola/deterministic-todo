@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 9 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 10 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,9 +12,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente verificata: 2.20.0 build 85, con Health Connect e
-  modulo corsa Bip U isolato; Web, manifest Android e Google Play internal
-  track derivano dal commit `fa234cbc` e hanno superato il controllo di parità.
+- Release coordinata corrente: 2.22.4 build 96. La base funzionale build 95 ha
+  superato Web, manifest Android, Google Play interno e controllo di parità;
+  la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
@@ -59,10 +59,10 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 95 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
+- collaudare la build 96 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
-- registrare almeno 20 minuti con schermo spento, includendo una sosta, e
-  confrontare distanza/GPX con un percorso noto;
+- registrare 10–15 minuti con schermo spento, includendo una sosta di circa 30
+  secondi, e confrontare distanza, passi e diagnostica con Google Fit;
 - al termine verificare lo stato `GPX + JSON` nella schermata e la presenza
   della coppia omonima nella cartella Drive; provare una volta anche la
   riesportazione idempotente dell'ultima attività;
@@ -78,8 +78,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Passi e distanza quotidiana
 
-- collaudare la 2.21.0 sul Galaxy S21: autorizzare `READ_STEPS`, chiudere l'app,
-  camminare e verificare al riavvio il recupero del totale Health Connect;
+- il recupero passi Health Connect e il contatore diretto di sessione sono
+  verificati sul Galaxy S21; resta da verificare un cambio giorno reale con
+  app chiusa e riconciliazione alla riapertura;
 - aggiungere profilo locale con peso e falcata, calibrazione tramite sessione
   GPS e stima calorica versionata; i valori 70 kg/0,72 m sono solo provvisori;
 - collaudare `TYPE_STEP_COUNTER` durante sessioni con schermo spento; la

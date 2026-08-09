@@ -1,7 +1,5 @@
 package app.deterministic.todo.runtracker;
 
-import java.util.Locale;
-
 /** Stateful, deterministic filter. It never fabricates or smooths coordinates. */
 public final class GpsTrackFilter {
     public static final float MAX_ACCURACY_METERS = 35f;

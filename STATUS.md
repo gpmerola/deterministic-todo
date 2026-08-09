@@ -1,17 +1,15 @@
 # Stato corrente
 
-Aggiornato il 9 agosto 2026.
+Aggiornato il 10 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.22.3 build 95**, con gate GPS durante le
-  soste confermato dai passi, timeline temporale, confronto Google Fit via
-  Health Connect ed export Drive completo.
-  Ultima release pubblica verificata:
-  **2.20.0 build 85** (commit `fa234cbc`).
-- Il test interno Google Play è attivo; la 2.20.0 build 85 è stata caricata nella
-  lista `Test interno`. Dalla build 65 la pipeline pubblica automaticamente nel
+- Versione coordinata corrente: **2.22.4 build 96**, manutenzione del gate GPS
+  assistito dai passi, documentazione e test Android. La base funzionale
+  **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
+  Web e controllo finale di parità.
+- Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
   discordanti; l'AAB raggiunge il track Play interno appena supera test e build,
@@ -64,14 +62,14 @@ Aggiornato il 9 agosto 2026.
 - Android contiene il modulo separato `runtracker`: registra corse usando il
   GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
   GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
-- Il modulo in verifica legge ora il totale passi aggregato da Health Connect e
+- Il modulo legge il totale passi aggregato da Health Connect e
   conserva distanza e calorie attive stimate in Room. Falcata e peso sono
-  ancora valori predefiniti: calibrazione personale, fallback sensore diretto,
-  lavoro periodico resta da completare. Le sessioni leggono inoltre il
+  ancora valori predefiniti: calibrazione personale e attribuzione precisa
+  attraverso mezzanotte/reboot restano da completare. Le sessioni leggono inoltre il
   contatore hardware Android e possono confrontare l'ultima attività con i
   dati attribuiti a Google Fit in Health Connect. Camminata e corsa sono
-  sessioni
-  distinte; la camminata applica un limite anti-salto GPS dedicato di 6 m/s.
+  sessioni distinte; la camminata applica un limite anti-salto GPS dedicato di
+  6 m/s e non accumula fix privi di nuovi passi quando il sensore è attivo.
   I GPX reali verificati non contengono battito, cadenza o dati del Bip U;
   l'integrazione Amazfit resta una fase successiva in sola lettura. Il quadro è in
   [docs/HANDOFF.md](docs/HANDOFF.md).
@@ -81,14 +79,12 @@ Aggiornato il 9 agosto 2026.
 - Analisi statica senza errori.
 - 121 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- Nella sorgente 2.21.0 passano anche i test JVM del modulo movimento,
-  inclusi due test deterministici nuovi per distanza e calorie da passi; build
-  Web release e sei APK release firmati separati per distribuzione/ABI sono
-  stati generati localmente. Il comando Flutter segnala erroneamente di non
-  trovare gli APK perché il progetto usa due flavor, ma gli output Gradle sono
-  presenti e l'APK diretto arm64 supera verifica firma e manifest.
-- Build Android e test Java del modulo sono passati nella pipeline firmata. Il
-  collaudo GPS/BLE richiede ancora il Galaxy S21 e il Bip U reali.
+- I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
+  contatore e stime. Build Android, firma, manifest pubblico e parità con Web
+  sono verificati dalla pipeline coordinata.
+- Restano da collaudare sulla build 96 una camminata lunga a schermo spento e
+  il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
+  confronto Health Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
 

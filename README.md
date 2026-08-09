@@ -74,6 +74,12 @@ hardware Android e mostrati come **Passi sessione · sensore telefono**. Il
 valore continua ad aggiornarsi a schermo spento insieme al servizio GPS e resta
 distinto dal totale giornaliero Health Connect.
 
+Nelle camminate, quando il contatore hardware è disponibile, gli intervalli
+GPS senza nuovi passi restano nella diagnostica ma non incrementano la
+distanza. Alla ripartenza il primo passo riabilita il collegamento GPS
+plausibile; corsa e dispositivi senza sensore conservano il filtro GPS come
+fallback.
+
 La distanza quotidiana e le calorie attive sono per ora stime esplicite basate
 su passi, falcata e peso predefiniti. Non sono ancora calibrate sul profilo
 personale e non vanno considerate misure cliniche o equivalenti a Google Fit

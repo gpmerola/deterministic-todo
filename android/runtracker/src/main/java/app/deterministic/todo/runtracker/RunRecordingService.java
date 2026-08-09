@@ -54,9 +54,9 @@ public final class RunRecordingService extends Service implements LocationListen
     private Sensor stepCounterSensor;
     private StepCounterSession stepCounter;
     private DirectStepTimeline directStepTimeline;
+    private StepMotionGate stepMotionGate;
     private long lastStepTimelineCheckpointAt;
     private volatile long sessionSteps;
-    private volatile long stepsAtPreviousGpsFix;
     private volatile String stepStatus = "not_started";
     private long sessionId;
     private long startedAt;
@@ -138,7 +138,7 @@ public final class RunRecordingService extends Service implements LocationListen
 
     private void startStepCounter() {
         sessionSteps = DriveTestExportManager.directSteps(this, sessionId);
-        stepsAtPreviousGpsFix = sessionSteps;
+        stepMotionGate = new StepMotionGate(sessionSteps);
         directStepTimeline = DriveTestExportManager.directStepTimeline(this, sessionId);
         stepCounter = new StepCounterSession(sessionSteps);
         if (stepCounterSensor == null) {
@@ -199,12 +199,11 @@ public final class RunRecordingService extends Service implements LocationListen
         final GpsTrackFilter.Sample sample = new GpsTrackFilter.Sample(
             location.getTime(), location.getLatitude(), location.getLongitude(), location.getAccuracy()
         );
-        long currentSteps = sessionSteps;
-        boolean stepMovementObserved = currentSteps > stepsAtPreviousGpsFix;
-        stepsAtPreviousGpsFix = currentSteps;
-        boolean requireStepMovement = "walk".equals(activityType) && "active".equals(stepStatus);
+        StepMotionGate.Evidence movement = stepMotionGate.observe(
+            sessionSteps, activityType, stepStatus
+        );
         final GpsTrackFilter.Decision decision = filter.evaluate(
-            sample, stepMovementObserved, requireStepMovement
+            sample, movement.stepObserved(), movement.stepRequired()
         );
         lastAccuracy = location.getAccuracy();
         gpsStatus = location.getAccuracy() > GpsTrackFilter.MAX_ACCURACY_METERS
