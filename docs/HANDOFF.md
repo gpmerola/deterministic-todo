@@ -31,9 +31,9 @@ di cambiare architettura.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
 - Ultima release verificata end-to-end: **2.20.0 build 85**, commit `fa234cbc`.
-- Sorgente successiva: **2.21.3 build 90**, che aggiunge il primo lettore
-  Health Connect, le stime locali di distanza/calorie e la corsia Play interna
-  anticipata. Non chiamarla
+- Sorgente successiva: **2.21.4 build 91**, che aggiunge il primo lettore
+  Health Connect, le stime locali di distanza/calorie, il recupero dei segmenti
+  GPS complessivamente plausibili e l'export Drive verificabile. Non chiamarla
   pubblicata finché pipeline e dispositivo non lo confermano.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
@@ -80,7 +80,9 @@ database Todo; non è sincronizzato con Supabase.
 - Distanza cumulativa dai soli punti accettati.
 - UI con durata, distanza, passo medio, accuratezza e stato del GPS.
 - Export GPX 1.1 esplicito tramite FileProvider e auto-export GPX+JSON opzionale
-  nella cartella Drive autorizzata dall’utente.
+  nella cartella Drive autorizzata dall’utente. La build 91 mantiene il servizio
+  attivo fino all'esito, rende le scritture idempotenti e consente di riesportare
+  l'ultima attività con stato o codice errore visibile.
 - Prova BLE in sola lettura: scansione, connessione e tentativo di leggere la
   batteria standard.
 - Inserimento facoltativo della chiave Huami, validata come 16 byte

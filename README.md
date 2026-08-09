@@ -89,9 +89,11 @@ nei backup Todo o nella sincronizzazione Supabase.
 Per i collaudi ripetuti selezionare una sola volta **Collega cartella Google
 Drive per i test** e scegliere `Deterministic Todo Movement Tests`. Al termine
 di ogni sessione l’app crea automaticamente due file omonimi: GPX e JSON
-diagnostico completo. Il provider Drive gestisce la sincronizzazione; l’app non
-contiene credenziali Google. I file includono dati personali di posizione e non
-devono essere resi pubblici o versionati.
+diagnostico completo. La schermata mostra l'esito della scrittura e permette di
+riesportare idempotentemente l'ultima attività se il provider era temporaneamente
+indisponibile. Il provider Drive gestisce la sincronizzazione; l’app non contiene
+credenziali Google. I file includono dati personali di posizione e non devono
+essere resi pubblici o versionati.
 
 La prima prova BLE cerca il Bip U e legge soltanto il servizio standard della
 batteria, quando esposto. La chiave Huami opzionale viene cifrata con Android

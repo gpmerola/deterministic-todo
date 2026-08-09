@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.21.4
+
+- Il filtro camminata recupera ora un intervallo inizialmente sospetto quando
+  il fix di conferma rende plausibile la velocità complessiva, evitando di
+  perdere movimento reale durante brevi oscillazioni GPS.
+- L'export automatico mantiene attivo il servizio fino alla scrittura effettiva
+  di GPX e JSON, attende Health Connect con timeout e mostra esito o codice di
+  errore nella schermata Movimento.
+- Le scritture Drive sono idempotenti e `Riesporta ultima attività` permette di
+  rigenerare entrambi i file, inclusa una sessione registrata con una build
+  precedente.
+- Il GPX usa estensioni esplicite per accuratezza in metri e distanza
+  cumulativa; non presenta più l'accuratezza Android come `hdop`.
+
 ## 2.21.3
 
 - Separata la build AAB Google Play dalla generazione degli APK diretti: dopo i

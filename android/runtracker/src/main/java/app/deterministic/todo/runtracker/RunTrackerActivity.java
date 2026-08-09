@@ -50,6 +50,8 @@ public final class RunTrackerActivity extends ComponentActivity {
     private Button healthPermissionButton;
     private Button primaryButton;
     private Button walkButton;
+    private Button driveButton;
+    private TextView driveStatusView;
     private String pendingActivityType = "run";
     private long sessionId;
     private long startedAt;
@@ -75,6 +77,7 @@ public final class RunTrackerActivity extends ComponentActivity {
             primaryButton.setText(sessionId == 0 ? "Avvia corsa" : "Termina");
             walkButton.setEnabled(sessionId == 0);
             if (sessionId != 0 && "walk".equals(activityType)) primaryButton.setText("Termina camminata");
+            driveStatusView.setText(DriveTestExportManager.status(RunTrackerActivity.this));
             renderClock();
         }
     };
@@ -171,18 +174,27 @@ public final class RunTrackerActivity extends ComponentActivity {
         walkButton.setOnClickListener(v -> ensurePermissions("walk"));
         root.addView(walkButton, matchWrap(dp(8)));
 
-        Button drive = new Button(this);
-        drive.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
-        drive.setOnClickListener(v -> {
+        driveButton = new Button(this);
+        driveButton.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
+        driveButton.setOnClickListener(v -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                     | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
             startActivityForResult(picker, DRIVE_FOLDER_REQUEST);
         });
-        root.addView(drive, matchWrap(dp(12)));
+        root.addView(driveButton, matchWrap(dp(12)));
+
+        driveStatusView = label(DriveTestExportManager.status(this), 13);
+        driveStatusView.setGravity(Gravity.CENTER);
+        root.addView(driveStatusView, matchWrap(dp(6)));
+
+        Button retryDrive = new Button(this);
+        retryDrive.setText("Riesporta ultima attività su Drive · GPX + JSON");
+        retryDrive.setOnClickListener(v -> retryLatestToDrive());
+        root.addView(retryDrive, matchWrap(dp(8)));
 
         Button export = new Button(this);
-        export.setText("Esporta ultima attività in GPX");
+        export.setText("Condividi manualmente ultima attività in GPX");
         export.setOnClickListener(v -> exportLatest());
         root.addView(export, matchWrap(dp(8)));
 
@@ -267,6 +279,25 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
     }
 
+    private void retryLatestToDrive() {
+        driveStatusView.setText("Export Drive in corso…");
+        io.execute(() -> {
+            RunDao dao = RunDatabase.get(this).runs();
+            java.util.List<RunSession> sessions = dao.sessions();
+            if (sessions.isEmpty()) {
+                runOnUiThread(() -> driveStatusView.setText("Nessuna attività da esportare"));
+                return;
+            }
+            RunSession latest = sessions.get(0);
+            DriveTestExportManager.finish(this, latest, dao.points(latest.id), result -> runOnUiThread(() -> {
+                driveStatusView.setText(DriveTestExportManager.status(this));
+                Toast.makeText(this,
+                    result.success() ? "GPX e JSON caricati su Drive" : "Export Drive non riuscito: " + result.code(),
+                    Toast.LENGTH_LONG).show();
+            }));
+        });
+    }
+
     private final Runnable clockTick = new Runnable() {
         @Override public void run() { renderClock(); clock.postDelayed(this, 1000); }
     };
@@ -275,7 +306,9 @@ public final class RunTrackerActivity extends ComponentActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != DRIVE_FOLDER_REQUEST || resultCode != RESULT_OK || data == null || data.getData() == null) return;
         try {
-            DriveTestExportManager.setFolder(this, data.getData());
+            DriveTestExportManager.setFolder(this, data.getData(), data.getFlags());
+            driveButton.setText("Drive test collegato · cambia cartella");
+            driveStatusView.setText(DriveTestExportManager.status(this));
             Toast.makeText(this, "Cartella test collegata", Toast.LENGTH_SHORT).show();
         } catch (RuntimeException error) {
             Toast.makeText(this, "Impossibile conservare l’accesso alla cartella scelta", Toast.LENGTH_LONG).show();
@@ -305,6 +338,7 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     @Override protected void onStart() {
         super.onStart();
+        if (driveStatusView != null) driveStatusView.setText(DriveTestExportManager.status(this));
         ContextCompat.registerReceiver(this, stateReceiver, new IntentFilter(RunRecordingService.ACTION_STATE), ContextCompat.RECEIVER_NOT_EXPORTED);
     }
     @Override protected void onStop() { unregisterReceiver(stateReceiver); super.onStop(); }

@@ -5,8 +5,8 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.21.3 build 90**, con contratto Room corretto,
-  Health Connect per passi e stime locali e pubblicazione Play anticipata.
+- Versione sorgente in verifica: **2.21.4 build 91**, con recupero GPS dopo fix
+  transitori ed export Drive verificabile, idempotente e rieseguibile.
   Ultima release pubblica verificata:
   **2.20.0 build 85** (commit `fa234cbc`).
 - Il test interno Google Play è attivo; la 2.20.0 build 85 è stata caricata nella

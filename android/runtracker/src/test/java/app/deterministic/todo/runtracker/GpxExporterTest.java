@@ -14,6 +14,9 @@ public class GpxExporterTest {
         assertTrue(gpx.contains("<trkpt lat=\"51.5000000\""));
         assertTrue(gpx.contains("<wpt lat=\"51.6000000\""));
         assertTrue(gpx.contains("rejected:poor_accuracy"));
+        assertTrue(gpx.contains("xmlns:dt=\"https://deterministic-todo.app/gpx/1\""));
+        assertTrue(gpx.contains("<dt:accuracy_m>5.0</dt:accuracy_m>"));
+        assertFalse(gpx.contains("<hdop>"));
     }
 
     private static TrackPoint point(boolean accepted, String reason, double lat, double lon) {

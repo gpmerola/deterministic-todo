@@ -59,10 +59,13 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 89 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
+- collaudare la build 91 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare almeno 20 minuti con schermo spento, includendo una sosta, e
   confrontare distanza/GPX con un percorso noto;
+- al termine verificare lo stato `GPX + JSON` nella schermata e la presenza
+  della coppia omonima nella cartella Drive; provare una volta anche la
+  riesportazione idempotente dell'ultima attività;
 - verificare che la notifica termini la sessione e che riaprire l'attività dopo
   una sospensione conservi durata e distanza;
 - provare scansione e batteria con Zepp completamente chiusa. Se il servizio

@@ -50,6 +50,7 @@ public final class RunRecordingService extends Service implements LocationListen
     private volatile float lastAccuracy;
     private volatile String gpsStatus = "Avvio GPS…";
     private volatile boolean receivedLocation;
+    private volatile boolean finishing;
     private final Runnable noFixWarning = () -> {
         if (!receivedLocation) {
             gpsStatus = "Nessun segnale GPS: vai all’aperto e controlla che Posizione sia attiva";
@@ -210,20 +211,36 @@ public final class RunRecordingService extends Service implements LocationListen
     }
 
     private void finishAndStop() {
+        if (finishing) return;
+        finishing = true;
         try { locationManager.removeUpdates(this); } catch (RuntimeException ignored) {}
         long id = sessionId;
         double distance = filter == null ? 0 : filter.totalMeters();
         sessionId = 0;
         startedAt = 0;
+        gpsStatus = "Salvataggio attività ed export Drive…";
+        broadcast(true);
         if (id != 0) io.execute(() -> {
             RunDao dao = RunDatabase.get(this).runs();
             dao.finish(id, distance, System.currentTimeMillis());
             RunSession session = dao.session(id);
-            if (session != null) DriveTestExportManager.finish(this, session, dao.points(id));
+            if (session == null) {
+                mainHandler.post(() -> completeStop(new DriveTestExportManager.ExportResult(false, false, "session_missing")));
+                return;
+            }
+            DriveTestExportManager.finish(this, session, dao.points(id),
+                result -> mainHandler.post(() -> completeStop(result)));
         });
+        else completeStop(new DriveTestExportManager.ExportResult(false, false, "empty_session"));
+    }
+
+    private void completeStop(DriveTestExportManager.ExportResult export) {
+        if (export.success()) gpsStatus = "Attività salvata · GPX e diagnostica caricati su Drive";
+        else if (export.configured()) gpsStatus = "Attività salvata · export Drive non riuscito: " + export.code();
+        else gpsStatus = "Attività salvata · cartella Drive non collegata";
+        broadcast(export.success());
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
-        broadcast(true);
     }
 
     @Nullable @Override public IBinder onBind(Intent intent) { return null; }

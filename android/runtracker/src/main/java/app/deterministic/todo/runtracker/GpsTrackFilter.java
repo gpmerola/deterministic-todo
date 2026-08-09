@@ -44,6 +44,18 @@ public final class GpsTrackFilter {
                 double candidateSegment = distanceMeters(discontinuityCandidate, sample);
                 double candidateSpeed = candidateSegment / (candidateElapsed / 1000.0);
                 if (candidateSpeed <= maximumSpeedMps) {
+                    double recoveredSegment = distanceMeters(last, sample);
+                    double recoveredSpeed = recoveredSegment / (elapsedMillis / 1000.0);
+                    if (recoveredSpeed <= maximumSpeedMps) {
+                        // The first fix looked too fast only because it arrived early.
+                        // Once the confirming fix makes the complete interval plausible,
+                        // retain the chord instead of losing genuine movement.
+                        previous = last;
+                        last = sample;
+                        discontinuityCandidate = null;
+                        totalMeters += recoveredSegment;
+                        return new Decision(true, null, recoveredSegment, totalMeters);
+                    }
                     // Two coherent fixes on the new track confirm a GPS discontinuity.
                     // Re-anchor without ever adding the jump to the distance.
                     last = sample;

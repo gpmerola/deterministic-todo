@@ -58,6 +58,20 @@ public class GpsTrackFilterTest {
         assertTrue(resumed.totalMeters() > 5 && resumed.totalMeters() < 6);
     }
 
+    @Test public void confirmingFixRecoversPlausibleWholeWalkingInterval() {
+        GpsTrackFilter walking = new GpsTrackFilter(GpsTrackFilter.MAX_WALKING_SPEED_MPS);
+        walking.evaluate(sample(0, 51.5000, -0.1200, 6));
+
+        GpsTrackFilter.Decision early = walking.evaluate(sample(3_000, 51.50018, -0.1200, 6));
+        assertFalse(early.accepted());
+        assertEquals("implausible_speed_jump", early.reason());
+
+        GpsTrackFilter.Decision confirmed = walking.evaluate(sample(4_000, 51.50020, -0.1200, 6));
+        assertTrue(confirmed.accepted());
+        assertTrue(confirmed.segmentMeters() > 21 && confirmed.segmentMeters() < 23);
+        assertEquals(confirmed.segmentMeters(), walking.totalMeters(), 0.001);
+    }
+
     @Test public void acceptsPlausibleMovementAndAccumulates() {
         GpsTrackFilter filter = new GpsTrackFilter();
         filter.evaluate(sample(0, 51.5000, -0.1200, 5));
