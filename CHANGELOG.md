@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.22.0
+
+- Le sessioni contano i passi direttamente con `TYPE_STEP_COUNTER`, anche a
+  schermo spento, e li mostrano separatamente nella schermata Movimento.
+- Il JSON diagnostico conserva passi diretti e stato del sensore senza
+  confonderli con il totale giornaliero Health Connect.
+- Aggiunto il confronto dell'ultima sessione con i dati attribuiti a Google Fit
+  in Health Connect: distanza, passi, calorie attive, intervallo e scarto.
+
 ## 2.21.4
 
 - Il filtro camminata recupera ora un intervallo inizialmente sospetto quando

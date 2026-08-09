@@ -5,8 +5,8 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.21.4 build 91**, con recupero GPS dopo fix
-  transitori ed export Drive verificabile, idempotente e rieseguibile.
+- Versione sorgente in verifica: **2.22.0 build 92**, con passi diretti della
+  sessione, confronto Google Fit via Health Connect ed export Drive completo.
   Ultima release pubblica verificata:
   **2.20.0 build 85** (commit `fa234cbc`).
 - Il test interno Google Play è attivo; la 2.20.0 build 85 è stata caricata nella
@@ -66,7 +66,10 @@ Aggiornato il 9 agosto 2026.
 - Il modulo in verifica legge ora il totale passi aggregato da Health Connect e
   conserva distanza e calorie attive stimate in Room. Falcata e peso sono
   ancora valori predefiniti: calibrazione personale, fallback sensore diretto,
-  lavoro periodico resta da completare. Camminata e corsa sono ora sessioni
+  lavoro periodico resta da completare. Le sessioni leggono inoltre il
+  contatore hardware Android e possono confrontare l'ultima attività con i
+  dati attribuiti a Google Fit in Health Connect. Camminata e corsa sono
+  sessioni
   distinte; la camminata applica un limite anti-salto GPS dedicato di 6 m/s.
   I GPX reali verificati non contengono battito, cadenza o dati del Bip U;
   l'integrazione Amazfit resta una fase successiva in sola lettura. Il quadro è in

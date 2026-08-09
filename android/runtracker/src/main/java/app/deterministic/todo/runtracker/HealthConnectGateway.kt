@@ -6,6 +6,9 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.metadata.DataOrigin
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +31,9 @@ object HealthConnectGateway {
 
     @JvmStatic
     fun permissions(): Set<String> = setOf(
-        HealthPermission.getReadPermission(StepsRecord::class)
+        HealthPermission.getReadPermission(StepsRecord::class),
+        HealthPermission.getReadPermission(DistanceRecord::class),
+        HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)
     )
 
     @JvmStatic
@@ -81,6 +86,71 @@ object HealthConnectGateway {
                 withContext(Dispatchers.Main) { callback.onError() }
             }
         }
+    }
+
+    @JvmStatic
+    fun compareGoogleFit(context: Context, session: RunSession, callback: ComparisonCallback) {
+        if (sdkStatus(context) != AVAILABLE) {
+            callback.onUnavailable()
+            return
+        }
+        val appContext = context.applicationContext
+        scope.launch {
+            try {
+                val client = HealthConnectClient.getOrCreate(appContext, PROVIDER_PACKAGE)
+                if (!client.permissionController.getGrantedPermissions().containsAll(permissions())) {
+                    withContext(Dispatchers.Main) { callback.onPermissionRequired() }
+                    return@launch
+                }
+                val endedAt = session.endedAtMillis ?: run {
+                    withContext(Dispatchers.Main) { callback.onError() }
+                    return@launch
+                }
+                val result = client.aggregate(
+                    AggregateRequest(
+                        metrics = setOf(
+                            StepsRecord.COUNT_TOTAL,
+                            DistanceRecord.DISTANCE_TOTAL,
+                            ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
+                        ),
+                        timeRangeFilter = TimeRangeFilter.between(
+                            Instant.ofEpochMilli(session.startedAtMillis),
+                            Instant.ofEpochMilli(endedAt)
+                        ),
+                        dataOriginFilter = setOf(DataOrigin("com.google.android.apps.fitness"))
+                    )
+                )
+                val comparison = GoogleFitComparison(
+                    result[StepsRecord.COUNT_TOTAL],
+                    result[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
+                    result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
+                    session.distanceMeters,
+                    DriveTestExportManager.directSteps(appContext, session.id),
+                    endedAt - session.startedAtMillis
+                )
+                withContext(Dispatchers.Main) { callback.onSuccess(comparison) }
+            } catch (_: SecurityException) {
+                withContext(Dispatchers.Main) { callback.onPermissionRequired() }
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main) { callback.onError() }
+            }
+        }
+    }
+
+    data class GoogleFitComparison(
+        val steps: Long?,
+        val distanceMeters: Double?,
+        val activeCalories: Double?,
+        val localDistanceMeters: Double,
+        val localSteps: Long,
+        val durationMillis: Long
+    )
+
+    interface ComparisonCallback {
+        fun onSuccess(comparison: GoogleFitComparison)
+        fun onPermissionRequired()
+        fun onUnavailable()
+        fun onError()
     }
 
     interface Callback {

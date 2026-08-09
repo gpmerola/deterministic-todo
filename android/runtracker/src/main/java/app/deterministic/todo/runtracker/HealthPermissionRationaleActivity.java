@@ -18,7 +18,7 @@ public final class HealthPermissionRationaleActivity extends ComponentActivity {
         root.setPadding(pad, pad, pad, pad);
         TextView text = new TextView(this);
         text.setTextSize(17);
-        text.setText("L’app legge da Health Connect soltanto i passi autorizzati per mostrare il totale giornaliero e calcolare stime locali di distanza e calorie attive. I dati restano sul dispositivo: non vengono inviati a Supabase, analytics o servizi pubblicitari. Puoi revocare l’accesso in qualsiasi momento dalle impostazioni di Health Connect.");
+        text.setText("L’app legge da Health Connect passi, distanza e calorie attive autorizzati. I passi servono al totale giornaliero e alle stime locali; distanza e calorie consentono il confronto esplicito dell’ultima sessione con Google Fit. I dati restano sul dispositivo: non vengono inviati a Supabase, analytics o servizi pubblicitari. Puoi revocare l’accesso in qualsiasi momento dalle impostazioni di Health Connect.");
         root.addView(text);
         setContentView(root);
     }

@@ -65,6 +65,19 @@ final class DriveTestExportManager {
         });
     }
 
+    static void captureDirectSteps(Context context, long id, long steps, String sensorStatus) {
+        if (id == 0) return;
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(id + ".direct_steps", Math.max(0, steps))
+            .putString(id + ".direct_step_status", sensorStatus)
+            .apply();
+    }
+
+    static long directSteps(Context context, long id) {
+        return Math.max(0, context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getLong(id + ".direct_steps", 0));
+    }
+
     static String status(Context context) {
         android.content.SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String status = p.getString(LAST_STATUS, isConfigured(context) ? "ready" : "not_configured");
@@ -129,6 +142,8 @@ final class DriveTestExportManager {
         }
         long elapsed0 = p.getLong(s.id + ".elapsed", 0), cpu0 = p.getLong(s.id + ".cpu", 0);
         long rx0 = p.getLong(s.id + ".rx", -1), tx0 = p.getLong(s.id + ".tx", -1), steps0 = p.getLong(s.id + ".steps", -1);
+        long directSteps = p.getLong(s.id + ".direct_steps", -1);
+        String directStepStatus = p.getString(s.id + ".direct_step_status", "not_recorded");
         long exportedAt = System.currentTimeMillis();
         ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo(); ((ActivityManager)c.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memory);
         return new JSONObject().put("schema_version", 1).put("session_id", s.id).put("activity", s.activityType)
@@ -139,6 +154,8 @@ final class DriveTestExportManager {
             .put("steps_end_observed_at_ms", stepsEnd == null ? JSONObject.NULL : exportedAt)
             .put("steps_delta", stepsEnd == null || steps0 < 0 || stepsEnd < steps0 ? JSONObject.NULL : stepsEnd - steps0)
             .put("steps_end_status", healthStatus)
+            .put("session_steps_direct", directSteps < 0 ? JSONObject.NULL : directSteps)
+            .put("session_steps_direct_status", directStepStatus)
             .put("gps", new JSONObject().put("samples", points.size()).put("accepted", accepted).put("rejected", points.size()-accepted)
                 .put("rejection_reasons", reasons).put("accuracy_mean_m", points.isEmpty()?JSONObject.NULL:accuracySum/points.size()).put("accuracy_max_m", accuracyMax))
             .put("resources", new JSONObject().put("battery_start_pct", p.getInt(s.id + ".battery", -1)).put("battery_end_pct", battery(c))

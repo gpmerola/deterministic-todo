@@ -42,6 +42,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView durationView;
     private TextView distanceView;
     private TextView paceView;
+    private TextView sessionStepsView;
     private TextView accuracyView;
     private TextView dailyStepsView;
     private TextView dailyDistanceView;
@@ -52,10 +53,12 @@ public final class RunTrackerActivity extends ComponentActivity {
     private Button walkButton;
     private Button driveButton;
     private TextView driveStatusView;
+    private TextView comparisonView;
     private String pendingActivityType = "run";
     private long sessionId;
     private long startedAt;
     private double distance;
+    private long sessionSteps;
 
     private final ActivityResultLauncher<Set<String>> healthPermissions = registerForActivityResult(
         HealthConnectGateway.permissionContract(), granted -> refreshDailyMovement()
@@ -69,6 +72,8 @@ public final class RunTrackerActivity extends ComponentActivity {
             float accuracy = intent.getFloatExtra(RunRecordingService.EXTRA_ACCURACY, 0);
             String gpsStatus = intent.getStringExtra(RunRecordingService.EXTRA_STATUS);
             String activityType = intent.getStringExtra(RunRecordingService.EXTRA_ACTIVITY_TYPE);
+            sessionSteps = intent.getLongExtra(RunRecordingService.EXTRA_SESSION_STEPS, 0);
+            String stepStatus = intent.getStringExtra(RunRecordingService.EXTRA_STEP_STATUS);
             accuracyView.setText(
                 gpsStatus == null
                     ? (accuracy <= 0 ? "Ricerca del segnale GPS…" : String.format(Locale.ROOT, "Accuratezza ± %.0f m", accuracy))
@@ -78,6 +83,8 @@ public final class RunTrackerActivity extends ComponentActivity {
             walkButton.setEnabled(sessionId == 0);
             if (sessionId != 0 && "walk".equals(activityType)) primaryButton.setText("Termina camminata");
             driveStatusView.setText(DriveTestExportManager.status(RunTrackerActivity.this));
+            sessionStepsView.setText(String.format(Locale.ITALY, "%,d passi", sessionSteps));
+            sessionStepsView.setContentDescription("Passi sessione dal sensore telefono · " + stepStatus);
             renderClock();
         }
     };
@@ -156,6 +163,9 @@ public final class RunTrackerActivity extends ComponentActivity {
         metrics.addView(metricBlock("PASSO MEDIO", paceView), weighted());
         root.addView(metrics, matchWrap(dp(18)));
 
+        sessionStepsView = metric("0 passi", 25);
+        root.addView(metricBlock("PASSI SESSIONE · SENSORE TELEFONO", sessionStepsView), matchWrap(dp(12)));
+
         accuracyView = label("Premi Avvia corsa per attivare il GPS", 16);
         accuracyView.setGravity(Gravity.CENTER);
         root.addView(accuracyView, matchWrap(dp(20)));
@@ -198,6 +208,14 @@ public final class RunTrackerActivity extends ComponentActivity {
         export.setOnClickListener(v -> exportLatest());
         root.addView(export, matchWrap(dp(8)));
 
+        Button compare = new Button(this);
+        compare.setText("Confronta ultima attività con Google Fit");
+        compare.setOnClickListener(v -> compareLatestWithGoogleFit());
+        root.addView(compare, matchWrap(dp(8)));
+        comparisonView = label("Il confronto usa i dati Google Fit condivisi in Health Connect nello stesso intervallo.", 13);
+        comparisonView.setGravity(Gravity.CENTER);
+        root.addView(comparisonView, matchWrap(dp(6)));
+
         Button watch = new Button(this);
         watch.setText("Bip U · prova BLE in sola lettura");
         watch.setOnClickListener(v -> BipUBleActivity.open(this));
@@ -239,6 +257,7 @@ public final class RunTrackerActivity extends ComponentActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_FINE_LOCATION);
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.POST_NOTIFICATIONS);
+        if (Build.VERSION.SDK_INT >= 29 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACTIVITY_RECOGNITION);
         if (required.isEmpty()) startRun(activityType); else permissions.launch(required.toArray(new String[0]));
     }
 
@@ -295,6 +314,39 @@ public final class RunTrackerActivity extends ComponentActivity {
                     result.success() ? "GPX e JSON caricati su Drive" : "Export Drive non riuscito: " + result.code(),
                     Toast.LENGTH_LONG).show();
             }));
+        });
+    }
+
+    private void compareLatestWithGoogleFit() {
+        comparisonView.setText("Lettura riferimento Google Fit da Health Connect…");
+        io.execute(() -> {
+            java.util.List<RunSession> sessions = RunDatabase.get(this).runs().sessions();
+            if (sessions.isEmpty()) {
+                runOnUiThread(() -> comparisonView.setText("Nessuna attività locale da confrontare"));
+                return;
+            }
+            HealthConnectGateway.compareGoogleFit(this, sessions.get(0), new HealthConnectGateway.ComparisonCallback() {
+                @Override public void onSuccess(HealthConnectGateway.GoogleFitComparison c) {
+                    String fitDistance = c.getDistanceMeters() == null ? "—" : String.format(Locale.ITALY, "%.3f km", c.getDistanceMeters()/1000);
+                    String delta = c.getDistanceMeters() == null || c.getDistanceMeters() <= 0 ? "—" :
+                        String.format(Locale.ITALY, "%+.1f%%", 100*(c.getLocalDistanceMeters()-c.getDistanceMeters())/c.getDistanceMeters());
+                    String steps = c.getSteps() == null ? "—" : String.format(Locale.ITALY, "%,d", c.getSteps());
+                    String stepDelta = c.getSteps() == null || c.getSteps() <= 0 ? "—" :
+                        String.format(Locale.ITALY, "%+.1f%%", 100.0*(c.getLocalSteps()-c.getSteps())/c.getSteps());
+                    String calories = c.getActiveCalories() == null ? "—" : String.format(Locale.ITALY, "%.1f kcal", c.getActiveCalories());
+                    comparisonView.setText(String.format(Locale.ITALY,
+                        "Google Fit · %s · %s passi · %s\nDeterministic Todo · %.3f km (%s) · %,d passi (%s) · intervallo %d:%02d",
+                        fitDistance, steps, calories, c.getLocalDistanceMeters()/1000, delta,
+                        c.getLocalSteps(), stepDelta,
+                        c.getDurationMillis()/60000, (c.getDurationMillis()/1000)%60));
+                }
+                @Override public void onPermissionRequired() {
+                    comparisonView.setText("Concedi in Health Connect passi, distanza e calorie, poi riprova");
+                    healthPermissions.launch(HealthConnectGateway.permissions());
+                }
+                @Override public void onUnavailable() { comparisonView.setText("Health Connect non disponibile"); }
+                @Override public void onError() { comparisonView.setText("Confronto non disponibile: verifica che Google Fit condivida i dati in Health Connect"); }
+            });
         });
     }
 

@@ -69,6 +69,11 @@ continuare anche quando l'app non è aperta; alla riapertura l'app importa in
 modo idempotente il totale aggregato della giornata, evitando la somma diretta
 di record sovrapposti.
 
+Durante una sessione i passi sono letti anche direttamente dal contatore
+hardware Android e mostrati come **Passi sessione · sensore telefono**. Il
+valore continua ad aggiornarsi a schermo spento insieme al servizio GPS e resta
+distinto dal totale giornaliero Health Connect.
+
 La distanza quotidiana e le calorie attive sono per ora stime esplicite basate
 su passi, falcata e peso predefiniti. Non sono ancora calibrate sul profilo
 personale e non vanno considerate misure cliniche o equivalenti a Google Fit
@@ -78,6 +83,11 @@ Da **Impostazioni → Movimento · passi, calorie e GPS** si avvia una traccia G
 telefono. Una notifica persistente mantiene la registrazione attiva anche a
 schermo spento e consente di terminarla. La schermata mostra durata, distanza,
 passo medio e accuratezza corrente.
+
+**Confronta ultima attività con Google Fit** legge da Health Connect i record
+attribuiti a Google Fit nello stesso intervallo e mostra distanza, passi,
+calorie attive e scarto. Google Fit deve aver condiviso quei dati con Health
+Connect; i valori assenti restano esplicitamente non disponibili.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo

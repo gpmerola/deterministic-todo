@@ -59,7 +59,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 91 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
+- collaudare la build 92 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare almeno 20 minuti con schermo spento, includendo una sosta, e
   confrontare distanza/GPX con un percorso noto;
@@ -82,8 +82,8 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   camminare e verificare al riavvio il recupero del totale Health Connect;
 - aggiungere profilo locale con peso e falcata, calibrazione tramite sessione
   GPS e stima calorica versionata; i valori 70 kg/0,72 m sono solo provvisori;
-- aggiungere fallback `TYPE_STEP_COUNTER`, gestione reboot/reset e permesso
-  `ACTIVITY_RECOGNITION` quando il conteggio Health Connect non è disponibile;
+- collaudare `TYPE_STEP_COUNTER` durante sessioni con schermo spento; la
+  gestione del totale quotidiano attraverso mezzanotte/reboot resta distinta;
 - valutare `WorkManager` e lettura Health Connect in background solo dopo una
   misura reale: il conteggio di sistema non richiede polling dell'app;
 - mostrare separatamente distanza GPS di una sessione e distanza quotidiana

@@ -11,6 +11,10 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,7 +31,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public final class RunRecordingService extends Service implements LocationListener {
+public final class RunRecordingService extends Service implements LocationListener, SensorEventListener {
     public static final String ACTION_START = "app.deterministic.todo.runtracker.START";
     public static final String ACTION_STOP = "app.deterministic.todo.runtracker.STOP";
     public static final String ACTION_STATE = "app.deterministic.todo.runtracker.STATE";
@@ -37,6 +41,8 @@ public final class RunRecordingService extends Service implements LocationListen
     public static final String EXTRA_ACCEPTED = "accepted";
     public static final String EXTRA_STATUS = "gps_status";
     public static final String EXTRA_ACTIVITY_TYPE = "activity_type";
+    public static final String EXTRA_SESSION_STEPS = "session_steps";
+    public static final String EXTRA_STEP_STATUS = "step_status";
     private static final int NOTIFICATION_ID = 7401;
     private static final String CHANNEL_ID = "run_recording";
 
@@ -44,6 +50,11 @@ public final class RunRecordingService extends Service implements LocationListen
     private GpsTrackFilter filter;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private LocationManager locationManager;
+    private SensorManager sensorManager;
+    private Sensor stepCounterSensor;
+    private StepCounterSession stepCounter;
+    private volatile long sessionSteps;
+    private volatile String stepStatus = "not_started";
     private long sessionId;
     private long startedAt;
     private String activityType = "run";
@@ -61,6 +72,8 @@ public final class RunRecordingService extends Service implements LocationListen
     @Override public void onCreate() {
         super.onCreate();
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         NotificationChannel channel = new NotificationChannel(
             CHANNEL_ID, "Registrazione movimento", NotificationManager.IMPORTANCE_LOW
         );
@@ -105,6 +118,7 @@ public final class RunRecordingService extends Service implements LocationListen
                     }
                 }
             }
+            startStepCounter();
             if (!requestLocations()) {
                 dao.finish(sessionId, filter.totalMeters(), System.currentTimeMillis());
                 sessionId = 0;
@@ -118,6 +132,33 @@ public final class RunRecordingService extends Service implements LocationListen
         });
         return START_STICKY;
     }
+
+    private void startStepCounter() {
+        sessionSteps = DriveTestExportManager.directSteps(this, sessionId);
+        stepCounter = new StepCounterSession(sessionSteps);
+        if (stepCounterSensor == null) {
+            stepStatus = "sensor_unavailable";
+        } else if (android.os.Build.VERSION.SDK_INT >= 29
+            && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)
+                != PackageManager.PERMISSION_GRANTED) {
+            stepStatus = "permission_required";
+        } else {
+            stepStatus = sensorManager.registerListener(this, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL)
+                ? "awaiting_first_sample" : "registration_failed";
+        }
+        DriveTestExportManager.captureDirectSteps(this, sessionId, sessionSteps, stepStatus);
+    }
+
+    @Override public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER || event.values.length == 0 || stepCounter == null) return;
+        StepCounterSession.Reading reading = stepCounter.accept(event.values[0]);
+        sessionSteps = reading.steps();
+        stepStatus = reading.status();
+        DriveTestExportManager.captureDirectSteps(this, sessionId, sessionSteps, stepStatus);
+        broadcast(true);
+    }
+
+    @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
     private boolean requestLocations() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -206,6 +247,8 @@ public final class RunRecordingService extends Service implements LocationListen
         state.putExtra(EXTRA_ACCEPTED, accepted);
         state.putExtra(EXTRA_STATUS, gpsStatus);
         state.putExtra(EXTRA_ACTIVITY_TYPE, activityType);
+        state.putExtra(EXTRA_SESSION_STEPS, sessionSteps);
+        state.putExtra(EXTRA_STEP_STATUS, stepStatus);
         state.putExtra("started_at", startedAt);
         sendBroadcast(state);
     }
@@ -214,6 +257,7 @@ public final class RunRecordingService extends Service implements LocationListen
         if (finishing) return;
         finishing = true;
         try { locationManager.removeUpdates(this); } catch (RuntimeException ignored) {}
+        sensorManager.unregisterListener(this);
         long id = sessionId;
         double distance = filter == null ? 0 : filter.totalMeters();
         sessionId = 0;
@@ -247,6 +291,7 @@ public final class RunRecordingService extends Service implements LocationListen
     @Override public void onDestroy() {
         mainHandler.removeCallbacks(noFixWarning);
         try { locationManager.removeUpdates(this); } catch (RuntimeException ignored) {}
+        if (sensorManager != null) sensorManager.unregisterListener(this);
         io.shutdown();
         super.onDestroy();
     }

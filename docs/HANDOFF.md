@@ -31,7 +31,7 @@ di cambiare architettura.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
 - Ultima release verificata end-to-end: **2.20.0 build 85**, commit `fa234cbc`.
-- Sorgente successiva: **2.21.4 build 91**, che aggiunge il primo lettore
+- Sorgente successiva: **2.22.0 build 92**, che aggiunge il primo lettore
   Health Connect, le stime locali di distanza/calorie, il recupero dei segmenti
   GPS complessivamente plausibili e l'export Drive verificabile. Non chiamarla
   pubblicata finché pipeline e dispositivo non lo confermano.
@@ -116,9 +116,17 @@ calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
 provvisori di 0,72 m per passo e 70 kg. Manca ancora il profilo personale e non
 esiste una validazione comparativa con Google Fit/Zepp.
 
+La build 92 aggiunge `TYPE_STEP_COUNTER` direttamente al servizio delle
+sessioni: il delta è visibile nella UI, continua a schermo spento e viene
+esportato nel JSON con stato esplicito. Un confronto in-app aggrega inoltre,
+nello stesso intervallo locale, passi, distanza e calorie attive filtrati per
+l'origine Google Fit. La disponibilità dipende dalla sincronizzazione Google
+Fit → Health Connect.
+
 ### Cosa non esiste ancora
 
-- fallback diretto `TYPE_STEP_COUNTER` quando Health Connect non è disponibile;
+- attribuzione quotidiana completa del contatore hardware attraverso
+  mezzanotte, reboot e periodi senza campioni;
 - calibrazione personale di falcata, peso e modello calorico;
 - riconoscimento automatico camminata/corsa (la selezione manuale è disponibile);
 - autenticazione BLE Huami;
