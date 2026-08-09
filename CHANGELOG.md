@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.21.3
+
+- Separata la build AAB Google Play dalla generazione degli APK diretti: dopo i
+  test, il bundle viene costruito e caricato subito nel track interno mentre
+  APK GitHub e Web proseguono in parallelo.
+- Conservata la verifica coordinata finale di Play, Web e release GitHub; la
+  corsia rapida usa quindi la normale firma Play e non richiede reinstallazione
+  né cambio del canale installato.
+
 ## 2.21.2
 
 - Corretto il contratto Room di `run_sessions.activityType`: ora nullabilità e

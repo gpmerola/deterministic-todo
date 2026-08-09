@@ -38,8 +38,10 @@ Non tentare un aggiornamento in-place tra i due canali.
 
 ## Pubblicazione automatica
 
-La pipeline pubblica automaticamente l'AAB firmato nel track `internal` solo
-dopo che test, build Android e deploy Web sono riusciti. L'identità dedicata
+La pipeline pubblica automaticamente l'AAB firmato nel track `internal` appena
+sono riusciti i test e la build Play. La generazione degli APK diretti e il
+deploy Web proseguono in parallelo, quindi non ritardano la disponibilità del
+test interno. L'identità dedicata
 `deterministic-todo-play-publis@deterministic-todo-play-api.iam.gserviceaccount.com`
 ha accesso esclusivamente a Deterministic Todo e alle release dei canali di
 test: non possiede autorizzazioni di produzione o finanziarie. La credenziale è
@@ -50,13 +52,19 @@ Il job `publish-google-play` è una dipendenza obbligatoria del controllo finale
 di parità: una release non risulta completata se Play rifiuta l'AAB. La
 produzione resta sempre manuale.
 
+Non usare **Internal App Sharing** per aggiornare un'installazione proveniente
+dal normale track Play: Google rifirma quegli artefatti con un certificato di
+test dedicato. La corsia rapida canonica è il track `internal`, che conserva la
+firma Play App Signing e i dati dell'app installata.
+
 ## Procedura di release
 
 1. Incrementare versione e build in `pubspec.yaml`.
 2. Commit e push avviano `.github/workflows/publish-android-release.yml`.
 3. Verificare test, deploy web e parità pubblica.
 4. La pipeline carica automaticamente `DeterministicTodo-Android.aab` nel test
-   interno e verifica che Google Play accetti la build.
+   interno appena il bundle è pronto e verifica che Google Play lo accetti,
+   senza attendere APK diretti o Web.
 5. Verificare la disponibilità ai tester prima di promuovere manualmente verso
    un altro canale.
 

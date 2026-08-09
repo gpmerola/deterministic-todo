@@ -123,6 +123,72 @@ jobs:
         with:
           path: build/web
 
+  build-play:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: android-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - name: Prepare stable release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+
+      - name: Build signed Play bundle
+        run: |
+          flutter pub get
+          flutter build appbundle --release --flavor play \
+            --split-debug-info=build/private-symbols/play \
+            --dart-define=DISTRIBUTION_CHANNEL=play \
+            --dart-define-from-file=supabase/config.json
+          cd android
+          ./gradlew :runtracker:testDebugUnitTest
+        env:
+          ANDROID_KEYSTORE_PATH: release-key.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: deterministic-todo
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Stage Play bundle
+        run: |
+          mkdir play-release
+          cp build/app/outputs/bundle/playRelease/app-play-release.aab play-release/DeterministicTodo-Android.aab
+
+      - name: Upload Play bundle immediately
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-release-${{ needs.verify.outputs.version }}
+          path: play-release/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Preserve private Play symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-symbols-play-${{ needs.verify.outputs.version }}
+          path: build/private-symbols/play/
+          retention-days: 30
+          if-no-files-found: error
+
   build-android:
     needs: verify
     runs-on: ubuntu-latest
@@ -153,16 +219,9 @@ jobs:
           test -n "$ANDROID_KEYSTORE_BASE64"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
 
-      - name: Build signed APKs per CPU
+      - name: Build signed direct APKs per CPU
         run: |
           flutter pub get
-          flutter build appbundle --release --flavor play \
-            --split-debug-info=build/private-symbols/play \
-            --dart-define=DISTRIBUTION_CHANNEL=play \
-            --dart-define-from-file=supabase/config.json
-          cd android
-          ./gradlew :runtracker:testDebugUnitTest
-          cd ..
           flutter build apk --release --flavor direct \
             --split-debug-info=build/private-symbols/universal \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
@@ -195,7 +254,6 @@ jobs:
           BUILD: ${{ needs.verify.outputs.build }}
         run: |
           mkdir release-assets
-          cp build/app/outputs/bundle/playRelease/app-play-release.aab release-assets/DeterministicTodo-Android.aab
           cp build/app/outputs/flutter-apk/app-direct-release.apk release-assets/DeterministicTodo-Android-universal.apk
           cp build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
@@ -253,7 +311,7 @@ jobs:
           PY
 
   publish-android:
-    needs: [verify, build-android, deploy-web]
+    needs: [verify, build-play, build-android, deploy-web]
     runs-on: ubuntu-latest
     environment: android-release
     env:
@@ -267,6 +325,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: android-release-${{ needs.verify.outputs.version }}
+          path: release-assets
+
+      - name: Download staged Play bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: play-release-${{ needs.verify.outputs.version }}
           path: release-assets
 
       - name: Publish Android only after web succeeds
@@ -289,15 +353,15 @@ jobs:
           cmp release-assets/manifest.json published-manifest.json
 
   publish-google-play:
-    needs: [verify, build-android, deploy-web]
+    needs: [verify, build-play]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: android-release
     steps:
-      - name: Download staged Android release
+      - name: Download staged Play bundle
         uses: actions/download-artifact@v4
         with:
-          name: android-release-${{ needs.verify.outputs.version }}
+          name: play-release-${{ needs.verify.outputs.version }}
           path: release-assets
 
       - name: Require dedicated Google Play identity

@@ -13,11 +13,13 @@
 1. Eseguire formatter, generazione Drift, analisi e test.
 2. Aggiornare documentazione, stato e changelog quando pertinenti.
 3. Commit e push del branch `agent/**`.
-4. `Publish Android and Web Release` verifica una volta e costruisce entrambi i
-   canali.
-5. Chrome viene distribuito e controllato tramite `release-info.json`.
-6. Solo dopo il successo web viene creata la release Android `latest`.
-7. Il job finale confronta versione, build e commit dei due endpoint pubblici;
+4. `Publish Android and Web Release` verifica una volta e avvia in parallelo
+   bundle Play, APK diretti e Web.
+5. Il bundle Play viene caricato nel track interno appena pronto, senza
+   attendere gli APK o il deploy Web.
+6. Chrome viene distribuito e controllato tramite `release-info.json`.
+7. Solo dopo il successo web viene creata la release Android diretta `latest`.
+8. Il job finale confronta versione, build e commit dei due endpoint pubblici;
    inoltre richiede tutti e quattro gli APK Android, con hash e URL appartenenti
    alla release corrente.
 

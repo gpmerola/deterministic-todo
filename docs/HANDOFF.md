@@ -31,8 +31,9 @@ di cambiare architettura.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
 - Ultima release verificata end-to-end: **2.20.0 build 85**, commit `fa234cbc`.
-- Sorgente successiva: **2.21.0 build 87**, che aggiunge il primo lettore
-  Health Connect e le stime locali di distanza/calorie. Non chiamarla
+- Sorgente successiva: **2.21.3 build 90**, che aggiunge il primo lettore
+  Health Connect, le stime locali di distanza/calorie e la corsia Play interna
+  anticipata. Non chiamarla
   pubblicata finché pipeline e dispositivo non lo confermano.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
