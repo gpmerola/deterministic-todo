@@ -85,6 +85,7 @@ public final class RunRecordingService extends Service implements LocationListen
                 activityType = "walk".equals(requestedType) ? "walk" : "run";
                 sessionId = dao.start(startedAt, activityType);
                 active = dao.session(sessionId);
+                DriveTestExportManager.captureStart(this, sessionId);
             } else {
                 sessionId = active.id;
                 startedAt = active.startedAtMillis;
@@ -218,7 +219,7 @@ public final class RunRecordingService extends Service implements LocationListen
             RunDao dao = RunDatabase.get(this).runs();
             dao.finish(id, distance, System.currentTimeMillis());
             RunSession session = dao.session(id);
-            if (session != null) AutomaticTestGpxExporter.export(this, session, dao.points(id));
+            if (session != null) DriveTestExportManager.finish(this, session, dao.points(id));
         });
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();

@@ -5,7 +5,7 @@ Aggiornato il 9 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione sorgente in verifica: **2.20.1 build 86**, con primo incremento
+- Versione sorgente in verifica: **2.21.0 build 87**, con esportazione diagnostica Drive
   Health Connect per passi e stime locali. Ultima release pubblica verificata:
   **2.20.0 build 85** (commit `fa234cbc`).
 - Il test interno Google Play è attivo; la 2.20.0 build 85 è stata caricata nella
@@ -75,7 +75,7 @@ Aggiornato il 9 agosto 2026.
 - Analisi statica senza errori.
 - 121 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
-- Nella sorgente 2.20.1 passano anche i 13 test JVM del modulo movimento,
+- Nella sorgente 2.21.0 passano anche i test JVM del modulo movimento,
   inclusi due test deterministici nuovi per distanza e calorie da passi; build
   Web release e sei APK release firmati separati per distribuzione/ABI sono
   stati generati localmente. Il comando Flutter segnala erroneamente di non

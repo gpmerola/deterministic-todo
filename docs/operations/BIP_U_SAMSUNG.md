@@ -22,11 +22,10 @@
 4. Terminare dalla notifica o dalla schermata, quindi esportare il GPX.
 5. Conservare il GPX solo per la propria diagnosi: contiene il percorso reale.
 
-Durante la calibrazione si può abilitare **Test: salva automaticamente il
-GPX**. Il file resta in `Download/DeterministicTodoTests`. Con debug USB
-autorizzato, dalla radice eseguire `tools/pull_latest_movement_gpx.sh`: l’ultimo
-GPX sarà copiato in `/tmp/deterministic-todo-gpx/latest.gpx`. Disattivare
-l’opzione dopo i test e non aggiungere mai questi file al repository.
+Durante la calibrazione premere **Collega cartella Google Drive per i test** e
+scegliere `Deterministic Todo Movement Tests`. La scelta persiste. Ogni sessione
+produce automaticamente GPX e JSON diagnostico; non aggiungere mai questi file
+al repository e non condividere la cartella.
 
 Se Android mostra una notifica GPS ma la distanza resta ferma, controllare che
 la Posizione di sistema sia attiva e precisa. Se la notifica scompare durante

@@ -15,7 +15,6 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -37,6 +36,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class RunTrackerActivity extends ComponentActivity {
+    private final ActivityResultLauncher<Uri> driveFolder = registerForActivityResult(
+        new ActivityResultContracts.OpenDocumentTree(), uri -> { if (uri != null) { DriveTestExportManager.setFolder(this, uri); Toast.makeText(this, "Cartella test collegata", Toast.LENGTH_SHORT).show(); } });
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler clock = new Handler(Looper.getMainLooper());
     private TextView durationView;
@@ -171,13 +172,10 @@ public final class RunTrackerActivity extends ComponentActivity {
         walkButton.setOnClickListener(v -> ensurePermissions("walk"));
         root.addView(walkButton, matchWrap(dp(8)));
 
-        CheckBox automaticExport = new CheckBox(this);
-        automaticExport.setText("Test: salva automaticamente il GPX in Download/DeterministicTodoTests");
-        automaticExport.setChecked(AutomaticTestGpxExporter.isEnabled(this));
-        automaticExport.setEnabled(Build.VERSION.SDK_INT >= 29);
-        automaticExport.setOnCheckedChangeListener((button, checked) ->
-            AutomaticTestGpxExporter.setEnabled(this, checked));
-        root.addView(automaticExport, matchWrap(dp(12)));
+        Button drive = new Button(this);
+        drive.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
+        drive.setOnClickListener(v -> driveFolder.launch(null));
+        root.addView(drive, matchWrap(dp(12)));
 
         Button export = new Button(this);
         export.setText("Esporta ultima attività in GPX");

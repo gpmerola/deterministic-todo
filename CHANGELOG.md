@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.21.0
+
+- Sostituito il trasferimento USB con una cartella Google Drive scelta una sola
+  volta tramite Android e autorizzata in modo persistente.
+- Ogni sessione genera automaticamente un GPX e un JSON diagnostico omonimo con
+  passi, errori GPS, campioni, batteria, CPU, memoria, rete, dispositivo e tempi.
+- I file usano nomi ordinabili con timestamp, attività e ID sessione; nessuna
+  credenziale Google viene incorporata nell’app.
+
 ## 2.20.1
 
 - Separate le sessioni GPS `camminata` e `corsa`: il profilo camminata usa una

@@ -59,7 +59,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- installare la 2.20.1 sul Galaxy S21 e concedere posizione precisa e
+- installare la 2.21.0 sul Galaxy S21, collegare la cartella Drive e concedere posizione precisa e
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare almeno 20 minuti con schermo spento, includendo una sosta, e
   confrontare distanza/GPX con un percorso noto;
@@ -75,7 +75,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Passi e distanza quotidiana
 
-- collaudare la 2.20.1 sul Galaxy S21: autorizzare `READ_STEPS`, chiudere l'app,
+- collaudare la 2.21.0 sul Galaxy S21: autorizzare `READ_STEPS`, chiudere l'app,
   camminare e verificare al riavvio il recupero del totale Health Connect;
 - aggiungere profilo locale con peso e falcata, calibrazione tramite sessione
   GPS e stima calorica versionata; i valori 70 kg/0,72 m sono solo provvisori;
