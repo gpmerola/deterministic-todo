@@ -64,6 +64,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     private final ActivityResultLauncher<Set<String>> healthPermissions = registerForActivityResult(
         HealthConnectGateway.permissionContract(), granted -> {
             refreshDailyMovement();
+            compareLatestWithGoogleFit();
             retryLatestComparison();
         }
     );
@@ -127,6 +128,8 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
         clock.post(clockTick);
         refreshDailyMovement();
+        if ("permission_required".equals(DriveTestExportManager.comparisonStatus(this)))
+            clock.postDelayed(this::compareLatestWithGoogleFit, 750);
     }
 
     private View content() {

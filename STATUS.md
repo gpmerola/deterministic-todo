@@ -88,9 +88,10 @@ Aggiornato il 10 agosto 2026.
 - La build 98 ha confermato il gate durante due soste: 0 m nella prima e circa
   1,5 m nella seconda. Ha inoltre isolato il blocco del confronto automatico:
   Health Connect richiede il consenso separato per le letture in background.
-  La build 99 dichiara e richiede tale consenso e rende l'esito diagnosticabile
-  direttamente dal JSON Drive.
-- Restano da collaudare sulla build 99 il consenso Health Connect e il confronto
+  La build 99 dichiara e richiede tale consenso, ma sul Galaxy S21 non ha
+  riprogrammato né riesportato la sessione 14. La build 100 aggiunge il recupero
+  immediato mentre Movimento è visibile e mantiene la diagnostica su Drive.
+- Restano da collaudare sulla build 100 il recupero Health Connect e il confronto
   automatico della sessione già registrata, oltre a una camminata lunga a schermo spento e
   il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
   confronto Health Connect.

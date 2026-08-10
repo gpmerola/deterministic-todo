@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.3
+
+- Aggiunto un recupero immediato in primo piano: dopo il consenso Health
+  Connect, oppure riaprendo una sessione ferma su `permission_required`, il
+  confronto parte subito e aggiorna Drive senza attendere WorkManager.
+- WorkManager resta attivo come percorso normale per le sessioni future; il
+  fallback evita che differenze del provider Samsung blocchino il collaudo.
+
 ## 2.23.2
 
 - Aggiunto il consenso Health Connect per leggere passi, distanza e calorie in

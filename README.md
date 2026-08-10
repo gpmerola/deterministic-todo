@@ -100,7 +100,9 @@ Il confronto usa un job Android persistente con timeout e retry: Movimento può
 essere chiusa dopo lo stop e mostra l'esito alla riapertura. Health Connect
 richiede un consenso distinto per questa lettura in background; l'app lo
 richiede solo sui dispositivi che supportano la funzione. Stato e tentativi
-restano nel JSON Drive anche quando il confronto non riesce.
+restano nel JSON Drive anche quando il confronto non riesce. Dopo il consenso,
+un tentativo immediato in primo piano recupera anche l'ultima sessione rimasta
+in attesa.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo
