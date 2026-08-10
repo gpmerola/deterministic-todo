@@ -90,6 +90,23 @@ final class DriveTestExportManager {
             .putString(id + ".direct_step_timeline", timeline.encode()).apply();
     }
 
+    static void captureGoogleFitComparison(Context context, long id,
+                                           HealthConnectGateway.GoogleFitComparison comparison) {
+        if (id == 0 || comparison == null) return;
+        android.content.SharedPreferences.Editor editor = context
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(id + ".fit_observed_at", System.currentTimeMillis())
+            .putLong(id + ".fit_local_steps", comparison.getLocalSteps())
+            .putFloat(id + ".fit_local_distance_m", (float) comparison.getLocalDistanceMeters());
+        if (comparison.getSteps() != null) editor.putLong(id + ".fit_steps", comparison.getSteps());
+        else editor.remove(id + ".fit_steps");
+        if (comparison.getDistanceMeters() != null) editor.putFloat(id + ".fit_distance_m", comparison.getDistanceMeters().floatValue());
+        else editor.remove(id + ".fit_distance_m");
+        if (comparison.getActiveCalories() != null) editor.putFloat(id + ".fit_active_calories", comparison.getActiveCalories().floatValue());
+        else editor.remove(id + ".fit_active_calories");
+        editor.apply();
+    }
+
     static String status(Context context) {
         android.content.SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String status = p.getString(LAST_STATUS, isConfigured(context) ? "ready" : "not_configured");
@@ -162,6 +179,16 @@ final class DriveTestExportManager {
                 .put("steps", sample.steps()).put("status", sample.status()));
         }
         long exportedAt = System.currentTimeMillis();
+        long fitObservedAt = p.getLong(s.id + ".fit_observed_at", -1);
+        JSONObject fit = new JSONObject().put("status", fitObservedAt < 0 ? "not_compared" : "available");
+        if (fitObservedAt >= 0) {
+            fit.put("observed_at_ms", fitObservedAt)
+                .put("steps", p.contains(s.id + ".fit_steps") ? p.getLong(s.id + ".fit_steps", 0) : JSONObject.NULL)
+                .put("distance_m", p.contains(s.id + ".fit_distance_m") ? p.getFloat(s.id + ".fit_distance_m", 0) : JSONObject.NULL)
+                .put("active_calories", p.contains(s.id + ".fit_active_calories") ? p.getFloat(s.id + ".fit_active_calories", 0) : JSONObject.NULL)
+                .put("local_steps", p.getLong(s.id + ".fit_local_steps", 0))
+                .put("local_distance_m", p.getFloat(s.id + ".fit_local_distance_m", 0));
+        }
         ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo(); ((ActivityManager)c.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memory);
         return new JSONObject().put("schema_version", 1).put("session_id", s.id).put("activity", s.activityType)
             .put("started_at_ms", s.startedAtMillis).put("ended_at_ms", s.endedAtMillis).put("duration_ms", s.endedAtMillis - s.startedAtMillis)
@@ -174,6 +201,7 @@ final class DriveTestExportManager {
             .put("session_steps_direct", directSteps < 0 ? JSONObject.NULL : directSteps)
             .put("session_steps_direct_status", directStepStatus)
             .put("session_steps_direct_samples", directStepSamples)
+            .put("google_fit_comparison", fit)
             .put("gps", new JSONObject().put("samples", points.size()).put("accepted", accepted).put("rejected", points.size()-accepted)
                 .put("rejection_reasons", reasons).put("accuracy_mean_m", points.isEmpty()?JSONObject.NULL:accuracySum/points.size()).put("accuracy_max_m", accuracyMax))
             .put("resources", new JSONObject().put("battery_start_pct", p.getInt(s.id + ".battery", -1)).put("battery_end_pct", battery(c))

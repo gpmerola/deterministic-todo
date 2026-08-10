@@ -50,10 +50,12 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView movementStatusView;
     private Button healthPermissionButton;
     private Button primaryButton;
-    private Button walkButton;
+    private Button secondaryButton;
     private Button driveButton;
     private TextView driveStatusView;
     private TextView comparisonView;
+    private LinearLayout advancedTools;
+    private boolean awaitingCompletion;
     private String pendingActivityType = "run";
     private long sessionId;
     private long startedAt;
@@ -66,7 +68,8 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
-            sessionId = intent.getLongExtra(RunRecordingService.EXTRA_SESSION_ID, 0);
+            long receivedSessionId = intent.getLongExtra(RunRecordingService.EXTRA_SESSION_ID, 0);
+            sessionId = receivedSessionId;
             startedAt = intent.getLongExtra("started_at", 0);
             distance = intent.getDoubleExtra(RunRecordingService.EXTRA_DISTANCE, 0);
             float accuracy = intent.getFloatExtra(RunRecordingService.EXTRA_ACCURACY, 0);
@@ -79,13 +82,17 @@ public final class RunTrackerActivity extends ComponentActivity {
                     ? (accuracy <= 0 ? "Ricerca del segnale GPS…" : String.format(Locale.ROOT, "Accuratezza ± %.0f m", accuracy))
                     : (accuracy <= 0 ? gpsStatus : gpsStatus + String.format(Locale.ROOT, " · ± %.0f m", accuracy))
             );
-            primaryButton.setText(sessionId == 0 ? "Avvia corsa" : "Termina");
-            walkButton.setEnabled(sessionId == 0);
-            if (sessionId != 0 && "walk".equals(activityType)) primaryButton.setText("Termina camminata");
+            primaryButton.setText(sessionId == 0 ? "Avvia camminata" : "Termina attività");
+            primaryButton.setEnabled(true);
+            secondaryButton.setEnabled(sessionId == 0);
             driveStatusView.setText(DriveTestExportManager.status(RunTrackerActivity.this));
             sessionStepsView.setText(String.format(Locale.ITALY, "%,d passi", sessionSteps));
             sessionStepsView.setContentDescription("Passi sessione dal sensore telefono · " + stepStatus);
             renderClock();
+            if (receivedSessionId == 0 && awaitingCompletion && gpsStatus != null && gpsStatus.startsWith("Attività salvata")) {
+                awaitingCompletion = false;
+                scheduleAutomaticComparison();
+            }
         }
     };
 
@@ -107,8 +114,8 @@ public final class RunTrackerActivity extends ComponentActivity {
                 sessionId = active.id;
                 startedAt = active.startedAtMillis;
                 distance = active.distanceMeters;
-                primaryButton.setText("Termina");
-                walkButton.setEnabled(false);
+                primaryButton.setText("Termina attività");
+                secondaryButton.setEnabled(false);
                 renderClock();
             });
         });
@@ -123,7 +130,7 @@ public final class RunTrackerActivity extends ComponentActivity {
         root.setPadding(pad, pad, pad, pad);
         root.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        TextView movementTitle = label("OGGI · PASSI DEL TELEFONO", 13);
+        TextView movementTitle = label("RIEPILOGO DI OGGI", 13);
         movementTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(movementTitle, matchWrap(0));
         dailyStepsView = metric("—", 38);
@@ -148,7 +155,7 @@ public final class RunTrackerActivity extends ComponentActivity {
         healthPermissionButton.setVisibility(View.GONE);
         root.addView(healthPermissionButton, matchWrap(dp(8)));
 
-        TextView title = label("SESSIONE GPS DEL TELEFONO", 13);
+        TextView title = label("NUOVA SESSIONE", 13);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(title, matchWrap(0));
         durationView = metric("00:00:00", 44);
@@ -166,23 +173,48 @@ public final class RunTrackerActivity extends ComponentActivity {
         sessionStepsView = metric("0 passi", 25);
         root.addView(metricBlock("PASSI SESSIONE · SENSORE TELEFONO", sessionStepsView), matchWrap(dp(12)));
 
-        accuracyView = label("Premi Avvia corsa per attivare il GPS", 16);
+        accuracyView = label("Pronto. Il GPS si attiva soltanto durante la sessione.", 16);
         accuracyView.setGravity(Gravity.CENTER);
         root.addView(accuracyView, matchWrap(dp(20)));
 
-        TextView privacy = label("La traccia resta sul dispositivo. I punti GPS scartati vengono conservati con il motivo per la diagnostica.", 14);
+        TextView privacy = label("Puoi spegnere lo schermo: passi, percorso e diagnostica continuano automaticamente.", 14);
         privacy.setGravity(Gravity.CENTER);
         root.addView(privacy, matchWrap(dp(18)));
 
         primaryButton = new Button(this);
-        primaryButton.setText("Avvia corsa");
-        primaryButton.setOnClickListener(v -> { if (sessionId == 0) ensurePermissions("run"); else stopRun(); });
+        primaryButton.setText("Avvia camminata");
+        primaryButton.setOnClickListener(v -> { if (sessionId == 0) ensurePermissions("walk"); else stopRun(); });
         root.addView(primaryButton, matchWrap(dp(24)));
 
-        walkButton = new Button(this);
-        walkButton.setText("Avvia camminata");
-        walkButton.setOnClickListener(v -> ensurePermissions("walk"));
-        root.addView(walkButton, matchWrap(dp(8)));
+        secondaryButton = new Button(this);
+        secondaryButton.setText("Avvia corsa");
+        secondaryButton.setOnClickListener(v -> ensurePermissions("run"));
+        root.addView(secondaryButton, matchWrap(dp(8)));
+
+        TextView automationTitle = label("TEST AUTOMATICO", 13);
+        automationTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        root.addView(automationTitle, matchWrap(dp(24)));
+        comparisonView = label("Al termine confronteremo automaticamente Google Fit e aggiorneremo il JSON su Drive.", 14);
+        comparisonView.setGravity(Gravity.CENTER);
+        root.addView(comparisonView, matchWrap(dp(8)));
+
+        driveStatusView = label(DriveTestExportManager.status(this), 14);
+        driveStatusView.setGravity(Gravity.CENTER);
+        root.addView(driveStatusView, matchWrap(dp(8)));
+
+        Button advancedToggle = new Button(this);
+        advancedToggle.setText("Strumenti avanzati");
+        root.addView(advancedToggle, matchWrap(dp(16)));
+
+        advancedTools = new LinearLayout(this);
+        advancedTools.setOrientation(LinearLayout.VERTICAL);
+        advancedTools.setVisibility(View.GONE);
+        root.addView(advancedTools, matchWrap(0));
+        advancedToggle.setOnClickListener(v -> {
+            boolean show = advancedTools.getVisibility() != View.VISIBLE;
+            advancedTools.setVisibility(show ? View.VISIBLE : View.GONE);
+            advancedToggle.setText(show ? "Nascondi strumenti avanzati" : "Strumenti avanzati");
+        });
 
         driveButton = new Button(this);
         driveButton.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
@@ -192,34 +224,27 @@ public final class RunTrackerActivity extends ComponentActivity {
                     | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
             startActivityForResult(picker, DRIVE_FOLDER_REQUEST);
         });
-        root.addView(driveButton, matchWrap(dp(12)));
-
-        driveStatusView = label(DriveTestExportManager.status(this), 13);
-        driveStatusView.setGravity(Gravity.CENTER);
-        root.addView(driveStatusView, matchWrap(dp(6)));
+        advancedTools.addView(driveButton, matchWrap(dp(8)));
 
         Button retryDrive = new Button(this);
         retryDrive.setText("Riesporta ultima attività su Drive · GPX + JSON");
         retryDrive.setOnClickListener(v -> retryLatestToDrive());
-        root.addView(retryDrive, matchWrap(dp(8)));
+        advancedTools.addView(retryDrive, matchWrap(dp(8)));
 
         Button export = new Button(this);
         export.setText("Condividi manualmente ultima attività in GPX");
         export.setOnClickListener(v -> exportLatest());
-        root.addView(export, matchWrap(dp(8)));
+        advancedTools.addView(export, matchWrap(dp(8)));
 
         Button compare = new Button(this);
         compare.setText("Confronta ultima attività con Google Fit");
         compare.setOnClickListener(v -> compareLatestWithGoogleFit());
-        root.addView(compare, matchWrap(dp(8)));
-        comparisonView = label("Il confronto usa i dati Google Fit condivisi in Health Connect nello stesso intervallo.", 13);
-        comparisonView.setGravity(Gravity.CENTER);
-        root.addView(comparisonView, matchWrap(dp(6)));
+        advancedTools.addView(compare, matchWrap(dp(8)));
 
         Button watch = new Button(this);
         watch.setText("Bip U · prova BLE in sola lettura");
         watch.setOnClickListener(v -> BipUBleActivity.open(this));
-        root.addView(watch, matchWrap(dp(8)));
+        advancedTools.addView(watch, matchWrap(dp(8)));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
         return scroll;
@@ -269,9 +294,11 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     private void stopRun() {
         startService(new Intent(this, RunRecordingService.class).setAction(RunRecordingService.ACTION_STOP));
+        awaitingCompletion = true;
         sessionId = 0;
-        primaryButton.setText("Avvia corsa");
-        walkButton.setEnabled(true);
+        primaryButton.setText("Salvataggio in corso…");
+        primaryButton.setEnabled(false);
+        secondaryButton.setEnabled(false);
     }
 
     private void exportLatest() {
@@ -339,6 +366,8 @@ public final class RunTrackerActivity extends ComponentActivity {
                         fitDistance, steps, calories, c.getLocalDistanceMeters()/1000, delta,
                         c.getLocalSteps(), stepDelta,
                         c.getDurationMillis()/60000, (c.getDurationMillis()/1000)%60));
+                    DriveTestExportManager.captureGoogleFitComparison(RunTrackerActivity.this, sessions.get(0).id, c);
+                    refreshDriveExportAfterComparison(sessions.get(0));
                 }
                 @Override public void onPermissionRequired() {
                     comparisonView.setText("Concedi in Health Connect passi, distanza e calorie, poi riprova");
@@ -347,6 +376,40 @@ public final class RunTrackerActivity extends ComponentActivity {
                 @Override public void onUnavailable() { comparisonView.setText("Health Connect non disponibile"); }
                 @Override public void onError() { comparisonView.setText("Confronto non disponibile: verifica che Google Fit condivida i dati in Health Connect"); }
             });
+        });
+    }
+
+    private void scheduleAutomaticComparison() {
+        comparisonView.setText("Attività salvata. Attendo Google Fit e preparo il confronto automatico…");
+        clock.postDelayed(this::compareLatestAutomatically, 12_000);
+        clock.postDelayed(this::compareLatestAutomatically, 45_000);
+    }
+
+    private void compareLatestAutomatically() {
+        io.execute(() -> {
+            java.util.List<RunSession> sessions = RunDatabase.get(this).runs().sessions();
+            if (sessions.isEmpty()) return;
+            RunSession latest = sessions.get(0);
+            HealthConnectGateway.compareGoogleFit(this, latest, new HealthConnectGateway.ComparisonCallback() {
+                @Override public void onSuccess(HealthConnectGateway.GoogleFitComparison comparison) {
+                    if (comparison.getSteps() == null && comparison.getDistanceMeters() == null) return;
+                    DriveTestExportManager.captureGoogleFitComparison(RunTrackerActivity.this, latest.id, comparison);
+                    runOnUiThread(() -> compareLatestWithGoogleFit());
+                }
+                @Override public void onPermissionRequired() { runOnUiThread(() -> comparisonView.setText("Health Connect richiede nuovamente l’autorizzazione")); }
+                @Override public void onUnavailable() { runOnUiThread(() -> comparisonView.setText("Health Connect non disponibile")); }
+                @Override public void onError() { runOnUiThread(() -> comparisonView.setText("Google Fit non è ancora sincronizzato; riprovo automaticamente")); }
+            });
+        });
+    }
+
+    private void refreshDriveExportAfterComparison(RunSession session) {
+        io.execute(() -> {
+            RunDao dao = RunDatabase.get(this).runs();
+            DriveTestExportManager.finish(this, session, dao.points(session.id), result -> runOnUiThread(() -> {
+                driveStatusView.setText(DriveTestExportManager.status(this));
+                if (result.success()) comparisonView.append("\nConfronto aggiunto al JSON su Drive.");
+            }));
         });
     }
 
@@ -394,5 +457,5 @@ public final class RunTrackerActivity extends ComponentActivity {
         ContextCompat.registerReceiver(this, stateReceiver, new IntentFilter(RunRecordingService.ACTION_STATE), ContextCompat.RECEIVER_NOT_EXPORTED);
     }
     @Override protected void onStop() { unregisterReceiver(stateReceiver); super.onStop(); }
-    @Override protected void onDestroy() { clock.removeCallbacks(clockTick); io.shutdown(); super.onDestroy(); }
+    @Override protected void onDestroy() { clock.removeCallbacksAndMessages(null); io.shutdown(); super.onDestroy(); }
 }

@@ -63,7 +63,7 @@ dati del sito se vuoi conservare la copia offline.
 
 ## Movimento e corsa (Android)
 
-La schermata **Impostazioni → Movimento · passi, calorie e GPS** richiede una
+La sezione principale **Movimento**, accanto a **Progetti**, richiede una
 volta l'accesso ai passi in Health Connect. Il conteggio di sistema può quindi
 continuare anche quando l'app non è aperta; alla riapertura l'app importa in
 modo idempotente il totale aggregato della giornata, evitando la somma diretta
@@ -85,15 +85,17 @@ su passi, falcata e peso predefiniti. Non sono ancora calibrate sul profilo
 personale e non vanno considerate misure cliniche o equivalenti a Google Fit
 finché non superano il confronto controllato sul Galaxy S21.
 
-Da **Impostazioni → Movimento · passi, calorie e GPS** si avvia una traccia GPS del
+Da **Movimento** si avvia una traccia GPS del
 telefono. Una notifica persistente mantiene la registrazione attiva anche a
 schermo spento e consente di terminarla. La schermata mostra durata, distanza,
 passo medio e accuratezza corrente.
 
-**Confronta ultima attività con Google Fit** legge da Health Connect i record
-attribuiti a Google Fit nello stesso intervallo e mostra distanza, passi,
-calorie attive e scarto. Google Fit deve aver condiviso quei dati con Health
-Connect; i valori assenti restano esplicitamente non disponibili.
+Alla fine della sessione l'app attende la sincronizzazione, legge da Health
+Connect i record attribuiti a Google Fit nello stesso intervallo e mostra
+distanza, passi, calorie attive e scarto. Il confronto viene inoltre aggiunto
+automaticamente al JSON diagnostico su Drive. Il comando manuale resta negli
+strumenti avanzati come recupero. Google Fit deve aver condiviso quei dati con
+Health Connect; i valori assenti restano esplicitamente non disponibili.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo

@@ -295,6 +295,7 @@ enum AppSection {
   upcoming,
   waiting,
   projects,
+  movement,
   completed,
   settings,
 }
@@ -306,6 +307,7 @@ extension on AppSection {
     AppSection.upcoming => 'Prossime',
     AppSection.waiting => 'In attesa',
     AppSection.projects => 'Progetti',
+    AppSection.movement => 'Movimento',
     AppSection.completed => 'Completate',
     AppSection.settings => 'Impostazioni',
   };
@@ -316,6 +318,7 @@ extension on AppSection {
     AppSection.upcoming => Icons.event_outlined,
     AppSection.waiting => Icons.hourglass_empty,
     AppSection.projects => Icons.folder_outlined,
+    AppSection.movement => Icons.directions_walk_outlined,
     AppSection.completed => Icons.check_circle_outline,
     AppSection.settings => Icons.settings_outlined,
   };
@@ -1128,6 +1131,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (sectionHistory.length > 20) sectionHistory.removeAt(0);
       section = destination;
     });
+    if (destination == AppSection.movement && isAndroidPlatform) {
+      unawaited(RunTrackerService.open());
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       elapsed.stop();
       unawaited(
@@ -1182,10 +1188,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               : activeTasks,
           builder: (context, snapshot) {
             final tasks = snapshot.data ?? const [];
-            const primarySections = [
+            final primarySections = [
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
+              if (isAndroidPlatform) AppSection.movement,
             ];
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -1423,6 +1430,35 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
     }
     if (section == AppSection.projects) return _projectsView(all);
+    if (section == AppSection.movement) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.directions_walk_outlined, size: 56),
+              const SizedBox(height: 16),
+              Text(
+                'Passi, camminate e corse',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'La registrazione si apre in una schermata dedicata e continua anche a schermo spento.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: RunTrackerService.open,
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Apri Movimento'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final today = CivilDate.fromDateTime(DateTime.now()).toString();
     final visible = all.where((task) {
       return switch (section) {
@@ -1439,6 +1475,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               task.showDate!.compareTo(today) > 0,
         AppSection.waiting => task.status == TaskStatus.waiting.name,
         AppSection.projects => false,
+        AppSection.movement => false,
         AppSection.completed => task.status == TaskStatus.completed.name,
         AppSection.settings => false,
       };

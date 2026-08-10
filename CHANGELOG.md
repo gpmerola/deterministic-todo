@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.0
+
+- Promossa Movimento a destinazione principale accanto a Progetti; rimossa la
+  vecchia voce nascosta nelle Impostazioni.
+- Ridisegnata la schermata attorno a una sola azione primaria per la camminata,
+  con corsa secondaria, stati leggibili e strumenti tecnici comprimibili.
+- Dopo lo stop, confronto Google Fit e aggiornamento del JSON Drive partono
+  automaticamente; confronto, riesportazione e GPX manuali restano disponibili
+  come recovery.
+- Il JSON diagnostico include una sezione versionata
+  `google_fit_comparison` con osservazione e valori locali/riferimento.
+
 ## 2.22.4
 
 - Estratta dal servizio Android la politica che combina attività, stato del

@@ -5,8 +5,8 @@ Aggiornato il 10 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.22.4 build 96**, manutenzione del gate GPS
-  assistito dai passi, documentazione e test Android. La base funzionale
+- Versione coordinata corrente: **2.23.0 build 97**, nuova UX principale di
+  Movimento e automazione confronto Google Fit → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
 - Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
@@ -59,6 +59,9 @@ Aggiornato il 10 agosto 2026.
   progetti e sezioni e produce un rapporto prima del backup.
 - Impostazioni contiene Cestino, attività completate, diagnostica e Salute dati;
   gli stati sani restano fuori dall'interfaccia principale.
+- Su Android, Movimento è una quarta destinazione principale accanto a
+  Progetti. Camminata è l'azione primaria; Drive, export manuali e BLE sono
+  raccolti negli strumenti avanzati.
 - Android contiene il modulo separato `runtracker`: registra corse usando il
   GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
   GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
@@ -82,7 +85,7 @@ Aggiornato il 10 agosto 2026.
 - I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
   contatore e stime. Build Android, firma, manifest pubblico e parità con Web
   sono verificati dalla pipeline coordinata.
-- Restano da collaudare sulla build 96 una camminata lunga a schermo spento e
+- Restano da collaudare sulla build 97 una camminata lunga a schermo spento e
   il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
   confronto Health Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio

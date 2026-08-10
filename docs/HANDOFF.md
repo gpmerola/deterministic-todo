@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.22.4 build 96**. La base funzionale
+- Versione coordinata corrente: **2.23.0 build 97**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -63,8 +63,9 @@ modulo movimento per risolvere problemi Todo e viceversa.
 ## Modulo movimento esistente
 
 Il modulo nativo vive in `android/runtracker` ed è separabile. Flutter espone
-solo `lib/services/run_tracker_service.dart`, il channel Android e una voce in
-Impostazioni. Il database `run_tracker.sqlite` è Room, locale e distinto dal
+solo `lib/services/run_tracker_service.dart`, il channel Android e una
+destinazione principale Movimento accanto a Progetti. Il database
+`run_tracker.sqlite` è Room, locale e distinto dal
 database Todo; non è sincronizzato con Supabase.
 
 ### Cosa funziona oggi
@@ -115,7 +116,7 @@ calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
 provvisori di 0,72 m per passo e 70 kg. Manca ancora il profilo personale e non
 esiste ancora una calibrazione personale sufficientemente lunga.
 
-La build 96 include `TYPE_STEP_COUNTER` direttamente nel servizio delle
+La build 97 conserva `TYPE_STEP_COUNTER` direttamente nel servizio delle
 sessioni: il delta è visibile nella UI, continua a schermo spento e viene
 esportato nel JSON con stato esplicito. Un confronto in-app aggrega inoltre,
 nello stesso intervallo locale, passi, distanza e calorie attive filtrati per
@@ -123,6 +124,13 @@ l'origine Google Fit. Durante una camminata, i fix senza nuovi passi non
 incrementano la distanza; alla ripresa il collegamento plausibile riparte
 dall'ultima ancora valida. La disponibilità del confronto dipende dalla
 sincronizzazione Google Fit → Health Connect.
+
+La 2.23.0 rende camminata l'azione primaria e sposta Drive, export manuale e
+BLE in strumenti avanzati comprimibili. Dopo lo stop tenta automaticamente il
+confronto dopo 12 e 45 secondi; al primo riferimento disponibile rigenera il
+JSON Drive includendo `google_fit_comparison`. La UI va lasciata aperta circa
+un minuto nel collaudo finché questa automazione non viene spostata in un job
+persistente indipendente dall'Activity.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

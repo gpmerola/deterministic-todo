@@ -405,14 +405,6 @@ class SettingsView extends StatelessWidget {
               TrashView(repository: repository, syncService: syncService),
         ),
       ),
-      if (isAndroidPlatform)
-        ListTile(
-          leading: const Icon(Icons.directions_run_outlined),
-          title: const Text('Movimento · passi, calorie e GPS'),
-          subtitle: const Text('GPS del telefono e collegamento BLE'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: RunTrackerService.open,
-        ),
       ExpansionTile(
         leading: const Icon(Icons.storage_outlined),
         title: const Text('Dati e manutenzione'),
