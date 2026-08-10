@@ -5,7 +5,7 @@ Aggiornato il 10 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.23.6 build 103**, layout compatto di
+- Versione coordinata corrente: **2.23.7 build 104**, layout compatto di
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
@@ -96,8 +96,11 @@ Aggiornato il 10 agosto 2026.
   aggiornamento Drive: la build 102 conserva il codice di errore, riesporta
   ogni tentativo e non lascia più il fallback riuscito su `scheduled`. Il test
   reale della 102 non ha avviato il recupero perché il gate leggeva lo stato
-  globale di una sessione precedente; la 103 usa lo stato della sessione più recente.
-- Restano da collaudare sulla build 103 il recupero Health Connect e il confronto
+  globale di una sessione precedente; la 103 usa lo stato della sessione più recente
+  e ha completato il confronto della sessione 14. Il provider Drive ha però
+  conservato il vecchio file nonostante l'esito locale positivo; la 104 forza
+  troncamento e sincronizzazione e verifica la dimensione scritta.
+- Restano da collaudare sulla build 104 l'aggiornamento Drive del confronto
   della sessione già registrata, oltre a una camminata lunga a schermo spento e
   il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
   confronto Health Connect.

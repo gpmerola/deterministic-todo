@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.23.6 build 103**. La base funzionale
+- Versione coordinata corrente: **2.23.7 build 104**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -160,6 +160,12 @@ La 2.23.5 installata non ha prodotto né confronto né errore perché il recuper
 era condizionato dallo stato globale, che poteva appartenere a una sessione
 precedente già riuscita. La 2.23.6 consulta invece lo stato persistito della
 sessione più recente; `scheduled`, `waiting` ed errori avviano il fallback.
+
+La 2.23.6 ha completato il confronto della sessione 14 (Google Fit 527 m e 774
+passi; Todo 563 m e 769 passi), ma il provider Drive ha lasciato invariato il
+vecchio JSON pur restituendo successo. La 2.23.7 apre i documenti esistenti in
+modalità `rwt`, forza flush e `fsync` e controlla la dimensione restituita dal
+provider prima di dichiarare l'export completato.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

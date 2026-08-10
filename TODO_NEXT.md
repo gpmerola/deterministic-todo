@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.23.6 build 103. La base funzionale build 95 ha
+- Release coordinata corrente: 2.23.7 build 104. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -59,7 +59,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 103 sul Galaxy S21; il permesso di lettura Health Connect
+- collaudare la build 104 sul Galaxy S21; il permesso di lettura Health Connect
   in background è già stato concesso. Aprire Movimento deve recuperare la
   sessione 14 e produrre nel JSON un confronto oppure un `error_code` tecnico;
   cartella Drive e permessi devono restare persistenti senza nuova configurazione;

@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.7
+
+- La sovrascrittura SAF usa apertura `rwt`, flush e sincronizzazione esplicita
+  del file descriptor, così Google Drive riceve davvero il JSON aggiornato.
+- L'export verifica la dimensione esposta dal provider e non dichiara più
+  successo quando Drive conserva i byte della versione precedente.
+
 ## 2.23.6
 
 - Il recupero all'apertura consulta lo stato della sessione più recente invece

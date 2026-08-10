@@ -11,13 +11,15 @@ import android.os.Build;
 import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.provider.DocumentsContract;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.OutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -305,6 +307,22 @@ final class DriveTestExportManager {
         }
         if (file == null) file=DocumentsContract.createDocument(c.getContentResolver(),dir,mime,name);
         if(file==null)throw new IllegalStateException("create failed");
-        try(OutputStream out=c.getContentResolver().openOutputStream(file,"w")){ if(out==null)throw new IllegalStateException("open failed"); out.write(text.getBytes(StandardCharsets.UTF_8)); }
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+        try (ParcelFileDescriptor descriptor = c.getContentResolver().openFileDescriptor(file, "rwt")) {
+            if (descriptor == null) throw new IllegalStateException("open failed");
+            try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
+                out.write(bytes);
+                out.flush();
+                descriptor.getFileDescriptor().sync();
+            }
+        }
+        Long observedSize = null;
+        try (Cursor cursor = c.getContentResolver().query(file,
+            new String[] {DocumentsContract.Document.COLUMN_SIZE}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0))
+                observedSize = cursor.getLong(0);
+        }
+        if (!DriveWriteVerification.matchesSize(bytes.length, observedSize))
+            throw new IOException("provider size mismatch");
     }
 }
