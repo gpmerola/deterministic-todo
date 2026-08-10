@@ -3,6 +3,7 @@ package app.deterministic.todo.runtracker
 import android.content.Context
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.StepsRecord
@@ -30,11 +31,21 @@ object HealthConnectGateway {
         HealthConnectClient.getSdkStatus(context, PROVIDER_PACKAGE)
 
     @JvmStatic
-    fun permissions(): Set<String> = setOf(
+    fun permissions(context: Context): Set<String> {
+        val result = mutableSetOf(
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(DistanceRecord::class),
         HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)
-    )
+        )
+        if (sdkStatus(context) == AVAILABLE) {
+            val client = HealthConnectClient.getOrCreate(context.applicationContext, PROVIDER_PACKAGE)
+            if (client.features.getFeatureStatus(
+                    HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND
+                ) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+            ) result.add(HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND)
+        }
+        return result
+    }
 
     @JvmStatic
     fun permissionContract(): ActivityResultContract<Set<String>, Set<String>> =
@@ -50,7 +61,7 @@ object HealthConnectGateway {
         scope.launch {
             try {
                 val client = HealthConnectClient.getOrCreate(appContext, PROVIDER_PACKAGE)
-                if (!client.permissionController.getGrantedPermissions().containsAll(permissions())) {
+                if (!client.permissionController.getGrantedPermissions().containsAll(permissions(appContext))) {
                     withContext(Dispatchers.Main) { callback.onPermissionRequired() }
                     return@launch
                 }
@@ -98,7 +109,7 @@ object HealthConnectGateway {
         scope.launch {
             try {
                 val client = HealthConnectClient.getOrCreate(appContext, PROVIDER_PACKAGE)
-                if (!client.permissionController.getGrantedPermissions().containsAll(permissions())) {
+                if (!client.permissionController.getGrantedPermissions().containsAll(permissions(appContext))) {
                     withContext(Dispatchers.Main) { callback.onPermissionRequired() }
                     return@launch
                 }

@@ -85,7 +85,13 @@ Aggiornato il 10 agosto 2026.
 - I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
   contatore e stime. Build Android, firma, manifest pubblico e parità con Web
   sono verificati dalla pipeline coordinata.
-- Restano da collaudare sulla build 98 una camminata lunga a schermo spento e
+- La build 98 ha confermato il gate durante due soste: 0 m nella prima e circa
+  1,5 m nella seconda. Ha inoltre isolato il blocco del confronto automatico:
+  Health Connect richiede il consenso separato per le letture in background.
+  La build 99 dichiara e richiede tale consenso e rende l'esito diagnosticabile
+  direttamente dal JSON Drive.
+- Restano da collaudare sulla build 99 il consenso Health Connect e il confronto
+  automatico della sessione già registrata, oltre a una camminata lunga a schermo spento e
   il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
   confronto Health Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio

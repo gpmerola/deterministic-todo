@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.2
+
+- Aggiunto il consenso Health Connect per leggere passi, distanza e calorie in
+  background: il confronto WorkManager non viene più respinto quando Movimento
+  non è visibile.
+- Dopo il consenso l'ultima sessione viene riprogrammata automaticamente, senza
+  richiedere una nuova camminata.
+- Il JSON Drive registra stato del confronto automatico, numero di tentativi e
+  istante dell'ultimo tentativo anche quando il riferimento non è disponibile.
+- Disabilitato il ripristino della vecchia posizione di scroll in Movimento,
+  così il riepilogo giornaliero non parte più nascosto sotto la barra superiore.
+
 ## 2.23.1
 
 - Reso il confronto Google Fit un lavoro persistente: parte dopo lo stop,

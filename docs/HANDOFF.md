@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.23.1 build 98**. La base funzionale
+- Versione coordinata corrente: **2.23.2 build 99**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -134,6 +134,12 @@ BLE in strumenti avanzati comprimibili. Dopo lo stop un `WorkManager` unico
 per sessione attende Google Fit, applica timeout e retry esponenziale e
 rigenera il JSON Drive includendo `google_fit_comparison`. Non dipende più
 dall'Activity aperta. La schermata mostra lo stato persistito del job.
+
+La 2.23.2 aggiunge il consenso Health Connect separato per le letture in
+background, necessario perché WorkManager possa leggere i dati attribuiti a
+Google Fit quando Movimento non è visibile. Dopo la concessione viene
+riprogrammata l'ultima sessione terminata. Il JSON Drive conserva anche stato,
+numero e istante dei tentativi, rendendo la diagnosi indipendente da ADB.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

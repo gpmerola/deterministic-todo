@@ -97,7 +97,10 @@ automaticamente al JSON diagnostico su Drive. Il comando manuale resta negli
 strumenti avanzati come recupero. Google Fit deve aver condiviso quei dati con
 Health Connect; i valori assenti restano esplicitamente non disponibili.
 Il confronto usa un job Android persistente con timeout e retry: Movimento può
-essere chiusa dopo lo stop e mostra l'esito alla riapertura.
+essere chiusa dopo lo stop e mostra l'esito alla riapertura. Health Connect
+richiede un consenso distinto per questa lettura in background; l'app lo
+richiede solo sui dispositivi che supportano la funzione. Stato e tentativi
+restano nel JSON Drive anche quando il confronto non riesce.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo

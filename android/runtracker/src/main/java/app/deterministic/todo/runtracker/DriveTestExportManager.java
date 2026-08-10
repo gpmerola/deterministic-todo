@@ -125,6 +125,15 @@ final class DriveTestExportManager {
             .putString(COMPARISON_STATUS, status).apply();
     }
 
+    static void captureComparisonAttempt(Context context, long id, String status, int attempts) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(COMPARISON_STATUS, status)
+            .putString(id + ".comparison_status", status)
+            .putInt(id + ".comparison_attempts", attempts)
+            .putLong(id + ".comparison_last_attempt_at", System.currentTimeMillis())
+            .apply();
+    }
+
     static String comparisonStatus(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(COMPARISON_STATUS, "idle");
@@ -208,7 +217,13 @@ final class DriveTestExportManager {
         }
         long exportedAt = System.currentTimeMillis();
         long fitObservedAt = p.getLong(s.id + ".fit_observed_at", -1);
-        JSONObject fit = new JSONObject().put("status", fitObservedAt < 0 ? "not_compared" : "available");
+        String automationStatus = p.getString(s.id + ".comparison_status", "not_scheduled");
+        JSONObject fit = new JSONObject()
+            .put("status", fitObservedAt < 0 ? "not_compared" : "available")
+            .put("automation_status", automationStatus)
+            .put("attempt_count", p.getInt(s.id + ".comparison_attempts", 0))
+            .put("last_attempt_at_ms", p.contains(s.id + ".comparison_last_attempt_at")
+                ? p.getLong(s.id + ".comparison_last_attempt_at", 0) : JSONObject.NULL);
         if (fitObservedAt >= 0) {
             fit.put("observed_at_ms", fitObservedAt)
                 .put("steps", p.contains(s.id + ".fit_steps") ? p.getLong(s.id + ".fit_steps", 0) : JSONObject.NULL)

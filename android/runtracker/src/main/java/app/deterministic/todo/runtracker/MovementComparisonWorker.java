@@ -23,7 +23,7 @@ public final class MovementComparisonWorker extends Worker {
     }
 
     static void schedule(Context context, long sessionId) {
-        DriveTestExportManager.setComparisonStatus(context, "scheduled");
+        DriveTestExportManager.captureComparisonAttempt(context, sessionId, "scheduled", 0);
         OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(MovementComparisonWorker.class)
             .setInputData(new Data.Builder().putLong(SESSION_ID, sessionId).build())
             .setInitialDelay(15, TimeUnit.SECONDS)
@@ -39,7 +39,7 @@ public final class MovementComparisonWorker extends Worker {
         RunDao dao = RunDatabase.get(context).runs();
         RunSession session = dao.session(id);
         if (session == null || session.endedAtMillis == null) return Result.failure();
-        DriveTestExportManager.setComparisonStatus(context, "waiting");
+        DriveTestExportManager.captureComparisonAttempt(context, id, "waiting", getRunAttemptCount() + 1);
 
         CountDownLatch comparisonLatch = new CountDownLatch(1);
         AtomicReference<HealthConnectGateway.GoogleFitComparison> comparison = new AtomicReference<>();
@@ -60,9 +60,13 @@ public final class MovementComparisonWorker extends Worker {
 
         HealthConnectGateway.GoogleFitComparison value = comparison.get();
         if (value == null || (value.getSteps() == null && value.getDistanceMeters() == null)) {
-            DriveTestExportManager.setComparisonStatus(context, error.get() == null ? "fit_not_synced" : error.get());
-            return MovementComparisonRetryPolicy.retryMissingReference(getRunAttemptCount())
-                ? Result.retry() : Result.failure();
+            String status = error.get() == null ? "fit_not_synced" : error.get();
+            DriveTestExportManager.captureComparisonAttempt(context, id, status, getRunAttemptCount() + 1);
+            boolean permissionFailure = "permission_required".equals(status);
+            boolean retry = !permissionFailure &&
+                MovementComparisonRetryPolicy.retryMissingReference(getRunAttemptCount());
+            if (!retry) exportDiagnosticState(context, session, dao);
+            return retry ? Result.retry() : Result.failure();
         }
 
         DriveTestExportManager.captureGoogleFitComparison(context, id, value);
@@ -83,8 +87,15 @@ public final class MovementComparisonWorker extends Worker {
             DriveTestExportManager.setComparisonStatus(context, "drive_failed");
             return Result.retry();
         }
-        DriveTestExportManager.setComparisonStatus(context, "success");
+        DriveTestExportManager.captureComparisonAttempt(context, id, "success", getRunAttemptCount() + 1);
         return MovementComparisonRetryPolicy.refreshAvailableReference(getRunAttemptCount())
             ? Result.retry() : Result.success();
+    }
+
+    private static void exportDiagnosticState(Context context, RunSession session, RunDao dao) {
+        CountDownLatch latch = new CountDownLatch(1);
+        DriveTestExportManager.finish(context, session, dao.points(session.id), result -> latch.countDown());
+        try { latch.await(20, TimeUnit.SECONDS); }
+        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
     }
 }

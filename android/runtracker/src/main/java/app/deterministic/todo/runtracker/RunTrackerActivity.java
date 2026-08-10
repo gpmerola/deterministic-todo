@@ -62,8 +62,19 @@ public final class RunTrackerActivity extends ComponentActivity {
     private long sessionSteps;
 
     private final ActivityResultLauncher<Set<String>> healthPermissions = registerForActivityResult(
-        HealthConnectGateway.permissionContract(), granted -> refreshDailyMovement()
+        HealthConnectGateway.permissionContract(), granted -> {
+            refreshDailyMovement();
+            retryLatestComparison();
+        }
     );
+
+    private void retryLatestComparison() {
+        io.execute(() -> {
+            java.util.List<RunSession> sessions = RunDatabase.get(this).runs().sessions();
+            if (!sessions.isEmpty() && sessions.get(0).endedAtMillis != null)
+                MovementComparisonWorker.schedule(this, sessions.get(0).id);
+        });
+    }
 
     private final BroadcastReceiver stateReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
@@ -144,8 +155,8 @@ public final class RunTrackerActivity extends ComponentActivity {
         root.addView(movementStatusView, matchWrap(dp(8)));
 
         healthPermissionButton = new Button(this);
-        healthPermissionButton.setText("Consenti accesso ai passi");
-        healthPermissionButton.setOnClickListener(v -> healthPermissions.launch(HealthConnectGateway.permissions()));
+        healthPermissionButton.setText("Consenti Health Connect");
+        healthPermissionButton.setOnClickListener(v -> healthPermissions.launch(HealthConnectGateway.permissions(this)));
         healthPermissionButton.setVisibility(View.GONE);
         root.addView(healthPermissionButton, matchWrap(dp(8)));
 
@@ -238,9 +249,11 @@ public final class RunTrackerActivity extends ComponentActivity {
         watch.setOnClickListener(v -> BipUBleActivity.open(this));
         advancedTools.addView(watch, matchWrap(dp(8)));
         ScrollView scroll = new ScrollView(this);
+        scroll.setSaveEnabled(false);
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
         root.setFocusableInTouchMode(true);
         root.requestFocus();
+        scroll.post(() -> scroll.scrollTo(0, 0));
         return scroll;
     }
 
@@ -364,7 +377,7 @@ public final class RunTrackerActivity extends ComponentActivity {
                 }
                 @Override public void onPermissionRequired() {
                     comparisonView.setText("Concedi in Health Connect passi, distanza e calorie, poi riprova");
-                    healthPermissions.launch(HealthConnectGateway.permissions());
+                    healthPermissions.launch(HealthConnectGateway.permissions(this));
                 }
                 @Override public void onUnavailable() { comparisonView.setText("Health Connect non disponibile"); }
                 @Override public void onError() { comparisonView.setText("Confronto non disponibile: verifica che Google Fit condivida i dati in Health Connect"); }
