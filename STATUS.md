@@ -5,7 +5,7 @@ Aggiornato il 10 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.23.7 build 104**, layout compatto di
+- Versione coordinata corrente: **2.24.0 build 105**, layout compatto di
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
@@ -99,11 +99,16 @@ Aggiornato il 10 agosto 2026.
   globale di una sessione precedente; la 103 usa lo stato della sessione più recente
   e ha completato il confronto della sessione 14. Il provider Drive ha però
   conservato il vecchio file nonostante l'esito locale positivo; la 104 forza
-  troncamento e sincronizzazione e verifica la dimensione scritta.
-- Restano da collaudare sulla build 104 l'aggiornamento Drive del confronto
-  della sessione già registrata, oltre a una camminata lunga a schermo spento e
-  il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
-  confronto Health Connect.
+  troncamento e sincronizzazione e verifica la dimensione scritta. Anche la
+  104 non ha aggiornato il file remoto: la 105 usa quindi sidecar immutabili,
+  lo stesso modello create-only affidabile degli export iniziali.
+- La 105 introduce inoltre un audit passivo di quattro giorni: WorkManager
+  legge una volta ogni sei ore ma produce al massimo un report definitivo per
+  giorno precedente, senza GPS o servizio permanente.
+- Restano da collaudare sulla build 105 il sidecar Drive, gli inset UI, il test
+  passivo e una camminata lunga a schermo spento; resta inoltre il BLE reale
+  con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
+  Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
   definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
 

@@ -162,7 +162,7 @@ final class DriveTestExportManager {
     static String status(Context context) {
         android.content.SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String status = p.getString(LAST_STATUS, isConfigured(context) ? "ready" : "not_configured");
-        if ("success".equals(status)) return "Ultimo export Drive completato · GPX + JSON";
+        if ("success".equals(status)) return "Ultimo caricamento Drive completato";
         if ("exporting".equals(status)) return "Export Drive in corso…";
         if ("failed".equals(status)) return "Ultimo export Drive non riuscito · " + p.getString(LAST_ERROR, "errore_sconosciuto");
         if ("ready".equals(status)) return "Cartella Drive pronta · nessun export completato";
@@ -193,6 +193,80 @@ final class DriveTestExportManager {
             public void onUnavailable() { starter.start(null, "unavailable"); }
             public void onError() { starter.start(null, "error"); }
         });
+    }
+
+    static void exportComparison(Context context, RunSession session, Completion completion) {
+        new Thread(() -> completion.onComplete(writeComparison(context, session)),
+            "movement-drive-comparison").start();
+    }
+
+    private static ExportResult writeComparison(Context c, RunSession s) {
+        if (!isConfigured(c)) return new ExportResult(false, false, "not_configured");
+        try {
+            android.content.SharedPreferences p = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            long observedAt = p.getLong(s.id + ".fit_observed_at", 0);
+            if (observedAt <= 0) return new ExportResult(true, false, "comparison_missing");
+            String base = String.format(java.util.Locale.ROOT, "%d_%s_session-%06d",
+                s.startedAtMillis, s.activityType, s.id);
+            JSONObject fit = new JSONObject()
+                .put("schema_version", 1)
+                .put("session_id", s.id)
+                .put("observed_at_ms", observedAt)
+                .put("started_at_ms", s.startedAtMillis)
+                .put("ended_at_ms", s.endedAtMillis)
+                .put("fit_steps", p.contains(s.id + ".fit_steps") ? p.getLong(s.id + ".fit_steps", 0) : JSONObject.NULL)
+                .put("fit_distance_m", p.contains(s.id + ".fit_distance_m") ? p.getFloat(s.id + ".fit_distance_m", 0) : JSONObject.NULL)
+                .put("fit_active_calories", p.contains(s.id + ".fit_active_calories") ? p.getFloat(s.id + ".fit_active_calories", 0) : JSONObject.NULL)
+                .put("local_steps", p.getLong(s.id + ".fit_local_steps", 0))
+                .put("local_distance_m", p.getFloat(s.id + ".fit_local_distance_m", 0));
+            writeNewFile(c, base + "_comparison-" + observedAt + ".json",
+                "application/json", fit.toString(2));
+            c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(LAST_STATUS, "success").remove(LAST_ERROR)
+                .putLong(LAST_EXPORTED_AT, System.currentTimeMillis()).apply();
+            return new ExportResult(true, true, "ok");
+        } catch (Exception error) {
+            String code = "drive_comparison_failed_" + error.getClass().getSimpleName();
+            c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(LAST_STATUS, "failed").putString(LAST_ERROR, code).apply();
+            return new ExportResult(true, false, code);
+        }
+    }
+
+    static ExportResult writePassiveAudit(Context c, HealthConnectGateway.PassiveAudit audit) {
+        if (!isConfigured(c)) return new ExportResult(false, false, "not_configured");
+        try {
+            android.content.SharedPreferences profile = c.getSharedPreferences("movement_profile", Context.MODE_PRIVATE);
+            double stride = profile.getFloat("walking_stride_meters",
+                (float) MovementEstimate.DEFAULT_STRIDE_METERS);
+            double weight = profile.getFloat("weight_kg", (float) MovementEstimate.DEFAULT_WEIGHT_KG);
+            MovementEstimate estimate = MovementEstimate.fromSteps(audit.getAllSteps(), stride, weight);
+            JSONObject json = new JSONObject()
+                .put("schema_version", 1)
+                .put("kind", "passive_daily_audit")
+                .put("day", audit.getDay())
+                .put("zone_id", audit.getZoneId())
+                .put("observed_at_ms", System.currentTimeMillis())
+                .put("todo", new JSONObject()
+                    .put("steps", audit.getAllSteps())
+                    .put("estimated_distance_m", estimate.distanceMeters())
+                    .put("estimated_active_calories", estimate.activeCalories())
+                    .put("stride_m", stride).put("weight_kg", weight))
+                .put("health_connect_all_sources", new JSONObject()
+                    .put("distance_m", audit.getAllDistanceMeters() == null ? JSONObject.NULL : audit.getAllDistanceMeters())
+                    .put("active_calories", audit.getAllActiveCalories() == null ? JSONObject.NULL : audit.getAllActiveCalories()))
+                .put("google_fit", new JSONObject()
+                    .put("steps", audit.getFitSteps() == null ? JSONObject.NULL : audit.getFitSteps())
+                    .put("distance_m", audit.getFitDistanceMeters() == null ? JSONObject.NULL : audit.getFitDistanceMeters())
+                    .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()));
+            writeNewFile(c, "daily_audit_" + audit.getDay() + ".json", "application/json", json.toString(2));
+            c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putString(LAST_STATUS, "success").remove(LAST_ERROR)
+                .putLong(LAST_EXPORTED_AT, System.currentTimeMillis()).apply();
+            return new ExportResult(true, true, "ok");
+        } catch (Exception error) {
+            return new ExportResult(true, false, "drive_audit_failed_" + error.getClass().getSimpleName());
+        }
     }
 
     private static ExportResult write(Context c, RunSession s, List<TrackPoint> points, Long stepsEnd, String healthStatus) {
@@ -324,5 +398,26 @@ final class DriveTestExportManager {
         }
         if (!DriveWriteVerification.matchesSize(bytes.length, observedSize))
             throw new IOException("provider size mismatch");
+    }
+
+    private static void writeNewFile(Context c, String name, String mime, String text) throws Exception {
+        Uri tree = tree(c); if (tree == null) throw new IllegalStateException("folder missing");
+        String directoryId = DocumentsContract.getTreeDocumentId(tree);
+        Uri dir = DocumentsContract.buildDocumentUriUsingTree(tree, directoryId);
+        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
+        try (Cursor cursor = c.getContentResolver().query(children,
+            new String[] {DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null) while (cursor.moveToNext())
+                if (name.equals(cursor.getString(0))) return;
+        }
+        Uri file = DocumentsContract.createDocument(c.getContentResolver(), dir, mime, name);
+        if (file == null) throw new IllegalStateException("create failed");
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+        try (ParcelFileDescriptor descriptor = c.getContentResolver().openFileDescriptor(file, "rwt")) {
+            if (descriptor == null) throw new IllegalStateException("open failed");
+            try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
+                out.write(bytes); out.flush(); descriptor.getFileDescriptor().sync();
+            }
+        }
     }
 }

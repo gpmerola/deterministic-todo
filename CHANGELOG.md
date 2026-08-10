@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.24.0
+
+- Movimento usa una toolbar propria con inset di status/navigation bar: il
+  riepilogo quotidiano non resta più nascosto sotto il titolo.
+- Aggiunto un test passivo di quattro giorni: un solo avvio programma report
+  giornalieri immutabili con valori Todo, Health Connect e Google Fit, senza
+  GPS continuo, annotazioni delle soste o interazioni quotidiane.
+- I confronti di sessione vengono caricati come piccoli sidecar immutabili;
+  non dipendono più dalla sovrascrittura SAF che Drive accettava localmente ma
+  non sincronizzava sul server.
+
 ## 2.23.7
 
 - La sovrascrittura SAF usa apertura `rwt`, flush e sincronizzazione esplicita

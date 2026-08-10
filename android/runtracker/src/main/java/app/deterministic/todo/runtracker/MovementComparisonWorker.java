@@ -72,7 +72,7 @@ public final class MovementComparisonWorker extends Worker {
         DriveTestExportManager.captureGoogleFitComparison(context, id, value);
         CountDownLatch exportLatch = new CountDownLatch(1);
         AtomicReference<DriveTestExportManager.ExportResult> export = new AtomicReference<>();
-        DriveTestExportManager.finish(context, session, dao.points(id), result -> {
+        DriveTestExportManager.exportComparison(context, session, result -> {
             export.set(result); exportLatch.countDown();
         });
         try {

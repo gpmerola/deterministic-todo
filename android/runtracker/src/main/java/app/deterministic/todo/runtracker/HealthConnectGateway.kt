@@ -149,6 +149,56 @@ object HealthConnectGateway {
         }
     }
 
+    @JvmStatic
+    fun auditDay(context: Context, day: LocalDate, callback: AuditCallback) {
+        if (sdkStatus(context) != AVAILABLE) {
+            callback.onError("unavailable")
+            return
+        }
+        val appContext = context.applicationContext
+        scope.launch {
+            try {
+                val client = HealthConnectClient.getOrCreate(appContext, PROVIDER_PACKAGE)
+                if (!client.permissionController.getGrantedPermissions().containsAll(permissions(appContext))) {
+                    withContext(Dispatchers.Main) { callback.onError("permission_required") }
+                    return@launch
+                }
+                val zone = ZoneId.systemDefault()
+                val start = day.atStartOfDay(zone).toInstant()
+                val end = day.plusDays(1).atStartOfDay(zone).toInstant()
+                val metrics = setOf(
+                    StepsRecord.COUNT_TOTAL,
+                    DistanceRecord.DISTANCE_TOTAL,
+                    ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
+                )
+                val all = client.aggregate(AggregateRequest(
+                    metrics = metrics,
+                    timeRangeFilter = TimeRangeFilter.between(start, end)
+                ))
+                val fit = client.aggregate(AggregateRequest(
+                    metrics = metrics,
+                    timeRangeFilter = TimeRangeFilter.between(start, end),
+                    dataOriginFilter = setOf(DataOrigin("com.google.android.apps.fitness"))
+                ))
+                val value = PassiveAudit(
+                    day.toString(), zone.id,
+                    all[StepsRecord.COUNT_TOTAL] ?: 0L,
+                    all[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
+                    all[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
+                    fit[StepsRecord.COUNT_TOTAL],
+                    fit[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
+                    fit[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
+                )
+                withContext(Dispatchers.Main) { callback.onSuccess(value) }
+            } catch (error: SecurityException) {
+                withContext(Dispatchers.Main) { callback.onError("permission_required") }
+            } catch (error: Exception) {
+                val code = "health_error_" + error.javaClass.simpleName.ifEmpty { "Exception" }
+                withContext(Dispatchers.Main) { callback.onError(code) }
+            }
+        }
+    }
+
     data class GoogleFitComparison(
         val steps: Long?,
         val distanceMeters: Double?,
@@ -157,6 +207,22 @@ object HealthConnectGateway {
         val localSteps: Long,
         val durationMillis: Long
     )
+
+    data class PassiveAudit(
+        val day: String,
+        val zoneId: String,
+        val allSteps: Long,
+        val allDistanceMeters: Double?,
+        val allActiveCalories: Double?,
+        val fitSteps: Long?,
+        val fitDistanceMeters: Double?,
+        val fitActiveCalories: Double?
+    )
+
+    interface AuditCallback {
+        fun onSuccess(audit: PassiveAudit)
+        fun onError(code: String)
+    }
 
     interface ComparisonCallback {
         fun onSuccess(comparison: GoogleFitComparison)

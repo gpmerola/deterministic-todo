@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.23.7 build 104**. La base funzionale
+- Versione coordinata corrente: **2.24.0 build 105**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -166,6 +166,20 @@ passi; Todo 563 m e 769 passi), ma il provider Drive ha lasciato invariato il
 vecchio JSON pur restituendo successo. La 2.23.7 apre i documenti esistenti in
 modalità `rwt`, forza flush e `fsync` e controlla la dimensione restituita dal
 provider prima di dichiarare l'export completato.
+
+La 2.23.7 ha continuato a mostrare successo locale senza aggiornare il file
+remoto. La 2.24.0 non sovrascrive più quel JSON: crea un sidecar immutabile
+`*_comparison-<timestamp>.json`, seguendo il percorso create-only già
+dimostrato dagli export iniziali. Introduce inoltre un audit passivo opzionale
+di quattro giorni. WorkManager si sveglia ogni sei ore, legge da Health Connect
+il giorno civile precedente e crea una sola volta
+`daily_audit_YYYY-MM-DD.json` con passi, distanza e calorie Todo/Google Fit.
+Non usa GPS continuo, BLE o foreground service e termina automaticamente.
+
+L'audit passivo misura il modello quotidiano di distanza e calorie, non
+l'errore geometrico della traccia GPS. Quest'ultimo richiede ancora una
+sessione esplicita, ma soste, confronto e upload sono già automatici: l'utente
+deve soltanto avviare e terminare la camminata.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

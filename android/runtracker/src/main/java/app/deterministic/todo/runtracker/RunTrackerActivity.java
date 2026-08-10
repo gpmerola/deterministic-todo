@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -25,6 +26,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -54,6 +58,8 @@ public final class RunTrackerActivity extends ComponentActivity {
     private Button driveButton;
     private TextView driveStatusView;
     private TextView comparisonView;
+    private TextView passiveStatusView;
+    private Button passiveButton;
     private LinearLayout advancedTools;
     private String pendingActivityType = "run";
     private long sessionId;
@@ -213,6 +219,22 @@ public final class RunTrackerActivity extends ComponentActivity {
         driveStatusView.setGravity(Gravity.CENTER);
         root.addView(driveStatusView, matchWrap(dp(5)));
 
+        passiveStatusView = label(passiveStatus(), 13);
+        passiveStatusView.setGravity(Gravity.CENTER);
+        root.addView(passiveStatusView, matchWrap(dp(8)));
+        passiveButton = new Button(this);
+        renderPassiveButton();
+        passiveButton.setOnClickListener(v -> {
+            if (PassiveMovementAuditWorker.enabled(this)) PassiveMovementAuditWorker.disable(this);
+            else if (!DriveTestExportManager.isConfigured(this)) {
+                Toast.makeText(this, "Collega prima la cartella Drive negli strumenti avanzati", Toast.LENGTH_LONG).show();
+                return;
+            } else PassiveMovementAuditWorker.enable(this);
+            renderPassiveButton();
+            passiveStatusView.setText(passiveStatus());
+        });
+        root.addView(passiveButton, matchWrap(dp(8)));
+
         Button advancedToggle = new Button(this);
         advancedToggle.setText("Strumenti avanzati");
         root.addView(advancedToggle, matchWrap(dp(10)));
@@ -258,11 +280,41 @@ public final class RunTrackerActivity extends ComponentActivity {
         advancedTools.addView(watch, matchWrap(dp(8)));
         ScrollView scroll = new ScrollView(this);
         scroll.setSaveEnabled(false);
+        scroll.setFillViewport(true);
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
         root.setFocusableInTouchMode(true);
         root.requestFocus();
+        TextView toolbar = label("Movimento", 24);
+        toolbar.setTextColor(Color.WHITE);
+        toolbar.setBackgroundColor(Color.rgb(32, 33, 36));
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setPadding(dp(16), dp(12), dp(16), dp(12));
+        LinearLayout shell = new LinearLayout(this);
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setBackgroundColor(Color.rgb(247, 245, 252));
+        shell.addView(toolbar, new LinearLayout.LayoutParams(-1, -2));
+        shell.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        ViewCompat.setOnApplyWindowInsetsListener(shell, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            toolbar.setPadding(dp(16), bars.top + dp(12), dp(16), dp(12));
+            scroll.setPadding(0, 0, 0, bars.bottom);
+            return insets;
+        });
         scroll.post(() -> scroll.scrollTo(0, 0));
-        return scroll;
+        return shell;
+    }
+
+    private String passiveStatus() {
+        if (!PassiveMovementAuditWorker.enabled(this))
+            return "Test passivo spento · nessun GPS continuo";
+        long hours = Math.max(1, java.util.concurrent.TimeUnit.MILLISECONDS.toHours(
+            PassiveMovementAuditWorker.endAt(this) - System.currentTimeMillis()));
+        return "Test passivo attivo · report giornaliero · ancora " + hours + " h";
+    }
+
+    private void renderPassiveButton() {
+        passiveButton.setText(PassiveMovementAuditWorker.enabled(this)
+            ? "Termina test passivo" : "Avvia test passivo · 4 giorni");
     }
 
     private void refreshDailyMovement() {
@@ -408,13 +460,11 @@ public final class RunTrackerActivity extends ComponentActivity {
     }
 
     private void refreshDriveExportAfterComparison(RunSession session) {
-        io.execute(() -> {
-            RunDao dao = RunDatabase.get(this).runs();
-            DriveTestExportManager.finish(this, session, dao.points(session.id), result -> runOnUiThread(() -> {
+        io.execute(() -> DriveTestExportManager.exportComparison(this, session, result -> runOnUiThread(() -> {
                 driveStatusView.setText(DriveTestExportManager.status(this));
-                if (result.success()) comparisonView.append("\nConfronto aggiunto al JSON su Drive.");
-            }));
-        });
+                if (result.success()) comparisonView.append("\nConfronto salvato su Drive.");
+                else comparisonView.append("\nDrive: " + result.code());
+            })));
     }
 
     private final Runnable clockTick = new Runnable() {
