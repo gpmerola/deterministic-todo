@@ -38,6 +38,10 @@ di cambiare architettura.
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
 - Orologio: Amazfit Bip U senza GPS integrato.
+- Il Galaxy S21 è già associato al Mac per ADB wireless. La connessione va
+  ristabilita dopo cambi di rete, IP o porta seguendo
+  [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md); non conservare nel
+  repository l'indirizzo runtime del telefono.
 
 Ogni modifica funzionale Android deve incrementare versione/build, superare i
 test e arrivare sul telefono tramite il workflow. Una modifica soltanto

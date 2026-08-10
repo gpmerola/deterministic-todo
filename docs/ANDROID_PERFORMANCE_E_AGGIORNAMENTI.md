@@ -148,6 +148,12 @@ resta giornaliero ma usa una SnackBar non bloccante.
 
 L’accesso al calendario avviene esclusivamente premendo “Salva + calendario” e crea un evento giornaliero; non introduce servizi, polling, OAuth o processi Google aggiuntivi. La sincronizzazione remota dell’evento è quella già gestita dall’account calendario del telefono.
 
+Per i collaudi senza cavo, pairing, connessione, riconnessione e limiti di ADB
+wireless sono documentati in
+[`operations/ADB_WIFI.md`](operations/ADB_WIFI.md). Il pairing persistente non
+garantisce una sessione sempre connessa: IP e porta vanno trattati come valori
+effimeri e mai salvati nel repository.
+
 ## Motion system UI
 
 La 2.16.15 introduce un motion system limitato alle transizioni informative:
