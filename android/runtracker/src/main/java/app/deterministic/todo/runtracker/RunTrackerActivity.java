@@ -377,7 +377,7 @@ public final class RunTrackerActivity extends ComponentActivity {
                 }
                 @Override public void onPermissionRequired() {
                     comparisonView.setText("Concedi in Health Connect passi, distanza e calorie, poi riprova");
-                    healthPermissions.launch(HealthConnectGateway.permissions(this));
+                    healthPermissions.launch(HealthConnectGateway.permissions(RunTrackerActivity.this));
                 }
                 @Override public void onUnavailable() { comparisonView.setText("Health Connect non disponibile"); }
                 @Override public void onError() { comparisonView.setText("Confronto non disponibile: verifica che Google Fit condivida i dati in Health Connect"); }
