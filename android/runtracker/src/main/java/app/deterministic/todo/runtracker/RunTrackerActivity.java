@@ -55,7 +55,6 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView driveStatusView;
     private TextView comparisonView;
     private LinearLayout advancedTools;
-    private boolean awaitingCompletion;
     private String pendingActivityType = "run";
     private long sessionId;
     private long startedAt;
@@ -86,13 +85,9 @@ public final class RunTrackerActivity extends ComponentActivity {
             primaryButton.setEnabled(true);
             secondaryButton.setEnabled(sessionId == 0);
             driveStatusView.setText(DriveTestExportManager.status(RunTrackerActivity.this));
-            sessionStepsView.setText(String.format(Locale.ITALY, "%,d passi", sessionSteps));
+            sessionStepsView.setText(String.format(Locale.ITALY, "%,d", sessionSteps));
             sessionStepsView.setContentDescription("Passi sessione dal sensore telefono · " + stepStatus);
             renderClock();
-            if (receivedSessionId == 0 && awaitingCompletion && gpsStatus != null && gpsStatus.startsWith("Attività salvata")) {
-                awaitingCompletion = false;
-                scheduleAutomaticComparison();
-            }
         }
     };
 
@@ -124,7 +119,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     }
 
     private View content() {
-        int pad = dp(24);
+        int pad = dp(16);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(pad, pad, pad, pad);
@@ -133,21 +128,20 @@ public final class RunTrackerActivity extends ComponentActivity {
         TextView movementTitle = label("RIEPILOGO DI OGGI", 13);
         movementTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(movementTitle, matchWrap(0));
-        dailyStepsView = metric("—", 38);
-        root.addView(dailyStepsView, matchWrap(dp(12)));
-
         LinearLayout dailyMetrics = new LinearLayout(this);
         dailyMetrics.setOrientation(LinearLayout.HORIZONTAL);
         dailyMetrics.setGravity(Gravity.CENTER);
+        dailyStepsView = metric("—", 22);
         dailyDistanceView = metric("— km", 22);
         dailyCaloriesView = metric("— kcal", 22);
+        dailyMetrics.addView(metricBlock("PASSI", dailyStepsView), weighted());
         dailyMetrics.addView(metricBlock("DISTANZA STIMATA", dailyDistanceView), weighted());
-        dailyMetrics.addView(metricBlock("CALORIE ATTIVE STIMATE", dailyCaloriesView), weighted());
-        root.addView(dailyMetrics, matchWrap(dp(10)));
+        dailyMetrics.addView(metricBlock("CALORIE STIMATE", dailyCaloriesView), weighted());
+        root.addView(dailyMetrics, matchWrap(dp(8)));
 
         movementStatusView = label("Controllo Health Connect…", 14);
         movementStatusView.setGravity(Gravity.CENTER);
-        root.addView(movementStatusView, matchWrap(dp(12)));
+        root.addView(movementStatusView, matchWrap(dp(8)));
 
         healthPermissionButton = new Button(this);
         healthPermissionButton.setText("Consenti accesso ai passi");
@@ -157,54 +151,52 @@ public final class RunTrackerActivity extends ComponentActivity {
 
         TextView title = label("NUOVA SESSIONE", 13);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(title, matchWrap(0));
-        durationView = metric("00:00:00", 44);
-        root.addView(durationView, matchWrap(dp(28)));
+        root.addView(title, matchWrap(dp(12)));
+        durationView = metric("00:00:00", 34);
+        root.addView(durationView, matchWrap(dp(8)));
 
         LinearLayout metrics = new LinearLayout(this);
         metrics.setOrientation(LinearLayout.HORIZONTAL);
         metrics.setGravity(Gravity.CENTER);
-        distanceView = metric("0,00 km", 25);
-        paceView = metric("— /km", 25);
+        distanceView = metric("0,00 km", 21);
+        sessionStepsView = metric("0", 21);
+        paceView = metric("— /km", 21);
         metrics.addView(metricBlock("DISTANZA", distanceView), weighted());
+        metrics.addView(metricBlock("PASSI", sessionStepsView), weighted());
         metrics.addView(metricBlock("PASSO MEDIO", paceView), weighted());
-        root.addView(metrics, matchWrap(dp(18)));
-
-        sessionStepsView = metric("0 passi", 25);
-        root.addView(metricBlock("PASSI SESSIONE · SENSORE TELEFONO", sessionStepsView), matchWrap(dp(12)));
+        root.addView(metrics, matchWrap(dp(8)));
 
         accuracyView = label("Pronto. Il GPS si attiva soltanto durante la sessione.", 16);
         accuracyView.setGravity(Gravity.CENTER);
-        root.addView(accuracyView, matchWrap(dp(20)));
+        root.addView(accuracyView, matchWrap(dp(10)));
 
-        TextView privacy = label("Puoi spegnere lo schermo: passi, percorso e diagnostica continuano automaticamente.", 14);
-        privacy.setGravity(Gravity.CENTER);
-        root.addView(privacy, matchWrap(dp(18)));
-
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
         primaryButton = new Button(this);
         primaryButton.setText("Avvia camminata");
         primaryButton.setOnClickListener(v -> { if (sessionId == 0) ensurePermissions("walk"); else stopRun(); });
-        root.addView(primaryButton, matchWrap(dp(24)));
+        actions.addView(primaryButton, weighted());
 
         secondaryButton = new Button(this);
         secondaryButton.setText("Avvia corsa");
         secondaryButton.setOnClickListener(v -> ensurePermissions("run"));
-        root.addView(secondaryButton, matchWrap(dp(8)));
+        actions.addView(secondaryButton, weighted());
+        root.addView(actions, matchWrap(dp(12)));
 
         TextView automationTitle = label("TEST AUTOMATICO", 13);
         automationTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(automationTitle, matchWrap(dp(24)));
-        comparisonView = label("Al termine confronteremo automaticamente Google Fit e aggiorneremo il JSON su Drive.", 14);
+        root.addView(automationTitle, matchWrap(dp(14)));
+        comparisonView = label("Confronto automatico pronto", 13);
         comparisonView.setGravity(Gravity.CENTER);
-        root.addView(comparisonView, matchWrap(dp(8)));
+        root.addView(comparisonView, matchWrap(dp(5)));
 
         driveStatusView = label(DriveTestExportManager.status(this), 14);
         driveStatusView.setGravity(Gravity.CENTER);
-        root.addView(driveStatusView, matchWrap(dp(8)));
+        root.addView(driveStatusView, matchWrap(dp(5)));
 
         Button advancedToggle = new Button(this);
         advancedToggle.setText("Strumenti avanzati");
-        root.addView(advancedToggle, matchWrap(dp(16)));
+        root.addView(advancedToggle, matchWrap(dp(10)));
 
         advancedTools = new LinearLayout(this);
         advancedTools.setOrientation(LinearLayout.VERTICAL);
@@ -247,13 +239,15 @@ public final class RunTrackerActivity extends ComponentActivity {
         advancedTools.addView(watch, matchWrap(dp(8)));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
+        root.setFocusableInTouchMode(true);
+        root.requestFocus();
         return scroll;
     }
 
     private void refreshDailyMovement() {
         HealthConnectGateway.refreshToday(this, new HealthConnectGateway.Callback() {
             @Override public void onSuccess(DailyMovement movement) {
-                dailyStepsView.setText(String.format(Locale.ITALY, "%,d passi", movement.steps));
+                dailyStepsView.setText(String.format(Locale.ITALY, "%,d", movement.steps));
                 dailyDistanceView.setText(String.format(Locale.ITALY, "%.2f km", movement.estimatedDistanceMeters / 1000));
                 dailyCaloriesView.setText(String.format(Locale.ITALY, "%.0f kcal", movement.estimatedActiveCalories));
                 movementStatusView.setText("Health Connect · aggiornato ora · valori di distanza e calorie stimati");
@@ -294,7 +288,6 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     private void stopRun() {
         startService(new Intent(this, RunRecordingService.class).setAction(RunRecordingService.ACTION_STOP));
-        awaitingCompletion = true;
         sessionId = 0;
         primaryButton.setText("Salvataggio in corso…");
         primaryButton.setEnabled(false);
@@ -379,30 +372,6 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
     }
 
-    private void scheduleAutomaticComparison() {
-        comparisonView.setText("Attività salvata. Attendo Google Fit e preparo il confronto automatico…");
-        clock.postDelayed(this::compareLatestAutomatically, 12_000);
-        clock.postDelayed(this::compareLatestAutomatically, 45_000);
-    }
-
-    private void compareLatestAutomatically() {
-        io.execute(() -> {
-            java.util.List<RunSession> sessions = RunDatabase.get(this).runs().sessions();
-            if (sessions.isEmpty()) return;
-            RunSession latest = sessions.get(0);
-            HealthConnectGateway.compareGoogleFit(this, latest, new HealthConnectGateway.ComparisonCallback() {
-                @Override public void onSuccess(HealthConnectGateway.GoogleFitComparison comparison) {
-                    if (comparison.getSteps() == null && comparison.getDistanceMeters() == null) return;
-                    DriveTestExportManager.captureGoogleFitComparison(RunTrackerActivity.this, latest.id, comparison);
-                    runOnUiThread(() -> compareLatestWithGoogleFit());
-                }
-                @Override public void onPermissionRequired() { runOnUiThread(() -> comparisonView.setText("Health Connect richiede nuovamente l’autorizzazione")); }
-                @Override public void onUnavailable() { runOnUiThread(() -> comparisonView.setText("Health Connect non disponibile")); }
-                @Override public void onError() { runOnUiThread(() -> comparisonView.setText("Google Fit non è ancora sincronizzato; riprovo automaticamente")); }
-            });
-        });
-    }
-
     private void refreshDriveExportAfterComparison(RunSession session) {
         io.execute(() -> {
             RunDao dao = RunDatabase.get(this).runs();
@@ -439,6 +408,17 @@ public final class RunTrackerActivity extends ComponentActivity {
             double secondsPerKm = elapsed / 1000.0 / (distance / 1000.0);
             paceView.setText(String.format(Locale.ROOT, "%d:%02d /km", (int) secondsPerKm / 60, (int) secondsPerKm % 60));
         } else paceView.setText("— /km");
+        if (sessionId == 0) renderAutomaticComparisonStatus();
+    }
+
+    private void renderAutomaticComparisonStatus() {
+        String status = DriveTestExportManager.comparisonStatus(this);
+        if ("success".equals(status)) comparisonView.setText(DriveTestExportManager.comparisonSummary(this));
+        else if ("scheduled".equals(status) || "waiting".equals(status)) comparisonView.setText("Attendo la sincronizzazione Google Fit…");
+        else if ("fit_not_synced".equals(status) || "timeout".equals(status) || "health_error".equals(status)) comparisonView.setText("Google Fit non è ancora pronto · riprovo automaticamente");
+        else if ("permission_required".equals(status)) comparisonView.setText("Health Connect richiede l’autorizzazione");
+        else if ("unavailable".equals(status)) comparisonView.setText("Health Connect non disponibile");
+        else if ("drive_failed".equals(status) || "drive_timeout".equals(status)) comparisonView.setText("Confronto trovato · nuovo tentativo Drive");
     }
 
     private LinearLayout metricBlock(String caption, TextView value) {

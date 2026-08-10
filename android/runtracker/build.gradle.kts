@@ -30,6 +30,7 @@ dependencies {
     implementation("androidx.core:core:1.16.0")
     implementation("androidx.room:room-runtime:2.7.2")
     implementation("androidx.health.connect:connect-client:1.1.0")
+    implementation("androidx.work:work-runtime:2.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     annotationProcessor("androidx.room:room-compiler:2.7.2")
 

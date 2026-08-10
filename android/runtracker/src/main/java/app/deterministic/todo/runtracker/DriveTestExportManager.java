@@ -28,6 +28,8 @@ final class DriveTestExportManager {
     private static final String LAST_STATUS = "last_status";
     private static final String LAST_ERROR = "last_error";
     private static final String LAST_EXPORTED_AT = "last_exported_at";
+    private static final String COMPARISON_STATUS = "comparison_status";
+    private static final String COMPARISON_SUMMARY = "comparison_summary";
     private static final long HEALTH_TIMEOUT_MILLIS = 8_000;
     private DriveTestExportManager() {}
 
@@ -104,7 +106,33 @@ final class DriveTestExportManager {
         else editor.remove(id + ".fit_distance_m");
         if (comparison.getActiveCalories() != null) editor.putFloat(id + ".fit_active_calories", comparison.getActiveCalories().floatValue());
         else editor.remove(id + ".fit_active_calories");
+        String fitDistance = comparison.getDistanceMeters() == null ? "—" :
+            String.format(java.util.Locale.ITALY, "%.3f km", comparison.getDistanceMeters() / 1000);
+        String distanceDelta = comparison.getDistanceMeters() == null || comparison.getDistanceMeters() <= 0 ? "—" :
+            String.format(java.util.Locale.ITALY, "%+.1f%%", 100 * (comparison.getLocalDistanceMeters() - comparison.getDistanceMeters()) / comparison.getDistanceMeters());
+        String fitSteps = comparison.getSteps() == null ? "—" : String.format(java.util.Locale.ITALY, "%,d", comparison.getSteps());
+        String stepDelta = comparison.getSteps() == null || comparison.getSteps() <= 0 ? "—" :
+            String.format(java.util.Locale.ITALY, "%+.1f%%", 100.0 * (comparison.getLocalSteps() - comparison.getSteps()) / comparison.getSteps());
+        editor.putString(COMPARISON_SUMMARY, String.format(java.util.Locale.ITALY,
+            "Google Fit %s · %s passi\nTodo %.3f km (%s) · %,d passi (%s)",
+            fitDistance, fitSteps, comparison.getLocalDistanceMeters() / 1000,
+            distanceDelta, comparison.getLocalSteps(), stepDelta));
         editor.apply();
+    }
+
+    static void setComparisonStatus(Context context, String status) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(COMPARISON_STATUS, status).apply();
+    }
+
+    static String comparisonStatus(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(COMPARISON_STATUS, "idle");
+    }
+
+    static String comparisonSummary(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(COMPARISON_SUMMARY, "Confronto completato e salvato su Drive");
     }
 
     static String status(Context context) {

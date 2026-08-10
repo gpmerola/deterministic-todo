@@ -5,8 +5,8 @@ Aggiornato il 10 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.23.0 build 97**, nuova UX principale di
-  Movimento e automazione confronto Google Fit → JSON Drive. La base funzionale
+- Versione coordinata corrente: **2.23.1 build 98**, layout compatto di
+  Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
 - Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
@@ -85,7 +85,7 @@ Aggiornato il 10 agosto 2026.
 - I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
   contatore e stime. Build Android, firma, manifest pubblico e parità con Web
   sono verificati dalla pipeline coordinata.
-- Restano da collaudare sulla build 97 una camminata lunga a schermo spento e
+- Restano da collaudare sulla build 98 una camminata lunga a schermo spento e
   il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
   confronto Health Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio

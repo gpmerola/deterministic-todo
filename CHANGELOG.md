@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.1
+
+- Reso il confronto Google Fit un lavoro persistente: parte dopo lo stop,
+  applica timeout e retry e non dipende più dalla schermata Movimento aperta.
+- Il risultato viene salvato nel JSON Drive e mostrato nella schermata con uno
+  stato esplicito; gli errori Health Connect non restano più indefinitamente
+  su “attendo”.
+- Compattata Movimento in righe metriche, azioni affiancate e testi essenziali;
+  il focus iniziale resta in alto per evitare contenuti coperti dalla toolbar.
+
 ## 2.23.0
 
 - Promossa Movimento a destinazione principale accanto a Progetti; rimossa la

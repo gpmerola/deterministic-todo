@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.23.0 build 97**. La base funzionale
+- Versione coordinata corrente: **2.23.1 build 98**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -125,12 +125,11 @@ incrementano la distanza; alla ripresa il collegamento plausibile riparte
 dall'ultima ancora valida. La disponibilità del confronto dipende dalla
 sincronizzazione Google Fit → Health Connect.
 
-La 2.23.0 rende camminata l'azione primaria e sposta Drive, export manuale e
-BLE in strumenti avanzati comprimibili. Dopo lo stop tenta automaticamente il
-confronto dopo 12 e 45 secondi; al primo riferimento disponibile rigenera il
-JSON Drive includendo `google_fit_comparison`. La UI va lasciata aperta circa
-un minuto nel collaudo finché questa automazione non viene spostata in un job
-persistente indipendente dall'Activity.
+La 2.23.1 rende camminata l'azione primaria e sposta Drive, export manuale e
+BLE in strumenti avanzati comprimibili. Dopo lo stop un `WorkManager` unico
+per sessione attende Google Fit, applica timeout e retry esponenziale e
+rigenera il JSON Drive includendo `google_fit_comparison`. Non dipende più
+dall'Activity aperta. La schermata mostra lo stato persistito del job.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

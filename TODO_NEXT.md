@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.23.0 build 97. La base funzionale build 95 ha
+- Release coordinata corrente: 2.23.1 build 98. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -59,13 +59,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 97 sul Galaxy S21; la cartella Drive e i permessi già
+- collaudare la build 98 sul Galaxy S21; la cartella Drive e i permessi già
   concessi devono restare persistenti, senza nuova configurazione;
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare 10–15 minuti con schermo spento, includendo una sosta di circa 30
   secondi, e confrontare distanza, passi e diagnostica con Google Fit;
-- al termine lasciare aperta Movimento per circa un minuto e verificare lo
-  stato del confronto automatico e la presenza della coppia omonima nella
+- al termine si può chiudere Movimento: il job persistente attende e riprova
+  Google Fit in background. Riaprire dopo 2–3 minuti e verificare lo stato del
+  confronto automatico e la presenza della coppia omonima nella
   cartella Drive; il JSON deve contenere `google_fit_comparison` senza premere
   riesporta o confronta manualmente;
 - verificare che la notifica termini la sessione e che riaprire l'attività dopo

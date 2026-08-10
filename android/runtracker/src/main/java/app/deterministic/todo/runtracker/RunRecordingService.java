@@ -291,7 +291,10 @@ public final class RunRecordingService extends Service implements LocationListen
                 return;
             }
             DriveTestExportManager.finish(this, session, dao.points(id),
-                result -> mainHandler.post(() -> completeStop(result)));
+                result -> mainHandler.post(() -> {
+                    if (result.success()) MovementComparisonWorker.schedule(this, id);
+                    completeStop(result);
+                }));
         });
         else completeStop(new DriveTestExportManager.ExportResult(false, false, "empty_session"));
     }

@@ -96,6 +96,8 @@ distanza, passi, calorie attive e scarto. Il confronto viene inoltre aggiunto
 automaticamente al JSON diagnostico su Drive. Il comando manuale resta negli
 strumenti avanzati come recupero. Google Fit deve aver condiviso quei dati con
 Health Connect; i valori assenti restano esplicitamente non disponibili.
+Il confronto usa un job Android persistente con timeout e retry: Movimento può
+essere chiusa dopo lo stop e mostra l'esito alla riapertura.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo
