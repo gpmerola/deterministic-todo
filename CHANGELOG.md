@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.4
+
+- Il recupero in primo piano ora parte per ogni confronto non concluso, inclusi
+  `scheduled` e `waiting`, non soltanto per `permission_required`.
+- La correzione copre la sessione 14, il cui stato era stato trasformato in
+  `scheduled` dalla build 99 senza completare l'aggiornamento Drive.
+
 ## 2.23.3
 
 - Aggiunto un recupero immediato in primo piano: dopo il consenso Health

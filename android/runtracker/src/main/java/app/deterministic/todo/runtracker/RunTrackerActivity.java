@@ -128,7 +128,7 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
         clock.post(clockTick);
         refreshDailyMovement();
-        if ("permission_required".equals(DriveTestExportManager.comparisonStatus(this)))
+        if (!"success".equals(DriveTestExportManager.comparisonStatus(this)))
             clock.postDelayed(this::compareLatestWithGoogleFit, 750);
     }
 
