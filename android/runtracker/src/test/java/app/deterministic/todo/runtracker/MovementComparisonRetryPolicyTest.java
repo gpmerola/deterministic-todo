@@ -22,4 +22,10 @@ public class MovementComparisonRetryPolicyTest {
         assertTrue(MovementComparisonRetryPolicy.retryFailure("health_error_IllegalStateException", 0));
         assertFalse(MovementComparisonRetryPolicy.retryFailure("health_error_IllegalStateException", 4));
     }
+
+    @Test public void foregroundRecoveryUsesLatestSessionStatus() {
+        assertTrue(MovementComparisonRetryPolicy.needsForegroundRecovery("scheduled"));
+        assertTrue(MovementComparisonRetryPolicy.needsForegroundRecovery("health_error_IllegalStateException"));
+        assertFalse(MovementComparisonRetryPolicy.needsForegroundRecovery("success"));
+    }
 }

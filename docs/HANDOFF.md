@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.23.5 build 102**. La base funzionale
+- Versione coordinata corrente: **2.23.6 build 103**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -155,6 +155,11 @@ registra nel JSON un codice derivato soltanto dalla classe dell'eccezione,
 riesporta ogni fallimento prima del retry e marca `success` anche nel fallback
 in primo piano. Non è necessaria una nuova camminata per diagnosticare la
 sessione 14.
+
+La 2.23.5 installata non ha prodotto né confronto né errore perché il recupero
+era condizionato dallo stato globale, che poteva appartenere a una sessione
+precedente già riuscita. La 2.23.6 consulta invece lo stato persistito della
+sessione più recente; `scheduled`, `waiting` ed errori avviano il fallback.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

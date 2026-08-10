@@ -147,6 +147,11 @@ final class DriveTestExportManager {
             .getString(COMPARISON_STATUS, "idle");
     }
 
+    static String comparisonStatus(Context context, long sessionId) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(sessionId + ".comparison_status", "not_scheduled");
+    }
+
     static String comparisonSummary(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(COMPARISON_SUMMARY, "Confronto completato e salvato su Drive");

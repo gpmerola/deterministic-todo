@@ -128,8 +128,13 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
         clock.post(clockTick);
         refreshDailyMovement();
-        if (!"success".equals(DriveTestExportManager.comparisonStatus(this)))
-            clock.postDelayed(this::compareLatestWithGoogleFit, 750);
+        io.execute(() -> {
+            java.util.List<RunSession> sessions = RunDatabase.get(this).runs().sessions();
+            if (sessions.isEmpty()) return;
+            String latestStatus = DriveTestExportManager.comparisonStatus(this, sessions.get(0).id);
+            if (MovementComparisonRetryPolicy.needsForegroundRecovery(latestStatus))
+                runOnUiThread(() -> clock.postDelayed(this::compareLatestWithGoogleFit, 750));
+        });
     }
 
     private View content() {

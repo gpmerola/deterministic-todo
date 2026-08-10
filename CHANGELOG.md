@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.6
+
+- Il recupero all'apertura consulta lo stato della sessione più recente invece
+  dello stato globale: un vecchio confronto riuscito non può più nascondere
+  una sessione successiva ancora `scheduled` o in errore.
+
 ## 2.23.5
 
 - Il confronto automatico non tratta più un errore Health Connect come un

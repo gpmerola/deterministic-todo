@@ -9,4 +9,8 @@ final class MovementComparisonRetryPolicy {
     static boolean retryFailure(String status, int attempt) {
         return !"permission_required".equals(status) && retryMissingReference(attempt);
     }
+
+    static boolean needsForegroundRecovery(String latestSessionStatus) {
+        return !"success".equals(latestSessionStatus);
+    }
 }
