@@ -114,7 +114,7 @@ object HealthConnectGateway {
                     return@launch
                 }
                 val endedAt = session.endedAtMillis ?: run {
-                    withContext(Dispatchers.Main) { callback.onError() }
+                    withContext(Dispatchers.Main) { callback.onError("health_error_incomplete_session") }
                     return@launch
                 }
                 val result = client.aggregate(
@@ -142,8 +142,9 @@ object HealthConnectGateway {
                 withContext(Dispatchers.Main) { callback.onSuccess(comparison) }
             } catch (_: SecurityException) {
                 withContext(Dispatchers.Main) { callback.onPermissionRequired() }
-            } catch (_: Exception) {
-                withContext(Dispatchers.Main) { callback.onError() }
+            } catch (error: Exception) {
+                val code = "health_error_" + error.javaClass.simpleName.ifEmpty { "Exception" }
+                withContext(Dispatchers.Main) { callback.onError(code) }
             }
         }
     }
@@ -161,7 +162,7 @@ object HealthConnectGateway {
         fun onSuccess(comparison: GoogleFitComparison)
         fun onPermissionRequired()
         fun onUnavailable()
-        fun onError()
+        fun onError(code: String)
     }
 
     interface Callback {

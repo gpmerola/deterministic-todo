@@ -50,7 +50,7 @@ public final class MovementComparisonWorker extends Worker {
             }
             @Override public void onPermissionRequired() { error.set("permission_required"); comparisonLatch.countDown(); }
             @Override public void onUnavailable() { error.set("unavailable"); comparisonLatch.countDown(); }
-            @Override public void onError() { error.set("health_error"); comparisonLatch.countDown(); }
+            @Override public void onError(String code) { error.set(code); comparisonLatch.countDown(); }
         });
         try {
             if (!comparisonLatch.await(20, TimeUnit.SECONDS)) error.set("timeout");
@@ -61,11 +61,11 @@ public final class MovementComparisonWorker extends Worker {
         HealthConnectGateway.GoogleFitComparison value = comparison.get();
         if (value == null || (value.getSteps() == null && value.getDistanceMeters() == null)) {
             String status = error.get() == null ? "fit_not_synced" : error.get();
-            DriveTestExportManager.captureComparisonAttempt(context, id, status, getRunAttemptCount() + 1);
-            boolean permissionFailure = "permission_required".equals(status);
-            boolean retry = !permissionFailure &&
-                MovementComparisonRetryPolicy.retryMissingReference(getRunAttemptCount());
-            if (!retry) exportDiagnosticState(context, session, dao);
+            DriveTestExportManager.captureComparisonAttempt(
+                context, id, status, getRunAttemptCount() + 1, status);
+            exportDiagnosticState(context, session, dao);
+            boolean retry = MovementComparisonRetryPolicy.retryFailure(
+                status, getRunAttemptCount());
             return retry ? Result.retry() : Result.failure();
         }
 

@@ -126,12 +126,20 @@ final class DriveTestExportManager {
     }
 
     static void captureComparisonAttempt(Context context, long id, String status, int attempts) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+        captureComparisonAttempt(context, id, status, attempts, null);
+    }
+
+    static void captureComparisonAttempt(Context context, long id, String status, int attempts,
+                                         String errorCode) {
+        android.content.SharedPreferences.Editor editor = context
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(COMPARISON_STATUS, status)
             .putString(id + ".comparison_status", status)
             .putInt(id + ".comparison_attempts", attempts)
-            .putLong(id + ".comparison_last_attempt_at", System.currentTimeMillis())
-            .apply();
+            .putLong(id + ".comparison_last_attempt_at", System.currentTimeMillis());
+        if (errorCode == null) editor.remove(id + ".comparison_error_code");
+        else editor.putString(id + ".comparison_error_code", errorCode);
+        editor.apply();
     }
 
     static String comparisonStatus(Context context) {
@@ -224,6 +232,9 @@ final class DriveTestExportManager {
             .put("attempt_count", p.getInt(s.id + ".comparison_attempts", 0))
             .put("last_attempt_at_ms", p.contains(s.id + ".comparison_last_attempt_at")
                 ? p.getLong(s.id + ".comparison_last_attempt_at", 0) : JSONObject.NULL);
+        fit.put("error_code", p.contains(s.id + ".comparison_error_code")
+            ? p.getString(s.id + ".comparison_error_code", "health_error_unknown")
+            : JSONObject.NULL);
         if (fitObservedAt >= 0) {
             fit.put("observed_at_ms", fitObservedAt)
                 .put("steps", p.contains(s.id + ".fit_steps") ? p.getLong(s.id + ".fit_steps", 0) : JSONObject.NULL)

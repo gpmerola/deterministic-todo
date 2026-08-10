@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.23.4 build 101**. La base funzionale
+- Versione coordinata corrente: **2.23.5 build 102**. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -147,6 +147,14 @@ aprendo Movimento con stato `permission_required`, confronta immediatamente in
 primo piano e aggiorna Drive; WorkManager resta il percorso automatico futuro.
 La 2.23.4 estende il recupero a ogni stato diverso da `success`, perché la
 sessione 14 era rimasta su `scheduled` dopo la concessione.
+
+Il controllo ADB sulla 2.23.4 ha confermato tutti i permessi, incluso quello in
+background, e due esecuzioni del job, ma il JSON Drive era ancora quello
+originario. La 2.23.5 rende quindi osservabile il confine Health Connect:
+registra nel JSON un codice derivato soltanto dalla classe dell'eccezione,
+riesporta ogni fallimento prima del retry e marca `success` anche nel fallback
+in primo piano. Non è necessaria una nuova camminata per diagnosticare la
+sessione 14.
 
 Il JSON della build 94 conserva inoltre la timeline delle variazioni dei passi
 con timestamp e stato. Rimane diagnostica locale della sessione: il telefono e

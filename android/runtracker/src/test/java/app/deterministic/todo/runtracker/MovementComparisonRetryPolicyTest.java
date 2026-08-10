@@ -16,4 +16,10 @@ public class MovementComparisonRetryPolicyTest {
         assertTrue(MovementComparisonRetryPolicy.refreshAvailableReference(1));
         assertFalse(MovementComparisonRetryPolicy.refreshAvailableReference(2));
     }
+
+    @Test public void permissionFailureStopsButHealthErrorsRetry() {
+        assertFalse(MovementComparisonRetryPolicy.retryFailure("permission_required", 0));
+        assertTrue(MovementComparisonRetryPolicy.retryFailure("health_error_IllegalStateException", 0));
+        assertFalse(MovementComparisonRetryPolicy.retryFailure("health_error_IllegalStateException", 4));
+    }
 }

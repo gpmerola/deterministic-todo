@@ -376,16 +376,30 @@ public final class RunTrackerActivity extends ComponentActivity {
                         c.getLocalSteps(), stepDelta,
                         c.getDurationMillis()/60000, (c.getDurationMillis()/1000)%60));
                     DriveTestExportManager.captureGoogleFitComparison(RunTrackerActivity.this, sessions.get(0).id, c);
+                    DriveTestExportManager.captureComparisonAttempt(
+                        RunTrackerActivity.this, sessions.get(0).id, "success", 1);
                     refreshDriveExportAfterComparison(sessions.get(0));
                 }
                 @Override public void onPermissionRequired() {
+                    recordForegroundComparisonFailure(sessions.get(0), "permission_required");
                     comparisonView.setText("Concedi in Health Connect passi, distanza e calorie, poi riprova");
                     healthPermissions.launch(HealthConnectGateway.permissions(RunTrackerActivity.this));
                 }
-                @Override public void onUnavailable() { comparisonView.setText("Health Connect non disponibile"); }
-                @Override public void onError() { comparisonView.setText("Confronto non disponibile: verifica che Google Fit condivida i dati in Health Connect"); }
+                @Override public void onUnavailable() {
+                    recordForegroundComparisonFailure(sessions.get(0), "unavailable");
+                    comparisonView.setText("Health Connect non disponibile");
+                }
+                @Override public void onError(String code) {
+                    recordForegroundComparisonFailure(sessions.get(0), code);
+                    comparisonView.setText("Confronto non disponibile · diagnostica salvata: " + code);
+                }
             });
         });
+    }
+
+    private void recordForegroundComparisonFailure(RunSession session, String code) {
+        DriveTestExportManager.captureComparisonAttempt(this, session.id, code, 1, code);
+        refreshDriveExportAfterComparison(session);
     }
 
     private void refreshDriveExportAfterComparison(RunSession session) {

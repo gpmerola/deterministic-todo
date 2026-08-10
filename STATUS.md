@@ -5,7 +5,7 @@ Aggiornato il 10 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.23.1 build 98**, layout compatto di
+- Versione coordinata corrente: **2.23.5 build 102**, layout compatto di
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
@@ -91,9 +91,12 @@ Aggiornato il 10 agosto 2026.
   La build 99 dichiara e richiede tale consenso, ma sul Galaxy S21 non ha
   riprogrammato né riesportato la sessione 14. La build 100 ha aggiunto il
   recupero in primo piano, ma lo stato persistito era `scheduled`, non
-  `permission_required`. La build 101 recupera qualunque stato non concluso.
-- Restano da collaudare sulla build 101 il recupero Health Connect e il confronto
-  automatico della sessione già registrata, oltre a una camminata lunga a schermo spento e
+  `permission_required`. La build 101 recupera qualunque stato non concluso. Il
+  controllo ADB ha poi confermato permessi corretti e due job conclusi senza
+  aggiornamento Drive: la build 102 conserva il codice di errore, riesporta
+  ogni tentativo e non lascia più il fallback riuscito su `scheduled`.
+- Restano da collaudare sulla build 102 il recupero Health Connect e il confronto
+  della sessione già registrata, oltre a una camminata lunga a schermo spento e
   il BLE reale con Bip U; i test brevi hanno già validato passi, Drive e
   confronto Health Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio

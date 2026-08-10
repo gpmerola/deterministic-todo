@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.23.4 build 101. La base funzionale build 95 ha
+- Release coordinata corrente: 2.23.5 build 102. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -59,12 +59,10 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo corsa Bip U
 
-- collaudare la build 101 sul Galaxy S21; il permesso di lettura Health Connect
-  in background è già stato richiesto dalla 99. Aprire Movimento deve avviare
-  immediatamente il recupero in primo piano della sessione 14; la cartella
-  Drive e gli altri permessi già
-  Health Connect per la lettura in background; la cartella Drive e gli altri permessi già
-  concessi devono restare persistenti, senza nuova configurazione;
+- collaudare la build 102 sul Galaxy S21; il permesso di lettura Health Connect
+  in background è già stato concesso. Aprire Movimento deve recuperare la
+  sessione 14 e produrre nel JSON un confronto oppure un `error_code` tecnico;
+  cartella Drive e permessi devono restare persistenti senza nuova configurazione;
   notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
 - registrare 10–15 minuti con schermo spento, includendo una sosta di circa 30
   secondi, e confrontare distanza, passi e diagnostica con Google Fit;

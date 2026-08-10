@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.23.5
+
+- Il confronto automatico non tratta più un errore Health Connect come un
+  successo silenzioso: registra un codice basato soltanto sul tipo di errore,
+  aggiorna il JSON Drive a ogni tentativo e applica retry limitati.
+- Il recupero in primo piano marca esplicitamente il confronto riuscito e
+  riesporta anche permessi mancanti, provider non disponibile ed errori; il
+  JSON espone `error_code` senza messaggi o dati personali.
+
 ## 2.23.4
 
 - Il recupero in primo piano ora parte per ogni confronto non concluso, inclusi
