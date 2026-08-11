@@ -21,6 +21,25 @@ void main() {
     );
   });
 
+  test('Realtime resta disconnesso mentre l app è in background', () {
+    expect(
+      shouldSubscribeRealtime(
+        paused: true,
+        hasAuthenticatedUser: true,
+        hasChannel: false,
+      ),
+      isFalse,
+    );
+    expect(
+      shouldSubscribeRealtime(
+        paused: false,
+        hasAuthenticatedUser: true,
+        hasChannel: false,
+      ),
+      isTrue,
+    );
+  });
+
   test(
     'più modifiche pendenti della stessa attività producono un solo invio',
     () {

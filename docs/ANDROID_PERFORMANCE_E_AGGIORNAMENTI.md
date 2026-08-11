@@ -228,7 +228,10 @@ intercettato localmente e non aggiunge listener persistenti globali.
 
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:
 
-- `performance_snapshot`: millisecondi di avvio, RAM RSS, byte SQLite, attività attive/completate e outbox, raccolti ad avvio e cambio foreground/background;
+- `performance_snapshot`: millisecondi di avvio, RAM RSS e, su Android dalla
+  2.24.1, PSS totale con ripartizione Java/native/grafica, byte SQLite,
+  attività attive/completate e outbox, raccolti ad avvio e cambio
+  foreground/background;
 - `frame_sample`: media e massimo dei tempi build/raster e frame oltre 16,67 ms, aggregato ogni 600 frame o andando in background per ridurre le scritture;
 - `sync_completed`: durata, righe remote, entità effettivamente caricate e progetti/sezioni saltati perché invariati;
 - `sync_failed`: tipo/codice tecnico e durata prima dell’errore.
@@ -239,6 +242,13 @@ Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii es
 La 2.16.14 inizializza l'identità auth prima di ascoltare gli eventi Supabase:
 la notifica iniziale della stessa sessione non duplica più il primo sync
 completo; login e cambio account continuano invece a forzarlo.
+
+La 2.24.1 limita la cache immagini Flutter a 16 MiB e la svuota quando l'app
+passa in background. Nello stesso momento rimuove il canale Supabase Realtime;
+al resume lo ricrea e avvia il pull completo già previsto, quindi la riduzione
+di socket e memoria non introduce finestre di perdita. RSS resta utile per
+confrontare il processo nel tempo, ma PSS è la misura primaria per attribuire
+al processo pagine condivise in modo proporzionale.
 
 La 2.16.20 sovrappone durante il bootstrap diagnostica, attivazione delle task
 pianificate e inizializzazione Supabase. Sul Web il documento precarica

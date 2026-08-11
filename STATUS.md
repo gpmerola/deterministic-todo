@@ -1,11 +1,12 @@
 # Stato corrente
 
-Aggiornato il 10 agosto 2026.
+Aggiornato l'11 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.24.0 build 105**, layout compatto di
+- Versione coordinata corrente: **2.24.1 build 106**, riduzione della memoria
+  in background e telemetria PSS Android. La 2.24.0 build 105 introduce layout compatto di
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
@@ -27,7 +28,9 @@ Aggiornato il 10 agosto 2026.
 - Supabase Realtime notifica Android e browser; dalla 2.16.0 vengono richiesti
   soltanto gli ID cambiati. Il canale si riapre dopo errori o timeout; un
   controllo completo ogni dieci minuti recupera eventi persi, riprese e periodi
-  offline mentre l'app è visibile.
+  offline mentre l'app è visibile. Quando l'app passa in background il canale
+  viene rimosso per liberare socket e memoria; al resume viene ricreato prima
+  del pull di recupero.
 - Task, progetti, sezioni, priorità, date civili, ricorrenze e tombstone sono
   sincronizzati. Il tipo `reference` della 2.18.0 resta leggibile come normale
   task per non perdere dati. Non si sincronizzano segreti o contenuti dei log.

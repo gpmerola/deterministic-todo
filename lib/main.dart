@@ -57,6 +57,10 @@ const _microMotion = Duration(milliseconds: 110);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache
+    ..maximumSize = 100
+    ..maximumSizeBytes = 16 * 1024 * 1024;
   runApp(const BootstrapApp());
 }
 
@@ -548,6 +552,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (!backgroundSnapshotTaken) {
         backgroundSnapshotTaken = true;
         unawaited(PerformanceMonitor.instance.flushFrames());
+        final imageCache = PaintingBinding.instance.imageCache;
+        imageCache
+          ..clear()
+          ..clearLiveImages();
         unawaited(
           PerformanceMonitor.instance.snapshot(
             'background',

@@ -41,6 +41,7 @@ class SyncService {
   Timer? _realtimeTimer;
   Timer? _realtimeReconnectTimer;
   Timer? _retryTimer;
+  Future<void>? _realtimeRemoval;
   Future<void>? _inFlight;
   bool _syncAgain = false;
   bool _pullAllRequested = false;
@@ -127,12 +128,31 @@ class SyncService {
     _realtimeReconnectTimer = null;
     _retryTimer?.cancel();
     _retryTimer = null;
+    unawaited(_suspendRealtime());
   }
 
   void resume() {
     _paused = false;
     _startTimer();
-    unawaited(sync());
+    unawaited(_restoreRealtimeAndSync());
+  }
+
+  Future<void> _suspendRealtime() {
+    final active = _realtimeRemoval;
+    if (active != null) return active;
+    late final Future<void> operation;
+    operation = _removeRealtime().catchError((Object _) {}).whenComplete(() {
+      if (identical(_realtimeRemoval, operation)) _realtimeRemoval = null;
+    });
+    _realtimeRemoval = operation;
+    return operation;
+  }
+
+  Future<void> _restoreRealtimeAndSync() async {
+    await _realtimeRemoval;
+    if (_paused || client.auth.currentUser == null) return;
+    await _subscribeRealtime();
+    if (!_paused) await sync();
   }
 
   void _startTimer() {
@@ -148,13 +168,20 @@ class SyncService {
 
   Future<void> _subscribeRealtime() async {
     final user = client.auth.currentUser;
-    if (user == null || _realtime != null) return;
+    if (!shouldSubscribeRealtime(
+      paused: _paused,
+      hasAuthenticatedUser: user != null,
+      hasChannel: _realtime != null,
+    )) {
+      return;
+    }
+    final authenticatedUser = user!;
     final filter = PostgresChangeFilter(
       type: PostgresChangeFilterType.eq,
       column: 'user_id',
-      value: user.id,
+      value: authenticatedUser.id,
     );
-    final channel = client.channel('todo-live-${user.id}');
+    final channel = client.channel('todo-live-${authenticatedUser.id}');
     for (final table in const ['tasks', 'projects', 'project_sections']) {
       channel.onPostgresChanges(
         event: PostgresChangeEvent.all,
@@ -858,6 +885,13 @@ bool shouldReconnectRealtime(RealtimeSubscribeStatus status) =>
       RealtimeSubscribeStatus.timedOut => true,
       RealtimeSubscribeStatus.subscribed => false,
     };
+
+bool shouldSubscribeRealtime({
+  required bool paused,
+  required bool hasAuthenticatedUser,
+  required bool hasChannel,
+}) =>
+    !paused && hasAuthenticatedUser && !hasChannel;
 
 bool isTransientSyncError(Object error) {
   final type = error.runtimeType.toString().toLowerCase();

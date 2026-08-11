@@ -76,6 +76,7 @@ class PerformanceMonitor {
     AppDatabase db, {
     int? durationMs,
   }) async {
+    final memory = await readMemorySnapshot();
     final activeCount = db.tasks.id.count(
       filter:
           db.tasks.deletedAt.isNull() &
@@ -97,6 +98,10 @@ class PerformanceMonitor {
       fields: {
         'phase': phase,
         'rss_bytes': currentRssBytes,
+        'total_pss_bytes': ?memory?.totalPssBytes,
+        'java_heap_bytes': ?memory?.javaHeapBytes,
+        'native_heap_bytes': ?memory?.nativeHeapBytes,
+        'graphics_bytes': ?memory?.graphicsBytes,
         'db_bytes': await databaseSizeBytes(),
         'active_tasks': counts.read(activeCount) ?? 0,
         'completed_tasks': counts.read(completedCount) ?? 0,

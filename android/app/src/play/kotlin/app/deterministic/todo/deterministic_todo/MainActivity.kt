@@ -23,6 +23,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         RunTrackerChannel.register(this, flutterEngine)
+        RuntimeMetricsChannel.register(flutterEngine)
         updateManager = AppUpdateManagerFactory.create(this)
         updateManager.registerListener(installListener)
         MethodChannel(

@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.24.1
+
+- Ridotto il footprint in background: Supabase Realtime viene rimosso quando
+  l'app non è visibile e ricreato al resume prima della sincronizzazione di
+  recupero; outbox e dati locali restano invariati.
+- Limitata a 16 MiB la cache immagini Flutter e svuotata al passaggio in
+  background, evitando di trattenere risorse grafiche non necessarie.
+- La diagnostica Android affianca al RSS il PSS totale e la ripartizione Java,
+  native e grafica, così le prossime misure distinguono memoria privata da
+  pagine condivise del runtime.
+- Gli eventi Realtime conservano finalmente lo stato tecnico nella diagnostica.
+
 ## 2.24.0
 
 - Movimento usa una toolbar propria con inset di status/navigation bar: il
