@@ -11,9 +11,33 @@ connessione ADB è temporanea: sono due stati distinti.
 - `adb` disponibile sul Mac;
 - Mac già presente in **Wireless debugging → Paired devices**.
 
-Non salvare nel repository codici di pairing, indirizzi IP, porte, seriali ADB
-o output che possano contenere dati personali. IP e porta sono valori runtime,
-non configurazione canonica.
+Non salvare nel repository codici di pairing, seriali ADB, MAC address o output
+che possano contenere dati personali. L'eccezione dichiarata per il telefono di
+collaudo sulla rete domestica è l'endpoint stabile documentato sotto; non
+riutilizzarlo su altre reti.
+
+## Endpoint domestico stabile
+
+Il router domestico riserva `192.168.1.120` al Galaxy S21 di collaudo. ADB
+classico è configurato sulla porta 5555 fino al successivo riavvio del telefono:
+
+```sh
+adb connect 192.168.1.120:5555
+```
+
+Nel profilo shell personale lo stesso comando è disponibile come `adbtodo` e
+viene ricordato all'apertura di un terminale. Dopo un riavvio del telefono,
+riattivare temporaneamente ADB TCP/IP tramite la connessione Wireless debugging:
+
+```sh
+adb connect <ip>:<porta-wireless-debugging>
+adb tcpip 5555
+adb connect 192.168.1.120:5555
+```
+
+La prenotazione DHCP sopravvive ai riavvii; la modalità ADB TCP/IP 5555 no.
+Usare questo endpoint soltanto sulla LAN privata e disabilitare ADB sulle reti
+non fidate.
 
 ## Connessione ordinaria
 
