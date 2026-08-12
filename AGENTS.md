@@ -41,6 +41,13 @@ Il riferimento operativo per performance e release Android è `docs/ANDROID_PERF
 
 ## Modulo movimento e Amazfit
 
+- Sulla rete domestica il Galaxy S21 di collaudo ha la prenotazione DHCP
+  `192.168.1.120`; provare per prima cosa `adb connect 192.168.1.120:5555`
+  oppure l'alias personale `adbtodo`. La porta 5555 sopravvive ai cambi Wi-Fi
+  ma non al riavvio del telefono. Per ripristino, sicurezza e fallback leggere
+  integralmente `docs/operations/ADB_WIFI.md`; non salvare MAC, codici di
+  pairing o credenziali del router.
+
 - Il codice salute/movimento deve restare confinato in `android/runtracker` e
   nel suo sottile canale Flutter. Non mescolare database, permessi, log o sync
   con il dominio Todo o Supabase.
