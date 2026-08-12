@@ -64,7 +64,11 @@ final class StrideCalibrator {
 
     private static String encode(List<Double> values) {
         JSONArray json = new JSONArray();
-        for (double value : values) json.put(value);
+        try {
+            for (double value : values) json.put(value);
+        } catch (Exception impossibleForValidatedFiniteValues) {
+            return "[]";
+        }
         return json.toString();
     }
 }
