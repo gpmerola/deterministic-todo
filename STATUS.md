@@ -1,11 +1,12 @@
 # Stato corrente
 
-Aggiornato l'11 agosto 2026.
+Aggiornato il 12 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.24.2 build 107**, export diagnostico Drive
+- Versione coordinata corrente: **2.25.0 build 108**, classificazione passiva
+  cammino/corsa/trasporto e calibrazione distinta delle falcate. La 2.24.2 build 107 aggiunge export diagnostico Drive
   giornaliero con retention di 15 file. La 2.24.1 build 106 riduce la memoria
   in background e telemetria PSS Android. La 2.24.0 build 105 introduce layout compatto di
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
@@ -70,9 +71,10 @@ Aggiornato l'11 agosto 2026.
   GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
   GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
 - Il modulo legge il totale passi aggregato da Health Connect e
-  conserva distanza e calorie attive stimate in Room. Falcata e peso sono
-  ancora valori predefiniti: calibrazione personale e attribuzione precisa
-  attraverso mezzanotte/reboot restano da completare. Le sessioni leggono inoltre il
+  conserva distanza e calorie attive stimate in Room. Activity Recognition
+  distingue cammino, corsa e trasporto senza GPS permanente; falcate separate
+  vengono calibrate dopo tre sessioni valide per tipo. Peso personale e
+  attribuzione precisa attraverso mezzanotte/reboot restano da completare. Le sessioni leggono inoltre il
   contatore hardware Android e possono confrontare l'ultima attività con i
   dati attribuiti a Google Fit in Health Connect. Camminata e corsa sono
   sessioni distinte; la camminata applica un limite anti-salto GPS dedicato di
@@ -109,8 +111,9 @@ Aggiornato l'11 agosto 2026.
 - La 105 introduce inoltre un audit passivo di quattro giorni: WorkManager
   legge una volta ogni sei ore ma produce al massimo un report definitivo per
   giorno precedente, senza GPS o servizio permanente.
-- Restano da collaudare sulla build 105 il sidecar Drive, gli inset UI, il test
-  passivo e una camminata lunga a schermo spento; resta inoltre il BLE reale
+- Restano da collaudare sulla build 108 la classificazione su almeno tre giorni
+  misti (cammino, corsa e treno/auto), lo schema 2 dei report Drive e la
+  calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
   Connect.
 - Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio

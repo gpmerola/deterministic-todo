@@ -171,6 +171,7 @@ final class DriveTestExportManager {
     }
 
     static void finish(Context context, RunSession session, List<TrackPoint> points, Completion completion) {
+        StrideCalibrator.record(context, session, directSteps(context, session.id));
         if (!isConfigured(context)) {
             completion.onComplete(new ExportResult(false, false, "not_configured"));
             return;
@@ -240,19 +241,36 @@ final class DriveTestExportManager {
             android.content.SharedPreferences profile = c.getSharedPreferences("movement_profile", Context.MODE_PRIVATE);
             double stride = profile.getFloat("walking_stride_meters",
                 (float) MovementEstimate.DEFAULT_STRIDE_METERS);
+            double runningStride = profile.getFloat("running_stride_meters",
+                (float) MixedMovementEstimate.DEFAULT_RUNNING_STRIDE_METERS);
             double weight = profile.getFloat("weight_kg", (float) MovementEstimate.DEFAULT_WEIGHT_KG);
-            MovementEstimate estimate = MovementEstimate.fromSteps(audit.getAllSteps(), stride, weight);
+            android.content.SharedPreferences classifier = c.getSharedPreferences(
+                "movement_activity_timeline", Context.MODE_PRIVATE);
+            MixedMovementEstimate estimate = MixedMovementEstimate.calculate(
+                audit.getWalkingSteps(), audit.getRunningSteps(), audit.getUnknownSteps(),
+                audit.getExcludedSteps(), stride, runningStride, weight);
             JSONObject json = new JSONObject()
-                .put("schema_version", 1)
+                .put("schema_version", 2)
                 .put("kind", "passive_daily_audit")
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
                 .put("observed_at_ms", System.currentTimeMillis())
+                .put("activity_classifier", new JSONObject()
+                    .put("status", classifier.getString("registration_status", "unknown"))
+                    .put("status_observed_at_ms", classifier.contains("registration_observed_at_ms")
+                        ? classifier.getLong("registration_observed_at_ms", 0) : JSONObject.NULL)
+                    .put("timeline_events", ActivityTimeline.read(c).size()))
                 .put("todo", new JSONObject()
                     .put("steps", audit.getAllSteps())
                     .put("estimated_distance_m", estimate.distanceMeters())
                     .put("estimated_active_calories", estimate.activeCalories())
-                    .put("stride_m", stride).put("weight_kg", weight))
+                    .put("walking_steps", estimate.walkingSteps())
+                    .put("running_steps", estimate.runningSteps())
+                    .put("unknown_steps", estimate.unknownSteps())
+                    .put("excluded_vehicle_bicycle_still_steps", estimate.excludedSteps())
+                    .put("walking_stride_m", stride)
+                    .put("running_stride_m", runningStride)
+                    .put("weight_kg", weight))
                 .put("health_connect_all_sources", new JSONObject()
                     .put("distance_m", audit.getAllDistanceMeters() == null ? JSONObject.NULL : audit.getAllDistanceMeters())
                     .put("active_calories", audit.getAllActiveCalories() == null ? JSONObject.NULL : audit.getAllActiveCalories()))

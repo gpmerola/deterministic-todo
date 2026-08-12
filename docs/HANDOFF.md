@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato l'11 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 12 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,7 +30,8 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.24.2 build 107**. La base funzionale
+- Versione coordinata corrente: **2.25.0 build 108**. La classificazione
+  passiva separa cammino, corsa e trasporto e calibra le falcate. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -115,10 +116,11 @@ dal Bip U.** Non committare GPX reali: rivelano il percorso personale.
 La 2.21.0 legge tramite l'API di aggregazione il totale passi della giornata da
 Health Connect e lo salva nello schema Room 3 con giorno civile, fuso e
 provenienza. Health Connect può continuare il conteggio di sistema quando
-l'app è chiusa; l'app riconcilia il totale quando viene aperta. Distanza e
-calorie attive sono stime esplicitamente etichettate, per ora basate sui valori
-provvisori di 0,72 m per passo e 70 kg. Manca ancora il profilo personale e non
-esiste ancora una calibrazione personale sufficientemente lunga.
+l'app è chiusa; l'app riconcilia il totale quando viene aperta. Dalla 2.25.0
+Activity Recognition separa cammino, corsa, trasporto, bicicletta e immobilità
+senza GPS permanente. Le stime usano falcate distinte (fallback 0,72/1,05 m),
+escludono trasporto e si calibrano separatamente dopo tre sessioni GPS lunghe
+e plausibili. Manca ancora l'interfaccia per peso e parametri personali.
 
 La build 97 conserva `TYPE_STEP_COUNTER` direttamente nel servizio delle
 sessioni: il delta è visibile nella UI, continua a schermo spento e viene
@@ -200,8 +202,8 @@ a schermo spento con una sosta di circa 30 secondi.
 
 - attribuzione quotidiana completa del contatore hardware attraverso
   mezzanotte, reboot e periodi senza campioni;
-- calibrazione personale di falcata, peso e modello calorico;
-- riconoscimento automatico camminata/corsa (la selezione manuale è disponibile);
+- interfaccia del profilo personale per peso, falcate e modello calorico;
+- validazione reale di classificazione e calibrazione automatica della 2.25.0;
 - autenticazione BLE Huami;
 - download delle sessioni sportive dal Bip U;
 - battito, cadenza o passi dell’orologio;

@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.0
+
+- Il conteggio quotidiano distingue camminata, corsa, veicolo, bicicletta,
+  immobilità e stato incerto usando le transizioni di attività Android a basso
+  consumo; auto, treno, bicicletta e soste non alimentano più la distanza a
+  piedi.
+- Distanza e calorie usano falcate e coefficienti separati per camminata e
+  corsa. I passi non ancora classificabili mantengono il fallback prudente da
+  camminata e restano visibili come `unknown_steps` nel report Drive.
+- Le sessioni GPS esplicite calibrano separatamente le due falcate dopo tre
+  campioni lunghi e plausibili, tramite mediana e registrazione idempotente.
+- Il report passivo Drive passa allo schema 2 e conserva passi classificati,
+  passi esclusi e parametri applicati, così l'errore rispetto a Google Fit è
+  attribuibile invece di essere soltanto un delta giornaliero.
+
 ## 2.24.2
 
 - Aggiunto l'export automatico della diagnostica locale nella cartella Drive

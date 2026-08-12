@@ -80,10 +80,14 @@ distanza. Alla ripartenza il primo passo riabilita il collegamento GPS
 plausibile; corsa e dispositivi senza sensore conservano il filtro GPS come
 fallback.
 
-La distanza quotidiana e le calorie attive sono per ora stime esplicite basate
-su passi, falcata e peso predefiniti. Non sono ancora calibrate sul profilo
-personale e non vanno considerate misure cliniche o equivalenti a Google Fit
-finché non superano il confronto controllato sul Galaxy S21.
+La distanza quotidiana e le calorie attive sono stime esplicite basate sui
+passi. Android classifica a basso consumo camminata, corsa, veicolo, bicicletta
+e immobilità: usa falcate e coefficienti calorici distinti per cammino e corsa,
+esclude gli spostamenti motorizzati e conserva separatamente i passi incerti.
+Le falcate partono da fallback dichiarati e vengono calibrate con la mediana
+solo dopo tre sessioni GPS lunghe e plausibili dello stesso tipo. Non sono
+misure cliniche né equivalenti a Google Fit finché il confronto reale non è
+stato validato sul Galaxy S21.
 
 Da **Movimento** si avvia una traccia GPS del
 telefono. Una notifica persistente mantiene la registrazione attiva anche a

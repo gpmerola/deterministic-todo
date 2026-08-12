@@ -111,6 +111,7 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     private final ActivityResultLauncher<String[]> permissions = registerForActivityResult(
         new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+            ActivityClassifier.register(this);
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) startRun(pendingActivityType);
             else Toast.makeText(this, "La posizione precisa è necessaria per registrare il percorso", Toast.LENGTH_LONG).show();
@@ -119,6 +120,7 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
+        ActivityClassifier.register(this);
         setTitle("Movimento");
         setContentView(content());
         io.execute(() -> {

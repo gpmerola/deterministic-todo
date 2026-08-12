@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato l'11 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 12 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.24.2 build 107. La base funzionale build 95 ha
+- Release coordinata corrente: 2.25.0 build 108. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -57,25 +57,22 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo corsa Bip U
+## P0 — Collaudo movimento build 108
 
-- collaudare la build 105 sul Galaxy S21; il permesso di lettura Health Connect
-  in background è già stato concesso. Aprire Movimento deve recuperare la
-  sessione 14 e produrre nel JSON un confronto oppure un `error_code` tecnico;
-  cartella Drive e permessi devono restare persistenti senza nuova configurazione;
-  notifiche; impostare Batteria → Senza restrizioni per il collaudo Samsung;
-- attivare una sola volta **Test passivo · 4 giorni**: non annotare soste e non
-  aprire Movimento ogni giorno. Dopo quattro giorni confrontare i file
-  `daily_audit_YYYY-MM-DD.json`; sono stime quotidiane senza percorso GPS e non
-  sostituiscono il collaudo di una sessione esplicita;
-- registrare 10–15 minuti con schermo spento, includendo una sosta di circa 30
-  secondi, e confrontare distanza, passi e diagnostica con Google Fit;
-- al termine si può chiudere Movimento: il job persistente attende e riprova
-  Google Fit in background. La concessione deve riprogrammare automaticamente
-  anche la sessione 14 già salvata. Riaprire dopo 2–3 minuti e verificare lo stato del
-  confronto automatico e la presenza della coppia omonima nella
-  cartella Drive; il JSON deve contenere `google_fit_comparison` senza premere
-  riesporta o confronta manualmente;
+- installare la build 108 e aprire Movimento una volta; il permesso **Physical
+  activity** deve restare consentito;
+- lasciare attivo il test passivo per almeno tre giorni normali includendo
+  camminata e un viaggio in treno/auto, senza premere altri comandi. Verificare
+  nei `daily_audit_*.json` schema 2 che corsa/cammino siano separati e i passi
+  di trasporto risultino esclusi o incerti;
+- per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre
+  corse da almeno 3 km con i pulsanti dedicati. Non servono soste annotate né
+  screenshot: GPX, passi, confronto e report vengono esportati automaticamente;
+- confrontare dopo il terzo campione le falcate applicate e lo scarto rispetto
+  a Google Fit; non modificare manualmente le soglie durante la raccolta.
+
+## P1 — Collaudo corsa Bip U
+
 - verificare che la notifica termini la sessione e che riaprire l'attività dopo
   una sospensione conservi durata e distanza;
 - provare scansione e batteria con Zepp completamente chiusa. Se il servizio
@@ -91,8 +88,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - il recupero passi Health Connect e il contatore diretto di sessione sono
   verificati sul Galaxy S21; resta da verificare un cambio giorno reale con
   app chiusa e riconciliazione alla riapertura;
-- aggiungere profilo locale con peso e falcata, calibrazione tramite sessione
-  GPS e stima calorica versionata; i valori 70 kg/0,72 m sono solo provvisori;
+- aggiungere UI del profilo locale per peso e visibilità delle due falcate; la
+  calibrazione automatica GPS è presente dalla build 108 e i fallback restano
+  provvisori;
 - collaudare `TYPE_STEP_COUNTER` durante sessioni con schermo spento; la
   gestione del totale quotidiano attraverso mezzanotte/reboot resta distinta;
 - valutare `WorkManager` e lettura Health Connect in background solo dopo una

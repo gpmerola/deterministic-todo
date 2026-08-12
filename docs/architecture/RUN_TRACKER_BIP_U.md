@@ -73,10 +73,24 @@ continuare ad acquisire passi anche quando il processo dell'app non è attivo.
 L'app riconcilia con un upsert idempotente quando la schermata Movimento viene
 aperta.
 
-Le stime iniziali usano 0,72 metri per passo, 70 kg e 0,50 kcal/(kg·km). Sono
-fallback dichiarati, non un profilo personale né una misura clinica. Il
-prossimo schema dovrà versionare parametri e algoritmo, aggiungere calibrazione
-tramite sessioni GPS e conservare il valore precedente per la riproducibilità.
+La Transition API di Activity Recognition conserva localmente una timeline di
+14 giorni con `walking`, `running`, `vehicle`, `bicycle`, `still` e `unknown`.
+Non mantiene GPS o un servizio foreground: il lavoro di riconoscimento è
+delegato al sistema. I record passi Health Connect vengono attribuiti allo
+stato presente al loro punto temporale medio e poi riconciliati con il totale
+aggregato, che resta la fonte canonica del conteggio.
+
+Le stime iniziali usano 0,72 m/passo camminando, 1,05 m/passo correndo, 70 kg,
+0,50 kcal/(kg·km) per cammino e 1,00 per corsa. Veicolo, bicicletta e immobilità
+sono esclusi dalla distanza; `unknown` usa il fallback da camminata. Dopo tre
+sessioni esplicite valide (almeno 1 km/1.000 passi per cammino o 3 km/2.000
+passi per corsa), la mediana degli ultimi sette rapporti GPS/passi calibra il
+solo profilo corrispondente. Ogni sessione viene acquisita una sola volta.
+
+Il report `passive_daily_audit` schema 2 registra categorie, esclusioni e
+parametri applicati. La classificazione al punto medio è deliberatamente una
+approssimazione per record Health Connect che attraversano una transizione;
+`unknown_steps` rende misurabile tale limite senza inventare precisione.
 
 ## BLE e confine di sicurezza
 
