@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.24.1 build 106. La base funzionale build 95 ha
+- Release coordinata corrente: 2.24.2 build 107. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -111,8 +111,10 @@ Misurare prima di ottimizzare ulteriormente:
 
 - la build 106 limita la cache immagini a 16 MiB, rimuove Realtime in
   background e registra PSS totale/Java/native/grafica oltre al RSS; esportare
-  una nuova diagnostica dopo almeno un giorno per confrontarla con la baseline
-  RSS media 203 MiB e picco 284 MiB del 5–11 agosto;
+  una nuova diagnostica della build 106/107 dopo almeno un giorno per
+  confrontarla con la baseline RSS media 203 MiB e picco 284 MiB del 5–11
+  agosto; `diagnostics (5).jsonl` era byte-per-byte identico al file precedente
+  e terminava ancora alla build 105;
 
 - baseline reale 5–8 agosto registrata in
   `docs/diagnostics/2026-08-08-web-android.md`;

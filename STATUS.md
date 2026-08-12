@@ -5,7 +5,8 @@ Aggiornato l'11 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.24.1 build 106**, riduzione della memoria
+- Versione coordinata corrente: **2.24.2 build 107**, export diagnostico Drive
+  giornaliero con retention di 15 file. La 2.24.1 build 106 riduce la memoria
   in background e telemetria PSS Android. La 2.24.0 build 105 introduce layout compatto di
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,

@@ -21,6 +21,7 @@ import org.json.JSONObject;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -418,6 +419,32 @@ final class DriveTestExportManager {
             try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
                 out.write(bytes); out.flush(); descriptor.getFileDescriptor().sync();
             }
+        }
+    }
+
+    static void writeDailyDiagnostics(Context context, String name, String text) throws Exception {
+        writeNewFile(context, name, "application/x-ndjson", text);
+        pruneDailyDiagnostics(context, 15);
+    }
+
+    private static void pruneDailyDiagnostics(Context context, int keep) throws Exception {
+        Uri tree = tree(context); if (tree == null) throw new IllegalStateException("folder missing");
+        String directoryId = DocumentsContract.getTreeDocumentId(tree);
+        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
+        List<DiagnosticRetentionPolicy.Entry> entries = new ArrayList<>();
+        try (Cursor cursor = context.getContentResolver().query(children,
+            new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null) while (cursor.moveToNext()) {
+                String name = cursor.getString(1);
+                if (DiagnosticRetentionPolicy.isManaged(name))
+                    entries.add(new DiagnosticRetentionPolicy.Entry(cursor.getString(0), name));
+            }
+        }
+        for (DiagnosticRetentionPolicy.Entry entry :
+            DiagnosticRetentionPolicy.entriesToDelete(entries, keep)) {
+            Uri document = DocumentsContract.buildDocumentUriUsingTree(tree, entry.id());
+            DocumentsContract.deleteDocument(context.getContentResolver(), document);
         }
     }
 }

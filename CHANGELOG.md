@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.24.2
+
+- Aggiunto l'export automatico della diagnostica locale nella cartella Drive
+  già autorizzata: un file `todo_diagnostics_YYYY-MM-DD.jsonl` ogni 24 ore,
+  senza GPS, contenuti delle attività o un nuovo servizio persistente.
+- La retention conserva i 15 report diagnostici più recenti e cancella
+  esclusivamente file gestiti con il prefisso `todo_diagnostics_`; GPX, audit
+  Movimento e file dell'utente non vengono considerati.
+- Il primo tentativo viene pianificato dopo circa un minuto dall'apertura
+  dell'app; WorkManager può differirlo secondo le politiche energetiche Android.
+
 ## 2.24.1
 
 - Ridotto il footprint in background: Supabase Realtime viene rimosso quando
