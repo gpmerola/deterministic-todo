@@ -24,7 +24,7 @@ public final class DiagnosticDriveWorker extends Worker {
         super(context, parameters);
     }
 
-    public static void schedule(Context context) {
+    static void schedule(Context context) {
         PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(
             DiagnosticDriveWorker.class, 24, TimeUnit.HOURS)
             .setInitialDelay(1, TimeUnit.MINUTES)
