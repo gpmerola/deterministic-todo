@@ -32,8 +32,12 @@ final class ActivityTimeline {
         events.removeIf(event -> event.atMillis() < cutoff);
         events.sort(Comparator.comparingLong(Event::atMillis));
         JSONArray json = new JSONArray();
-        for (Event event : events) json.put(new JSONObject()
-            .put("at", event.atMillis()).put("activity", event.activity()));
+        try {
+            for (Event event : events) json.put(new JSONObject()
+                .put("at", event.atMillis()).put("activity", event.activity()));
+        } catch (Exception impossibleForFiniteValues) {
+            return;
+        }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(EVENTS, json.toString()).apply();
     }
