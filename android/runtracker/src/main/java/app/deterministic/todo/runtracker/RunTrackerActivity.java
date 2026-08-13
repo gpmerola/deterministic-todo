@@ -316,7 +316,7 @@ public final class RunTrackerActivity extends ComponentActivity {
 
     private void renderPassiveButton() {
         passiveButton.setText(PassiveMovementAuditWorker.enabled(this)
-            ? "Termina test passivo" : "Avvia test passivo · 4 giorni");
+            ? "Termina test passivo" : "Avvia test passivo · 7 giorni");
     }
 
     private void refreshDailyMovement() {

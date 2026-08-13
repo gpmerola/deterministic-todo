@@ -4,10 +4,12 @@ import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 
 final class PassiveAuditWindow {
+    static final int DURATION_DAYS = 7;
+
     private PassiveAuditWindow() {}
 
     static long endAt(long startedAtMillis) {
-        return startedAtMillis + TimeUnit.DAYS.toMillis(4);
+        return startedAtMillis + TimeUnit.DAYS.toMillis(DURATION_DAYS);
     }
 
     static boolean active(long nowMillis, long endAtMillis) {

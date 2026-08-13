@@ -124,6 +124,12 @@ indisponibile. Il provider Drive gestisce la sincronizzazione; l’app non conti
 credenziali Google. I file includono dati personali di posizione e non devono
 essere resi pubblici o versionati.
 
+Il test passivo opzionale dura sette giorni e genera automaticamente un audit
+per ogni giornata civile completata. Usa un solo job periodico a basso consumo:
+non mantiene GPS, BLE o un servizio foreground e può funzionare con l'app
+chiusa. Terminarlo e riavviarlo estende la finestra senza cancellare gli audit
+già caricati.
+
 La prima prova BLE cerca il Bip U e legge soltanto il servizio standard della
 batteria, quando esposto. La chiave Huami opzionale viene cifrata con Android
 Keystore e non viene mai inserita in log o repository. Autenticazione Huami,

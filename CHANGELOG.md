@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.1
+
+- Estesa da quattro a sette giorni la finestra del test passivo Movimento, per
+  raccogliere più giornate reali senza richiedere interazioni quotidiane.
+- La pianificazione resta un unico job WorkManager ogni sei ore, senza GPS,
+  BLE o servizio permanente; riavviare il test non elimina i report già
+  esportati.
+
 ## 2.25.0
 
 - Il conteggio quotidiano distingue camminata, corsa, veicolo, bicicletta,

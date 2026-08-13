@@ -5,7 +5,8 @@ Aggiornato il 12 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.0 build 108**, classificazione passiva
+- Versione coordinata corrente: **2.25.1 build 109**, finestra del test passivo
+  estesa a sette giorni. La 2.25.0 build 108 introduce classificazione passiva
   cammino/corsa/trasporto e calibrazione distinta delle falcate. La 2.24.2 build 107 aggiunge export diagnostico Drive
   giornaliero con retention di 15 file. La 2.24.1 build 106 riduce la memoria
   in background e telemetria PSS Android. La 2.24.0 build 105 introduce layout compatto di
@@ -86,7 +87,7 @@ Aggiornato il 12 agosto 2026.
 ## Verifica
 
 - Analisi statica senza errori.
-- 121 test Flutter superati, incluso uno scenario di convergenza con due
+- 123 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
 - I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
   contatore e stime. Build Android, firma, manifest pubblico e parità con Web
@@ -108,10 +109,12 @@ Aggiornato il 12 agosto 2026.
   troncamento e sincronizzazione e verifica la dimensione scritta. Anche la
   104 non ha aggiornato il file remoto: la 105 usa quindi sidecar immutabili,
   lo stesso modello create-only affidabile degli export iniziali.
-- La 105 introduce inoltre un audit passivo di quattro giorni: WorkManager
+- La 105 introduce inoltre un audit passivo, esteso a sette giorni dalla build
+  109: WorkManager
   legge una volta ogni sei ore ma produce al massimo un report definitivo per
   giorno precedente, senza GPS o servizio permanente.
-- Restano da collaudare sulla build 108 la classificazione su almeno tre giorni
+- Restano da collaudare sulla build 109 la finestra estesa e, dalla build 108,
+  la classificazione su almeno tre giorni
   misti (cammino, corsa e treno/auto), lo schema 2 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health

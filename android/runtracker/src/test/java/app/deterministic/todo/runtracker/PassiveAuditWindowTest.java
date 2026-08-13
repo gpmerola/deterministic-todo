@@ -7,10 +7,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class PassiveAuditWindowTest {
-    @Test public void auditRunsForFourDaysAndThenExpires() {
+    @Test public void auditRunsForSevenDaysAndThenExpires() {
         long start = 1_000L;
         long end = PassiveAuditWindow.endAt(start);
-        assertEquals(start + TimeUnit.DAYS.toMillis(4), end);
+        assertEquals(start + TimeUnit.DAYS.toMillis(7), end);
         assertTrue(PassiveAuditWindow.active(end - 1, end));
         assertFalse(PassiveAuditWindow.active(end, end));
     }

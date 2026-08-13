@@ -12,7 +12,8 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.0 build 108. La base funzionale build 95 ha
+- Release coordinata corrente: 2.25.1 build 109. La finestra passiva dura sette
+  giorni; classificazione e calibrazione restano quelle della build 108. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -57,11 +58,13 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo movimento build 108
+## P0 — Collaudo movimento build 109
 
-- installare la build 108 e aprire Movimento una volta; il permesso **Physical
+- installare la build 109 e aprire Movimento una volta; il permesso **Physical
   activity** deve restare consentito;
-- lasciare attivo il test passivo per almeno tre giorni normali includendo
+- riavviare una volta il test passivo dopo l'aggiornamento per ottenere la
+  nuova finestra di sette giorni; lasciare raccolta per almeno tre giorni
+  normali includendo
   camminata e un viaggio in treno/auto, senza premere altri comandi. Verificare
   nei `daily_audit_*.json` schema 2 che corsa/cammino siano separati e i passi
   di trasporto risultino esclusi o incerti;
