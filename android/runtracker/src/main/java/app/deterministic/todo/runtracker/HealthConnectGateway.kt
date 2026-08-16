@@ -224,15 +224,13 @@ object HealthConnectGateway {
                 pageToken = token
             ))
             for (record in response.records) {
-                val midpoint = record.startTime.toEpochMilli() +
-                    (record.endTime.toEpochMilli() - record.startTime.toEpochMilli()) / 2
-                when (ActivityTimeline.at(timeline, midpoint)) {
-                    ActivityTimeline.WALKING -> walking += record.count
-                    ActivityTimeline.RUNNING -> running += record.count
-                    ActivityTimeline.VEHICLE, ActivityTimeline.BICYCLE,
-                    ActivityTimeline.STILL -> excluded += record.count
-                    else -> unknown += record.count
-                }
+                val allocation = StepIntervalClassifier.classify(
+                    record.startTime.toEpochMilli(), record.endTime.toEpochMilli(),
+                    record.count, timeline)
+                walking += allocation.walking()
+                running += allocation.running()
+                unknown += allocation.unknown()
+                excluded += allocation.excluded()
             }
             token = response.pageToken
         } while (token != null)

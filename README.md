@@ -84,6 +84,10 @@ La distanza quotidiana e le calorie attive sono stime esplicite basate sui
 passi. Android classifica a basso consumo camminata, corsa, veicolo, bicicletta
 e immobilità: usa falcate e coefficienti calorici distinti per cammino e corsa,
 esclude gli spostamenti motorizzati e conserva separatamente i passi incerti.
+I blocchi Health Connect che attraversano più stati vengono ripartiti per il
+tempo effettivamente sovrapposto; trasporto e immobilità vengono esclusi solo
+quando dominano almeno l'80% del blocco, altrimenti la quota ambigua resta
+visibile come incerta.
 Le falcate partono da fallback dichiarati e vengono calibrate con la mediana
 solo dopo tre sessioni GPS lunghe e plausibili dello stesso tipo. Non sono
 misure cliniche né equivalenti a Google Fit finché il confronto reale non è

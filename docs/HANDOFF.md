@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 12 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 16 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,9 +30,11 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.1 build 109**. Il test passivo dura sette
-  giorni; la classificazione
-  passiva separa cammino, corsa e trasporto e calibra le falcate. La base funzionale
+- Versione coordinata corrente: **2.25.2 build 110**. Il test passivo dura sette
+  giorni; la classificazione passiva ripartisce i record passi sull'intero
+  intervallo e richiede una dominanza temporale dell'80% prima di escludere
+  trasporto o immobilità. Cammino, corsa e trasporto restano separati e le
+  falcate vengono calibrate. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
@@ -179,6 +181,16 @@ si sveglia ogni sei ore, legge da Health Connect
 il giorno civile precedente e crea una sola volta
 `daily_audit_YYYY-MM-DD.json` con passi, distanza e calorie Todo/Google Fit.
 Non usa GPS continuo, BLE o foreground service e termina automaticamente.
+
+Gli audit reali del 13–15 agosto 2026 sulla build 109 hanno isolato una
+regressione: 9,51 km Todo contro 21,26 km Google Fit (-55,3%), con il 61% dei
+passi escluso. I totali passi coincidevano perché provenivano entrambi da
+Health Connect; non costituivano quindi una validazione indipendente del
+sensore. La causa era l'assegnazione dell'intero record passi allo stato del
+suo punto centrale. La build 110 ripartisce ogni record in base alla durata di
+ciascuno stato sovrapposto e sposta nell'incerto la quota di trasporto/sosta
+quando questi stati coprono meno dell'80% del blocco. I report già creati
+restano immutabili; la correzione vale per i giorni successivi all'update.
 
 L'audit passivo misura il modello quotidiano di distanza e calorie, non
 l'errore geometrico della traccia GPS. Quest'ultimo richiede ancora una

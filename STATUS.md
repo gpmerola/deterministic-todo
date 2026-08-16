@@ -1,12 +1,15 @@
 # Stato corrente
 
-Aggiornato il 12 agosto 2026.
+Aggiornato il 16 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.1 build 109**, finestra del test passivo
-  estesa a sette giorni. La 2.25.0 build 108 introduce classificazione passiva
+- Versione coordinata corrente: **2.25.2 build 110**. La classificazione
+  distribuisce ora ciascun record passi sull'intervallo temporale completo e
+  tratta come incerta l'esclusione di trasporto/sosta nei blocchi misti. La
+  2.25.1 build 109 estende a sette giorni la finestra del test passivo; la
+  2.25.0 build 108 introduce classificazione passiva
   cammino/corsa/trasporto e calibrazione distinta delle falcate. La 2.24.2 build 107 aggiunge export diagnostico Drive
   giornaliero con retention di 15 file. La 2.24.1 build 106 riduce la memoria
   in background e telemetria PSS Android. La 2.24.0 build 105 introduce layout compatto di
@@ -113,9 +116,13 @@ Aggiornato il 12 agosto 2026.
   109: WorkManager
   legge una volta ogni sei ore ma produce al massimo un report definitivo per
   giorno precedente, senza GPS o servizio permanente.
-- Restano da collaudare sulla build 109 la finestra estesa e, dalla build 108,
-  la classificazione su almeno tre giorni
-  misti (cammino, corsa e treno/auto), lo schema 2 dei report Drive e la
+- Gli audit reali del 13–15 agosto sulla build 109 hanno mostrato totali passi
+  coerenti con Health Connect ma il 61% classificato come escluso: distanza
+  Todo 9,51 km contro 21,26 km Google Fit (-55,3%). La causa era l'assegnazione
+  integrale dei record passi allo stato del loro punto centrale. La build 110
+  usa invece sovrapposizione temporale e un gate conservativo dell'80%.
+- Restano da collaudare sulla build 110 almeno due giornate
+  miste (cammino, corsa e treno/auto), lo schema 2 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
   Connect.

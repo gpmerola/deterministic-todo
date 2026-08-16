@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.2
+
+- Corretto il classificatore passivo dei passi: i record Health Connect che
+  attraversano più stati vengono ripartiti sull'intero intervallo temporale,
+  invece di essere assegnati tutti allo stato presente nel punto centrale.
+- L'esclusione di auto, treno, bicicletta e immobilità richiede che questi
+  stati coprano almeno l'80% del record; nei blocchi misti la quota ambigua
+  resta `unknown` e contribuisce alla stima prudente, evitando sottostime
+  massive.
+- Aggiunti test deterministici per intervalli misti, arrotondamento esatto e
+  conservazione del totale passi.
+
 ## 2.25.1
 
 - Estesa da quattro a sette giorni la finestra del test passivo Movimento, per

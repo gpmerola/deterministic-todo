@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 12 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 16 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,8 +12,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.1 build 109. La finestra passiva dura sette
-  giorni; classificazione e calibrazione restano quelle della build 108. La base funzionale build 95 ha
+- Release coordinata corrente: 2.25.2 build 110. I record passi sono ripartiti
+  sull'intero intervallo e l'esclusione di trasporto/sosta richiede una quota
+  temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -58,13 +59,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo movimento build 109
+## P0 — Collaudo movimento build 110
 
-- installare la build 109 e aprire Movimento una volta; il permesso **Physical
+- installare la build 110 e aprire Movimento una volta; il permesso **Physical
   activity** deve restare consentito;
-- riavviare una volta il test passivo dopo l'aggiornamento per ottenere la
-  nuova finestra di sette giorni; lasciare raccolta per almeno tre giorni
-  normali includendo
+- non è necessario fermare il test passivo già attivo: l'aggiornamento conserva
+  la scadenza e applica il nuovo classificatore ai prossimi report. Se la
+  finestra è già terminata, avviarne una nuova; lasciare raccolta per almeno due
+  giorni normali includendo
   camminata e un viaggio in treno/auto, senza premere altri comandi. Verificare
   nei `daily_audit_*.json` schema 2 che corsa/cammino siano separati e i passi
   di trasporto risultino esclusi o incerti;
