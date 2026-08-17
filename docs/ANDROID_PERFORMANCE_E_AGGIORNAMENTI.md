@@ -154,13 +154,16 @@ wireless sono documentati in
 garantisce una sessione sempre connessa: IP e porta vanno trattati come valori
 effimeri e mai salvati nel repository.
 
-Il test passivo Movimento della 2.24.0 è temporaneo e auto-scade dopo quattro
-giorni. Usa un solo `PeriodicWorkRequest` ogni sei ore e legge da Health Connect
-soltanto un giorno civile già concluso; i retry restano affidati a WorkManager.
-Non registra GPS, non mantiene un servizio foreground e crea al massimo un
-report Drive immutabile per giorno, quindi il costo atteso è molto inferiore a
-quello di una sessione GPS o di un player video. Va comunque confrontato con i
-dati batteria del Galaxy S21 prima di trasformarlo in una funzione permanente.
+Il test passivo Movimento è temporaneo e auto-scade dopo sette giorni. Dalla
+2.25.5 usa un solo `PeriodicWorkRequest` ogni ora: legge da Health Connect la
+giornata corrente e crea un file immutabile
+`movement_snapshot_YYYY-MM-DD_HH.json` per fascia oraria. Conserva inoltre il
+report definitivo `daily_audit_YYYY-MM-DD.json` del giorno concluso. Il primo
+snapshot è pianificato circa un minuto dopo l'avvio e un test già attivo viene
+aggiornato automaticamente dalla nuova build. I retry restano affidati a
+WorkManager. Non registra GPS, non mantiene un servizio foreground e non usa
+BLE; il costo va comunque misurato sul Galaxy S21 prima di rendere permanente
+la frequenza di debug.
 
 ## Motion system UI
 

@@ -5,7 +5,10 @@ Aggiornato il 17 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.4 build 112**. Durante il debugging la
+- Versione coordinata corrente: **2.25.5 build 113**. Il test passivo Movimento
+  crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
+  ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
+  durante il debugging aggiorna la
   diagnostica Drive viene aggiornata all'apertura e ogni tre ore con rete
   disponibile, mantenendo un solo file al giorno e gli ultimi 15 giorni. La
   2.25.3 build 111 verifica ogni
@@ -128,16 +131,16 @@ Aggiornato il 17 agosto 2026.
   104 non ha aggiornato il file remoto: la 105 usa quindi sidecar immutabili,
   lo stesso modello create-only affidabile degli export iniziali.
 - La 105 introduce inoltre un audit passivo, esteso a sette giorni dalla build
-  109: WorkManager
-  legge una volta ogni sei ore ma produce al massimo un report definitivo per
-  giorno precedente, senza GPS o servizio permanente.
+  109. Dalla build 113 WorkManager legge la giornata corrente ogni ora e crea
+  snapshot intragiornalieri, oltre al report definitivo del giorno precedente,
+  senza GPS o servizio permanente.
 - Gli audit reali del 13–15 agosto sulla build 109 hanno mostrato totali passi
   coerenti con Health Connect ma il 61% classificato come escluso: distanza
   Todo 9,51 km contro 21,26 km Google Fit (-55,3%). La causa era l'assegnazione
   integrale dei record passi allo stato del loro punto centrale. La build 110
   usa invece sovrapposizione temporale e un gate conservativo dell'80%.
-- Restano da collaudare sulla build 110 almeno due giornate
-  miste (cammino, corsa e treno/auto), lo schema 2 dei report Drive e la
+- Restano da collaudare sulla build 113 almeno due giornate
+  miste (cammino, corsa e treno/auto), lo schema 3 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
   Connect.

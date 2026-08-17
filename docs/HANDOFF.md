@@ -30,7 +30,8 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.4 build 112**. La diagnostica Drive
+- Versione coordinata corrente: **2.25.5 build 113**. Movimento crea snapshot
+  cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
   viene aggiornata all'avvio e ogni tre ore; il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
   e riconosce l'outbox solo dopo conferma della stessa versione server. La
@@ -200,10 +201,17 @@ remoto. La 2.24.0 non sovrascrive più quel JSON: crea un sidecar immutabile
 `*_comparison-<timestamp>.json`, seguendo il percorso create-only già
 dimostrato dagli export iniziali. Introduce inoltre un audit passivo opzionale
 inizialmente di quattro giorni, esteso a sette giorni dalla 2.25.1. WorkManager
-si sveglia ogni sei ore, legge da Health Connect
-il giorno civile precedente e crea una sola volta
+si svegliava ogni sei ore, leggeva da Health Connect
+il giorno civile precedente e creava una sola volta
 `daily_audit_YYYY-MM-DD.json` con passi, distanza e calorie Todo/Google Fit.
 Non usa GPS continuo, BLE o foreground service e termina automaticamente.
+
+La 2.25.5 accorcia il ciclo di debug: crea
+`movement_snapshot_YYYY-MM-DD_HH.json` con i cumulativi della giornata corrente
+circa un minuto dopo l'avvio e poi ogni ora. Ogni fascia oraria è immutabile;
+il report finale del giorno concluso resta separato. Se il test era già attivo,
+l'avvio della nuova build aggiorna automaticamente il job senza azzerarne la
+scadenza.
 
 Gli audit reali del 13–15 agosto 2026 sulla build 109 hanno isolato una
 regressione: 9,51 km Todo contro 21,26 km Google Fit (-55,3%), con il 61% dei

@@ -21,6 +21,8 @@ import org.json.JSONObject;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -236,6 +238,23 @@ final class DriveTestExportManager {
     }
 
     static ExportResult writePassiveAudit(Context c, HealthConnectGateway.PassiveAudit audit) {
+        return writePassiveReport(c, audit, "passive_daily_audit",
+            "daily_audit_" + audit.getDay() + ".json", System.currentTimeMillis());
+    }
+
+    static ExportResult writePassiveSnapshot(Context c,
+                                               HealthConnectGateway.PassiveAudit audit,
+                                               LocalDateTime observedAt) {
+        String bucket = observedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH"));
+        return writePassiveReport(c, audit, "passive_intraday_snapshot",
+            "movement_snapshot_" + bucket + ".json", System.currentTimeMillis());
+    }
+
+    private static ExportResult writePassiveReport(Context c,
+                                                     HealthConnectGateway.PassiveAudit audit,
+                                                     String kind,
+                                                     String fileName,
+                                                     long observedAtMillis) {
         if (!isConfigured(c)) return new ExportResult(false, false, "not_configured");
         try {
             android.content.SharedPreferences profile = c.getSharedPreferences("movement_profile", Context.MODE_PRIVATE);
@@ -250,11 +269,11 @@ final class DriveTestExportManager {
                 audit.getWalkingSteps(), audit.getRunningSteps(), audit.getUnknownSteps(),
                 audit.getExcludedSteps(), stride, runningStride, weight);
             JSONObject json = new JSONObject()
-                .put("schema_version", 2)
-                .put("kind", "passive_daily_audit")
+                .put("schema_version", 3)
+                .put("kind", kind)
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
-                .put("observed_at_ms", System.currentTimeMillis())
+                .put("observed_at_ms", observedAtMillis)
                 .put("activity_classifier", new JSONObject()
                     .put("status", classifier.getString("registration_status", "unknown"))
                     .put("status_observed_at_ms", classifier.contains("registration_observed_at_ms")
@@ -278,7 +297,7 @@ final class DriveTestExportManager {
                     .put("steps", audit.getFitSteps() == null ? JSONObject.NULL : audit.getFitSteps())
                     .put("distance_m", audit.getFitDistanceMeters() == null ? JSONObject.NULL : audit.getFitDistanceMeters())
                     .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()));
-            writeNewFile(c, "daily_audit_" + audit.getDay() + ".json", "application/json", json.toString(2));
+            writeNewFile(c, fileName, "application/json", json.toString(2));
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(LAST_STATUS, "success").remove(LAST_ERROR)
                 .putLong(LAST_EXPORTED_AT, System.currentTimeMillis()).apply();

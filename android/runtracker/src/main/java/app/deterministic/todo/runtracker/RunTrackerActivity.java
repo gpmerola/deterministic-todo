@@ -311,7 +311,7 @@ public final class RunTrackerActivity extends ComponentActivity {
             return "Test passivo spento · nessun GPS continuo";
         long hours = Math.max(1, java.util.concurrent.TimeUnit.MILLISECONDS.toHours(
             PassiveMovementAuditWorker.endAt(this) - System.currentTimeMillis()));
-        return "Test passivo attivo · report giornaliero · ancora " + hours + " h";
+        return "Test passivo attivo · snapshot ogni ora · ancora " + hours + " h";
     }
 
     private void renderPassiveButton() {

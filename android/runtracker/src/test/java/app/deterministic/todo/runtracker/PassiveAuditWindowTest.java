@@ -7,6 +7,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class PassiveAuditWindowTest {
+    @Test public void passiveDebugSnapshotsRunHourly() {
+        assertEquals(1, PassiveMovementAuditWorker.PERIODIC_INTERVAL_HOURS);
+    }
+
     @Test public void auditRunsForSevenDaysAndThenExpires() {
         long start = 1_000L;
         long end = PassiveAuditWindow.endAt(start);

@@ -12,7 +12,8 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.4 build 112. La diagnostica Android
+- Release coordinata corrente: 2.25.5 build 113. Movimento produce snapshot
+  cumulativi Todo/Google Fit ogni ora; la diagnostica Android
   aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
   contatori Lamport più alti. I record passi sono ripartiti
@@ -76,7 +77,8 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   finestra è già terminata, avviarne una nuova; lasciare raccolta per almeno due
   giorni normali includendo
   camminata e un viaggio in treno/auto, senza premere altri comandi. Verificare
-  nei `daily_audit_*.json` schema 2 che corsa/cammino siano separati e i passi
+  nei `movement_snapshot_*.json` e `daily_audit_*.json` schema 3 che
+  corsa/cammino siano separati e i passi
   di trasporto risultino esclusi o incerti;
 - per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre
   corse da almeno 3 km con i pulsanti dedicati. Non servono soste annotate né

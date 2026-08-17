@@ -112,6 +112,12 @@ restano nel JSON Drive anche quando il confronto non riesce. Dopo il consenso,
 un tentativo immediato in primo piano recupera anche l'ultima sessione rimasta
 in attesa.
 
+Il test passivo di sette giorni non richiede sessioni manuali. Durante il
+debugging crea su Drive uno snapshot cumulativo della giornata corrente circa
+un minuto dopo l'avvio e poi ogni ora, confrontando stima Todo e valori Google
+Fit disponibili in Health Connect. GPS e BLE restano spenti; il report finale
+del giorno precedente viene conservato separatamente.
+
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo
 (`poor_accuracy`, `implausible_speed_jump`, `gps_zigzag`, rumore da fermo o

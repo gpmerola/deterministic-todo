@@ -87,10 +87,13 @@ sessioni esplicite valide (almeno 1 km/1.000 passi per cammino o 3 km/2.000
 passi per corsa), la mediana degli ultimi sette rapporti GPS/passi calibra il
 solo profilo corrispondente. Ogni sessione viene acquisita una sola volta.
 
-Il report `passive_daily_audit` schema 2 registra categorie, esclusioni e
-parametri applicati. La classificazione al punto medio è deliberatamente una
-approssimazione per record Health Connect che attraversano una transizione;
-`unknown_steps` rende misurabile tale limite senza inventare precisione.
+I report schema 3 `passive_intraday_snapshot` e `passive_daily_audit`
+registrano categorie, esclusioni e parametri applicati. I record Health Connect
+che attraversano transizioni vengono ripartiti per durata; trasporto o sosta
+escludono passi soltanto con dominanza temporale almeno dell'80%, mentre la
+quota ambigua resta `unknown_steps`. Durante il test di sette giorni uno
+snapshot cumulativo e immutabile viene creato per ogni fascia oraria; il giorno
+concluso conserva un report finale distinto.
 
 ## BLE e confine di sicurezza
 

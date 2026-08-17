@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.5
+
+- Il test passivo Movimento produce ora uno snapshot cumulativo Todo/Google Fit
+  della giornata corrente ogni ora, oltre al report finale immutabile del
+  giorno concluso; prima leggeva soltanto un giorno già terminato ogni sei ore.
+- Il primo snapshot viene pianificato circa un minuto dopo l'avvio dell'app e
+  la build aggiorna automaticamente il vecchio job se il test è già attivo.
+- Gli snapshot usano file immutabili `movement_snapshot_YYYY-MM-DD_HH.json`,
+  uno per fascia oraria: il ciclo di analisi scende tipicamente a 1–2 ore senza
+  GPS continuo, BLE o servizio permanente.
+
 ## 2.25.4
 
 - Durante la fase di debugging, la diagnostica Android aggiorna lo stesso file
