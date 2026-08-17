@@ -81,12 +81,17 @@ public final class PassiveMovementAuditWorker extends Worker {
             disable(context);
             return Result.success();
         }
+        PassiveMovementDebugState.started(context, DriveTestExportManager.isConfigured(context));
         ZoneId zone = ZoneId.systemDefault();
         LocalDateTime now = LocalDateTime.now(zone);
         AuditRead current = readAudit(context, now.toLocalDate());
-        if (current.audit == null) return resultFor(current.error);
+        if (current.audit == null) {
+            PassiveMovementDebugState.healthError(context, current.error);
+            return resultFor(current.error);
+        }
         DriveTestExportManager.ExportResult snapshot =
             DriveTestExportManager.writePassiveSnapshot(context, current.audit, now);
+        PassiveMovementDebugState.exportFinished(context, current.audit, now, snapshot);
         if (!snapshot.success()) return Result.retry();
 
         LocalDate finalDay = PassiveAuditWindow.completedDay(now.toLocalDate(), now.getHour());

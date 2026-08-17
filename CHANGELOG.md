@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.6
+
+- L'ultimo snapshot passivo espone tramite ADB un riepilogo persistente e
+  strutturato di valori Todo/Google Fit, classificazione, Drive, timestamp ed
+  errori, senza richiedere accesso al database privato o al file remoto.
+- L'endpoint è in sola lettura e protetto dal permesso Android di sistema
+  `DUMP`: è interrogabile dalla shell ADB ma non dalle normali applicazioni.
+- Gli strumenti avanzati mostrano nome ed esito dell'ultimo snapshot; percorso
+  GPS, task e altri contenuti personali non vengono esposti.
+
 ## 2.25.5
 
 - Il test passivo Movimento produce ora uno snapshot cumulativo Todo/Google Fit

@@ -165,6 +165,11 @@ WorkManager. Non registra GPS, non mantiene un servizio foreground e non usa
 BLE; il costo va comunque misurato sul Galaxy S21 prima di rendere permanente
 la frequenza di debug.
 
+Dalla 2.25.6 lo stato aggregato dell'ultimo tentativo è interrogabile dalla
+shell ADB con il comando canonico documentato in
+[`operations/ADB_WIFI.md`](operations/ADB_WIFI.md). Il provider è read-only,
+protetto da `android.permission.DUMP` e non rende debuggabile l'APK release.
+
 ## Motion system UI
 
 La 2.16.15 introduce un motion system limitato alle transizioni informative:

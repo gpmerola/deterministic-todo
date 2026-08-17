@@ -5,7 +5,7 @@ Aggiornato il 17 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.5 build 113**. Il test passivo Movimento
+- Versione coordinata corrente: **2.25.6 build 114**. Il test passivo Movimento
   crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
   ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
   durante il debugging aggiorna la
@@ -139,7 +139,10 @@ Aggiornato il 17 agosto 2026.
   Todo 9,51 km contro 21,26 km Google Fit (-55,3%). La causa era l'assegnazione
   integrale dei record passi allo stato del loro punto centrale. La build 110
   usa invece sovrapposizione temporale e un gate conservativo dell'80%.
-- Restano da collaudare sulla build 113 almeno due giornate
+- La build 114 aggiunge un provider diagnostico aggregato, read-only e protetto
+  da `android.permission.DUMP`, così l'ultimo snapshot può essere verificato
+  via ADB anche con APK release e Drive non visibile al connettore Codex.
+- Restano da collaudare sulla build 114 almeno due giornate
   miste (cammino, corsa e treno/auto), lo schema 3 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health

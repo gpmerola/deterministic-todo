@@ -251,6 +251,10 @@ public final class RunTrackerActivity extends ComponentActivity {
             advancedToggle.setText(show ? "Nascondi strumenti avanzati" : "Strumenti avanzati");
         });
 
+        TextView adbStatus = label(PassiveMovementDebugState.uiSummary(this), 12);
+        adbStatus.setGravity(Gravity.CENTER);
+        advancedTools.addView(adbStatus, matchWrap(dp(6)));
+
         driveButton = new Button(this);
         driveButton.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
         driveButton.setOnClickListener(v -> {

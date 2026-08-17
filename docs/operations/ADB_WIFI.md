@@ -110,6 +110,24 @@ inserito in log, documentazione o Git.
 Per revocare l'accesso, rimuovere il Mac da **Wireless debugging → Paired
 devices** oppure disattivare completamente Wireless debugging.
 
+## Stato passivo Movimento nelle build release
+
+Dalla build 114 l'ultimo tentativo orario è leggibile senza aprire l'app e
+senza abilitare `run-as`:
+
+```sh
+adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status
+```
+
+L'output atteso contiene una sola riga con `phase`, `result_code`, timestamp,
+nome dello snapshot, stato Drive, passi classificati e aggregati Todo/Google
+Fit. `phase=success` e `result_code=ok` confermano lettura Health Connect e
+scrittura Drive; `health_connect_error` o `drive_error` identificano il confine
+del problema. `next_expected_ms` è una previsione: Android può differire il
+job. Il provider è in sola lettura e richiede il permesso di sistema `DUMP`,
+posseduto dalla shell ADB ma non dalle normali app. Non espone GPX, coordinate,
+database Todo o preferenze complete.
+
 ## Ambito e sicurezza
 
 ADB wireless è uno strumento di sviluppo, non una funzione necessaria al

@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.5 build 113. Movimento produce snapshot
+- Release coordinata corrente: 2.25.6 build 114. Movimento produce snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica Android
   aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
@@ -22,6 +22,8 @@ non duplicare qui i dettagli tecnici.
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
+- Lo stato dell'ultimo snapshot è leggibile in sicurezza con
+  `adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
 ## P0 — Ultimi collaudi browser
