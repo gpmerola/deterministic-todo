@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.6 build 114**. Movimento crea snapshot
+- Versione coordinata corrente: **2.25.7 build 115**. Movimento crea snapshot
   cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
   viene aggiornata all'avvio e ogni tre ore; il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
@@ -225,6 +225,14 @@ Il record include timestamp, prossimo controllo atteso, nome file, stato Drive,
 passi classificati e valori Todo/Google Fit; non include percorsi GPS o dati
 Todo. Questo canale resta disponibile nelle build release senza rendere
 leggibili database e preferenze private.
+
+La 2.25.7 corregge la sottostima osservata il 17 agosto: 13.992 passi
+coincidevano con Google Fit, ma 4.284 erano stati esclusi perché `STILL` era
+raggruppato con trasporto e bicicletta. Se esistono passi nello stesso
+intervallo, `STILL` viene ora trattato come conflitto e incluso nel fallback
+prudente; veicolo e bicicletta restano esclusi con dominanza almeno dell'80%.
+Lo snapshot schema 4 e il provider ADB espongono separatamente le tre quote e
+la baseline di distanza su tutti i passi.
 
 Gli audit reali del 13–15 agosto 2026 sulla build 109 hanno isolato una
 regressione: 9,51 km Todo contro 21,26 km Google Fit (-55,3%), con il 61% dei

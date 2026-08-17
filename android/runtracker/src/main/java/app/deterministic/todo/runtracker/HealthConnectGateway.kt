@@ -196,7 +196,9 @@ object HealthConnectGateway {
                     fit[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
                     fit[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
                     classified.walkingSteps, classified.runningSteps,
-                    classified.unknownSteps, classified.excludedSteps
+                    classified.unknownSteps, classified.excludedSteps,
+                    classified.vehicleSteps, classified.bicycleSteps,
+                    classified.stillConflictSteps
                 )
                 withContext(Dispatchers.Main) { callback.onSuccess(value) }
             } catch (error: SecurityException) {
@@ -215,7 +217,9 @@ object HealthConnectGateway {
         var walking = 0L
         var running = 0L
         var unknown = 0L
-        var excluded = 0L
+        var vehicle = 0L
+        var bicycle = 0L
+        var stillConflict = 0L
         var token: String? = null
         do {
             val response = client.readRecords(ReadRecordsRequest(
@@ -230,24 +234,32 @@ object HealthConnectGateway {
                 walking += allocation.walking()
                 running += allocation.running()
                 unknown += allocation.unknown()
-                excluded += allocation.excluded()
+                vehicle += allocation.vehicle()
+                bicycle += allocation.bicycle()
+                stillConflict += allocation.stillConflict()
             }
             token = response.pageToken
         } while (token != null)
-        val observed = walking + running + unknown + excluded
+        val observed = walking + running + unknown + vehicle + bicycle + stillConflict
         if (observed <= 0 || aggregateSteps <= 0) return ClassifiedSteps(
-            0, 0, aggregateSteps, 0)
+            0, 0, aggregateSteps, 0, 0, 0, 0)
         fun scaled(value: Long) = (value.toDouble() * aggregateSteps / observed).toLong()
         val scaledWalking = scaled(walking)
         val scaledRunning = scaled(running)
-        val scaledExcluded = scaled(excluded)
-        val scaledUnknown = (aggregateSteps - scaledWalking - scaledRunning - scaledExcluded)
+        val scaledVehicle = scaled(vehicle)
+        val scaledBicycle = scaled(bicycle)
+        val scaledStillConflict = scaled(stillConflict)
+        val genericUnknown = (aggregateSteps - scaledWalking - scaledRunning - scaledVehicle -
+            scaledBicycle - scaledStillConflict)
             .coerceAtLeast(0)
-        return ClassifiedSteps(scaledWalking, scaledRunning, scaledUnknown, scaledExcluded)
+        return ClassifiedSteps(scaledWalking, scaledRunning,
+            genericUnknown + scaledStillConflict, scaledVehicle + scaledBicycle,
+            scaledVehicle, scaledBicycle, scaledStillConflict)
     }
 
     private data class ClassifiedSteps(val walkingSteps: Long, val runningSteps: Long,
-        val unknownSteps: Long, val excludedSteps: Long)
+        val unknownSteps: Long, val excludedSteps: Long, val vehicleSteps: Long,
+        val bicycleSteps: Long, val stillConflictSteps: Long)
 
     data class GoogleFitComparison(
         val steps: Long?,
@@ -270,7 +282,10 @@ object HealthConnectGateway {
         val walkingSteps: Long,
         val runningSteps: Long,
         val unknownSteps: Long,
-        val excludedSteps: Long
+        val excludedSteps: Long,
+        val vehicleSteps: Long,
+        val bicycleSteps: Long,
+        val stillConflictSteps: Long
     )
 
     interface AuditCallback {

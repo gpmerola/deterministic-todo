@@ -5,7 +5,7 @@ Aggiornato il 17 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.6 build 114**. Il test passivo Movimento
+- Versione coordinata corrente: **2.25.7 build 115**. Il test passivo Movimento
   crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
   ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
   durante il debugging aggiorna la
@@ -142,11 +142,14 @@ Aggiornato il 17 agosto 2026.
 - La build 114 aggiunge un provider diagnostico aggregato, read-only e protetto
   da `android.permission.DUMP`, così l'ultimo snapshot può essere verificato
   via ADB anche con APK release e Drive non visibile al connettore Codex.
+- La build 115 fa prevalere i passi reali su uno stato `STILL` obsoleto,
+  mantenendoli come incerti; soltanto veicolo e bicicletta dominanti restano
+  esclusi. Lo schema 4 separa le tre cause e aggiunge la baseline all-steps.
 - Il Galaxy S21 usa attualmente la firma gestita da Google Play: l'APK diretto
   GitHub, firmato con la chiave di upload/release del repository, viene
   correttamente rifiutato come aggiornamento incompatibile. Non disinstallare
   l'app per cambiare canale; su questo dispositivo usare Play interno.
-- Restano da collaudare sulla build 114 almeno due giornate
+- Restano da collaudare sulla build 115 almeno due giornate
   miste (cammino, corsa e treno/auto), lo schema 3 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health

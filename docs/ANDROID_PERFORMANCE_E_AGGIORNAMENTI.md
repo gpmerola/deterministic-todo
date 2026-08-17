@@ -170,6 +170,12 @@ shell ADB con il comando canonico documentato in
 [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md). Il provider è read-only,
 protetto da `android.permission.DUMP` e non rende debuggabile l'APK release.
 
+La 2.25.7 non considera più `STILL` una causa di esclusione quando il sensore
+registra passi nello stesso intervallo: quei passi alimentano il fallback
+prudente da camminata e restano marcati come conflitto. Veicolo e bicicletta
+dominanti restano esclusi e sono misurati separatamente nello schema 4 e nel
+provider ADB, insieme alla baseline di distanza su tutti i passi.
+
 ## Motion system UI
 
 La 2.16.15 introduce un motion system limitato alle transizioni informative:

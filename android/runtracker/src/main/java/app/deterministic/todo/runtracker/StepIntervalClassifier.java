@@ -8,18 +8,20 @@ import java.util.List;
 final class StepIntervalClassifier {
     private static final double MIN_EXCLUDED_SHARE = 0.80;
 
-    record Result(long walking, long running, long unknown, long excluded) {
-        long total() { return walking + running + unknown + excluded; }
+    record Result(long walking, long running, long unknown, long vehicle,
+                  long bicycle, long stillConflict) {
+        long excluded() { return vehicle + bicycle; }
+        long total() { return walking + running + unknown + vehicle + bicycle + stillConflict; }
     }
 
     private StepIntervalClassifier() {}
 
     static Result classify(long startMillis, long endMillis, long steps,
                            List<ActivityTimeline.Event> timeline) {
-        if (steps <= 0) return new Result(0, 0, 0, 0);
-        if (endMillis <= startMillis) return new Result(0, 0, steps, 0);
+        if (steps <= 0) return new Result(0, 0, 0, 0, 0, 0);
+        if (endMillis <= startMillis) return new Result(0, 0, steps, 0, 0, 0);
 
-        long[] durations = new long[4];
+        long[] durations = new long[6];
         List<Long> boundaries = new ArrayList<>();
         boundaries.add(startMillis);
         for (ActivityTimeline.Event event : timeline) {
@@ -37,21 +39,25 @@ final class StepIntervalClassifier {
         }
 
         long totalDuration = endMillis - startMillis;
-        double excludedShare = durations[3] / (double) totalDuration;
+        double excludedShare = (durations[3] + durations[4]) / (double) totalDuration;
         if (excludedShare > 0 && excludedShare < MIN_EXCLUDED_SHARE) {
-            durations[2] += durations[3];
+            durations[2] += durations[3] + durations[4];
             durations[3] = 0;
+            durations[4] = 0;
         }
 
         long[] allocated = allocateExactly(steps, durations, totalDuration);
-        return new Result(allocated[0], allocated[1], allocated[2], allocated[3]);
+        return new Result(allocated[0], allocated[1], allocated[2], allocated[3],
+            allocated[4], allocated[5]);
     }
 
     private static int bucket(String activity) {
         return switch (activity) {
             case ActivityTimeline.WALKING -> 0;
             case ActivityTimeline.RUNNING -> 1;
-            case ActivityTimeline.VEHICLE, ActivityTimeline.BICYCLE, ActivityTimeline.STILL -> 3;
+            case ActivityTimeline.VEHICLE -> 3;
+            case ActivityTimeline.BICYCLE -> 4;
+            case ActivityTimeline.STILL -> 5;
             default -> 2;
         };
     }

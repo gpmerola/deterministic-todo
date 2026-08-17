@@ -43,7 +43,32 @@ public class StepIntervalClassifierTest {
 
         assertEquals(10, result.walking());
         assertEquals(90, result.excluded());
+        assertEquals(90, result.vehicle());
         assertEquals(100, result.total());
+    }
+
+    @Test public void stepsOverrideStaleStillClassification() {
+        List<ActivityTimeline.Event> timeline = List.of(
+            new ActivityTimeline.Event(0, ActivityTimeline.STILL));
+
+        StepIntervalClassifier.Result result =
+            StepIntervalClassifier.classify(0, 1000, 100, timeline);
+
+        assertEquals(0, result.excluded());
+        assertEquals(100, result.stillConflict());
+        assertEquals(100, result.total());
+    }
+
+    @Test public void reportsBicycleSeparatelyFromVehicle() {
+        List<ActivityTimeline.Event> timeline = List.of(
+            new ActivityTimeline.Event(0, ActivityTimeline.BICYCLE));
+
+        StepIntervalClassifier.Result result =
+            StepIntervalClassifier.classify(0, 1000, 100, timeline);
+
+        assertEquals(100, result.bicycle());
+        assertEquals(0, result.vehicle());
+        assertEquals(100, result.excluded());
     }
 
     @Test public void zeroDurationRecordIsUnknownAndPreservesCount() {

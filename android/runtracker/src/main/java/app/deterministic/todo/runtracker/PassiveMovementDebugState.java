@@ -59,7 +59,11 @@ final class PassiveMovementDebugState {
             .putLong("running_steps", estimate.runningSteps())
             .putLong("unknown_steps", estimate.unknownSteps())
             .putLong("excluded_steps", estimate.excludedSteps())
+            .putLong("excluded_vehicle_steps", audit.getVehicleSteps())
+            .putLong("excluded_bicycle_steps", audit.getBicycleSteps())
+            .putLong("still_conflict_steps", audit.getStillConflictSteps())
             .putFloat("todo_distance_m", (float) estimate.distanceMeters())
+            .putFloat("all_steps_walking_baseline_distance_m", (float) (audit.getAllSteps() * walkingStride))
             .putFloat("todo_active_calories", (float) estimate.activeCalories());
         putNullableLong(editor, "fit_steps", audit.getFitSteps());
         putNullableFloat(editor, "fit_distance_m", audit.getFitDistanceMeters());
@@ -91,6 +95,10 @@ final class PassiveMovementDebugState {
         addLong(values, p, "running_steps");
         addLong(values, p, "unknown_steps");
         addLong(values, p, "excluded_steps");
+        addLong(values, p, "excluded_vehicle_steps");
+        addLong(values, p, "excluded_bicycle_steps");
+        addLong(values, p, "still_conflict_steps");
+        addFloat(values, p, "all_steps_walking_baseline_distance_m");
         addLong(values, p, "fit_steps");
         addFloat(values, p, "fit_distance_m");
         addFloat(values, p, "fit_active_calories");

@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.7
+
+- I passi registrati mentre Activity Recognition segnala erroneamente
+  `STILL` non vengono più esclusi: il sensore passi prevale e li conserva come
+  incerti con distanza prudente da camminata.
+- Auto/treno e bicicletta restano esclusi soltanto quando dominano almeno
+  l'80% dell'intervallo, ma ora hanno conteggi diagnostici separati.
+- Snapshot schema 4 e provider ADB mostrano conflitti `STILL + passi`, esclusi
+  veicolo/bicicletta e una baseline di distanza calcolata su tutti i passi.
+
 ## 2.25.6
 
 - L'ultimo snapshot passivo espone tramite ADB un riepilogo persistente e
