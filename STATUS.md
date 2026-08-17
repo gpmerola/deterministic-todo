@@ -142,6 +142,10 @@ Aggiornato il 17 agosto 2026.
 - La build 114 aggiunge un provider diagnostico aggregato, read-only e protetto
   da `android.permission.DUMP`, così l'ultimo snapshot può essere verificato
   via ADB anche con APK release e Drive non visibile al connettore Codex.
+- Il Galaxy S21 usa attualmente la firma gestita da Google Play: l'APK diretto
+  GitHub, firmato con la chiave di upload/release del repository, viene
+  correttamente rifiutato come aggiornamento incompatibile. Non disinstallare
+  l'app per cambiare canale; su questo dispositivo usare Play interno.
 - Restano da collaudare sulla build 114 almeno due giornate
   miste (cammino, corsa e treno/auto), lo schema 3 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale

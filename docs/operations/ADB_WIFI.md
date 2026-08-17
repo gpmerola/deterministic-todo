@@ -128,6 +128,24 @@ job. Il provider è in sola lettura e richiede il permesso di sistema `DUMP`,
 posseduto dalla shell ADB ma non dalle normali app. Non espone GPX, coordinate,
 database Todo o preferenze complete.
 
+## Aggiornamenti e firma del dispositivo di test
+
+Prima di usare `adb install -r`, verificare la provenienza dell'app installata.
+Il Galaxy S21 di test usa attualmente la firma di **Google Play App Signing**:
+un APK diretto GitHub con la stessa `applicationId` ma firmato dalla chiave del
+repository viene rifiutato con `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. È un
+controllo di integrità, non un blocco di sicurezza aggirabile.
+
+Su questa installazione usare il test interno Play e non disinstallare l'app:
+la disinstallazione eliminerebbe i dati locali. Il canale APK diretto resta
+valido per dispositivi che hanno iniziato con quella stessa linea di firma,
+ma i due canali non sono intercambiabili in-place. Per controllare la versione:
+
+```sh
+adb shell dumpsys package app.deterministic.todo.deterministic_todo \
+  | grep -E 'versionCode|versionName|lastUpdateTime'
+```
+
 ## Ambito e sicurezza
 
 ADB wireless è uno strumento di sviluppo, non una funzione necessaria al

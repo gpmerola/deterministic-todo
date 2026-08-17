@@ -46,6 +46,10 @@ di cambiare architettura.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
+- Il Galaxy S21 ha la linea di firma Google Play App Signing. Gli aggiornamenti
+  su quel dispositivo devono quindi arrivare dal test interno Play; l'APK
+  diretto GitHub non può sostituirlo in-place e non va usata la disinstallazione
+  come scorciatoia, perché rimuoverebbe i dati locali.
 - Orologio: Amazfit Bip U senza GPS integrato.
 - Il Galaxy S21 è già associato al Mac per ADB wireless. La connessione va
   ristabilita dopo cambi di rete, IP o porta seguendo
