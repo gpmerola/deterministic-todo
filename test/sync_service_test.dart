@@ -1,8 +1,15 @@
 import 'package:deterministic_todo/data/sync/sync_service.dart';
+import 'package:deterministic_todo/domain/task.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
+  test('una modifica supera il massimo contatore Lamport osservato', () {
+    expect(nextLogicalCounter(4, 12), 13);
+    expect(nextLogicalCounter(12, 4), 13);
+    expect(nextLogicalCounter(12, 12), 13);
+  });
+
   test('la riconciliazione limita le finestre silenziose di Realtime', () {
     expect(SyncService.periodicInterval, const Duration(minutes: 10));
     expect(SyncService.eventDebounce, lessThan(const Duration(seconds: 1)));
@@ -55,6 +62,13 @@ void main() {
     expect(syncRetryDelay(1), const Duration(seconds: 10));
     expect(syncRetryDelay(2), const Duration(seconds: 30));
     expect(syncRetryDelay(20), const Duration(minutes: 2));
+  });
+
+  test('una scrittura server non confermata mantiene retry e outbox', () {
+    expect(
+      isTransientSyncError(const SyncWriteVerificationException()),
+      isTrue,
+    );
   });
 
   test('la notifica auth iniziale non duplica il sync di avvio', () {

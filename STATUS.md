@@ -1,11 +1,14 @@
 # Stato corrente
 
-Aggiornato il 16 agosto 2026.
+Aggiornato il 17 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.2 build 110**. La classificazione
+- Versione coordinata corrente: **2.25.3 build 111**. Il sync verifica ogni
+  scrittura task sul server prima di riconoscere l'outbox e ribasa
+  automaticamente le versioni Lamport remote più alte. La 2.25.2 build 110
+  corregge la classificazione
   distribuisce ora ciascun record passi sull'intervallo temporale completo e
   tratta come incerta l'esclusione di trasporto/sosta nei blocchi misti. La
   2.25.1 build 109 estende a sette giorni la finestra del test passivo; la
@@ -25,6 +28,15 @@ Aggiornato il 16 agosto 2026.
   per Google Play.
 
 ## Dati e sincronizzazione
+
+- Il 17 agosto è stato isolato un difetto delle build fino alla 110: una
+  modifica locale incrementava solo la propria versione e `merge_task` poteva
+  scartarla se Supabase aveva già un contatore maggiore; il client eliminava
+  comunque l'outbox e il pull ripristinava lo stato remoto. La build 111 usa il
+  massimo osservato, verifica la riga server e conserva l'outbox in caso di
+  mancata conferma. Le modifiche già sovrascritte richiedono recupero separato
+  o reinserimento manuale: il fix impedisce nuove perdite ma non inventa stati
+  non più presenti in SQLite o Supabase.
 
 - SQLite Drift è la fonte locale immediata; Supabase con RLS è la replica
   personale facoltativa.

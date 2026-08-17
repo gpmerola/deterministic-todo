@@ -172,6 +172,9 @@ quindi l’interfaccia senza ricaricare la pagina. Il canale si riapre dopo
 errori o timeout; il controllo ogni dieci minuti mentre l'app è visibile rimane come
 recupero dopo assenza di rete o sospensione del processo.
 Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
+Il client conserva il massimo contatore Lamport osservato e, dopo ogni push di
+una task, rilegge la versione server. L'outbox viene riconosciuta soltanto dopo
+la conferma; una versione remota più alta causa rebase e retry automatico.
 
 Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
 `p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende

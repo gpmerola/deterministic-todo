@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.3
+
+- Corretto un difetto di integrità del sync che poteva annullare completamenti
+  locali: il client usava soltanto `versione locale + 1`, mentre una versione
+  Supabase più alta veniva scartata silenziosamente dal merge.
+- Ogni modifica usa ora il massimo contatore Lamport remoto osservato. Dopo il
+  push, il client rilegge la riga server e rimuove l'outbox soltanto se la
+  versione coincide; in caso di conflitto rialza il contatore e riprova senza
+  perdere lo stato locale.
+- La diagnostica `sync_completed` espone `rebased_entities`, rendendo visibili
+  i conflitti recuperati automaticamente.
+
 ## 2.25.2
 
 - Corretto il classificatore passivo dei passi: i record Health Connect che

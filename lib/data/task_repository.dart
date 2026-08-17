@@ -506,7 +506,15 @@ class TaskRepository {
     TasksCompanion changes, {
     String operation = 'upsert',
   }) async {
-    final nextVersion = task.logicalVersion + 1;
+    final observedSetting =
+        await (db.select(db.appSettings)
+              ..where((row) => row.key.equals('sync_lamport_counter')))
+            .getSingleOrNull();
+    final observedCounter = int.tryParse(observedSetting?.value ?? '') ?? 0;
+    final nextVersion = nextLogicalCounter(
+      task.logicalVersion,
+      observedCounter,
+    );
     final stamped = changes.copyWith(
       updatedAt: Value(DateTime.now().toUtc().microsecondsSinceEpoch),
       logicalVersion: Value(nextVersion),

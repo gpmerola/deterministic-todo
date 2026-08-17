@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 16 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 17 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,7 +30,10 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.2 build 110**. Il test passivo dura sette
+- Versione coordinata corrente: **2.25.3 build 111**. Il sync delle attività
+  conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
+  e riconosce l'outbox solo dopo conferma della stessa versione server. La
+  2.25.2 build 110 corregge la classificazione passiva. Il test dura sette
   giorni; la classificazione passiva ripartisce i record passi sull'intero
   intervallo e richiede una dominanza temporale dell'80% prima di escludere
   trasporto o immobilità. Cammino, corsa e trasporto restano separati e le
@@ -64,6 +67,18 @@ documentale non richiede una nuova build.
   provenienti da Todoist.
 - Le date Todo sono date civili senza ora. Non vanno convertite implicitamente
   in istanti né spostate al cambio di fuso.
+
+Il 17 agosto 2026 è stato rilevato un difetto di sincronizzazione nelle build
+fino alla 110. `TaskRepository` generava `logical_version` come sola versione
+locale più uno; se Supabase possedeva già una coppia Lamport superiore,
+`merge_task` non modificava la riga ma il client registrava ugualmente la
+ricevuta ed eliminava l'outbox. Il pull successivo poteva quindi annullare
+completamenti appena eseguiti. La build 111 conserva il massimo contatore
+remoto osservato e applica un push verificato: rilegge la riga, ribasa e riprova
+fino a conferma; qualunque mancata conferma mantiene l'outbox e produce errore
+diagnostico. `sync_completed.rebased_entities` conta i recuperi. Questa
+garanzia copre le nuove operazioni; non ricostruisce automaticamente stati già
+sovrascritti prima dell'aggiornamento.
 
 Dettagli completi in [`ARCHITETTURA.md`](ARCHITETTURA.md). Non modificare il
 modulo movimento per risolvere problemi Todo e viceversa.

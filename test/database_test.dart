@@ -30,6 +30,26 @@ void main() {
     expect(outbox.single.entityId, id);
   });
 
+  test('una modifica usa il massimo Lamport remoto osservato', () async {
+    final id = await repository.create('Versione protetta');
+    await db
+        .into(db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(key: 'sync_lamport_counter', value: '20'),
+        );
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(task, true);
+
+    final completed = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    expect(completed.status, TaskStatus.completed.name);
+    expect(completed.logicalVersion, 21);
+  });
+
   test('creazione rapida può pianificare una data civile', () async {
     final id = await repository.create(
       'Dentista',

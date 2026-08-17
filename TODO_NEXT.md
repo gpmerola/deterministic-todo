@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 16 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 17 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,7 +12,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.2 build 110. I record passi sono ripartiti
+- Release coordinata corrente: 2.25.3 build 111. Il sync task conferma sul
+  server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
+  contatori Lamport più alti. I record passi sono ripartiti
   sull'intero intervallo e l'esclusione di trasporto/sosta richiede una quota
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
@@ -49,6 +51,11 @@ L’ultimo export analizzato conteneva 5 progetti, 13 sezioni e 110 task attive,
 ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P1 — Blocchi pratici
+
+- dopo l'installazione della build 111, completare una singola attività su
+  Android, attendere lo stato sincronizzato e verificare dal browser che resti
+  completata anche dopo riapertura di entrambi i client; soltanto dopo
+  ricompletare in massa le attività perse il 17 agosto;
 
 - provare per alcuni giorni creazione, modifica, completamento, ricorrenze,
   swipe e Indietro sul Galaxy S21;

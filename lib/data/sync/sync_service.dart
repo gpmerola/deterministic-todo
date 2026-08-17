@@ -11,6 +11,10 @@ import '../local/database.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
 
+final class SyncWriteVerificationException implements Exception {
+  const SyncWriteVerificationException();
+}
+
 class SyncSnapshot {
   const SyncSnapshot(
     this.phase, {
@@ -341,16 +345,14 @@ class SyncService {
         entries.map((entry) => entry.entityId),
       );
       var uploadedEntities = 0;
+      var rebasedEntities = 0;
       if (pendingIds.isNotEmpty) {
         final pendingTasks = await (db.select(
           db.tasks,
         )..where((row) => row.id.isIn(pendingIds))).get();
         for (final task in pendingTasks) {
           try {
-            await client.rpc(
-              'merge_task',
-              params: {'record': _remoteTask(task)},
-            );
+            rebasedEntities += await _uploadTaskVerified(task);
           } on PostgrestException catch (error) {
             if (!isRecurringOccurrenceConflict(error) ||
                 !await _reconcileRecurringOccurrence(task)) {
@@ -412,6 +414,7 @@ class SyncService {
           fields: {
             'count': entries.length,
             'uploaded_entities': uploadedEntities,
+            'rebased_entities': rebasedEntities,
             'remote_rows': remoteRows.length,
             'skipped_projects': projectMetrics.skippedProjects,
             'skipped_sections': projectMetrics.skippedSections,
@@ -703,6 +706,7 @@ class SyncService {
       raw['logical_version'] as int,
       raw['device_id'] as String,
     );
+    await _observeLogicalCounter(remoteVersion.counter);
     if (local != null) {
       final localVersion = domain.LogicalVersion(
         local.logicalVersion,
@@ -745,6 +749,81 @@ class SyncService {
         );
     return true;
   }
+
+  Future<int> _uploadTaskVerified(Task initial) async {
+    var candidate = initial;
+    var rebases = 0;
+    for (var attempt = 0; attempt < 4; attempt++) {
+      await client.rpc(
+        'merge_task',
+        params: {'record': _remoteTask(candidate)},
+      );
+      final rows = await client
+          .from('tasks')
+          .select()
+          .eq('id', candidate.id)
+          .limit(1);
+      if (rows.isEmpty) {
+        throw const SyncWriteVerificationException();
+      }
+      final remote = Map<String, dynamic>.from(rows.first);
+      final remoteVersion = domain.LogicalVersion(
+        remote['logical_version'] as int,
+        remote['device_id'] as String,
+      );
+      final candidateVersion = domain.LogicalVersion(
+        candidate.logicalVersion,
+        candidate.deviceId,
+      );
+      await _observeLogicalCounter(remoteVersion.counter);
+      final comparison = remoteVersion.compareTo(candidateVersion);
+      if (comparison == 0) return rebases;
+      if (comparison < 0) {
+        throw const SyncWriteVerificationException();
+      }
+
+      candidate = await db.transaction(() async {
+        final current = await (db.select(
+          db.tasks,
+        )..where((row) => row.id.equals(candidate.id))).getSingle();
+        final nextCounter = domain.nextLogicalCounter(
+          current.logicalVersion,
+          remoteVersion.counter,
+        );
+        await (db.update(
+          db.tasks,
+        )..where((row) => row.id.equals(current.id))).write(
+          TasksCompanion(
+            updatedAt: Value(DateTime.now().toUtc().microsecondsSinceEpoch),
+            logicalVersion: Value(nextCounter),
+            deviceId: Value(initial.deviceId),
+          ),
+        );
+        return (db.select(
+          db.tasks,
+        )..where((row) => row.id.equals(current.id))).getSingle();
+      });
+      rebases++;
+    }
+    throw const SyncWriteVerificationException();
+  }
+
+  Future<void> _observeLogicalCounter(int counter) => db.transaction(() async {
+    final current =
+        await (db.select(db.appSettings)
+              ..where((row) => row.key.equals('sync_lamport_counter')))
+            .getSingleOrNull();
+    final saved = int.tryParse(current?.value ?? '') ?? 0;
+    if (counter <= saved) return;
+    await db
+        .into(db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: 'sync_lamport_counter',
+            value: counter.toString(),
+          ),
+        );
+  });
 
   Future<bool> _reconcileRecurringOccurrence(Task local) async {
     final seriesId = local.seriesId;
@@ -890,10 +969,10 @@ bool shouldSubscribeRealtime({
   required bool paused,
   required bool hasAuthenticatedUser,
   required bool hasChannel,
-}) =>
-    !paused && hasAuthenticatedUser && !hasChannel;
+}) => !paused && hasAuthenticatedUser && !hasChannel;
 
 bool isTransientSyncError(Object error) {
+  if (error is SyncWriteVerificationException) return true;
   final type = error.runtimeType.toString().toLowerCase();
   if (type.contains('socket') ||
       type.contains('clientexception') ||

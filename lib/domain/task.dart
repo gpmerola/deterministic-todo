@@ -257,3 +257,9 @@ class LogicalVersion implements Comparable<LogicalVersion> {
     return byCounter != 0 ? byCounter : deviceId.compareTo(other.deviceId);
   }
 }
+
+int nextLogicalCounter(int localCounter, int observedRemoteCounter) =>
+    (localCounter > observedRemoteCounter
+        ? localCounter
+        : observedRemoteCounter) +
+    1;
