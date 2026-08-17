@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.4
+
+- Durante la fase di debugging, la diagnostica Android aggiorna lo stesso file
+  Drive giornaliero ogni tre ore anziché una sola volta al giorno.
+- L'apertura dell'app pianifica inoltre un aggiornamento diagnostico dopo circa
+  un minuto. Entrambi i percorsi attendono una rete disponibile, non attivano
+  GPS o BLE e mantengono invariata la retention di 15 file giornalieri.
+- La pianificazione periodica usa `UPDATE`, così la build 112 sostituisce
+  realmente il vecchio intervallo di 24 ore già registrato sul dispositivo.
+
 ## 2.25.3
 
 - Corretto un difetto di integrità del sync che poteva annullare completamenti

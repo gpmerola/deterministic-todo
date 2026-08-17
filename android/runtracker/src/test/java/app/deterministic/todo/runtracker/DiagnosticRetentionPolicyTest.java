@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DiagnosticRetentionPolicyTest {
+    @Test public void diagnosticUploadRunsEveryThreeHoursDuringDebugging() {
+        assertEquals(3, DiagnosticDriveWorker.PERIODIC_INTERVAL_HOURS);
+    }
+
     @Test public void keepsNewestFifteenAndIgnoresOtherFiles() {
         List<DiagnosticRetentionPolicy.Entry> entries = new ArrayList<>();
         for (int day = 1; day <= 17; day++) {

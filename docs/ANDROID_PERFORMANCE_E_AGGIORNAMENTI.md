@@ -258,8 +258,11 @@ primo frame Flutter. Il report reale del 5–8 agosto 2026 è in
 
 I dati restano in due blocchi rotanti da 512 KiB e si esportano esplicitamente da Impostazioni: file applicativi su Android e IndexedDB nel browser. L'export include sia il blocco precedente sia quello corrente. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. Ogni riga include versione/build, schema log e un identificatore casuale valido soltanto per l'apertura corrente. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
 
-Dalla 2.24.2 Android pianifica inoltre con WorkManager una copia giornaliera
-nella stessa cartella Drive già autorizzata per i test Movimento. Il nome è
+Dalla 2.24.2 Android pianifica inoltre con WorkManager una copia nella stessa
+cartella Drive già autorizzata per i test Movimento. Dalla 2.25.4, durante la
+fase di debugging, l'app la aggiorna all'avvio (dopo circa un minuto) e ogni tre
+ore quando è disponibile una rete. Il job non richiede che l'app resti aperta;
+Android può comunque differirlo secondo le proprie politiche energetiche. Il nome è
 `todo_diagnostics_YYYY-MM-DD.jsonl`; la scrittura è idempotente per data e la
 retention elimina soltanto i file con quel prefisso oltre i 15 più recenti.
 Il lavoro non attiva GPS o BLE e Android può differirlo per risparmiare

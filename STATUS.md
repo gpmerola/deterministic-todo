@@ -5,7 +5,10 @@ Aggiornato il 17 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.3 build 111**. Il sync verifica ogni
+- Versione coordinata corrente: **2.25.4 build 112**. Durante il debugging la
+  diagnostica Drive viene aggiornata all'apertura e ogni tre ore con rete
+  disponibile, mantenendo un solo file al giorno e gli ultimi 15 giorni. La
+  2.25.3 build 111 verifica ogni
   scrittura task sul server prima di riconoscere l'outbox e ribasa
   automaticamente le versioni Lamport remote più alte. La 2.25.2 build 110
   corregge la classificazione

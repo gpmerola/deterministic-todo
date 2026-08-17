@@ -30,7 +30,8 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.3 build 111**. Il sync delle attività
+- Versione coordinata corrente: **2.25.4 build 112**. La diagnostica Drive
+  viene aggiornata all'avvio e ogni tre ore; il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
   e riconosce l'outbox solo dopo conferma della stessa versione server. La
   2.25.2 build 110 corregge la classificazione passiva. Il test dura sette
@@ -79,6 +80,13 @@ fino a conferma; qualunque mancata conferma mantiene l'outbox e produce errore
 diagnostico. `sync_completed.rebased_entities` conta i recuperi. Questa
 garanzia copre le nuove operazioni; non ricostruisce automaticamente stati già
 sovrascritti prima dell'aggiornamento.
+
+La build 112 aggiorna il report diagnostico Drive dopo circa un minuto
+dall'avvio Android e poi ogni tre ore con rete disponibile. Il periodico usa
+`ExistingPeriodicWorkPolicy.UPDATE` per sostituire il precedente job di 24 ore
+già registrato. Il nome resta giornaliero e la retention resta di 15 file:
+questa frequenza è temporanea per il debugging e va rivalutata prima della
+stabilizzazione del prodotto.
 
 Dettagli completi in [`ARCHITETTURA.md`](ARCHITETTURA.md). Non modificare il
 modulo movimento per risolvere problemi Todo e viceversa.

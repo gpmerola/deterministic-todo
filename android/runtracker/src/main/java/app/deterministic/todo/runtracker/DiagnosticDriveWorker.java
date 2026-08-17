@@ -3,7 +3,11 @@ package app.deterministic.todo.runtracker;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.work.Constraints;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
@@ -18,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 public final class DiagnosticDriveWorker extends Worker {
     private static final String WORK = "todo-diagnostics-daily-drive";
+    private static final String STARTUP_WORK = "todo-diagnostics-startup-drive";
+    static final long PERIODIC_INTERVAL_HOURS = 3;
 
     public DiagnosticDriveWorker(@NonNull Context context,
                                  @NonNull WorkerParameters parameters) {
@@ -25,12 +31,23 @@ public final class DiagnosticDriveWorker extends Worker {
     }
 
     static void schedule(Context context) {
+        Constraints connected = new Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build();
         PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(
-            DiagnosticDriveWorker.class, 24, TimeUnit.HOURS)
-            .setInitialDelay(1, TimeUnit.MINUTES)
+            DiagnosticDriveWorker.class, PERIODIC_INTERVAL_HOURS, TimeUnit.HOURS)
+            .setConstraints(connected)
             .build();
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            WORK, ExistingPeriodicWorkPolicy.KEEP, request);
+            WORK, ExistingPeriodicWorkPolicy.UPDATE, request);
+
+        OneTimeWorkRequest startupRequest = new OneTimeWorkRequest.Builder(
+            DiagnosticDriveWorker.class)
+            .setConstraints(connected)
+            .setInitialDelay(1, TimeUnit.MINUTES)
+            .build();
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            STARTUP_WORK, ExistingWorkPolicy.REPLACE, startupRequest);
     }
 
     @NonNull @Override public Result doWork() {
