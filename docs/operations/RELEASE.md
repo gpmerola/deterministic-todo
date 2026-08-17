@@ -27,6 +27,15 @@ Output atteso: workflow verde, `release-info.json` raggiungibile, manifest
 Android con gli stessi identificativi e quattro APK con SHA-256 (universale più
 tre architetture).
 
+## Linee di firma Android
+
+Google Play App Signing e la release APK diretta sono due linee distinte. Un
+dispositivo installato da Play deve continuare ad aggiornarsi da Play; uno
+installato dall'APK diretto deve continuare con APK firmati dalla stessa chiave
+del repository. `INSTALL_FAILED_UPDATE_INCOMPATIBLE` non va aggirato
+disinstallando: la disinstallazione rimuove i dati locali. Il Galaxy S21 di test
+segue il canale Play interno.
+
 ## Fallimento e recovery
 
 - Prima del deploy: nessun canale viene pubblicato; correggere e usare una nuova

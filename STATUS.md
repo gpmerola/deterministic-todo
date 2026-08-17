@@ -8,14 +8,12 @@ Aggiornato il 17 agosto 2026.
 - Versione coordinata corrente: **2.25.7 build 115**. Il test passivo Movimento
   crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
   ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
-  durante il debugging aggiorna la
-  diagnostica Drive viene aggiornata all'apertura e ogni tre ore con rete
+  aggiorna durante il debugging la diagnostica Drive all'apertura e ogni tre ore con rete
   disponibile, mantenendo un solo file al giorno e gli ultimi 15 giorni. La
   2.25.3 build 111 verifica ogni
   scrittura task sul server prima di riconoscere l'outbox e ribasa
   automaticamente le versioni Lamport remote più alte. La 2.25.2 build 110
-  corregge la classificazione
-  distribuisce ora ciascun record passi sull'intervallo temporale completo e
+  distribuisce ciascun record passi sull'intervallo temporale completo e
   tratta come incerta l'esclusione di trasporto/sosta nei blocchi misti. La
   2.25.1 build 109 estende a sette giorni la finestra del test passivo; la
   2.25.0 build 108 introduce classificazione passiva
@@ -107,8 +105,10 @@ Aggiornato il 17 agosto 2026.
 
 ## Verifica
 
+- Le pull request eseguono il percorso canonico `make check-generated` e
+  `make check` tramite GitHub Actions; gli stessi comandi sono usati in locale.
 - Analisi statica senza errori.
-- 123 test Flutter superati, incluso uno scenario di convergenza con due
+- 126 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.
 - I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
   contatore e stime. Build Android, firma, manifest pubblico e parità con Web
@@ -150,7 +150,7 @@ Aggiornato il 17 agosto 2026.
   correttamente rifiutato come aggiornamento incompatibile. Non disinstallare
   l'app per cambiare canale; su questo dispositivo usare Play interno.
 - Restano da collaudare sulla build 115 almeno due giornate
-  miste (cammino, corsa e treno/auto), lo schema 3 dei report Drive e la
+  principalmente di cammino/corsa, lo schema 4 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
   Connect.

@@ -38,7 +38,8 @@ di cambiare architettura.
   2.25.2 build 110 corregge la classificazione passiva. Il test dura sette
   giorni; la classificazione passiva ripartisce i record passi sull'intero
   intervallo e richiede una dominanza temporale dell'80% prima di escludere
-  trasporto o immobilità. Cammino, corsa e trasporto restano separati e le
+  veicolo o bicicletta. `STILL + passi` resta incerto e incluso. Cammino,
+  corsa e trasporto restano separati e le
   falcate vengono calibrate. La base funzionale
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,

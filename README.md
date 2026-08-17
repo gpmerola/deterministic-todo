@@ -85,8 +85,9 @@ passi. Android classifica a basso consumo camminata, corsa, veicolo, bicicletta
 e immobilità: usa falcate e coefficienti calorici distinti per cammino e corsa,
 esclude gli spostamenti motorizzati e conserva separatamente i passi incerti.
 I blocchi Health Connect che attraversano più stati vengono ripartiti per il
-tempo effettivamente sovrapposto; trasporto e immobilità vengono esclusi solo
-quando dominano almeno l'80% del blocco, altrimenti la quota ambigua resta
+tempo effettivamente sovrapposto. Veicolo e bicicletta vengono esclusi solo
+quando dominano almeno l'80% del blocco; se il sensore registra passi mentre
+Activity Recognition segnala `STILL`, i passi prevalgono e la quota resta
 visibile come incerta.
 Le falcate partono da fallback dichiarati e vengono calibrate con la mediana
 solo dopo tre sessioni GPS lunghe e plausibili dello stesso tipo. Non sono
@@ -240,11 +241,17 @@ sito.
 
 Richiede Flutter stable 3.44.7 o compatibile e Dart 3.12.
 
+La [mappa della documentazione](docs/README.md) distingue fonti correnti,
+architettura, runbook ed evidenze storiche. Il controllo locale canonico è:
+
 ```sh
 flutter pub get
-dart run build_runner build
-flutter analyze
-flutter test
+make check-generated
+make check
+```
+
+```sh
+flutter pub get
 flutter run -d chrome --dart-define-from-file=supabase/config.json
 flutter run -d <android-device-id> --dart-define-from-file=supabase/config.json
 ```

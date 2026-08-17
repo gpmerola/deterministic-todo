@@ -291,11 +291,18 @@ batteria. Browser ed esportazione manuale restano invariati.
 5. Il client mostra la percentuale e passa lo SHA-256 dichiarato nel manifest.
 6. Se l’hash non coincide, l’installazione viene interrotta.
 7. Android mostra la conferma di sistema. Un’app normale sideloaded non può installarsi silenziosamente; servirebbero Play Store, MDM o privilegi da app di sistema.
-8. L’APK usa un `versionCode` maggiore e la stessa chiave release. SQLite rimane nella directory dati dell’app.
+8. Nel canale diretto l’APK usa un `versionCode` maggiore e la stessa chiave
+   della linea diretta. Un'installazione Play deve invece aggiornarsi da Play;
+   SQLite rimane nella directory dati dell’app.
 
 ## Firma e segreti
 
-La chiave stabile è generata una sola volta. La copia locale è in `private_release_keys/`, ignorata da Git; GitHub Actions riceve materiale e password attraverso `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` e `ANDROID_KEY_PASSWORD`. L’alias è `deterministic-todo`.
+La chiave stabile della linea diretta/upload è generata una sola volta. La
+copia locale è in `private_release_keys/`, ignorata da Git; GitHub Actions
+riceve materiale e password attraverso `ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_PASSWORD` e `ANDROID_KEY_PASSWORD`. L’alias è
+`deterministic-todo`. Google Play App Signing conserva separatamente la chiave
+di distribuzione Play.
 
 La perdita della chiave impedisce di aggiornare installazioni esistenti. Eseguire un backup cifrato esterno della directory privata. Non spostare mai password o keystore nel repository, negli artefatti CI o nei log.
 
@@ -303,7 +310,7 @@ La perdita della chiave impedisce di aggiornare installazioni esistenti. Eseguir
 
 1. Aggiornare versione e build number in `pubspec.yaml` in modo monotono.
 2. Aggiornare codice, test e documentazione nello stesso cambiamento.
-3. Eseguire `dart format`, `flutter analyze` e `flutter test`.
+3. Eseguire `make check-generated` e `make check`.
 4. Commit e push su un branch `agent/**`: questo avvia `Publish Android and Web Release`.
 5. Il workflow esegue analisi, generazione e test una volta, poi costruisce in parallelo web e APK firmati.
 6. Il client web viene distribuito e verificato tramite `release-info.json`; soltanto dopo vengono pubblicati APK e manifest Android.

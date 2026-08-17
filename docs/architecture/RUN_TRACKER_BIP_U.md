@@ -76,22 +76,25 @@ aperta.
 La Transition API di Activity Recognition conserva localmente una timeline di
 14 giorni con `walking`, `running`, `vehicle`, `bicycle`, `still` e `unknown`.
 Non mantiene GPS o un servizio foreground: il lavoro di riconoscimento è
-delegato al sistema. I record passi Health Connect vengono attribuiti allo
-stato presente al loro punto temporale medio e poi riconciliati con il totale
-aggregato, che resta la fonte canonica del conteggio.
+delegato al sistema. I record passi Health Connect vengono ripartiti in
+proporzione alla durata delle attività sovrapposte e poi riconciliati con il
+totale aggregato, che resta la fonte canonica del conteggio.
 
 Le stime iniziali usano 0,72 m/passo camminando, 1,05 m/passo correndo, 70 kg,
-0,50 kcal/(kg·km) per cammino e 1,00 per corsa. Veicolo, bicicletta e immobilità
-sono esclusi dalla distanza; `unknown` usa il fallback da camminata. Dopo tre
+0,50 kcal/(kg·km) per cammino e 1,00 per corsa. Veicolo e bicicletta dominanti
+sono esclusi dalla distanza; `unknown` usa il fallback da camminata. Se
+Activity Recognition segnala `still` ma esistono passi, il sensore prevale e
+la quota conflittuale entra in `unknown`. Dopo tre
 sessioni esplicite valide (almeno 1 km/1.000 passi per cammino o 3 km/2.000
 passi per corsa), la mediana degli ultimi sette rapporti GPS/passi calibra il
 solo profilo corrispondente. Ogni sessione viene acquisita una sola volta.
 
-I report schema 3 `passive_intraday_snapshot` e `passive_daily_audit`
-registrano categorie, esclusioni e parametri applicati. I record Health Connect
-che attraversano transizioni vengono ripartiti per durata; trasporto o sosta
-escludono passi soltanto con dominanza temporale almeno dell'80%, mentre la
-quota ambigua resta `unknown_steps`. Durante il test di sette giorni uno
+I report schema 4 `passive_intraday_snapshot` e `passive_daily_audit`
+registrano categorie, esclusioni separate veicolo/bicicletta, conflitti
+`STILL + passi`, baseline all-steps e parametri applicati. I record Health
+Connect che attraversano transizioni vengono ripartiti per durata; veicolo o
+bicicletta escludono passi soltanto con dominanza temporale almeno dell'80%,
+mentre la quota ambigua resta `unknown_steps`. Durante il test di sette giorni uno
 snapshot cumulativo e immutabile viene creato per ogni fascia oraria; il giorno
 concluso conserva un report finale distinto.
 

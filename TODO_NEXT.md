@@ -17,7 +17,7 @@ non duplicare qui i dettagli tecnici.
   aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
   contatori Lamport più alti. I record passi sono ripartiti
-  sull'intero intervallo e l'esclusione di trasporto/sosta richiede una quota
+  sull'intero intervallo e l'esclusione di veicolo/bicicletta richiede una quota
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
@@ -56,11 +56,6 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P1 — Blocchi pratici
 
-- dopo l'installazione della build 112, completare una singola attività su
-  Android, attendere lo stato sincronizzato e verificare dal browser che resti
-  completata anche dopo riapertura di entrambi i client; soltanto dopo
-  ricompletare in massa le attività perse il 17 agosto;
-
 - provare per alcuni giorni creazione, modifica, completamento, ricorrenze,
   swipe e Indietro sul Galaxy S21;
 - confermare Google Calendar su hardware Android reale;
@@ -70,18 +65,13 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo movimento build 110
+## P0 — Collaudo movimento build 115
 
-- installare la build 110 e aprire Movimento una volta; il permesso **Physical
-  activity** deve restare consentito;
-- non è necessario fermare il test passivo già attivo: l'aggiornamento conserva
-  la scadenza e applica il nuovo classificatore ai prossimi report. Se la
-  finestra è già terminata, avviarne una nuova; lasciare raccolta per almeno due
-  giorni normali includendo
-  camminata e un viaggio in treno/auto, senza premere altri comandi. Verificare
-  nei `movement_snapshot_*.json` e `daily_audit_*.json` schema 3 che
-  corsa/cammino siano separati e i passi
-  di trasporto risultino esclusi o incerti;
+- lasciare attivo il test passivo già avviato e raccogliere almeno due giorni
+  normali, principalmente camminata e corsa, senza premere altri comandi;
+- verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
+  `daily_audit_*.json` schema 4: scarto distanza, quote cammino/corsa/incerte,
+  esclusi veicolo/bicicletta e conflitti `STILL + passi`;
 - per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre
   corse da almeno 3 km con i pulsanti dedicati. Non servono soste annotate né
   screenshot: GPX, passi, confronto e report vengono esportati automaticamente;
@@ -110,8 +100,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   provvisori;
 - collaudare `TYPE_STEP_COUNTER` durante sessioni con schermo spento; la
   gestione del totale quotidiano attraverso mezzanotte/reboot resta distinta;
-- valutare `WorkManager` e lettura Health Connect in background solo dopo una
-  misura reale: il conteggio di sistema non richiede polling dell'app;
+- misurare il costo reale del job WorkManager orario temporaneo prima di
+  scegliere la frequenza definitiva; il conteggio di sistema non richiede
+  polling dell'app;
 - mostrare separatamente distanza GPS di una sessione e distanza quotidiana
   stimata dai passi, senza doppio conteggio;
 - calibrare separatamente i profili manuali `Camminata` e `Corsa` sul telefono;
@@ -147,8 +138,8 @@ Non introdurre polling, timer o dipendenze senza una misura che li giustifichi.
 
 1. controllare `git status -sb` e preservare dati personali/chiavi;
 2. aggiornare versione, test e documentazione;
-3. eseguire `dart format lib test`, `flutter analyze`, `flutter test`,
-   `flutter build web --release` e i controlli Android pertinenti;
+3. eseguire `make check-generated`, `make check`, le build release e i
+   controlli Android pertinenti;
 4. commit e push sul branch `agent/*`;
 5. attendere e verificare entrambe le pipeline automatiche;
 6. collaudare fisicamente Android e, per cambi web, refresh/persistenza in

@@ -24,7 +24,10 @@ priorità, architettura e verifiche ancora mancanti.
 - Il manifest pubblico deve offrire asset `android-arm64-v8a`, `android-armeabi-v7a` e `android-x86_64`, relativi SHA-256 e numeri versione/build monotoni.
 - La web app deve mantenere SQLite locale persistente; se Drift seleziona soltanto storage in memoria deve fallire chiaramente. Ogni modifica web va verificata con build release, avvio HTTPS e persistenza dopo refresh.
 - Gli aggiornamenti devono essere seamless: controllo non bloccante e limitato nel tempo, download interno all’app, progresso visibile, verifica SHA-256 e una sola conferma Android finale. Non reindirizzare normalmente l’utente a una pagina GitHub.
-- Tutti gli APK successivi devono essere firmati con la stessa chiave release stabile. Prima della pubblicazione verificare che CI, manifest, `versionCode`, hash e firma siano coerenti.
+- Ogni canale deve conservare la propria linea di firma stabile. Google Play App
+  Signing e APK diretto non sono intercambiabili in-place: non proporre l'APK
+  GitHub a un dispositivo installato da Play. Prima della pubblicazione
+  verificare che CI, manifest, `versionCode`, hash, canale e firma siano coerenti.
 - Non aggiungere polling frequente, timer non necessari, inizializzazioni pesanti all’avvio o query che caricano cronologie non visibili. Preferire lavoro differito, stream persistenti e query SQLite filtrate/indicizzate.
 - Prima di rendere una release `latest`, verificare che la versione attualmente installata possa raggiungerla. Conservare un fallback universale soltanto quando serve a una transizione.
 
@@ -38,6 +41,8 @@ priorità, architettura e verifiche ancora mancanti.
 - Non registrare titoli o note nei log e non introdurre analytics o tracking.
 
 Il riferimento operativo per performance e release Android è `docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md`.
+Il comando locale canonico è `make check`; `make check-generated` verifica
+separatamente che il codice Drift generato sia aggiornato.
 
 ## Modulo movimento e Amazfit
 
