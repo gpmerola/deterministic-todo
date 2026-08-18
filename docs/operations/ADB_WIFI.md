@@ -121,7 +121,10 @@ adb shell content query --uri content://app.deterministic.todo.deterministic_tod
 
 L'output atteso contiene una sola riga con `phase`, `result_code`, timestamp,
 nome dello snapshot, stato Drive, passi classificati e aggregati Todo/Google
-Fit. `phase=success` e `result_code=ok` confermano lettura Health Connect e
+Fit. Dalla build 116 include anche finestra misurata, quantità e somma dei
+record grezzi, intervalli invalidi, fattore di riconciliazione e millisecondi
+impiegati da Health Connect e dalla scrittura Drive. `phase=success` e
+`result_code=ok` confermano lettura Health Connect e
 scrittura Drive; `health_connect_error` o `drive_error` identificano il confine
 del problema. `next_expected_ms` è una previsione: Android può differire il
 job. Il provider è in sola lettura e richiede il permesso di sistema `DUMP`,

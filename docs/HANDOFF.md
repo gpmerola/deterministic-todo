@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.7 build 115**. Movimento crea snapshot
+- Versione coordinata corrente: **2.25.8 build 116**. Movimento crea snapshot
   cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
   viene aggiornata all'avvio e ogni tre ore; il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
@@ -234,6 +234,12 @@ intervallo, `STILL` viene ora trattato come conflitto e incluso nel fallback
 prudente; veicolo e bicicletta restano esclusi con dominanza almeno dell'80%.
 Lo snapshot schema 4 e il provider ADB espongono separatamente le tre quote e
 la baseline di distanza su tutti i passi.
+
+La 2.25.8 build 116 mantiene invariati algoritmo e falcate ma porta gli
+snapshot allo schema 5. Oltre ai cumulativi conserva record grezzi e durate,
+riconciliazione pre/post, tempi Health Connect/Drive, errori percentuali, flag
+di qualità e delta validato dallo snapshot precedente. Questo è il formato
+canonico per decidere i prossimi cambi all'algoritmo senza annotazioni manuali.
 
 Gli audit reali del 13–15 agosto 2026 sulla build 109 hanno isolato una
 regressione: 9,51 km Todo contro 21,26 km Google Fit (-55,3%), con il 61% dei

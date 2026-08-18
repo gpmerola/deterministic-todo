@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.8
+
+- I report passivi passano allo schema 5 e registrano finestra temporale
+  effettiva, latenze Health Connect, copertura e conteggi dei record passi,
+  origine Fit/altra origine, intervalli invalidi e anzianità dell'ultimo record.
+- La classificazione conserva valori prima e dopo la riconciliazione con
+  l'aggregato, fattore di scala, durate sovrapposte per stato e record che
+  superano la soglia di esclusione.
+- Ogni snapshot include differenze assolute e percentuali Todo/Google Fit,
+  falcate effettive implicite, indicatori di qualità e un delta validato dallo
+  snapshot precedente. Reset, cambio giorno e valori Fit mancanti restano
+  espliciti invece di produrre differenze fuorvianti.
+- Il provider ADB espone anche durata lettura/scrittura, finestra misurata e
+  dettagli di riconciliazione, senza coordinate o contenuti delle attività.
+
 ## 2.25.7
 
 - I passi registrati mentre Activity Recognition segnala erroneamente

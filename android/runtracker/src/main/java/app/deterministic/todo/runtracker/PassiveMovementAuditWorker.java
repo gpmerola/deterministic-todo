@@ -1,6 +1,7 @@
 package app.deterministic.todo.runtracker;
 
 import android.content.Context;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 import androidx.work.Constraints;
@@ -89,9 +90,12 @@ public final class PassiveMovementAuditWorker extends Worker {
             PassiveMovementDebugState.healthError(context, current.error);
             return resultFor(current.error);
         }
+        long exportStarted = SystemClock.elapsedRealtime();
         DriveTestExportManager.ExportResult snapshot =
             DriveTestExportManager.writePassiveSnapshot(context, current.audit, now);
-        PassiveMovementDebugState.exportFinished(context, current.audit, now, snapshot);
+        long exportDuration = SystemClock.elapsedRealtime() - exportStarted;
+        PassiveMovementDebugState.exportFinished(context, current.audit, now, snapshot,
+            exportDuration);
         if (!snapshot.success()) return Result.retry();
 
         LocalDate finalDay = PassiveAuditWindow.completedDay(now.toLocalDate(), now.getHour());

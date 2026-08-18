@@ -1,6 +1,8 @@
 package app.deterministic.todo.runtracker;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import org.junit.Test;
@@ -30,6 +32,8 @@ public class StepIntervalClassifierTest {
         assertEquals(50, result.walking());
         assertEquals(50, result.unknown());
         assertEquals(0, result.excluded());
+        assertEquals(500, result.vehicleDurationMillis());
+        assertFalse(result.exclusionThresholdApplied());
         assertEquals(100, result.total());
     }
 
@@ -44,6 +48,8 @@ public class StepIntervalClassifierTest {
         assertEquals(10, result.walking());
         assertEquals(90, result.excluded());
         assertEquals(90, result.vehicle());
+        assertEquals(900, result.vehicleDurationMillis());
+        assertTrue(result.exclusionThresholdApplied());
         assertEquals(100, result.total());
     }
 

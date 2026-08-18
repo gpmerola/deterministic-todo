@@ -176,6 +176,14 @@ prudente da camminata e restano marcati come conflitto. Veicolo e bicicletta
 dominanti restano esclusi e sono misurati separatamente nello schema 4 e nel
 provider ADB, insieme alla baseline di distanza su tutti i passi.
 
+La 2.25.8 porta la diagnostica passiva allo schema 5. Ogni snapshot registra
+la finestra realmente letta, tempi delle query, conteggi e copertura dei record
+passi, riconciliazione con l'aggregato, valori pre/post classificazione e delta
+validato dallo snapshot precedente. Il confronto calcola errori assoluti e
+percentuali, falcate effettive implicite e flag di qualità per dati mancanti,
+record vecchi, prevalenza `unknown` o conflitti `STILL`. Non vengono registrate
+coordinate, percorsi o contenuti Todo.
+
 ## Motion system UI
 
 La 2.16.15 introduce un motion system limitato alle transizioni informative:

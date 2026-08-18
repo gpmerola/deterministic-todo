@@ -35,6 +35,7 @@ final class DriveTestExportManager {
     private static final String LAST_EXPORTED_AT = "last_exported_at";
     private static final String COMPARISON_STATUS = "comparison_status";
     private static final String COMPARISON_SUMMARY = "comparison_summary";
+    private static final String LAST_PASSIVE_SAMPLE = "last_passive_sample_v1";
     private static final long HEALTH_TIMEOUT_MILLIS = 8_000;
     private DriveTestExportManager() {}
 
@@ -268,17 +269,73 @@ final class DriveTestExportManager {
             MixedMovementEstimate estimate = MixedMovementEstimate.calculate(
                 audit.getWalkingSteps(), audit.getRunningSteps(), audit.getUnknownSteps(),
                 audit.getExcludedSteps(), stride, runningStride, weight);
+            PassiveSnapshotDelta.Sample currentSample = new PassiveSnapshotDelta.Sample(
+                audit.getDay(), observedAtMillis, audit.getAllSteps(), estimate.distanceMeters(),
+                audit.getFitSteps(), audit.getFitDistanceMeters(), estimate.walkingSteps(),
+                estimate.runningSteps(), estimate.unknownSteps(), estimate.excludedSteps(),
+                audit.getStillConflictSteps());
+            PassiveSnapshotDelta.Delta delta = PassiveSnapshotDelta.between(
+                readPassiveSample(c), currentSample);
+            boolean intraday = "passive_intraday_snapshot".equals(kind);
             JSONObject json = new JSONObject()
-                .put("schema_version", 4)
+                .put("schema_version", 5)
                 .put("kind", kind)
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
                 .put("observed_at_ms", observedAtMillis)
+                .put("measurement_window", new JSONObject()
+                    .put("start_ms", audit.getIntervalStartMillis())
+                    .put("end_ms", audit.getIntervalEndMillis())
+                    .put("duration_ms", audit.getIntervalEndMillis() - audit.getIntervalStartMillis())
+                    .put("observation_delay_ms", Math.max(0,
+                        observedAtMillis - audit.getIntervalEndMillis())))
+                .put("collection_performance", new JSONObject()
+                    .put("all_sources_aggregate_ms", audit.getAllSourcesAggregateDurationMillis())
+                    .put("google_fit_aggregate_ms", audit.getGoogleFitAggregateDurationMillis())
+                    .put("step_record_read_and_classification_ms", audit.getClassificationDurationMillis())
+                    .put("health_connect_total_ms", audit.getTotalReadDurationMillis()))
                 .put("activity_classifier", new JSONObject()
                     .put("status", classifier.getString("registration_status", "unknown"))
                     .put("status_observed_at_ms", classifier.contains("registration_observed_at_ms")
                         ? classifier.getLong("registration_observed_at_ms", 0) : JSONObject.NULL)
-                    .put("timeline_events", ActivityTimeline.read(c).size()))
+                    .put("timeline_events", ActivityTimeline.read(c).size())
+                    .put("exclusion_threshold", 0.80)
+                    .put("records_meeting_exclusion_threshold",
+                        audit.getExclusionThresholdRecordCount()))
+                .put("step_records", new JSONObject()
+                    .put("record_count", audit.getRawStepRecordCount())
+                    .put("record_steps_before_aggregate_reconciliation",
+                        audit.getRawStepRecordSteps())
+                    .put("classified_steps_before_aggregate_reconciliation",
+                        audit.getObservedStepsBeforeReconciliation())
+                    .put("classification_before_reconciliation", new JSONObject()
+                        .put("walking", audit.getWalkingStepsBeforeReconciliation())
+                        .put("running", audit.getRunningStepsBeforeReconciliation())
+                        .put("unknown", audit.getUnknownStepsBeforeReconciliation())
+                        .put("vehicle", audit.getVehicleStepsBeforeReconciliation())
+                        .put("bicycle", audit.getBicycleStepsBeforeReconciliation())
+                        .put("still_with_steps", audit.getStillConflictStepsBeforeReconciliation()))
+                    .put("aggregate_steps", audit.getAllSteps())
+                    .put("aggregate_minus_record_steps",
+                        audit.getAllSteps() - audit.getRawStepRecordSteps())
+                    .put("reconciliation_scale_factor", audit.getReconciliationScaleFactor())
+                    .put("invalid_or_zero_duration_records",
+                        audit.getInvalidStepIntervalRecords())
+                    .put("google_fit_record_count", audit.getGoogleFitStepRecordCount())
+                    .put("google_fit_record_steps", audit.getGoogleFitRawRecordSteps())
+                    .put("other_origin_record_count", audit.getOtherStepRecordCount())
+                    .put("earliest_start_ms", nullable(audit.getEarliestStepRecordStartMillis()))
+                    .put("latest_end_ms", nullable(audit.getLatestStepRecordEndMillis()))
+                    .put("latest_record_age_ms", audit.getLatestStepRecordEndMillis() == null
+                        ? JSONObject.NULL : Math.max(0, audit.getIntervalEndMillis()
+                            - audit.getLatestStepRecordEndMillis())))
+                .put("raw_activity_overlap_durations_ms", new JSONObject()
+                    .put("walking", audit.getWalkingRecordDurationMillis())
+                    .put("running", audit.getRunningRecordDurationMillis())
+                    .put("unknown", audit.getUnknownRecordDurationMillis())
+                    .put("vehicle", audit.getVehicleRecordDurationMillis())
+                    .put("bicycle", audit.getBicycleRecordDurationMillis())
+                    .put("still_with_steps", audit.getStillRecordDurationMillis()))
                 .put("todo", new JSONObject()
                     .put("steps", audit.getAllSteps())
                     .put("estimated_distance_m", estimate.distanceMeters())
@@ -300,8 +357,12 @@ final class DriveTestExportManager {
                 .put("google_fit", new JSONObject()
                     .put("steps", audit.getFitSteps() == null ? JSONObject.NULL : audit.getFitSteps())
                     .put("distance_m", audit.getFitDistanceMeters() == null ? JSONObject.NULL : audit.getFitDistanceMeters())
-                    .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()));
+                    .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()))
+                .put("comparison", comparisonJson(audit, estimate))
+                .put("delta_from_previous_snapshot", intraday
+                    ? deltaJson(delta) : JSONObject.NULL);
             writeNewFile(c, fileName, "application/json", json.toString(2));
+            if (intraday) storePassiveSample(c, currentSample);
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(LAST_STATUS, "success").remove(LAST_ERROR)
                 .putLong(LAST_EXPORTED_AT, System.currentTimeMillis()).apply();
@@ -309,6 +370,139 @@ final class DriveTestExportManager {
         } catch (Exception error) {
             return new ExportResult(true, false, "drive_audit_failed_" + error.getClass().getSimpleName());
         }
+    }
+
+    private static JSONObject comparisonJson(HealthConnectGateway.PassiveAudit audit,
+                                               MixedMovementEstimate estimate) throws Exception {
+        JSONObject result = new JSONObject();
+        result.put("steps", comparisonMetric(audit.getAllSteps(), audit.getFitSteps()));
+        result.put("distance_m", comparisonMetric(estimate.distanceMeters(),
+            audit.getFitDistanceMeters()));
+        result.put("active_calories", comparisonMetric(estimate.activeCalories(),
+            audit.getFitActiveCalories()));
+        result.put("todo_effective_stride_m_per_included_step",
+            includedSteps(estimate) == 0 ? JSONObject.NULL
+                : estimate.distanceMeters() / includedSteps(estimate));
+        result.put("fit_effective_stride_m_per_step",
+            audit.getFitSteps() == null || audit.getFitSteps() == 0
+                || audit.getFitDistanceMeters() == null ? JSONObject.NULL
+                : audit.getFitDistanceMeters() / audit.getFitSteps());
+        result.put("unknown_share_of_all_steps",
+            share(estimate.unknownSteps(), audit.getAllSteps()));
+        result.put("excluded_share_of_all_steps",
+            share(estimate.excludedSteps(), audit.getAllSteps()));
+        result.put("still_conflict_share_of_all_steps",
+            share(audit.getStillConflictSteps(), audit.getAllSteps()));
+        result.put("fit_data_complete_for_core_comparison",
+            audit.getFitSteps() != null && audit.getFitDistanceMeters() != null);
+        result.put("quality_flags", qualityFlags(audit, estimate));
+        return result;
+    }
+
+    private static JSONObject comparisonMetric(double todo, Number fit) throws Exception {
+        JSONObject value = new JSONObject().put("todo", todo)
+            .put("fit", fit == null ? JSONObject.NULL : fit);
+        if (fit == null) return value.put("delta", JSONObject.NULL)
+            .put("absolute_delta", JSONObject.NULL).put("percent_vs_fit", JSONObject.NULL);
+        double reference = fit.doubleValue();
+        double delta = todo - reference;
+        return value.put("delta", delta).put("absolute_delta", Math.abs(delta))
+            .put("percent_vs_fit", reference == 0 ? JSONObject.NULL : delta * 100.0 / reference);
+    }
+
+    private static Object share(long numerator, long denominator) {
+        return denominator == 0 ? JSONObject.NULL : numerator / (double) denominator;
+    }
+
+    private static JSONArray qualityFlags(HealthConnectGateway.PassiveAudit audit,
+                                           MixedMovementEstimate estimate) {
+        JSONArray flags = new JSONArray();
+        if (audit.getFitSteps() == null) flags.put("fit_steps_missing");
+        if (audit.getFitDistanceMeters() == null) flags.put("fit_distance_missing");
+        if (audit.getRawStepRecordCount() == 0 && audit.getAllSteps() > 0)
+            flags.put("aggregate_without_raw_step_records");
+        if (audit.getInvalidStepIntervalRecords() > 0) flags.put("invalid_step_intervals");
+        if (audit.getRawStepRecordSteps() != audit.getAllSteps())
+            flags.put("raw_records_reconciled_to_aggregate");
+        if (audit.getAllSteps() > 0 && estimate.unknownSteps() / (double) audit.getAllSteps() >= 0.50)
+            flags.put("majority_steps_unknown");
+        if (audit.getAllSteps() > 0 && audit.getStillConflictSteps() / (double) audit.getAllSteps() >= 0.20)
+            flags.put("material_still_step_conflict");
+        if (audit.getLatestStepRecordEndMillis() != null
+            && audit.getIntervalEndMillis() - audit.getLatestStepRecordEndMillis() > 2 * 60 * 60 * 1000L)
+            flags.put("raw_step_records_over_two_hours_old");
+        return flags;
+    }
+
+    private static long includedSteps(MixedMovementEstimate estimate) {
+        return estimate.walkingSteps() + estimate.runningSteps() + estimate.unknownSteps();
+    }
+
+    private static JSONObject deltaJson(PassiveSnapshotDelta.Delta delta) throws Exception {
+        JSONObject json = new JSONObject().put("valid", delta.valid()).put("reason", delta.reason())
+            .put("start_ms", delta.startMillis()).put("end_ms", delta.endMillis())
+            .put("duration_ms", delta.durationMillis());
+        if (!delta.valid()) return json;
+        JSONObject todo = new JSONObject().put("steps", delta.todoSteps())
+            .put("distance_m", delta.todoDistanceMeters())
+            .put("walking_steps", delta.walkingSteps())
+            .put("running_steps", delta.runningSteps())
+            .put("unknown_steps", delta.unknownSteps())
+            .put("excluded_steps", delta.excludedSteps())
+            .put("still_conflict_steps", delta.stillConflictSteps());
+        JSONObject fit = new JSONObject()
+            .put("steps", nullable(delta.fitSteps()))
+            .put("distance_m", nullable(delta.fitDistanceMeters()));
+        json.put("todo", todo).put("google_fit", fit)
+            .put("comparison", new JSONObject()
+                .put("steps", comparisonMetric(delta.todoSteps(), delta.fitSteps()))
+                .put("distance_m", comparisonMetric(delta.todoDistanceMeters(),
+                    delta.fitDistanceMeters())));
+        return json;
+    }
+
+    private static PassiveSnapshotDelta.Sample readPassiveSample(Context context) {
+        String encoded = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(LAST_PASSIVE_SAMPLE, null);
+        if (encoded == null) return null;
+        try {
+            JSONObject json = new JSONObject(encoded);
+            return new PassiveSnapshotDelta.Sample(json.getString("day"),
+                json.getLong("observed_at_ms"), json.getLong("todo_steps"),
+                json.getDouble("todo_distance_m"), nullableLong(json, "fit_steps"),
+                nullableDouble(json, "fit_distance_m"), json.getLong("walking_steps"),
+                json.getLong("running_steps"), json.getLong("unknown_steps"),
+                json.getLong("excluded_steps"), json.getLong("still_conflict_steps"));
+        } catch (Exception ignored) { return null; }
+    }
+
+    private static void storePassiveSample(Context context, PassiveSnapshotDelta.Sample sample)
+        throws Exception {
+        JSONObject json = new JSONObject().put("day", sample.day())
+            .put("observed_at_ms", sample.observedAtMillis())
+            .put("todo_steps", sample.todoSteps())
+            .put("todo_distance_m", sample.todoDistanceMeters())
+            .put("fit_steps", nullable(sample.fitSteps()))
+            .put("fit_distance_m", nullable(sample.fitDistanceMeters()))
+            .put("walking_steps", sample.walkingSteps())
+            .put("running_steps", sample.runningSteps())
+            .put("unknown_steps", sample.unknownSteps())
+            .put("excluded_steps", sample.excludedSteps())
+            .put("still_conflict_steps", sample.stillConflictSteps());
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(LAST_PASSIVE_SAMPLE, json.toString()).apply();
+    }
+
+    private static Object nullable(Object value) {
+        return value == null ? JSONObject.NULL : value;
+    }
+
+    private static Long nullableLong(JSONObject json, String key) {
+        return json.isNull(key) ? null : json.optLong(key);
+    }
+
+    private static Double nullableDouble(JSONObject json, String key) {
+        return json.isNull(key) ? null : json.optDouble(key);
     }
 
     private static ExportResult write(Context c, RunSession s, List<TrackPoint> points, Long stepsEnd, String healthStatus) {

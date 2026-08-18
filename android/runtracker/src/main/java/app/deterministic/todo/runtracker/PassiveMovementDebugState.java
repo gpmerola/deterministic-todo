@@ -33,7 +33,8 @@ final class PassiveMovementDebugState {
     static void exportFinished(Context context,
                                HealthConnectGateway.PassiveAudit audit,
                                LocalDateTime observedAt,
-                               DriveTestExportManager.ExportResult result) {
+                               DriveTestExportManager.ExportResult result,
+                               long driveWriteDurationMillis) {
         SharedPreferences profile = context.getSharedPreferences("movement_profile", Context.MODE_PRIVATE);
         double walkingStride = profile.getFloat("walking_stride_meters",
             (float) MovementEstimate.DEFAULT_STRIDE_METERS);
@@ -62,6 +63,17 @@ final class PassiveMovementDebugState {
             .putLong("excluded_vehicle_steps", audit.getVehicleSteps())
             .putLong("excluded_bicycle_steps", audit.getBicycleSteps())
             .putLong("still_conflict_steps", audit.getStillConflictSteps())
+            .putLong("raw_step_record_count", audit.getRawStepRecordCount())
+            .putLong("raw_step_record_steps", audit.getRawStepRecordSteps())
+            .putLong("invalid_step_interval_records", audit.getInvalidStepIntervalRecords())
+            .putLong("observed_steps_before_reconciliation",
+                audit.getObservedStepsBeforeReconciliation())
+            .putFloat("reconciliation_scale_factor",
+                (float) audit.getReconciliationScaleFactor())
+            .putLong("health_connect_read_ms", audit.getTotalReadDurationMillis())
+            .putLong("drive_write_ms", driveWriteDurationMillis)
+            .putLong("measurement_start_ms", audit.getIntervalStartMillis())
+            .putLong("measurement_end_ms", audit.getIntervalEndMillis())
             .putFloat("todo_distance_m", (float) estimate.distanceMeters())
             .putFloat("all_steps_walking_baseline_distance_m", (float) (audit.getAllSteps() * walkingStride))
             .putFloat("todo_active_calories", (float) estimate.activeCalories());
@@ -98,6 +110,15 @@ final class PassiveMovementDebugState {
         addLong(values, p, "excluded_vehicle_steps");
         addLong(values, p, "excluded_bicycle_steps");
         addLong(values, p, "still_conflict_steps");
+        addLong(values, p, "raw_step_record_count");
+        addLong(values, p, "raw_step_record_steps");
+        addLong(values, p, "invalid_step_interval_records");
+        addLong(values, p, "observed_steps_before_reconciliation");
+        addFloat(values, p, "reconciliation_scale_factor");
+        addLong(values, p, "health_connect_read_ms");
+        addLong(values, p, "drive_write_ms");
+        addLong(values, p, "measurement_start_ms");
+        addLong(values, p, "measurement_end_ms");
         addFloat(values, p, "all_steps_walking_baseline_distance_m");
         addLong(values, p, "fit_steps");
         addFloat(values, p, "fit_distance_m");

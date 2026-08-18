@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 17 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 18 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.7 build 115. Movimento produce snapshot
+- Release coordinata corrente: 2.25.8 build 116. Movimento produce snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica Android
   aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
@@ -65,13 +65,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo movimento build 115
+## P0 — Collaudo movimento build 116
 
 - lasciare attivo il test passivo già avviato e raccogliere almeno due giorni
   normali, principalmente camminata e corsa, senza premere altri comandi;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
-  `daily_audit_*.json` schema 4: scarto distanza, quote cammino/corsa/incerte,
-  esclusi veicolo/bicicletta e conflitti `STILL + passi`;
+  `daily_audit_*.json` schema 5: delta tra snapshot, scarto distanza, quote
+  cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
+  veicolo/bicicletta, conflitti `STILL + passi` e flag di qualità;
 - per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre
   corse da almeno 3 km con i pulsanti dedicati. Non servono soste annotate né
   screenshot: GPX, passi, confronto e report vengono esportati automaticamente;

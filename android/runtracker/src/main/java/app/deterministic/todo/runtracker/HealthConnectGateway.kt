@@ -1,6 +1,7 @@
 package app.deterministic.todo.runtracker
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
@@ -162,6 +163,7 @@ object HealthConnectGateway {
         }
         val appContext = context.applicationContext
         scope.launch {
+            val auditStarted = SystemClock.elapsedRealtime()
             try {
                 val client = HealthConnectClient.getOrCreate(appContext, PROVIDER_PACKAGE)
                 if (!client.permissionController.getGrantedPermissions().containsAll(permissions(appContext))) {
@@ -170,25 +172,32 @@ object HealthConnectGateway {
                 }
                 val zone = ZoneId.systemDefault()
                 val start = day.atStartOfDay(zone).toInstant()
-                val end = day.plusDays(1).atStartOfDay(zone).toInstant()
+                val dayEnd = day.plusDays(1).atStartOfDay(zone).toInstant()
+                val end = minOf(Instant.now(), dayEnd).coerceAtLeast(start)
                 val metrics = setOf(
                     StepsRecord.COUNT_TOTAL,
                     DistanceRecord.DISTANCE_TOTAL,
                     ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
                 )
+                val allStarted = SystemClock.elapsedRealtime()
                 val all = client.aggregate(AggregateRequest(
                     metrics = metrics,
                     timeRangeFilter = TimeRangeFilter.between(start, end)
                 ))
+                val allAggregateDuration = SystemClock.elapsedRealtime() - allStarted
+                val fitStarted = SystemClock.elapsedRealtime()
                 val fit = client.aggregate(AggregateRequest(
                     metrics = metrics,
                     timeRangeFilter = TimeRangeFilter.between(start, end),
                     dataOriginFilter = setOf(DataOrigin("com.google.android.apps.fitness"))
                 ))
+                val fitAggregateDuration = SystemClock.elapsedRealtime() - fitStarted
+                val classificationStarted = SystemClock.elapsedRealtime()
                 val classified = classifySteps(appContext, client, start, end,
                     all[StepsRecord.COUNT_TOTAL] ?: 0L)
+                val classificationDuration = SystemClock.elapsedRealtime() - classificationStarted
                 val value = PassiveAudit(
-                    day.toString(), zone.id,
+                    day.toString(), zone.id, start.toEpochMilli(), end.toEpochMilli(),
                     all[StepsRecord.COUNT_TOTAL] ?: 0L,
                     all[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
                     all[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
@@ -198,7 +207,25 @@ object HealthConnectGateway {
                     classified.walkingSteps, classified.runningSteps,
                     classified.unknownSteps, classified.excludedSteps,
                     classified.vehicleSteps, classified.bicycleSteps,
-                    classified.stillConflictSteps
+                    classified.stillConflictSteps,
+                    classified.rawRecordCount, classified.rawRecordSteps,
+                    classified.invalidIntervalRecords, classified.googleFitRecordCount,
+                    classified.googleFitRawSteps, classified.otherRecordCount,
+                    classified.earliestRecordStartMillis, classified.latestRecordEndMillis,
+                    classified.walkingDurationMillis, classified.runningDurationMillis,
+                    classified.unknownDurationMillis, classified.vehicleDurationMillis,
+                    classified.bicycleDurationMillis, classified.stillDurationMillis,
+                    classified.exclusionThresholdRecordCount,
+                    classified.observedStepsBeforeReconciliation,
+                    classified.walkingStepsBeforeReconciliation,
+                    classified.runningStepsBeforeReconciliation,
+                    classified.unknownStepsBeforeReconciliation,
+                    classified.vehicleStepsBeforeReconciliation,
+                    classified.bicycleStepsBeforeReconciliation,
+                    classified.stillConflictStepsBeforeReconciliation,
+                    classified.reconciliationScaleFactor,
+                    allAggregateDuration, fitAggregateDuration, classificationDuration,
+                    SystemClock.elapsedRealtime() - auditStarted
                 )
                 withContext(Dispatchers.Main) { callback.onSuccess(value) }
             } catch (error: SecurityException) {
@@ -220,6 +247,21 @@ object HealthConnectGateway {
         var vehicle = 0L
         var bicycle = 0L
         var stillConflict = 0L
+        var walkingDuration = 0L
+        var runningDuration = 0L
+        var unknownDuration = 0L
+        var vehicleDuration = 0L
+        var bicycleDuration = 0L
+        var stillDuration = 0L
+        var rawRecordCount = 0
+        var rawRecordSteps = 0L
+        var invalidIntervalRecords = 0
+        var googleFitRecordCount = 0
+        var googleFitRawSteps = 0L
+        var otherRecordCount = 0
+        var earliestRecordStartMillis: Long? = null
+        var latestRecordEndMillis: Long? = null
+        var exclusionThresholdRecordCount = 0
         var token: String? = null
         do {
             val response = client.readRecords(ReadRecordsRequest(
@@ -228,8 +270,19 @@ object HealthConnectGateway {
                 pageToken = token
             ))
             for (record in response.records) {
+                rawRecordCount++
+                rawRecordSteps += record.count
+                val recordStart = record.startTime.toEpochMilli()
+                val recordEnd = record.endTime.toEpochMilli()
+                if (recordEnd <= recordStart) invalidIntervalRecords++
+                earliestRecordStartMillis = minOf(earliestRecordStartMillis ?: recordStart, recordStart)
+                latestRecordEndMillis = maxOf(latestRecordEndMillis ?: recordEnd, recordEnd)
+                if (record.metadata.dataOrigin.packageName == "com.google.android.apps.fitness") {
+                    googleFitRecordCount++
+                    googleFitRawSteps += record.count
+                } else otherRecordCount++
                 val allocation = StepIntervalClassifier.classify(
-                    record.startTime.toEpochMilli(), record.endTime.toEpochMilli(),
+                    recordStart, recordEnd,
                     record.count, timeline)
                 walking += allocation.walking()
                 running += allocation.running()
@@ -237,12 +290,26 @@ object HealthConnectGateway {
                 vehicle += allocation.vehicle()
                 bicycle += allocation.bicycle()
                 stillConflict += allocation.stillConflict()
+                walkingDuration += allocation.walkingDurationMillis()
+                runningDuration += allocation.runningDurationMillis()
+                unknownDuration += allocation.unknownDurationMillis()
+                vehicleDuration += allocation.vehicleDurationMillis()
+                bicycleDuration += allocation.bicycleDurationMillis()
+                stillDuration += allocation.stillDurationMillis()
+                if (allocation.exclusionThresholdApplied()) exclusionThresholdRecordCount++
             }
             token = response.pageToken
         } while (token != null)
         val observed = walking + running + unknown + vehicle + bicycle + stillConflict
         if (observed <= 0 || aggregateSteps <= 0) return ClassifiedSteps(
-            0, 0, aggregateSteps, 0, 0, 0, 0)
+            0, 0, aggregateSteps, 0, 0, 0, 0,
+            rawRecordCount, rawRecordSteps, invalidIntervalRecords,
+            googleFitRecordCount, googleFitRawSteps, otherRecordCount,
+            earliestRecordStartMillis, latestRecordEndMillis,
+            walkingDuration, runningDuration, unknownDuration, vehicleDuration,
+            bicycleDuration, stillDuration, exclusionThresholdRecordCount,
+            observed, walking, running, unknown, vehicle, bicycle, stillConflict,
+            if (observed > 0) aggregateSteps.toDouble() / observed else 0.0)
         fun scaled(value: Long) = (value.toDouble() * aggregateSteps / observed).toLong()
         val scaledWalking = scaled(walking)
         val scaledRunning = scaled(running)
@@ -254,12 +321,35 @@ object HealthConnectGateway {
             .coerceAtLeast(0)
         return ClassifiedSteps(scaledWalking, scaledRunning,
             genericUnknown + scaledStillConflict, scaledVehicle + scaledBicycle,
-            scaledVehicle, scaledBicycle, scaledStillConflict)
+            scaledVehicle, scaledBicycle, scaledStillConflict,
+            rawRecordCount, rawRecordSteps, invalidIntervalRecords,
+            googleFitRecordCount, googleFitRawSteps, otherRecordCount,
+            earliestRecordStartMillis, latestRecordEndMillis,
+            walkingDuration, runningDuration, unknownDuration, vehicleDuration,
+            bicycleDuration, stillDuration, exclusionThresholdRecordCount,
+            observed, walking, running, unknown, vehicle, bicycle, stillConflict,
+            aggregateSteps.toDouble() / observed)
     }
 
     private data class ClassifiedSteps(val walkingSteps: Long, val runningSteps: Long,
         val unknownSteps: Long, val excludedSteps: Long, val vehicleSteps: Long,
-        val bicycleSteps: Long, val stillConflictSteps: Long)
+        val bicycleSteps: Long, val stillConflictSteps: Long,
+        val rawRecordCount: Int, val rawRecordSteps: Long,
+        val invalidIntervalRecords: Int, val googleFitRecordCount: Int,
+        val googleFitRawSteps: Long, val otherRecordCount: Int,
+        val earliestRecordStartMillis: Long?, val latestRecordEndMillis: Long?,
+        val walkingDurationMillis: Long, val runningDurationMillis: Long,
+        val unknownDurationMillis: Long, val vehicleDurationMillis: Long,
+        val bicycleDurationMillis: Long, val stillDurationMillis: Long,
+        val exclusionThresholdRecordCount: Int,
+        val observedStepsBeforeReconciliation: Long,
+        val walkingStepsBeforeReconciliation: Long,
+        val runningStepsBeforeReconciliation: Long,
+        val unknownStepsBeforeReconciliation: Long,
+        val vehicleStepsBeforeReconciliation: Long,
+        val bicycleStepsBeforeReconciliation: Long,
+        val stillConflictStepsBeforeReconciliation: Long,
+        val reconciliationScaleFactor: Double)
 
     data class GoogleFitComparison(
         val steps: Long?,
@@ -273,6 +363,8 @@ object HealthConnectGateway {
     data class PassiveAudit(
         val day: String,
         val zoneId: String,
+        val intervalStartMillis: Long,
+        val intervalEndMillis: Long,
         val allSteps: Long,
         val allDistanceMeters: Double?,
         val allActiveCalories: Double?,
@@ -285,7 +377,34 @@ object HealthConnectGateway {
         val excludedSteps: Long,
         val vehicleSteps: Long,
         val bicycleSteps: Long,
-        val stillConflictSteps: Long
+        val stillConflictSteps: Long,
+        val rawStepRecordCount: Int,
+        val rawStepRecordSteps: Long,
+        val invalidStepIntervalRecords: Int,
+        val googleFitStepRecordCount: Int,
+        val googleFitRawRecordSteps: Long,
+        val otherStepRecordCount: Int,
+        val earliestStepRecordStartMillis: Long?,
+        val latestStepRecordEndMillis: Long?,
+        val walkingRecordDurationMillis: Long,
+        val runningRecordDurationMillis: Long,
+        val unknownRecordDurationMillis: Long,
+        val vehicleRecordDurationMillis: Long,
+        val bicycleRecordDurationMillis: Long,
+        val stillRecordDurationMillis: Long,
+        val exclusionThresholdRecordCount: Int,
+        val observedStepsBeforeReconciliation: Long,
+        val walkingStepsBeforeReconciliation: Long,
+        val runningStepsBeforeReconciliation: Long,
+        val unknownStepsBeforeReconciliation: Long,
+        val vehicleStepsBeforeReconciliation: Long,
+        val bicycleStepsBeforeReconciliation: Long,
+        val stillConflictStepsBeforeReconciliation: Long,
+        val reconciliationScaleFactor: Double,
+        val allSourcesAggregateDurationMillis: Long,
+        val googleFitAggregateDurationMillis: Long,
+        val classificationDurationMillis: Long,
+        val totalReadDurationMillis: Long
     )
 
     interface AuditCallback {

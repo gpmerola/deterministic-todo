@@ -89,14 +89,19 @@ sessioni esplicite valide (almeno 1 km/1.000 passi per cammino o 3 km/2.000
 passi per corsa), la mediana degli ultimi sette rapporti GPS/passi calibra il
 solo profilo corrispondente. Ogni sessione viene acquisita una sola volta.
 
-I report schema 4 `passive_intraday_snapshot` e `passive_daily_audit`
+I report schema 5 `passive_intraday_snapshot` e `passive_daily_audit`
 registrano categorie, esclusioni separate veicolo/bicicletta, conflitti
-`STILL + passi`, baseline all-steps e parametri applicati. I record Health
+`STILL + passi`, baseline all-steps e parametri applicati. Conservano inoltre
+finestra effettiva, latenze delle query, record grezzi, valori pre/post
+riconciliazione, fattore di scala, durate per stato, falcate implicite, flag di
+qualità e differenze assolute/percentuali. I record Health
 Connect che attraversano transizioni vengono ripartiti per durata; veicolo o
 bicicletta escludono passi soltanto con dominanza temporale almeno dell'80%,
 mentre la quota ambigua resta `unknown_steps`. Durante il test di sette giorni uno
-snapshot cumulativo e immutabile viene creato per ogni fascia oraria; il giorno
-concluso conserva un report finale distinto.
+snapshot cumulativo e immutabile viene creato per ogni fascia oraria; include
+anche un delta validato rispetto allo snapshot precedente. Cambio giorno,
+reset dei contatori e dati Fit mancanti invalidano esplicitamente il delta. Il
+giorno concluso conserva un report finale distinto.
 
 ## BLE e confine di sicurezza
 

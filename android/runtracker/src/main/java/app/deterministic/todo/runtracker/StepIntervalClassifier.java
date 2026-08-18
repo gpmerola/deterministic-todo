@@ -9,7 +9,10 @@ final class StepIntervalClassifier {
     private static final double MIN_EXCLUDED_SHARE = 0.80;
 
     record Result(long walking, long running, long unknown, long vehicle,
-                  long bicycle, long stillConflict) {
+                  long bicycle, long stillConflict, long walkingDurationMillis,
+                  long runningDurationMillis, long unknownDurationMillis,
+                  long vehicleDurationMillis, long bicycleDurationMillis,
+                  long stillDurationMillis, boolean exclusionThresholdApplied) {
         long excluded() { return vehicle + bicycle; }
         long total() { return walking + running + unknown + vehicle + bicycle + stillConflict; }
     }
@@ -18,8 +21,10 @@ final class StepIntervalClassifier {
 
     static Result classify(long startMillis, long endMillis, long steps,
                            List<ActivityTimeline.Event> timeline) {
-        if (steps <= 0) return new Result(0, 0, 0, 0, 0, 0);
-        if (endMillis <= startMillis) return new Result(0, 0, steps, 0, 0, 0);
+        if (steps <= 0) return new Result(0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, false);
+        if (endMillis <= startMillis) return new Result(0, 0, steps, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, false);
 
         long[] durations = new long[6];
         List<Long> boundaries = new ArrayList<>();
@@ -39,8 +44,10 @@ final class StepIntervalClassifier {
         }
 
         long totalDuration = endMillis - startMillis;
+        long[] rawDurations = durations.clone();
         double excludedShare = (durations[3] + durations[4]) / (double) totalDuration;
-        if (excludedShare > 0 && excludedShare < MIN_EXCLUDED_SHARE) {
+        boolean exclusionThresholdApplied = excludedShare >= MIN_EXCLUDED_SHARE;
+        if (excludedShare > 0 && !exclusionThresholdApplied) {
             durations[2] += durations[3] + durations[4];
             durations[3] = 0;
             durations[4] = 0;
@@ -48,7 +55,8 @@ final class StepIntervalClassifier {
 
         long[] allocated = allocateExactly(steps, durations, totalDuration);
         return new Result(allocated[0], allocated[1], allocated[2], allocated[3],
-            allocated[4], allocated[5]);
+            allocated[4], allocated[5], rawDurations[0], rawDurations[1], rawDurations[2],
+            rawDurations[3], rawDurations[4], rawDurations[5], exclusionThresholdApplied);
     }
 
     private static int bucket(String activity) {
