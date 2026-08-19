@@ -5,10 +5,13 @@ Aggiornato il 19 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.9 build 117**. La diagnostica intensiva
+- Versione coordinata corrente: **2.25.10 build 118**. La diagnostica intensiva
   opzionale osserva per sette giorni GPS e sensori in finestre di cinque
   secondi e carica blocchi JSONL orari su Drive. ID e scadenza sopravvivono
-  alle build intermedie, che restano distinguibili per segmento. Il test
+  alle build intermedie, che restano distinguibili per segmento. La build 118
+  rende crash-safe la rotazione e garantisce un tentativo finale di upload
+  anche quando test intensivo e passivo scadono insieme, senza cambiare
+  algoritmo o campionamento. Il test
   passivo Movimento
   crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
   ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
@@ -153,7 +156,8 @@ Aggiornato il 19 agosto 2026.
   GitHub, firmato con la chiave di upload/release del repository, viene
   correttamente rifiutato come aggiornamento incompatibile. Non disinstallare
   l'app per cambiare canale; su questo dispositivo usare Play interno.
-- Restano da collaudare sulla build 117 l'avvio e l'upload orario della
+- Restano da collaudare sulla build 118 la continuità dell'esperimento avviato
+  sulla 117, l'upload orario e quello finale della
   diagnostica intensiva e almeno due giornate
   principalmente di cammino/corsa, lo schema 5 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale

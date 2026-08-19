@@ -30,10 +30,13 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.9 build 117**. Movimento può eseguire
+- Versione coordinata corrente: **2.25.10 build 118**. Movimento può eseguire
   un esperimento diagnostico intensivo opzionale di sette giorni, con finestre
   sensori/GPS di cinque secondi e upload Drive orario segmentato per build.
   L'identità e la scadenza assoluta non vengono azzerate dagli aggiornamenti.
+  La build 118 preserva i file se un checkpoint fallisce, recupera gli attivi
+  orfani e pianifica l'upload finale indipendentemente dalla scadenza del test
+  passivo; algoritmo e campionamento restano quelli della 117.
   Movimento crea inoltre snapshot
   cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
   viene aggiornata all'avvio e ogni tre ore; il sync delle attività

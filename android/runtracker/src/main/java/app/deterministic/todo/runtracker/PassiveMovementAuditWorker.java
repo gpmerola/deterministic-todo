@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class PassiveMovementAuditWorker extends Worker {
     private static final String WORK = "movement-passive-audit";
     private static final String STARTUP_WORK = "movement-passive-audit-startup";
+    private static final String FINAL_INTENSIVE_UPLOAD = "movement-intensive-final-upload";
     private static final String PREFS = "movement_passive_audit";
     private static final String END_AT = "end_at";
     private static final String LAST_FINAL_DAY = "last_final_day";
@@ -83,14 +84,23 @@ public final class PassiveMovementAuditWorker extends Worker {
         WorkManager.getInstance(context).cancelUniqueWork(STARTUP_WORK);
     }
 
+    static void scheduleIntensiveUpload(Context context) {
+        Constraints connected = new Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED).build();
+        OneTimeWorkRequest upload = new OneTimeWorkRequest.Builder(
+            PassiveMovementAuditWorker.class).setConstraints(connected).build();
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            FINAL_INTENSIVE_UPLOAD, ExistingWorkPolicy.REPLACE, upload);
+    }
+
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
+        uploadIntensiveChunks(context);
         if (!enabled(context)) {
             disable(context);
             return Result.success();
         }
         PassiveMovementDebugState.started(context, DriveTestExportManager.isConfigured(context));
-        uploadIntensiveChunks(context);
         ZoneId zone = ZoneId.systemDefault();
         LocalDateTime now = LocalDateTime.now(zone);
         AuditRead current = readAudit(context, now.toLocalDate());
@@ -148,7 +158,7 @@ public final class PassiveMovementAuditWorker extends Worker {
     }
 
     private static void uploadIntensiveChunks(Context context) {
-        IntensiveDiagnosticStore.checkpoint(context);
+        if (!IntensiveDiagnosticStore.checkpoint(context)) return;
         if (IntensiveDiagnosticStore.pendingChunks(context).isEmpty()) return;
         int uploaded = 0;
         for (java.io.File chunk : IntensiveDiagnosticStore.pendingChunks(context)) {

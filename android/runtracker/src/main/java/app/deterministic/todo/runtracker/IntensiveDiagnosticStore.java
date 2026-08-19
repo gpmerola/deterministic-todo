@@ -25,9 +25,10 @@ final class IntensiveDiagnosticStore {
                                             IntensiveDiagnosticExperiment.State experiment,
                                             String segmentId,
                                             JSONObject capabilities) throws Exception {
-        finishActive(context);
-        String name = "intensive_" + experiment.id() + "_" + segmentId + "_"
-            + System.currentTimeMillis() + ".jsonl.active";
+        if (!finishActive(context)) throw new IllegalStateException("intensive_checkpoint_failed");
+        recoverOrphanedActiveFiles(context);
+        String name = IntensiveChunkFilePolicy.uniqueActiveName(directory(context),
+            experiment.id(), segmentId, System.currentTimeMillis());
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(ACTIVE_FILE, name).putString(SEGMENT_ID, segmentId).apply();
         append(context, new JSONObject().put("schema_version", 1).put("kind", "segment_start")
@@ -56,39 +57,52 @@ final class IntensiveDiagnosticStore {
         }
     }
 
-    static synchronized void checkpoint(Context context) {
-        finishActive(context);
+    static synchronized boolean checkpoint(Context context) {
+        if (!finishActive(context)) return false;
+        recoverOrphanedActiveFiles(context);
         IntensiveDiagnosticExperiment.State experiment = IntensiveDiagnosticExperiment.state(context);
         String segmentId = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(SEGMENT_ID, null);
-        if (!experiment.active(System.currentTimeMillis()) || segmentId == null) return;
+        if (!experiment.active(System.currentTimeMillis()) || segmentId == null) return true;
         try {
-            String name = "intensive_" + experiment.id() + "_" + segmentId + "_"
-                + System.currentTimeMillis() + ".jsonl.active";
+            String name = IntensiveChunkFilePolicy.uniqueActiveName(directory(context),
+                experiment.id(), segmentId, System.currentTimeMillis());
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(ACTIVE_FILE, name).apply();
             append(context, new JSONObject().put("schema_version", 1)
                 .put("kind", "segment_continuation").put("experiment_id", experiment.id())
                 .put("segment_id", segmentId).put("observed_at_ms", System.currentTimeMillis())
                 .put("app", appVersion(context)));
-        } catch (Exception ignored) {}
+            return true;
+        } catch (Exception ignored) { return false; }
     }
 
-    private static void finishActive(Context context) {
+    private static boolean finishActive(Context context) {
         String name = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(ACTIVE_FILE, null);
-        if (name == null) return;
+        if (name == null) return true;
         File active = new File(directory(context), name);
         if (active.exists()) {
-            String completedName = name.endsWith(".active")
-                ? name.substring(0, name.length() - ".active".length()) : name + ".jsonl";
-            active.renameTo(new File(directory(context), completedName));
+            if (!IntensiveChunkFilePolicy.complete(active)) return false;
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .remove(ACTIVE_FILE).apply();
+        return true;
+    }
+
+    private static void recoverOrphanedActiveFiles(Context context) {
+        String current = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(ACTIVE_FILE, null);
+        File[] files = directory(context).listFiles((dir, name) -> name.endsWith(".jsonl.active"));
+        if (files == null) return;
+        for (File orphan : files) {
+            if (orphan.getName().equals(current)) continue;
+            IntensiveChunkFilePolicy.complete(orphan);
+        }
     }
 
     static synchronized List<File> pendingChunks(Context context) {
+        recoverOrphanedActiveFiles(context);
         File[] files = directory(context).listFiles((dir, name) -> name.endsWith(".jsonl"));
         List<File> result = new ArrayList<>();
         if (files != null) java.util.Collections.addAll(result, files);

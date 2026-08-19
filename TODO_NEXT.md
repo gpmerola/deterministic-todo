@@ -12,9 +12,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.9 build 117. Movimento include una
+- Release coordinata corrente: 2.25.10 build 118. Movimento include una
   diagnostica intensiva temporanea di sette giorni, segmentata per build e con
-  upload JSONL orario, oltre agli snapshot
+  upload JSONL orario e finale crash-safe, oltre agli snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica Android
   aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
@@ -67,11 +67,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo movimento build 117
+## P0 — Collaudo movimento build 118
 
-- installare la build 117, aprire Movimento e premere **Avvia diagnostica
-  intensiva · 7 giorni** una sola volta; lasciare attivi anche test passivo e
-  permessi. La notifica permanente conferma il servizio;
+- aggiornare dalla build 117 alla 118 e aprire l'app una volta. Non fermare né
+  riavviare il test: `experiment_id` e scadenza devono restare quelli originari,
+  mentre il nuovo avvio crea soltanto un segmento build 118;
+- se il test non era già partito, premere **Avvia diagnostica intensiva · 7
+  giorni** una sola volta; lasciare attivi test passivo e permessi. La notifica
+  permanente conferma il servizio;
 - usare normalmente il telefono. Non servono soste annotate, screenshot o
   sessioni manuali; dopo circa un'ora verificare su Drive un file
   `intensive_<experiment>_<segment>_*.jsonl`;

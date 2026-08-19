@@ -17,6 +17,8 @@ attività riconosciuta, qualità/velocità GPS e costo CPU, rete, heap, batteria
 power-save. Non salva coordinate. `PassiveMovementAuditWorker` chiude il blocco
 attivo ogni ora, ne apre subito la continuazione e carica fino a otto blocchi
 pendenti. Un blocco locale viene eliminato soltanto dopo successo Drive.
+Quando il servizio termina viene pianificato anche un job finale vincolato alla
+rete; viene eseguito prima del controllo di scadenza del test passivo.
 
 ## Privacy e limiti
 
@@ -33,4 +35,7 @@ Aprire l'app una volta dopo l'update riavvia il servizio e crea un nuovo
 segmento. Se Drive è temporaneamente offline, i `.jsonl` completati restano
 nello storage privato e vengono ritentati al job successivo. Il pulsante o
 l'azione **Termina** della notifica cancellano la scadenza e chiudono il blocco;
-la scadenza naturale fa lo stesso automaticamente.
+la scadenza naturale fa lo stesso automaticamente. La chiusura rimuove il
+riferimento al file attivo soltanto dopo una rinomina riuscita. Nomi già
+occupati ricevono un suffisso deterministico e i `.active` rimasti orfani dopo
+un arresto vengono recuperati come blocchi immutabili al checkpoint seguente.

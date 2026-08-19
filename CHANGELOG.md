@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.10
+
+- La diagnostica intensiva pianifica un ultimo upload vincolato alla rete quando
+  viene fermata o raggiunge la scadenza; l'ultimo blocco non dipende più dal
+  test passivo, che può scadere nello stesso istante.
+- La rotazione JSONL conserva il riferimento al file attivo se la rinomina non
+  riesce, recupera blocchi `.active` orfani e impedisce collisioni di nome senza
+  cancellare evidenze.
+- Un errore durante l'apertura del segmento resta visibile nello stato del
+  servizio invece di essere sovrascritto da `stopped`. Algoritmo, falcate,
+  frequenza sensori, schema delle finestre e scadenza assoluta restano invariati.
+
 ## 2.25.9
 
 - Movimento aggiunge un esperimento diagnostico intensivo opzionale di sette

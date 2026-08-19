@@ -117,8 +117,11 @@ public final class IntensiveDiagnosticService extends Service
         try {
             IntensiveDiagnosticStore.beginSegment(this, experiment, segmentId, capabilities());
         } catch (Exception error) {
+            IntensiveDiagnosticStore.checkpoint(this);
+            PassiveMovementAuditWorker.scheduleIntensiveUpload(this);
             recordStatus("start_failed_" + error.getClass().getSimpleName(), 0);
-            stopCapture();
+            stopForeground(STOP_FOREGROUND_REMOVE);
+            stopSelf();
             return;
         }
         register(Sensor.TYPE_ACCELEROMETER, SensorManager.SENSOR_DELAY_GAME);
@@ -232,8 +235,9 @@ public final class IntensiveDiagnosticService extends Service
         running = false; main.removeCallbacks(flush);
         if (sensors != null) sensors.unregisterListener(this);
         if (locations != null) try { locations.removeUpdates(this); } catch (RuntimeException ignored) {}
-        IntensiveDiagnosticStore.checkpoint(this);
-        recordStatus("stopped", System.currentTimeMillis());
+        boolean checkpointed = IntensiveDiagnosticStore.checkpoint(this);
+        PassiveMovementAuditWorker.scheduleIntensiveUpload(this);
+        recordStatus(checkpointed ? "stopped" : "checkpoint_failed", System.currentTimeMillis());
         stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
     }
 
@@ -274,7 +278,8 @@ public final class IntensiveDiagnosticService extends Service
     @Override public void onDestroy() {
         if (running) { running = false; main.removeCallbacks(flush); sensors.unregisterListener(this);
             try { locations.removeUpdates(this); } catch (RuntimeException ignored) {}
-            IntensiveDiagnosticStore.checkpoint(this); }
+            IntensiveDiagnosticStore.checkpoint(this);
+            PassiveMovementAuditWorker.scheduleIntensiveUpload(this); }
         super.onDestroy();
     }
 
