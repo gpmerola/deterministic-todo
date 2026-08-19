@@ -51,6 +51,11 @@ di cambiare architettura.
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
+- Sul Galaxy S21 è ancora installata **2.25.9 build 117**. Il workflow della
+  118 ha completato verifica, build, pubblicazione diretta/Web e upload al
+  track Play interno, ma il 19 agosto Play Store ha restituito `unreviewed` e
+  non ha installato l'aggiornamento. Codice pubblicato e collaudo hardware sono
+  quindi stati distinti deliberatamente.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
@@ -59,8 +64,10 @@ di cambiare architettura.
   diretto GitHub non può sostituirlo in-place e non va usata la disinstallazione
   come scorciatoia, perché rimuoverebbe i dati locali.
 - Orologio: Amazfit Bip U senza GPS integrato.
-- Il Galaxy S21 è già associato al Mac per ADB wireless. La connessione va
-  ristabilita dopo cambi di rete, IP o porta seguendo
+- Il Galaxy S21 è associato al Mac per ADB wireless. È stata verificata anche
+  la connessione privata Tailscale con Wi-Fi del telefono spento e ADB TCP
+  sulla porta 5555. La modalità non sopravvive necessariamente al riavvio;
+  ripristino e fallback sono descritti in
   [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md); non conservare nel
   repository l'indirizzo runtime del telefono.
 
@@ -420,15 +427,19 @@ firma e token di release restano segreti. Il modulo movimento rimane locale per
 impostazione predefinita e richiede una decisione distinta prima di qualunque
 backup cloud.
 
-## Primo task consigliato al nuovo agente
+## Ripresa consigliata nella prossima chat
 
-Implementare un MVP di passi **solo telefono**, senza BLE:
-
-1. definire schema/migrazione Room e API repository;
-2. aggiungere il lettore `TYPE_STEP_COUNTER` con gestione reboot e data civile;
-3. esporre passi odierni e distanza stimata nella schermata Movimento;
-4. rinominare l’avvio corrente in `Avvia corsa` e aggiungere
-   `Avvia camminata` riusando lo stesso servizio GPS parametrico;
-5. aggiungere test deterministici e misure batteria;
-6. pubblicare una build Android collaudabile;
-7. solo dopo il collaudo iniziare l’autenticazione Huami in sola lettura.
+1. leggere integralmente `AGENTS.md`, `TODO_NEXT.md` e questo handoff, quindi
+   controllare `git status -sb`;
+2. non modificare algoritmo, schema o campionamento mentre l'esperimento
+   intensivo costituisce la baseline;
+3. verificare via ADB la build installata. Se Play rende disponibile la 118,
+   aggiornarla dal solo track interno, aprire l'app una volta e confermare che
+   notifica, `experiment_id` e scadenza siano continuati dalla 117;
+4. dopo almeno 12–24 ore analizzare i JSONL con
+   `tools/analyze_movement_intensive.py` e confrontare gli snapshot schema 5;
+5. completare in Chrome reale persistenza dopo chiusura, import/export con
+   fixture sintetica e diagnostica IndexedDB, senza usare dati personali;
+6. soltanto al termine dell'esperimento valutare il flavor `.dev` parallelo
+   descritto in `TODO_NEXT.md`. Amazfit resta successivo alla validazione del
+   modello solo telefono.

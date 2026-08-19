@@ -8,8 +8,10 @@
 - Lingua predefinita: italiano; app gratuita.
 - Protezione automatica Play disattivata per conservare il canale APK diretto.
 - Test interno attivo dal 5 agosto 2026; lista `Test interno` configurata e
-  pubblicazione automatica verificata fino alla build 115 (2.25.7) il 17 agosto
-  2026.
+  upload automatico verificato fino alla build 118 (2.25.10) il 19 agosto
+  2026. Sul Galaxy resta installata la 117: Play Store ha classificato la 118
+  come `unreviewed`, quindi upload accettato e disponibilità al tester non
+  devono essere trattati come lo stesso stato.
 
 ## Firma e transizione
 
@@ -67,6 +69,11 @@ firma Play App Signing e i dati dell'app installata.
    senza attendere APK diretti o Web.
 5. Verificare la disponibilità ai tester prima di promuovere manualmente verso
    un altro canale.
+
+Un job verde dimostra che Play Developer API ha accettato la release, non che
+la propagazione al singolo tester sia terminata. Verificare separatamente sul
+dispositivo. Se Play mostra `unreviewed`, attendere: non sostituire l'app con
+un APK diretto e non disinstallarla per cambiare linea di firma.
 
 ## Vincolo nuovo account personale
 

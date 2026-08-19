@@ -30,6 +30,11 @@ Aggiornato il 19 agosto 2026.
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
+- Stato dispositivo distinto dalla release: sul Galaxy S21 è installata
+  **2.25.9 build 117**. Il workflow 118 e il caricamento nel track interno sono
+  riusciti, ma il 19 agosto Play Store ha rifiutato l'installazione come
+  `unreviewed`. La 118 non è quindi ancora collaudata sul telefono. Non usare
+  l'APK GitHub, che ha una firma incompatibile, e non disinstallare l'app.
 - Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit
@@ -160,6 +165,10 @@ Aggiornato il 19 agosto 2026.
   GitHub, firmato con la chiave di upload/release del repository, viene
   correttamente rifiutato come aggiornamento incompatibile. Non disinstallare
   l'app per cambiare canale; su questo dispositivo usare Play interno.
+- ADB remoto è stato verificato con Wi-Fi del telefono disattivato tramite una
+  rete privata Tailscale e porta TCP 5555. Endpoint e identificatori runtime
+  restano configurazione locale e non sono salvati nel repository; dopo un
+  riavvio può servire riattivare `adb tcpip 5555`.
 - Restano da collaudare sulla build 118 la continuità dell'esperimento avviato
   sulla 117, l'upload orario e quello finale della
   diagnostica intensiva e almeno due giornate

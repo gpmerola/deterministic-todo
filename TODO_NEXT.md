@@ -23,6 +23,11 @@ non duplicare qui i dettagli tecnici.
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
+- Sul Galaxy S21 è ancora installata **2.25.9 build 117**. L'AAB 118 è stato
+  accettato dal job Play interno, ma il 19 agosto Play Store ha risposto
+  `unreviewed` e non lo ha installato. Non usare l'APK GitHub e non
+  disinstallare: attendere la disponibilità Play, aggiornare, aprire l'app una
+  volta e verificare che l'esperimento conservi ID e scadenza.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Lo stato dell'ultimo snapshot è leggibile in sicurezza con
   `adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status`.
@@ -89,7 +94,8 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Collaudo movimento build 118
 
-- aggiornare dalla build 117 alla 118 e aprire l'app una volta. Non fermare né
+- **Prima azione alla ripresa:** controllare se Play offre la build 118,
+  aggiornare dalla 117 e aprire l'app una volta. Non fermare né
   riavviare il test: `experiment_id` e scadenza devono restare quelli originari,
   mentre il nuovo avvio crea soltanto un segmento build 118;
 - se il test non era già partito, premere **Avvia diagnostica intensiva · 7

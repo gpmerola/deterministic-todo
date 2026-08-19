@@ -26,7 +26,7 @@ Ogni estrazione futura deve preservare test e comportamento pubblico.
 
 - [Release coordinata](operations/RELEASE.md)
 - [Google Play](operations/GOOGLE_PLAY.md)
-- [ADB Wi-Fi e diagnostica Movimento](operations/ADB_WIFI.md)
+- [ADB Wi-Fi/Tailscale e diagnostica Movimento](operations/ADB_WIFI.md)
 - [Web](operations/WEB.md)
 - [Backup e recovery](operations/BACKUP_RECOVERY.md)
 - [Bip U su Samsung](operations/BIP_U_SAMSUNG.md)

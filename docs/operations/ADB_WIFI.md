@@ -4,7 +4,7 @@ Questa procedura consente di leggere log e diagnostica del Galaxy S21 senza
 lasciare il telefono collegato via USB. Il pairing autorizza il Mac, mentre la
 connessione ADB è temporanea: sono due stati distinti.
 
-## Prerequisiti
+## Prerequisiti LAN
 
 - Mac e telefono sulla stessa rete Wi-Fi locale;
 - **Developer options → Wireless debugging** attivo sul telefono;
@@ -38,6 +38,29 @@ adb connect 192.168.1.120:5555
 La prenotazione DHCP sopravvive ai riavvii; la modalità ADB TCP/IP 5555 no.
 Usare questo endpoint soltanto sulla LAN privata e disabilitare ADB sulle reti
 non fidate.
+
+## Connessione privata tra reti diverse
+
+Mac e telefono possono usare la stessa rete privata Tailscale. Questa
+configurazione è stata collaudata con il Wi-Fi del Galaxy spento: il tunnel è
+rimasto raggiungibile sulla rete mobile e ADB TCP ha risposto sulla porta
+5555. Tailscale fornisce connettività e un nome/IP stabile, ma non avvia ADB.
+
+Con una connessione Wireless debugging già autorizzata:
+
+```sh
+adb connect <ip-tailscale>:<porta-wireless-debugging>
+adb -s <ip-tailscale>:<porta-wireless-debugging> tcpip 5555
+adb connect <nome-magicdns-o-ip-tailscale>:5555
+adb devices -l
+```
+
+Non documentare nome, IP o account personali della tailnet. Non pubblicare né
+inoltrare la porta 5555 sul router: deve essere raggiungibile soltanto nella
+rete privata. Dopo il riavvio Android può disattivare la modalità TCP 5555; in
+quel caso riabilitarla tramite la porta temporanea di Wireless debugging o USB.
+Se il tunnel è raggiungibile ma `adb connect ...:5555` risponde `Connection
+refused`, la rete funziona e manca soltanto `adb tcpip 5555`.
 
 ## Connessione ordinaria
 
@@ -104,8 +127,9 @@ inserito in log, documentazione o Git.
   Wireless debugging e l'eventuale isolamento client della rete guest.
 - `unauthorized`: sbloccare il telefono e verificare l'autorizzazione; se
   persiste, rimuovere soltanto il Mac da **Paired devices** e rifare il pairing.
-- VPN o rete guest: possono impedire la comunicazione locale anche quando
-  entrambi i dispositivi hanno accesso a Internet.
+- VPN o rete guest: possono impedire la comunicazione locale. Una tailnet
+  Tailscale esplicitamente configurata è il percorso remoto supportato; non
+  esporre ADB direttamente su Internet.
 
 Per revocare l'accesso, rimuovere il Mac da **Wireless debugging → Paired
 devices** oppure disattivare completamente Wireless debugging.

@@ -27,6 +27,12 @@ Output atteso: workflow verde, `release-info.json` raggiungibile, manifest
 Android con gli stessi identificativi e quattro APK con SHA-256 (universale più
 tre architetture).
 
+Il workflow verde conferma l'accettazione dell'AAB da parte dell'API Play, non
+la sua propagazione al singolo tester. Versione pubblicata, versione disponibile
+e versione realmente installata sono tre stati distinti e vanno registrati in
+`STATUS.md`; un errore Play `unreviewed` richiede attesa, non cambio di firma o
+disinstallazione.
+
 ## Linee di firma Android
 
 Google Play App Signing e la release APK diretta sono due linee distinte. Un
