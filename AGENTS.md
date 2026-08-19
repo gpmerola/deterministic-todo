@@ -6,6 +6,12 @@ All’inizio di ogni nuova sessione leggere integralmente `TODO_NEXT.md` e
 `docs/HANDOFF.md` oltre a questo file: contengono stato reale, blocchi esterni,
 priorità, architettura e verifiche ancora mancanti.
 
+Durante una conversazione lunga rileggere `TODO_NEXT.md` indicativamente ogni
+5–6 prompt dell'utente e dopo cambi di obiettivo o compattazioni. Completata la
+risposta al task corrente, proporre facoltativamente al massimo una voce
+pertinente e non bloccata. Non interrompere attività urgenti, non ripetere la
+stessa proposta e non suggerire modifiche che contaminino test attivi.
+
 ## Obblighi di consegna
 
 - Ogni modifica completata e verificata deve essere committata e pubblicata sul repository GitHub; non lasciare lavoro valido soltanto nella copia locale.

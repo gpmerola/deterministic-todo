@@ -71,6 +71,22 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
+## P1 — Canale Android rapido di collaudo
+
+- al termine dell'esperimento intensivo Movimento, aggiungere un flavor di
+  sviluppo con `applicationId` distinto (suffisso `.dev`), installabile accanto
+  alla versione Google Play senza disinstallazioni o cambi di firma;
+- mantenere database, notifiche, autorizzazioni e diagnostica separati dal
+  client Play; non condividere implicitamente lo stato locale fra i due canali;
+- firmare il flavor con la linea diretta stabile e consentire build locali e
+  installazione via ADB/Tailscale, così i test urgenti non dipendono dalla
+  propagazione Play né dalla disponibilità di GitHub Actions;
+- conservare Google Play come canale stabile e finale. Health Connect, Drive e
+  ogni servizio Movimento vanno autorizzati e attivati esplicitamente sul solo
+  flavor sotto test, evitando due raccolte concorrenti;
+- documentare passaggio, rollback e limiti prima del primo utilizzo. Non
+  introdurre questo flavor durante l'esperimento intensivo corrente.
+
 ## P0 — Collaudo movimento build 118
 
 - aggiornare dalla build 117 alla 118 e aprire l'app una volta. Non fermare né
