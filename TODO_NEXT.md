@@ -30,6 +30,10 @@ non duplicare qui i dettagli tecnici.
 
 ## P0 — Ultimi collaudi browser
 
+La procedura canonica e la fixture sintetica sono descritte in
+[`docs/operations/WEB.md`](docs/operations/WEB.md). I test automatici non
+sostituiscono la riapertura sul profilo Chrome reale.
+
 1. confermare in Chrome reale che una task locale sopravviva a chiusura e
    riapertura completa; lo startup deve fallire esplicitamente se Drift offre
    soltanto storage in memoria;

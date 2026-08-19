@@ -114,6 +114,10 @@ Aggiornato il 19 agosto 2026.
 
 - Le pull request eseguono il percorso canonico `make check-generated` e
   `make check` tramite GitHub Actions; gli stessi comandi sono usati in locale.
+- I blocchi JSONL della diagnostica intensiva possono essere validati e
+  aggregati offline, senza ADB, con
+  `tools/analyze_movement_intensive.py`; il report separa integrità, copertura,
+  movimento, risorse e batteria e non modifica gli input Drive.
 - Analisi statica senza errori.
 - 126 test Flutter superati, incluso uno scenario di convergenza con due
   database indipendenti che rappresentano Android e Web.

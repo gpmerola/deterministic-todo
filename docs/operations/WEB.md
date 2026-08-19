@@ -13,3 +13,11 @@ Smoke test: aprire il sito non in incognito, creare una task sentinella,
 aggiornare la pagina, verificare persistenza e sincronizzazione bidirezionale con
 Android. Se il bootstrap rileva soltanto storage volatile deve fallire in modo
 esplicito.
+
+Per provare import ed export senza dati personali, usare una fixture sintetica
+creata nell'app: esportare il JSON, rinominare la task sentinella, importare in
+modalità aggiornamento e verificare anteprima, conteggi e ripristino. Chiudere
+completamente la scheda, riaprire lo stesso URL e riesportare. Il collaudo è
+superato soltanto se task e diagnostica persistono dopo la riapertura; i test
+Flutter verificano la logica ma non sostituiscono questa prova sul profilo
+Chrome reale.

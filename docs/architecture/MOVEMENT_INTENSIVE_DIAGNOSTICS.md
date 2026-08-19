@@ -39,3 +39,21 @@ la scadenza naturale fa lo stesso automaticamente. La chiusura rimuove il
 riferimento al file attivo soltanto dopo una rinomina riuscita. Nomi già
 occupati ricevono un suffisso deterministico e i `.active` rimasti orfani dopo
 un arresto vengono recuperati come blocchi immutabili al checkpoint seguente.
+
+## Analisi offline riproducibile
+
+I blocchi scaricati da Drive si analizzano senza ADB e senza accedere al
+telefono:
+
+```sh
+python3 tools/analyze_movement_intensive.py ~/Downloads/intensive_*.jsonl
+python3 tools/analyze_movement_intensive.py --json \
+  ~/Downloads/intensive_*.jsonl > /tmp/movement-intensive-report.json
+```
+
+Lo strumento non modifica gli input. Valida le righe, deduplica le finestre
+per esperimento, segmento e intervallo e segnala buchi o sovrapposizioni nello
+stesso segmento. Aggrega copertura, attività, passi, qualità GPS, CPU, rete,
+heap, batteria e stato schermo. Il calo tra percentuali batteria osservate non
+è attribuzione energetica all'app: comprende ricariche, schermo e altre app.
+Il JSON prodotto è un risultato derivato rigenerabile, non un input canonico.
