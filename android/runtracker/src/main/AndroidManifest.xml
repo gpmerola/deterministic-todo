@@ -37,6 +37,10 @@
             android:name=".RunRecordingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <service
+            android:name=".IntensiveDiagnosticService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
         <receiver
             android:name=".ActivityTransitionReceiver"
             android:exported="false" />

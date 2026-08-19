@@ -60,12 +60,15 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView comparisonView;
     private TextView passiveStatusView;
     private Button passiveButton;
+    private TextView intensiveStatusView;
+    private Button intensiveButton;
     private LinearLayout advancedTools;
     private String pendingActivityType = "run";
     private long sessionId;
     private long startedAt;
     private double distance;
     private long sessionSteps;
+    private boolean pendingIntensiveDiagnostic;
 
     private final ActivityResultLauncher<Set<String>> healthPermissions = registerForActivityResult(
         HealthConnectGateway.permissionContract(), granted -> {
@@ -113,8 +116,12 @@ public final class RunTrackerActivity extends ComponentActivity {
         new ActivityResultContracts.RequestMultiplePermissions(), result -> {
             ActivityClassifier.register(this);
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) startRun(pendingActivityType);
+                == PackageManager.PERMISSION_GRANTED) {
+                if (pendingIntensiveDiagnostic) startIntensiveDiagnostic();
+                else startRun(pendingActivityType);
+            }
             else Toast.makeText(this, "La posizione precisa è necessaria per registrare il percorso", Toast.LENGTH_LONG).show();
+            pendingIntensiveDiagnostic = false;
         }
     );
 
@@ -237,6 +244,21 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
         root.addView(passiveButton, matchWrap(dp(8)));
 
+        intensiveStatusView = label(intensiveStatus(), 13);
+        intensiveStatusView.setGravity(Gravity.CENTER);
+        root.addView(intensiveStatusView, matchWrap(dp(8)));
+        intensiveButton = new Button(this);
+        renderIntensiveButton();
+        intensiveButton.setOnClickListener(v -> {
+            if (IntensiveDiagnosticExperiment.active(this)) {
+                IntensiveDiagnosticScheduler.disable(this);
+                renderIntensiveState();
+            } else if (!DriveTestExportManager.isConfigured(this)) {
+                Toast.makeText(this, "Collega prima la cartella Drive negli strumenti avanzati", Toast.LENGTH_LONG).show();
+            } else ensureIntensivePermissions();
+        });
+        root.addView(intensiveButton, matchWrap(dp(8)));
+
         Button advancedToggle = new Button(this);
         advancedToggle.setText("Strumenti avanzati");
         root.addView(advancedToggle, matchWrap(dp(10)));
@@ -323,6 +345,29 @@ public final class RunTrackerActivity extends ComponentActivity {
             ? "Termina test passivo" : "Avvia test passivo · 7 giorni");
     }
 
+    private String intensiveStatus() {
+        IntensiveDiagnosticExperiment.State state = IntensiveDiagnosticExperiment.state(this);
+        if (!state.active(System.currentTimeMillis()))
+            return "Diagnostica intensiva spenta · consumo normale";
+        long hours = Math.max(1, java.util.concurrent.TimeUnit.MILLISECONDS.toHours(
+            state.endAtMillis() - System.currentTimeMillis()));
+        android.content.SharedPreferences p = getSharedPreferences(
+            "movement_intensive_status", MODE_PRIVATE);
+        String service = p.getString("status", "avvio");
+        return "Diagnostica intensiva attiva · GPS e sensori continui · ancora "
+            + hours + " h · " + service;
+    }
+
+    private void renderIntensiveButton() {
+        intensiveButton.setText(IntensiveDiagnosticExperiment.active(this)
+            ? "Termina diagnostica intensiva" : "Avvia diagnostica intensiva · 7 giorni");
+    }
+
+    private void renderIntensiveState() {
+        renderIntensiveButton();
+        intensiveStatusView.setText(intensiveStatus());
+    }
+
     private void refreshDailyMovement() {
         HealthConnectGateway.refreshToday(this, new HealthConnectGateway.Callback() {
             @Override public void onSuccess(DailyMovement movement) {
@@ -350,6 +395,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     }
 
     private void ensurePermissions(String activityType) {
+        pendingIntensiveDiagnostic = false;
         pendingActivityType = activityType;
         ArrayList<String> required = new ArrayList<>();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_COARSE_LOCATION);
@@ -357,6 +403,26 @@ public final class RunTrackerActivity extends ComponentActivity {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.POST_NOTIFICATIONS);
         if (Build.VERSION.SDK_INT >= 29 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACTIVITY_RECOGNITION);
         if (required.isEmpty()) startRun(activityType); else permissions.launch(required.toArray(new String[0]));
+    }
+
+    private void ensureIntensivePermissions() {
+        pendingIntensiveDiagnostic = true;
+        ArrayList<String> required = new ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.POST_NOTIFICATIONS);
+        if (Build.VERSION.SDK_INT >= 29 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACTIVITY_RECOGNITION);
+        if (required.isEmpty()) { pendingIntensiveDiagnostic = false; startIntensiveDiagnostic(); }
+        else permissions.launch(required.toArray(new String[0]));
+    }
+
+    private void startIntensiveDiagnostic() {
+        IntensiveDiagnosticScheduler.enable(this);
+        PassiveMovementAuditWorker.ensureEnabledUntil(this,
+            IntensiveDiagnosticExperiment.state(this).endAtMillis());
+        renderIntensiveState();
+        Toast.makeText(this, "Diagnostica intensiva avviata: consumo batteria elevato per 7 giorni",
+            Toast.LENGTH_LONG).show();
     }
 
     private void startRun(String activityType) {
@@ -525,6 +591,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     @Override protected void onStart() {
         super.onStart();
         if (driveStatusView != null) driveStatusView.setText(DriveTestExportManager.status(this));
+        if (intensiveButton != null) renderIntensiveState();
         ContextCompat.registerReceiver(this, stateReceiver, new IntentFilter(RunRecordingService.ACTION_STATE), ContextCompat.RECEIVER_NOT_EXPORTED);
     }
     @Override protected void onStop() { unregisterReceiver(stateReceiver); super.onStop(); }

@@ -662,6 +662,19 @@ final class DriveTestExportManager {
         pruneDailyDiagnostics(context, 15);
     }
 
+    static ExportResult writeIntensiveDiagnosticChunk(Context context, java.io.File chunk) {
+        if (!isConfigured(context)) return new ExportResult(false, false, "not_configured");
+        try {
+            String text = new String(java.nio.file.Files.readAllBytes(chunk.toPath()),
+                StandardCharsets.UTF_8);
+            writeNewFile(context, chunk.getName(), "application/x-ndjson", text);
+            return new ExportResult(true, true, "ok");
+        } catch (Exception error) {
+            return new ExportResult(true, false,
+                "intensive_chunk_failed_" + error.getClass().getSimpleName());
+        }
+    }
+
     private static void pruneDailyDiagnostics(Context context, int keep) throws Exception {
         Uri tree = tree(context); if (tree == null) throw new IllegalStateException("folder missing");
         String directoryId = DocumentsContract.getTreeDocumentId(tree);

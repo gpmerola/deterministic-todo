@@ -7,6 +7,7 @@ import app.deterministic.todo.runtracker.RunTrackerActivity;
 import app.deterministic.todo.runtracker.DiagnosticDriveScheduler;
 import app.deterministic.todo.runtracker.ActivityClassifier;
 import app.deterministic.todo.runtracker.PassiveMovementAuditScheduler;
+import app.deterministic.todo.runtracker.IntensiveDiagnosticScheduler;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
 
@@ -17,6 +18,7 @@ public final class RunTrackerChannel {
         DiagnosticDriveScheduler.schedule(activity.getApplicationContext());
         ActivityClassifier.register(activity.getApplicationContext());
         PassiveMovementAuditScheduler.refreshIfEnabled(activity.getApplicationContext());
+        IntensiveDiagnosticScheduler.refreshIfEnabled(activity.getApplicationContext());
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/run_tracker")
             .setMethodCallHandler((call, result) -> {
                 if (!"open".equals(call.method)) { result.notImplemented(); return; }

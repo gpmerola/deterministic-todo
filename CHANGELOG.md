@@ -2,6 +2,22 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.9
+
+- Movimento aggiunge un esperimento diagnostico intensivo opzionale di sette
+  giorni: GPS ogni secondo e accelerometro, giroscopio, barometro, rilevatore e
+  contatore passi vengono riassunti in finestre di cinque secondi.
+- L'esperimento conserva ID e scadenza assoluta attraverso riavvii e build
+  intermedie. Ogni avvio crea un segmento con versione/build, capacità sensori
+  e costo CPU, rete, heap e batteria, così dati prodotti da algoritmi diversi
+  non vengono confusi.
+- I blocchi JSONL immutabili vengono ruotati e caricati nella cartella Drive
+  ogni ora; restano locali fino alla conferma dell'upload. Non vengono salvati
+  coordinate, ID Health Connect o contenuti Todo.
+- Il test passivo a basso consumo rimane disponibile e indipendente. La
+  diagnostica intensiva è esplicitamente temporanea, mostra una notifica
+  permanente e si spegne automaticamente alla scadenza.
+
 ## 2.25.8
 
 - I report passivi passano allo schema 5 e registrano finestra temporale

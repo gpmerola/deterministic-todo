@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 18 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 19 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,7 +12,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.8 build 116. Movimento produce snapshot
+- Release coordinata corrente: 2.25.9 build 117. Movimento include una
+  diagnostica intensiva temporanea di sette giorni, segmentata per build e con
+  upload JSONL orario, oltre agli snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica Android
   aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
@@ -65,7 +67,18 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   compaiono nei prossimi export reali;
 - backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-## P0 — Collaudo movimento build 116
+## P0 — Collaudo movimento build 117
+
+- installare la build 117, aprire Movimento e premere **Avvia diagnostica
+  intensiva · 7 giorni** una sola volta; lasciare attivi anche test passivo e
+  permessi. La notifica permanente conferma il servizio;
+- usare normalmente il telefono. Non servono soste annotate, screenshot o
+  sessioni manuali; dopo circa un'ora verificare su Drive un file
+  `intensive_<experiment>_<segment>_*.jsonl`;
+- gli aggiornamenti intermedi non azzerano i sette giorni: aprire una volta
+  l'app dopo ciascun update. Versione e segmento nei file separano i periodi;
+- terminare dal pulsante o dalla notifica soltanto se consumo/temperatura sono
+  problematici. Alla scadenza il servizio si arresta automaticamente;
 
 - lasciare attivo il test passivo già avviato e raccogliere almeno due giorni
   normali, principalmente camminata e corsa, senza premere altri comandi;

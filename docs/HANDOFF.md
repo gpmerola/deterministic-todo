@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 17 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 19 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,7 +30,11 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.8 build 116**. Movimento crea snapshot
+- Versione coordinata corrente: **2.25.9 build 117**. Movimento può eseguire
+  un esperimento diagnostico intensivo opzionale di sette giorni, con finestre
+  sensori/GPS di cinque secondi e upload Drive orario segmentato per build.
+  L'identità e la scadenza assoluta non vengono azzerate dagli aggiornamenti.
+  Movimento crea inoltre snapshot
   cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
   viene aggiornata all'avvio e ogni tre ore; il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`

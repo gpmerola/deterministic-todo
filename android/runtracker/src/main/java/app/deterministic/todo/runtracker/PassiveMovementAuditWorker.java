@@ -48,6 +48,13 @@ public final class PassiveMovementAuditWorker extends Worker {
         schedule(context, true);
     }
 
+    static void ensureEnabledUntil(Context context, long requiredEndAt) {
+        long existing = endAt(context);
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(END_AT, Math.max(existing, requiredEndAt)).apply();
+        schedule(context, true);
+    }
+
     public static void refreshScheduleIfEnabled(Context context) {
         if (enabled(context)) schedule(context, true);
     }
@@ -83,6 +90,7 @@ public final class PassiveMovementAuditWorker extends Worker {
             return Result.success();
         }
         PassiveMovementDebugState.started(context, DriveTestExportManager.isConfigured(context));
+        uploadIntensiveChunks(context);
         ZoneId zone = ZoneId.systemDefault();
         LocalDateTime now = LocalDateTime.now(zone);
         AuditRead current = readAudit(context, now.toLocalDate());
@@ -137,5 +145,19 @@ public final class PassiveMovementAuditWorker extends Worker {
 
     private static Result resultFor(String error) {
         return "permission_required".equals(error) ? Result.failure() : Result.retry();
+    }
+
+    private static void uploadIntensiveChunks(Context context) {
+        IntensiveDiagnosticStore.checkpoint(context);
+        if (IntensiveDiagnosticStore.pendingChunks(context).isEmpty()) return;
+        int uploaded = 0;
+        for (java.io.File chunk : IntensiveDiagnosticStore.pendingChunks(context)) {
+            if (uploaded >= 8) break;
+            DriveTestExportManager.ExportResult result =
+                DriveTestExportManager.writeIntensiveDiagnosticChunk(context, chunk);
+            if (!result.success()) break;
+            IntensiveDiagnosticStore.uploaded(chunk);
+            uploaded++;
+        }
     }
 }
