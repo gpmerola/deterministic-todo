@@ -298,6 +298,13 @@ batteria. Browser ed esportazione manuale restano invariati.
 
 ## Flusso OTA
 
+Per evitare la latenza Play durante lo sviluppo, dalla 2.26.0 il flavor `dev`
+usa package `.dev` e nome **Todo Test**. Convive con Play e si aggiorna con
+`adb install -r` usando la firma diretta stabile. I sandbox non condividono
+dati, login, Keystore o permessi. Prima di attivare Movimento sul flavor test
+occorre fermarne la raccolta nel client Play. Runbook:
+[`operations/ANDROID_DEV_CHANNEL.md`](operations/ANDROID_DEV_CHANNEL.md).
+
 1. Il client scarica il piccolo `manifest.json` pubblico.
 2. Confronta semanticamente la versione installata e quella remota.
 3. Su Android individua l’ABI e sceglie l’asset specifico; `android` è soltanto fallback per versioni precedenti.

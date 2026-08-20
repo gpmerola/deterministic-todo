@@ -1,11 +1,14 @@
 # Stato corrente
 
-Aggiornato il 20 agosto 2026.
+Aggiornato il 21 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.12 build 120**. Drive separa sessioni,
+- Versione coordinata corrente: **2.26.0 build 123**. Il flavor Android `dev`
+  produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
+  Play. I sandbox sono separati e Play conserva dati e baseline esistenti.
+  Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
   chiavi. La connessione usa prima l'orologio già associato ad Android e resta

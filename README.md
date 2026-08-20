@@ -237,6 +237,12 @@ prompt flessibile dello Store senza interrompere lâ€™uso. Il controllo manuale Ã
 disponibile nelle Impostazioni. Il browser aggiorna la pagina direttamente dal
 sito.
 
+Per sviluppo rapido il flavor Android `dev` appare come **Todo Test** e si
+installa accanto alla versione Google Play senza toccarne dati o firma.
+Database, sessione, Keystore, permessi e servizi sono separati; procedura ADB e
+passaggio sicuro sono in
+[`docs/operations/ANDROID_DEV_CHANNEL.md`](docs/operations/ANDROID_DEV_CHANNEL.md).
+
 ## Sviluppo
 
 Richiede Flutter stable 3.44.7 o compatibile e Dart 3.12.

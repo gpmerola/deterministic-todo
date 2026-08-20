@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.0
+
+- Aggiunge il flavor Android `dev`, installabile come **Todo Test** accanto
+  alla versione Google Play grazie al package ID distinto con suffisso `.dev`.
+- Separa automaticamente database, Keystore, autorizzazioni, diagnostica e
+  servizi Movimento fra i due canali; gli aggiornamenti di sviluppo possono
+  essere installati direttamente via ADB senza disinstallare la build Play.
+- Mantiene Google Play come canale stabile. La prima attivazione di Todo Test
+  richiede login Supabase e autorizzazioni esplicite; non copia implicitamente
+  dati sanitari o segreti dalla build stabile.
+
 ## 2.25.14
 
 - Aggiunge una prova cardiaca Bip U di 60 secondi: autenticazione Huami

@@ -30,7 +30,12 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.14 build 122**. Drive crea cinque
+- Versione coordinata corrente: **2.26.0 build 123**. Il flavor Android `dev`
+  produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
+  e installabile accanto alla linea Play. Database, Keystore, permessi e
+  servizi restano separati; vedi
+  [`operations/ANDROID_DEV_CHANNEL.md`](operations/ANDROID_DEV_CHANNEL.md).
+  Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
   già associato e salva un report JSON sicuro per ogni tentativo.
@@ -79,9 +84,10 @@ di cambiare architettura.
   [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md); non conservare nel
   repository l'indirizzo runtime del telefono.
 
-Ogni modifica funzionale Android deve incrementare versione/build, superare i
-test e arrivare sul telefono tramite il workflow. Una modifica soltanto
-documentale non richiede una nuova build.
+Ogni modifica funzionale Android deve incrementare versione/build e superare i
+test. Durante lo sviluppo viene collaudata prima sul flavor `dev` via ADB; il
+workflow conserva Play come canale stabile. Una modifica soltanto documentale
+non richiede una nuova build.
 
 ## Come funziona il Todo
 

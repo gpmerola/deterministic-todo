@@ -82,19 +82,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P1 — Canale Android rapido di collaudo
 
-- al termine dell'esperimento intensivo Movimento, aggiungere un flavor di
-  sviluppo con `applicationId` distinto (suffisso `.dev`), installabile accanto
-  alla versione Google Play senza disinstallazioni o cambi di firma;
-- mantenere database, notifiche, autorizzazioni e diagnostica separati dal
-  client Play; non condividere implicitamente lo stato locale fra i due canali;
-- firmare il flavor con la linea diretta stabile e consentire build locali e
-  installazione via ADB/Tailscale, così i test urgenti non dipendono dalla
-  propagazione Play né dalla disponibilità di GitHub Actions;
-- conservare Google Play come canale stabile e finale. Health Connect, Drive e
-  ogni servizio Movimento vanno autorizzati e attivati esplicitamente sul solo
-  flavor sotto test, evitando due raccolte concorrenti;
-- documentare passaggio, rollback e limiti prima del primo utilizzo. Non
-  introdurre questo flavor durante l'esperimento intensivo corrente.
+- dalla build 123 il flavor `dev` usa il package distinto `.dev` ed è
+  installabile come **Todo Test** accanto alla versione Play;
+- collaudare login/riallineamento Supabase, permessi Health Connect, selezione
+  Drive e aggiornamento ADB in-place sul Galaxy S21;
+- attivare Movimento soltanto in Todo Test dopo avere fermato la raccolta nella
+  build Play, per evitare due raccolte concorrenti;
+- valutare in seguito un trasferimento esplicito e cifrato della sola chiave
+  Bip U; nessun segreto o dato sanitario viene condiviso implicitamente.
 
 ## P0 — Collaudo movimento build 122
 

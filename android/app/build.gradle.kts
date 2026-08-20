@@ -9,13 +9,25 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures {
+        resValues = true
+    }
+
     flavorDimensions += "distribution"
     productFlavors {
         create("direct") {
             dimension = "distribution"
+            resValue("string", "app_name", "Deterministic Todo")
         }
         create("play") {
             dimension = "distribution"
+            resValue("string", "app_name", "Deterministic Todo")
+        }
+        create("dev") {
+            dimension = "distribution"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Todo Test")
         }
     }
 
