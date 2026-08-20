@@ -165,6 +165,11 @@ WorkManager. Non registra GPS, non mantiene un servizio foreground e non usa
 BLE; il costo va comunque misurato sul Galaxy S21 prima di rendere permanente
 la frequenza di debug.
 
+Dalla 2.25.12 snapshot e audit vivono in `02 Passive`; sessioni GPX/JSON,
+blocchi intensivi, diagnostica app e prove Bip U usano rispettivamente
+`01 Sessions`, `03 Intensive`, `04 App diagnostics` e `05 Bip U`. Le directory
+sono create idempotentemente dentro la radice SAF già autorizzata.
+
 Dalla 2.25.6 lo stato aggregato dell'ultimo tentativo è interrogabile dalla
 shell ADB con il comando canonico documentato in
 [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md). Il provider è read-only,
@@ -285,8 +290,9 @@ cartella Drive già autorizzata per i test Movimento. Dalla 2.25.4, durante la
 fase di debugging, l'app la aggiorna all'avvio (dopo circa un minuto) e ogni tre
 ore quando è disponibile una rete. Il job non richiede che l'app resti aperta;
 Android può comunque differirlo secondo le proprie politiche energetiche. Il nome è
-`todo_diagnostics_YYYY-MM-DD.jsonl`; la scrittura è idempotente per data e la
-retention elimina soltanto i file con quel prefisso oltre i 15 più recenti.
+`todo_diagnostics_YYYY-MM-DD.jsonl` dentro `04 App diagnostics`; la scrittura è
+idempotente per data e la retention elimina soltanto i file con quel prefisso
+oltre i 15 più recenti.
 Il lavoro non attiva GPS o BLE e Android può differirlo per risparmiare
 batteria. Browser ed esportazione manuale restano invariati.
 

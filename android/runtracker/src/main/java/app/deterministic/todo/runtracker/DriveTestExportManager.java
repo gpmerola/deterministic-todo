@@ -42,6 +42,43 @@ final class DriveTestExportManager {
     record ExportResult(boolean configured, boolean success, String code) {}
     interface Completion { void onComplete(ExportResult result); }
 
+    static void exportBipUProbe(Context context, long startedAtMillis,
+                                String connectionSource, String outcome,
+                                Integer batteryPercent, Integer gattStatus,
+                                Completion completion) {
+        new Thread(() -> {
+            if (!isConfigured(context)) {
+                completion.onComplete(new ExportResult(false, false, "not_configured"));
+                return;
+            }
+            try {
+                long observedAt = System.currentTimeMillis();
+                JSONObject report = new JSONObject()
+                    .put("schema_version", 1)
+                    .put("kind", "bip_u_read_only_probe")
+                    .put("started_at_ms", startedAtMillis)
+                    .put("observed_at_ms", observedAt)
+                    .put("duration_ms", Math.max(0, observedAt - startedAtMillis))
+                    .put("connection_source", connectionSource)
+                    .put("outcome", outcome)
+                    .put("battery_percent", batteryPercent == null ? JSONObject.NULL : batteryPercent)
+                    .put("gatt_status", gattStatus == null ? JSONObject.NULL : gattStatus)
+                    .put("app_version", appVersion(context))
+                    .put("android_api", Build.VERSION.SDK_INT)
+                    .put("privacy", new JSONObject()
+                        .put("mac_recorded", false)
+                        .put("auth_key_recorded", false)
+                        .put("writes_to_watch", false));
+                writeNewFile(context, "bip_u_probe_" + observedAt + ".json",
+                    "application/json", report.toString(2));
+                completion.onComplete(new ExportResult(true, true, "ok"));
+            } catch (Exception error) {
+                completion.onComplete(new ExportResult(true, false,
+                    "bip_u_drive_failed_" + error.getClass().getSimpleName()));
+            }
+        }, "bip-u-drive-report").start();
+    }
+
     static void setFolder(Context context, Uri uri, int resultFlags) {
         int takeFlags = resultFlags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         if ((takeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == 0) {
@@ -601,8 +638,8 @@ final class DriveTestExportManager {
     }
     private static void writeFile(Context c, String name, String mime, String text) throws Exception {
         Uri tree=tree(c); if(tree==null)throw new IllegalStateException("folder missing");
-        String directoryId = DocumentsContract.getTreeDocumentId(tree);
-        Uri dir=DocumentsContract.buildDocumentUriUsingTree(tree, directoryId);
+        Uri dir = managedDirectory(c, tree, DriveFolderLayout.folderFor(name));
+        String directoryId = DocumentsContract.getDocumentId(dir);
         Uri children=DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
         Uri file = null;
         try (Cursor cursor = c.getContentResolver().query(children,
@@ -638,8 +675,8 @@ final class DriveTestExportManager {
 
     private static void writeNewFile(Context c, String name, String mime, String text) throws Exception {
         Uri tree = tree(c); if (tree == null) throw new IllegalStateException("folder missing");
-        String directoryId = DocumentsContract.getTreeDocumentId(tree);
-        Uri dir = DocumentsContract.buildDocumentUriUsingTree(tree, directoryId);
+        Uri dir = managedDirectory(c, tree, DriveFolderLayout.folderFor(name));
+        String directoryId = DocumentsContract.getDocumentId(dir);
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
         try (Cursor cursor = c.getContentResolver().query(children,
             new String[] {DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
@@ -677,7 +714,8 @@ final class DriveTestExportManager {
 
     private static void pruneDailyDiagnostics(Context context, int keep) throws Exception {
         Uri tree = tree(context); if (tree == null) throw new IllegalStateException("folder missing");
-        String directoryId = DocumentsContract.getTreeDocumentId(tree);
+        Uri dir = managedDirectory(context, tree, DriveFolderLayout.APP_DIAGNOSTICS);
+        String directoryId = DocumentsContract.getDocumentId(dir);
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
         List<DiagnosticRetentionPolicy.Entry> entries = new ArrayList<>();
         try (Cursor cursor = context.getContentResolver().query(children,
@@ -694,5 +732,26 @@ final class DriveTestExportManager {
             Uri document = DocumentsContract.buildDocumentUriUsingTree(tree, entry.id());
             DocumentsContract.deleteDocument(context.getContentResolver(), document);
         }
+    }
+
+    private static synchronized Uri managedDirectory(Context context, Uri tree,
+                                                       String folderName) throws Exception {
+        String rootId = DocumentsContract.getTreeDocumentId(tree);
+        Uri root = DocumentsContract.buildDocumentUriUsingTree(tree, rootId);
+        if (folderName == null) return root;
+        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, rootId);
+        try (Cursor cursor = context.getContentResolver().query(children,
+            new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE}, null, null, null)) {
+            if (cursor != null) while (cursor.moveToNext()) {
+                if (folderName.equals(cursor.getString(1))
+                    && DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2)))
+                    return DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0));
+            }
+        }
+        Uri created = DocumentsContract.createDocument(context.getContentResolver(), root,
+            DocumentsContract.Document.MIME_TYPE_DIR, folderName);
+        return created == null ? root : created;
     }
 }

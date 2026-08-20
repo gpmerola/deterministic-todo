@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.12
+
+- La cartella Drive Movimento usa sottocartelle stabili per sessioni,
+  confronti passivi, diagnostica intensiva, diagnostica generale e Bip U. La
+  creazione è idempotente e conserva la radice selezionata come fallback se il
+  provider non supporta directory figlie.
+- Ogni prova Bip U salva automaticamente un report JSON con origine della
+  connessione, esito, durata, batteria e codice GATT. MAC, chiave Huami e
+  scritture verso l'orologio sono esplicitamente assenti.
+- Gli upload e la retention esistenti continuano nella rispettiva
+  sottocartella senza cambiare frequenza, scadenza o algoritmo Movimento.
+
 ## 2.25.11
 
 - La prova BLE del Bip U usa prima il dispositivo già associato ad Android e

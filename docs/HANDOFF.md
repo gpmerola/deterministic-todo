@@ -30,9 +30,10 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.11 build 119**. La prova BLE Bip U
-  preferisce il dispositivo già associato ad Android e usa la scansione come
-  fallback, perché il collegamento Battery/HID può nascondere gli annunci.
+- Versione coordinata corrente: **2.25.12 build 120**. Drive crea cinque
+  sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
+  `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
+  già associato e salva un report JSON sicuro per ogni tentativo.
   Movimento può eseguire
   un esperimento diagnostico intensivo opzionale di sette giorni, con finestre
   sensori/GPS di cinque secondi e upload Drive orario segmentato per build.
@@ -54,9 +55,9 @@ di cambiare architettura.
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
-- Sul Galaxy S21 è installata **2.25.10 build 118**. La build 119 non è ancora
-  collaudata sul Bip U reale; codice pubblicato e collaudo hardware restano
-  distinti deliberatamente.
+- Sul Galaxy S21 è installata **2.25.11 build 119**. La prova è stata avviata
+  senza ADB; la build 120 richiede un nuovo tentativo per verificare report
+  Drive e risultato BLE. Codice e collaudo hardware restano distinti.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
@@ -132,11 +133,11 @@ database Todo; non è sincronizzato con Supabase.
 - Distanza cumulativa dai soli punti accettati.
 - UI con durata, distanza, passo medio, accuratezza e stato del GPS.
 - Export GPX 1.1 esplicito tramite FileProvider e auto-export GPX+JSON opzionale
-  nella cartella Drive autorizzata dall’utente. La build 91 mantiene il servizio
+  in `01 Sessions` nella cartella Drive autorizzata. La build 91 mantiene il servizio
   attivo fino all'esito, rende le scritture idempotenti e consente di riesportare
   l'ultima attività con stato o codice errore visibile.
-- Prova BLE in sola lettura: scansione, connessione e tentativo di leggere la
-  batteria standard.
+- Prova BLE in sola lettura: dispositivo associato o scansione, connessione,
+  tentativo di leggere la batteria standard e report automatico in `05 Bip U`.
 - Inserimento facoltativo della chiave Huami, validata come 16 byte
   esadecimali e cifrata con Android Keystore. La chiave non viene ancora
   trasmessa.

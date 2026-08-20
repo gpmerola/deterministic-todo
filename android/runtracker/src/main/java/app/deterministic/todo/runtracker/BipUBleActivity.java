@@ -36,6 +36,7 @@ import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Minimal BLE probe: reuses a bonded device or scans, then reads battery data only. */
 public final class BipUBleActivity extends ComponentActivity {
@@ -47,13 +48,16 @@ public final class BipUBleActivity extends ComponentActivity {
     private Button probe;
     private BluetoothLeScanner scanner;
     private BluetoothGatt gatt;
+    private final AtomicBoolean reportWritten = new AtomicBoolean();
+    private long attemptStartedAtMillis;
+    private String connectionSource = "none";
 
     static void open(Activity activity) { activity.startActivity(new Intent(activity, BipUBleActivity.class)); }
 
     private final ActivityResultLauncher<String[]> permissionRequest = registerForActivityResult(
         new ActivityResultContracts.RequestMultiplePermissions(), result -> {
             if (result.values().stream().allMatch(Boolean.TRUE::equals)) connectBondedOrScan();
-            else setStatus("Permessi Bluetooth non concessi");
+            else finishAttempt("Permessi Bluetooth non concessi", "permission_denied", null, null);
         }
     );
 
@@ -75,6 +79,9 @@ public final class BipUBleActivity extends ComponentActivity {
     }
 
     private void ensurePermissions() {
+        attemptStartedAtMillis = System.currentTimeMillis();
+        connectionSource = "none";
+        reportWritten.set(false);
         ArrayList<String> missing = new ArrayList<>();
         if (Build.VERSION.SDK_INT >= 31) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) missing.add(Manifest.permission.BLUETOOTH_SCAN);
@@ -86,17 +93,18 @@ public final class BipUBleActivity extends ComponentActivity {
     private void connectBondedOrScan() {
         BluetoothManager manager = getSystemService(BluetoothManager.class);
         BluetoothAdapter adapter = manager == null ? null : manager.getAdapter();
-        if (adapter == null || !adapter.isEnabled()) { setStatus("Attiva il Bluetooth e riprova"); return; }
+        if (adapter == null || !adapter.isEnabled()) { finishAttempt("Attiva il Bluetooth e riprova", "bluetooth_disabled", null, null); return; }
         try {
             for (BluetoothDevice device : adapter.getBondedDevices()) {
                 if (BipUDeviceSelector.matchesName(device.getName())) {
+                    connectionSource = "bonded";
                     setBusyStatus("Bip U già associato · connessione…");
                     connect(device);
                     return;
                 }
             }
         } catch (SecurityException error) {
-            setStatus("Accesso ai dispositivi associati non autorizzato");
+            finishAttempt("Accesso ai dispositivi associati non autorizzato", "bonded_access_denied", null, null);
             return;
         }
         scan(adapter);
@@ -104,10 +112,11 @@ public final class BipUBleActivity extends ComponentActivity {
 
     private void scan(BluetoothAdapter adapter) {
         scanner = adapter.getBluetoothLeScanner();
-        if (scanner == null) { setStatus("Scanner BLE non disponibile"); return; }
+        if (scanner == null) { finishAttempt("Scanner BLE non disponibile", "scanner_unavailable", null, null); return; }
+        connectionSource = "scan";
         setBusyStatus("Ricerca Bip U per 12 secondi…");
         try { scanner.startScan(scanCallback); handler.postDelayed(() -> stopScan("Bip U non trovato"), 12_000); }
-        catch (SecurityException error) { setStatus("Permesso Bluetooth mancante"); }
+        catch (SecurityException error) { finishAttempt("Permesso Bluetooth mancante", "scan_permission_denied", null, null); }
     }
 
     private final ScanCallback scanCallback = new ScanCallback() {
@@ -118,41 +127,64 @@ public final class BipUBleActivity extends ComponentActivity {
             if (!BipUDeviceSelector.matchesName(name)) return;
             stopScan(null); setBusyStatus("Bip U trovato · connessione…"); connect(device);
         }
-        @Override public void onScanFailed(int errorCode) { setStatus("Ricerca BLE non riuscita (" + errorCode + ")"); }
+        @Override public void onScanFailed(int errorCode) {
+            stopScan(null);
+            finishAttempt("Ricerca BLE non riuscita (" + errorCode + ")", "scan_failed", null, errorCode);
+        }
     };
 
     private void connect(BluetoothDevice device) {
         runOnUiThread(() -> probe.setEnabled(false));
         try {
-            if (gatt != null) gatt.close();
+            BluetoothGatt previous = gatt;
+            gatt = null;
+            if (previous != null) previous.close();
             gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
+            if (gatt == null) finishAttempt("Connessione BLE non avviata", "connect_not_started", null, null);
         } catch (SecurityException error) {
-            setStatus("Connessione BLE non autorizzata");
+            finishAttempt("Connessione BLE non autorizzata", "connect_permission_denied", null, null);
         }
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
         @Override public void onConnectionStateChange(@NonNull BluetoothGatt connection, int statusCode, int newState) {
+            if (connection != gatt) return;
             if (newState == android.bluetooth.BluetoothProfile.STATE_CONNECTED) {
                 setBusyStatus("Connesso · lettura servizi…");
-                try { connection.discoverServices(); } catch (SecurityException error) { setStatus("Accesso ai servizi non autorizzato"); }
+                try {
+                    if (!connection.discoverServices())
+                        finishAttempt("Lettura servizi non avviata", "service_discovery_not_started", null, statusCode);
+                } catch (SecurityException error) {
+                    finishAttempt("Accesso ai servizi non autorizzato", "service_discovery_denied", null, statusCode);
+                }
             } else if (newState == android.bluetooth.BluetoothProfile.STATE_DISCONNECTED) {
-                setStatus(statusCode == BluetoothGatt.GATT_SUCCESS ? "Disconnesso" : "Connessione non riuscita (" + statusCode + ")");
+                finishAttempt(statusCode == BluetoothGatt.GATT_SUCCESS ? "Disconnesso" : "Connessione non riuscita (" + statusCode + ")",
+                    statusCode == BluetoothGatt.GATT_SUCCESS ? "disconnected" : "connect_failed", null, statusCode);
             }
         }
         @Override public void onServicesDiscovered(@NonNull BluetoothGatt connection, int statusCode) {
+            if (connection != gatt) return;
             if (statusCode != BluetoothGatt.GATT_SUCCESS) {
-                setStatus("Connessione riuscita; lettura servizi non riuscita (" + statusCode + ")");
+                finishAttempt("Connessione riuscita; lettura servizi non riuscita (" + statusCode + ")",
+                    "service_discovery_failed", null, statusCode);
                 return;
             }
             BluetoothGattService service = connection.getService(BATTERY_SERVICE);
             BluetoothGattCharacteristic level = service == null ? null : service.getCharacteristic(BATTERY_LEVEL);
-            if (level == null) { setStatus("Connesso; batteria standard non esposta prima dell’autenticazione"); return; }
-            try { connection.readCharacteristic(level); } catch (SecurityException error) { setStatus("Lettura batteria non autorizzata"); }
+            if (level == null) { finishAttempt("Connesso; batteria standard non esposta prima dell’autenticazione", "battery_service_unavailable", null, statusCode); return; }
+            try {
+                if (!connection.readCharacteristic(level))
+                    finishAttempt("Lettura batteria non avviata", "battery_read_not_started", null, statusCode);
+            } catch (SecurityException error) {
+                finishAttempt("Lettura batteria non autorizzata", "battery_read_denied", null, null);
+            }
         }
         @Override public void onCharacteristicRead(@NonNull BluetoothGatt connection, @NonNull BluetoothGattCharacteristic characteristic, byte[] value, int statusCode) {
-            if (BATTERY_LEVEL.equals(characteristic.getUuid()) && statusCode == BluetoothGatt.GATT_SUCCESS && value.length > 0) setStatus("Bip U connesso · batteria " + (value[0] & 0xff) + "%");
-            else setStatus("Connesso; lettura batteria non riuscita");
+            if (connection != gatt) return;
+            if (BATTERY_LEVEL.equals(characteristic.getUuid()) && statusCode == BluetoothGatt.GATT_SUCCESS && value.length > 0) {
+                int percent = value[0] & 0xff;
+                finishAttempt("Bip U connesso · batteria " + percent + "%", "battery_read_success", percent, statusCode);
+            } else finishAttempt("Connesso; lettura batteria non riuscita", "battery_read_failed", null, statusCode);
         }
         @SuppressWarnings("deprecation") @Override public void onCharacteristicRead(
             @NonNull BluetoothGatt connection,
@@ -166,7 +198,20 @@ public final class BipUBleActivity extends ComponentActivity {
     private void stopScan(String fallback) {
         handler.removeCallbacksAndMessages(null);
         try { if (scanner != null) scanner.stopScan(scanCallback); } catch (SecurityException ignored) {}
-        if (fallback != null && status.getText().toString().startsWith("Ricerca")) setStatus(fallback);
+        if (fallback != null && status.getText().toString().startsWith("Ricerca"))
+            finishAttempt(fallback, "not_found", null, null);
+    }
+    private void finishAttempt(String text, String outcome, Integer batteryPercent, Integer gattStatus) {
+        setStatus(text);
+        if (!reportWritten.compareAndSet(false, true)) return;
+        long startedAt = attemptStartedAtMillis > 0 ? attemptStartedAtMillis : System.currentTimeMillis();
+        DriveTestExportManager.exportBipUProbe(this, startedAt, connectionSource,
+            outcome, batteryPercent, gattStatus, result -> runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || attemptStartedAtMillis != startedAt) return;
+                status.setText(text + (result.success()
+                    ? "\nReport salvato su Drive"
+                    : result.configured() ? "\nReport Drive non riuscito" : "\nCartella Drive non collegata"));
+            }));
     }
     private void setBusyStatus(String text) { runOnUiThread(() -> { status.setText(text); probe.setEnabled(false); }); }
     private void setStatus(String text) { runOnUiThread(() -> { status.setText(text); probe.setEnabled(true); }); }

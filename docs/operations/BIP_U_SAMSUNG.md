@@ -39,7 +39,8 @@ lo schermo spento, verificare la modalità Batteria Samsung.
    vicinanze** e avviare il collegamento. La prova usa prima il Bip U già
    associato; la scansione di 12 secondi è soltanto il fallback.
 3. La prova può mostrare la batteria oppure spiegare che il servizio non è
-   disponibile prima dell'autenticazione. Entrambi sono risultati validi.
+   disponibile prima dell'autenticazione. Entrambi sono risultati validi. Se
+   Drive Movimento è collegato, l'esito compare automaticamente in `05 Bip U`.
 4. La chiave ricavata legittimamente dal proprio account Zepp può essere
    inserita per conservarla nel Keystore, ma questa versione non la trasmette.
 

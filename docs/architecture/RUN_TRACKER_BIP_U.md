@@ -114,6 +114,12 @@ caratteristiche. La chiave Huami, inserita manualmente, deve essere di 16 byte
 esadecimali e viene cifrata AES-GCM con una chiave non esportabile in Android
 Keystore. Valore, MAC, titoli e coordinate non entrano nei log.
 
+Ogni tentativo terminale produce in `05 Bip U` un JSON con timestamp, durata,
+origine `bonded`/`scan`, esito, batteria opzionale e codice GATT opzionale. Il
+report dichiara esplicitamente l'assenza di MAC, chiave e scritture verso
+l'orologio. Se Drive non è configurato, la prova BLE resta utilizzabile e lo
+segnala nell'interfaccia.
+
 L'autenticazione, il fetch delle attività e il live HR sono deliberatamente
 spenti. La futura autenticazione richiederà messaggi di controllo BLE: andrà
 abilitata solo dopo test sul Bip U e limitata al minimo necessario. Sono vietate
