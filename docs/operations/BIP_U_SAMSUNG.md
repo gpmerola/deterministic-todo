@@ -41,6 +41,8 @@ lo schermo spento, verificare la modalità Batteria Samsung.
 3. La prova può mostrare la batteria oppure spiegare che il servizio non è
    disponibile prima dell'autenticazione. Entrambi sono risultati validi. Se
    Drive Movimento è collegato, l'esito compare automaticamente in `05 Bip U`.
+   Dalla build 121 l'app conserva l'identificatore SAF verificato della
+   sottocartella, evitando copie omonime dovute alla cache del provider Drive.
 4. La chiave ricavata legittimamente dal proprio account Zepp può essere
    inserita per conservarla nel Keystore, ma questa versione non la trasmette.
 

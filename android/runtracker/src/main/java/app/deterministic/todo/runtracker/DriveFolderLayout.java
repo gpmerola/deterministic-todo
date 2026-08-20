@@ -20,4 +20,14 @@ final class DriveFolderLayout {
             || name.matches("(walk|run)-\\d+\\.gpx")) return SESSIONS;
         return null;
     }
+
+    static String preferenceKey(String folderName) {
+        if (folderName == null) return null;
+        if (SESSIONS.equals(folderName)) return "sessions";
+        if (PASSIVE.equals(folderName)) return "passive";
+        if (INTENSIVE.equals(folderName)) return "intensive";
+        if (APP_DIAGNOSTICS.equals(folderName)) return "app_diagnostics";
+        if (BIP_U.equals(folderName)) return "bip_u";
+        throw new IllegalArgumentException("unmanaged Drive folder");
+    }
 }

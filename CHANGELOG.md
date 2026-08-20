@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.13
+
+- Memorizza e verifica gli identificatori SAF delle cinque sottocartelle Drive,
+  evitando che la cache obsoleta del provider Android crei directory omonime
+  a ogni esportazione.
+- Invalida la cache delle sottocartelle quando viene collegata una diversa
+  cartella Drive e fallisce esplicitamente se una directory non può essere
+  creata, invece di scrivere silenziosamente nella radice.
+
 ## 2.25.12
 
 - La cartella Drive Movimento usa sottocartelle stabili per sessioni,

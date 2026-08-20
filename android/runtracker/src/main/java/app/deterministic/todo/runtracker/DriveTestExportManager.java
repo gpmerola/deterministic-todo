@@ -36,6 +36,8 @@ final class DriveTestExportManager {
     private static final String COMPARISON_STATUS = "comparison_status";
     private static final String COMPARISON_SUMMARY = "comparison_summary";
     private static final String LAST_PASSIVE_SAMPLE = "last_passive_sample_v1";
+    private static final String DIRECTORY_TREE_URI = "directory_tree_uri_v1";
+    private static final String DIRECTORY_ID_PREFIX = "directory_id_v1.";
     private static final long HEALTH_TIMEOUT_MILLIS = 8_000;
     private DriveTestExportManager() {}
 
@@ -90,6 +92,12 @@ final class DriveTestExportManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(TREE_URI, uri.toString())
             .putString(LAST_STATUS, "ready")
+            .remove(DIRECTORY_TREE_URI)
+            .remove(DIRECTORY_ID_PREFIX + "sessions")
+            .remove(DIRECTORY_ID_PREFIX + "passive")
+            .remove(DIRECTORY_ID_PREFIX + "intensive")
+            .remove(DIRECTORY_ID_PREFIX + "app_diagnostics")
+            .remove(DIRECTORY_ID_PREFIX + "bip_u")
             .remove(LAST_ERROR)
             .apply();
     }
@@ -739,6 +747,17 @@ final class DriveTestExportManager {
         String rootId = DocumentsContract.getTreeDocumentId(tree);
         Uri root = DocumentsContract.buildDocumentUriUsingTree(tree, rootId);
         if (folderName == null) return root;
+        String preferenceKey = DIRECTORY_ID_PREFIX + DriveFolderLayout.preferenceKey(folderName);
+        android.content.SharedPreferences preferences =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (tree.toString().equals(preferences.getString(DIRECTORY_TREE_URI, null))) {
+            String cachedId = preferences.getString(preferenceKey, null);
+            if (cachedId != null) {
+                Uri cached = DocumentsContract.buildDocumentUriUsingTree(tree, cachedId);
+                if (canReadDocument(context, cached)) return cached;
+                preferences.edit().remove(preferenceKey).apply();
+            }
+        }
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, rootId);
         try (Cursor cursor = context.getContentResolver().query(children,
             new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -746,12 +765,36 @@ final class DriveTestExportManager {
                 DocumentsContract.Document.COLUMN_MIME_TYPE}, null, null, null)) {
             if (cursor != null) while (cursor.moveToNext()) {
                 if (folderName.equals(cursor.getString(1))
-                    && DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2)))
-                    return DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0));
+                    && DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2))) {
+                    String documentId = cursor.getString(0);
+                    cacheManagedDirectory(preferences, tree, preferenceKey, documentId);
+                    return DocumentsContract.buildDocumentUriUsingTree(tree, documentId);
+                }
             }
         }
         Uri created = DocumentsContract.createDocument(context.getContentResolver(), root,
             DocumentsContract.Document.MIME_TYPE_DIR, folderName);
-        return created == null ? root : created;
+        if (created == null) throw new IOException("Drive directory creation failed");
+        cacheManagedDirectory(preferences, tree, preferenceKey,
+            DocumentsContract.getDocumentId(created));
+        return created;
+    }
+
+    private static void cacheManagedDirectory(android.content.SharedPreferences preferences,
+                                               Uri tree, String preferenceKey,
+                                               String documentId) {
+        preferences.edit()
+            .putString(DIRECTORY_TREE_URI, tree.toString())
+            .putString(preferenceKey, documentId)
+            .apply();
+    }
+
+    private static boolean canReadDocument(Context context, Uri document) {
+        try (Cursor cursor = context.getContentResolver().query(document,
+            new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null)) {
+            return cursor != null && cursor.moveToFirst();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 }

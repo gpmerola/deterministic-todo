@@ -24,4 +24,14 @@ public final class DriveFolderLayoutTest {
     @Test public void leavesUnknownFilesInTheSelectedRoot() {
         assertNull(DriveFolderLayout.folderFor("personal-note.txt"));
     }
+
+    @Test public void usesStablePreferenceKeysForManagedFolders() {
+        assertEquals("sessions", DriveFolderLayout.preferenceKey(DriveFolderLayout.SESSIONS));
+        assertEquals("passive", DriveFolderLayout.preferenceKey(DriveFolderLayout.PASSIVE));
+        assertEquals("intensive", DriveFolderLayout.preferenceKey(DriveFolderLayout.INTENSIVE));
+        assertEquals("app_diagnostics",
+            DriveFolderLayout.preferenceKey(DriveFolderLayout.APP_DIAGNOSTICS));
+        assertEquals("bip_u", DriveFolderLayout.preferenceKey(DriveFolderLayout.BIP_U));
+        assertNull(DriveFolderLayout.preferenceKey(null));
+    }
 }
