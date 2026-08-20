@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.1
+
+- Corregge la prima scrittura di autenticazione Bip U: il client rispetta le
+  proprietà GATT realmente esposte e preferisce `WRITE_TYPE_NO_RESPONSE` per
+  la caratteristica Huami quando disponibile, invece di forzare sempre una
+  scrittura con risposta.
+- Il report cardiaco schema 2 identifica fase fallita, proprietà della
+  caratteristica e tipo di scrittura selezionato, senza salvare chiave, MAC o
+  pacchetti grezzi.
+
 ## 2.26.0
 
 - Aggiunge il flavor Android `dev`, installabile come **Todo Test** accanto

@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.26.0 build 123**. Il flavor Android `dev`
+- Versione coordinata corrente: **2.26.1 build 124**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -43,6 +43,12 @@ di cambiare architettura.
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
   già associato e salva un report JSON sicuro per ogni tentativo.
+  La prova cardiaca reale della 123 aveva fallito la richiesta challenge con
+  GATT 6 perché la scrittura era forzata con risposta. La 124 rispetta le
+  proprietà della caratteristica Huami e preferisce `NO_RESPONSE` se esposto.
+  Il collaudo reale del 21 agosto ha completato autenticazione, misura e stop:
+  7 campioni, 67–73 bpm, media 70 bpm, GATT 0 e report Drive schema 2, senza
+  MAC, chiave o pacchetti grezzi.
   Dalla 121 gli identificatori SAF delle sottocartelle vengono verificati e
   conservati: la cache non aggiornata del provider Drive aveva creato copie
   omonime durante il primo collaudo della 120.

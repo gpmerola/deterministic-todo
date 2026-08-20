@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.26.0 build 123**. Il flavor Android `dev`
+- Versione coordinata corrente: **2.26.1 build 124**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -14,7 +14,9 @@ Aggiornato il 21 agosto 2026.
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
   chiavi. La connessione usa prima l'orologio già associato ad Android e resta
-  in sola lettura. La diagnostica intensiva
+  in sola lettura. La build 124 è verificata sul Bip U reale: autenticazione,
+  7 campioni cardiaci (67–73 bpm, media 70), stop automatico, GATT 0 e report
+  Drive schema 2 completati. La diagnostica intensiva
   opzionale osserva per sette giorni GPS e sensori in finestre di cinque
   secondi e carica blocchi JSONL orari su Drive. ID e scadenza sopravvivono
   alle build intermedie, che restano distinguibili per segmento. La build 118

@@ -78,6 +78,9 @@ public final class BipUBleActivity extends ComponentActivity {
     private byte[] authKey;
     private final List<Integer> heartRateSamples = new ArrayList<>();
     private Integer lastGattStatus;
+    private Integer lastWriteType;
+    private Integer authCharacteristicProperties;
+    private String failedStage;
 
     static void open(Activity activity) { activity.startActivity(new Intent(activity, BipUBleActivity.class)); }
 
@@ -115,6 +118,9 @@ public final class BipUBleActivity extends ComponentActivity {
         stage = Stage.IDLE;
         heartRateSamples.clear();
         lastGattStatus = null;
+        lastWriteType = null;
+        authCharacteristicProperties = null;
+        failedStage = null;
         authCharacteristic = null;
         heartRateMeasurement = null;
         heartRateControl = null;
@@ -275,7 +281,13 @@ public final class BipUBleActivity extends ComponentActivity {
             if (connection != gatt || mode != Mode.HEART_RATE) return;
             lastGattStatus = statusCode;
             if (statusCode != BluetoothGatt.GATT_SUCCESS) {
-                finishHeartRateAttempt("Scrittura BLE temporanea non riuscita", "transient_write_failed");
+                failedStage = stage.name().toLowerCase(java.util.Locale.ROOT);
+                String outcome = stage == Stage.AUTH_CHALLENGE
+                    ? "auth_challenge_write_rejected"
+                    : stage == Stage.AUTH_ENCRYPTED
+                        ? "auth_response_write_rejected"
+                        : "transient_write_failed";
+                finishHeartRateAttempt("Scrittura BLE temporanea non riuscita", outcome);
                 return;
             }
             if (stage == Stage.AUTH_CHALLENGE) {
@@ -342,6 +354,7 @@ public final class BipUBleActivity extends ComponentActivity {
                 "auth_service_unavailable");
             return;
         }
+        authCharacteristicProperties = authCharacteristic.getProperties();
         if (heartRateMeasurement == null || heartRateControl == null) {
             finishHeartRateAttempt("Servizio cardiaco Bip U non disponibile",
                 "heart_rate_service_unavailable");
@@ -406,10 +419,13 @@ public final class BipUBleActivity extends ComponentActivity {
                                         byte[] value) {
         if (characteristic == null || value == null) return false;
         try {
+            int writeType = GattWritePolicy.select(characteristic.getProperties(),
+                characteristic.getWriteType(), characteristic == authCharacteristic);
+            lastWriteType = writeType;
             if (Build.VERSION.SDK_INT >= 33)
                 return connection.writeCharacteristic(characteristic, value,
-                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) == BluetoothStatusCodes.SUCCESS;
-            characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                    writeType) == BluetoothStatusCodes.SUCCESS;
+            characteristic.setWriteType(writeType);
             characteristic.setValue(value);
             return connection.writeCharacteristic(characteristic);
         } catch (SecurityException error) {
@@ -462,6 +478,7 @@ public final class BipUBleActivity extends ComponentActivity {
         closeGatt();
         DriveTestExportManager.exportBipUHeartRateProbe(this, startedAt, connectionSource,
             outcome, heartRateSamples.size(), minimum, maximum, mean, lastGattStatus,
+            failedStage, authCharacteristicProperties, lastWriteType,
             result -> runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed() || attemptStartedAtMillis != startedAt) return;
                 status.setText(text + (result.success() ? "\nReport salvato su Drive"

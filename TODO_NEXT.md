@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.26.0 build 123. **Todo Test** (`.dev`) è il
+- Release coordinata corrente: 2.26.1 build 124. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -118,9 +118,12 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P1 — Collaudo corsa Bip U
 
-- la build 121 ha confermato batteria 74%, GATT 0, in 691 ms e riuso della
-  cartella `05 Bip U` senza duplicati; installare la 122, indossare l'orologio
-  e avviare una sola prova cardiaca di 60 secondi;
+- la build 124 ha superato il precedente GATT 6: prova reale completa con
+  autenticazione challenge-response, 7 campioni tra 67 e 73 bpm (media 70),
+  stop automatico, GATT 0 e report schema 2 in `05 Bip U`;
+- prossimo passo: integrare una sessione cardiaca esplicita nell'attività e
+  verificarne continuità, consumo e timestamp, mantenendo la misura disattiva
+  fuori da una sessione richiesta dall'utente;
 - verificare che la notifica termini la sessione e che riaprire l'attività dopo
   una sospensione conservi durata e distanza;
 - provare scansione e batteria con Zepp completamente chiusa. Se il servizio

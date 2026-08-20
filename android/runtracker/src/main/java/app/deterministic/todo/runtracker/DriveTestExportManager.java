@@ -85,7 +85,10 @@ final class DriveTestExportManager {
                                          String connectionSource, String outcome,
                                          int sampleCount, Integer minimumBpm,
                                          Integer maximumBpm, Double meanBpm,
-                                         Integer gattStatus, Completion completion) {
+                                         Integer gattStatus, String failedStage,
+                                         Integer authCharacteristicProperties,
+                                         Integer lastWriteType,
+                                         Completion completion) {
         new Thread(() -> {
             if (!isConfigured(context)) {
                 completion.onComplete(new ExportResult(false, false, "not_configured"));
@@ -94,7 +97,7 @@ final class DriveTestExportManager {
             try {
                 long observedAt = System.currentTimeMillis();
                 JSONObject report = new JSONObject()
-                    .put("schema_version", 1)
+                    .put("schema_version", 2)
                     .put("kind", "bip_u_heart_rate_probe")
                     .put("started_at_ms", startedAtMillis)
                     .put("observed_at_ms", observedAt)
@@ -107,6 +110,10 @@ final class DriveTestExportManager {
                     .put("maximum_bpm", nullable(maximumBpm))
                     .put("mean_bpm", nullable(meanBpm))
                     .put("gatt_status", nullable(gattStatus))
+                    .put("failed_stage", nullable(failedStage))
+                    .put("auth_characteristic_properties",
+                        nullable(authCharacteristicProperties))
+                    .put("last_write_type", nullable(lastWriteType))
                     .put("app_version", appVersion(context))
                     .put("android_api", Build.VERSION.SDK_INT)
                     .put("privacy", new JSONObject()
