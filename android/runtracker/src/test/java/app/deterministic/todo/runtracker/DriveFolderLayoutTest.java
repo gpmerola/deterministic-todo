@@ -19,6 +19,8 @@ public final class DriveFolderLayoutTest {
             DriveFolderLayout.folderFor("todo_diagnostics_2026-08-20.jsonl"));
         assertEquals(DriveFolderLayout.BIP_U,
             DriveFolderLayout.folderFor("bip_u_probe_1780000000000.json"));
+        assertEquals(DriveFolderLayout.BIP_U,
+            DriveFolderLayout.folderFor("bip_u_heart_rate_probe_1780000000000.json"));
     }
 
     @Test public void leavesUnknownFilesInTheSelectedRoot() {

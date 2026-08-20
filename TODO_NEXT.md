@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.13 build 121. Drive separa automaticamente
+- Release coordinata corrente: 2.25.14 build 122. Drive separa automaticamente
   cinque categorie e la prova Bip U esporta un report JSON sicuro. La prova
   preferisce il dispositivo già associato e usa la scansione BLE come fallback.
   Gli ID SAF delle sottocartelle sono persistenti dalla 121, perché la cache
@@ -27,8 +27,9 @@ non duplicare qui i dettagli tecnici.
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
-- Sul Galaxy S21 è installata **2.25.12 build 120**. La prova Bip U reale ha
-  letto correttamente batteria 74%, GATT 0, in 2,681 s. Attendere la build 121 da
+- Sul Galaxy S21 è installata **2.25.13 build 121**. La prova Bip U reale ha
+  letto correttamente batteria 74%, GATT 0, in 691 ms e ha confermato il riuso
+  della cartella Drive. Attendere la build 122 da
   Play, aprire l'app una volta e verificare che l'esperimento conservi ID e
   scadenza; non usare l'APK GitHub sulla linea firmata Play.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
@@ -95,12 +96,12 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - documentare passaggio, rollback e limiti prima del primo utilizzo. Non
   introdurre questo flavor durante l'esperimento intensivo corrente.
 
-## P0 — Collaudo movimento build 121
+## P0 — Collaudo movimento build 122
 
-- **Prima azione alla ripresa:** controllare se Play offre la build 121,
-  aggiornare dalla 120 e aprire l'app una volta. Non fermare né
+- **Prima azione alla ripresa:** controllare se Play offre la build 122,
+  aggiornare dalla 121 e aprire l'app una volta. Non fermare né
   riavviare il test: `experiment_id` e scadenza devono restare quelli originari,
-  mentre il nuovo avvio crea soltanto un segmento build 121;
+  mentre il nuovo avvio crea soltanto un segmento build 122;
 - se il test non era già partito, premere **Avvia diagnostica intensiva · 7
   giorni** una sola volta; lasciare attivi test passivo e permessi. La notifica
   permanente conferma il servizio;
@@ -126,9 +127,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P1 — Collaudo corsa Bip U
 
-- la build 120 ha già letto correttamente batteria 74%, GATT 0, in 2,681 s e
-  ha esportato il report; installare la 121 per verificare che ulteriori export
-  riutilizzino `05 Bip U` senza creare cartelle omonime;
+- la build 121 ha confermato batteria 74%, GATT 0, in 691 ms e riuso della
+  cartella `05 Bip U` senza duplicati; installare la 122, indossare l'orologio
+  e avviare una sola prova cardiaca di 60 secondi;
 - verificare che la notifica termini la sessione e che riaprire l'attività dopo
   una sospensione conservi durata e distanza;
 - provare scansione e batteria con Zepp completamente chiusa. Se il servizio

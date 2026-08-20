@@ -81,6 +81,50 @@ final class DriveTestExportManager {
         }, "bip-u-drive-report").start();
     }
 
+    static void exportBipUHeartRateProbe(Context context, long startedAtMillis,
+                                         String connectionSource, String outcome,
+                                         int sampleCount, Integer minimumBpm,
+                                         Integer maximumBpm, Double meanBpm,
+                                         Integer gattStatus, Completion completion) {
+        new Thread(() -> {
+            if (!isConfigured(context)) {
+                completion.onComplete(new ExportResult(false, false, "not_configured"));
+                return;
+            }
+            try {
+                long observedAt = System.currentTimeMillis();
+                JSONObject report = new JSONObject()
+                    .put("schema_version", 1)
+                    .put("kind", "bip_u_heart_rate_probe")
+                    .put("started_at_ms", startedAtMillis)
+                    .put("observed_at_ms", observedAt)
+                    .put("duration_ms", Math.max(0, observedAt - startedAtMillis))
+                    .put("connection_source", connectionSource)
+                    .put("outcome", outcome)
+                    .put("authentication", "challenge_response")
+                    .put("sample_count", sampleCount)
+                    .put("minimum_bpm", nullable(minimumBpm))
+                    .put("maximum_bpm", nullable(maximumBpm))
+                    .put("mean_bpm", nullable(meanBpm))
+                    .put("gatt_status", nullable(gattStatus))
+                    .put("app_version", appVersion(context))
+                    .put("android_api", Build.VERSION.SDK_INT)
+                    .put("privacy", new JSONObject()
+                        .put("mac_recorded", false)
+                        .put("auth_key_recorded", false)
+                        .put("raw_packets_recorded", false)
+                        .put("persistent_configuration_writes", false)
+                        .put("transient_control_writes", true));
+                writeNewFile(context, "bip_u_heart_rate_probe_" + observedAt + ".json",
+                    "application/json", report.toString(2));
+                completion.onComplete(new ExportResult(true, true, "ok"));
+            } catch (Exception error) {
+                completion.onComplete(new ExportResult(true, false,
+                    "bip_u_hr_drive_failed_" + error.getClass().getSimpleName()));
+            }
+        }, "bip-u-hr-drive-report").start();
+    }
+
     static void setFolder(Context context, Uri uri, int resultFlags) {
         int takeFlags = resultFlags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         if ((takeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == 0) {

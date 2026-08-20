@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.14
+
+- Aggiunge una prova cardiaca Bip U di 60 secondi: autenticazione Huami
+  challenge-response, notifiche Bluetooth Heart Rate e arresto/disconnessione
+  automatici.
+- Mostra i BPM live e salva in `05 Bip U` soltanto esito e riepilogo statistico;
+  chiave, MAC, pacchetti grezzi e configurazioni persistenti restano esclusi.
+- Separa il protocollo crittografico e il parser Bluetooth SIG in componenti
+  puri coperti da fixture sintetiche prive di dati del dispositivo reale.
+
 ## 2.25.13
 
 - Memorizza e verifica gli identificatori SAF delle cinque sottocartelle Drive,

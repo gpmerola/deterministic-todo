@@ -120,10 +120,17 @@ report dichiara esplicitamente l'assenza di MAC, chiave e scritture verso
 l'orologio. Se Drive non è configurato, la prova BLE resta utilizzabile e lo
 segnala nell'interfaccia.
 
-L'autenticazione, il fetch delle attività e il live HR sono deliberatamente
-spenti. La futura autenticazione richiederà messaggi di controllo BLE: andrà
-abilitata solo dopo test sul Bip U e limitata al minimo necessario. Sono vietate
-scritture firmware, aggiornamenti, factory reset e modifiche di risorse.
+La build 122 abilita una prova cardiaca esplicita e limitata a 60 secondi. Usa
+la chiave soltanto in memoria per il challenge-response AES, sottoscrive la
+caratteristica Bluetooth SIG Heart Rate Measurement e invia esclusivamente i
+comandi temporanei di avvio/arresto necessari. L'arresto e la disconnessione
+sono automatici anche senza campioni. Il report conserva conteggio, minimo,
+massimo e media, ma non chiave, MAC o pacchetti grezzi; dichiara esplicitamente
+le scritture di controllo transitorie e l'assenza di configurazioni persistenti.
+
+Download delle attività e battito continuo in background restano spenti. Sono
+vietate scritture firmware, aggiornamenti, factory reset, modifica di risorse e
+impostazioni persistenti.
 
 ## Allineamento futuro
 

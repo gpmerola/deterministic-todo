@@ -44,7 +44,21 @@ lo schermo spento, verificare la modalità Batteria Samsung.
    Dalla build 121 l'app conserva l'identificatore SAF verificato della
    sottocartella, evitando copie omonime dovute alla cache del provider Drive.
 4. La chiave ricavata legittimamente dal proprio account Zepp può essere
-   inserita per conservarla nel Keystore, ma questa versione non la trasmette.
+   inserita per conservarla nel Keystore. Viene usata soltanto in memoria
+   durante il challenge-response della prova cardiaca e non entra nei report.
+
+## Prova cardiaca build 122
+
+1. Salvare una volta la chiave Huami di 32 caratteri nel Keystore Android.
+2. Indossare l'orologio e premere **Autentica e leggi battito · 60 s**.
+3. Restare fermi fino al primo valore. L'app mostra BPM e numero campioni,
+   arresta il sensore entro 60 secondi e si disconnette automaticamente.
+4. Verificare in `05 Bip U` il file `bip_u_heart_rate_probe_*.json`. Il report
+   non contiene chiave, MAC o pacchetti grezzi.
+
+La prova invia challenge-response e comandi cardiaci temporanei; non modifica
+firmware o impostazioni persistenti. Se autenticazione o servizio cardiaco non
+sono disponibili, non ripetere rapidamente: conservare il report e analizzarlo.
 
 Non condividere chiave, MAC, GPX o database nei bug report. Non usare il modulo
 per firmware, reset o scritture sperimentali.

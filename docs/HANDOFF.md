@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.13 build 121**. Drive crea cinque
+- Versione coordinata corrente: **2.25.14 build 122**. Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
   già associato e salva un report JSON sicuro per ogni tentativo.
@@ -61,7 +61,9 @@ di cambiare architettura.
 - Sul Galaxy S21 è installata **2.25.12 build 120**. Il collaudo reale senza
   ADB ha trovato la Bip U associata e letto batteria 74%, GATT 0, in 2,681 s;
   il report automatico Drive ha verificato l'intero percorso in sola lettura.
-  La build 121 corregge soltanto la duplicazione delle sottocartelle.
+  La build 121 ha anche verificato il riuso della cartella e una lettura in
+  691 ms. La 122 aggiunge autenticazione Huami e una prova cardiaca esplicita
+  di 60 secondi con arresto automatico e report privo di chiave/MAC.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
