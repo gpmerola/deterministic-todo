@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 20 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 21 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -35,6 +35,10 @@ di cambiare architettura.
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
   [`operations/ANDROID_DEV_CHANNEL.md`](operations/ANDROID_DEV_CHANNEL.md).
+  Sul Galaxy S21 Todo Test è il solo client operativo: monitor passivo e
+  diagnostica intensiva sono attivi. La build Play 121 rimane installata con
+  dati intatti ma è `disabled-user`; non aprirla, riattivarla o disinstallarla
+  fuori dalla procedura di rollback documentata.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
@@ -63,7 +67,8 @@ di cambiare architettura.
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
-- Sul Galaxy S21 è installata **2.25.12 build 120**. Il collaudo reale senza
+- Sul Galaxy S21 coesistono **Todo Test 2.26.0-dev build 123**, operativo, e la
+  **build Play 121**, disabilitata e conservata come rollback. Il collaudo reale senza
   ADB ha trovato la Bip U associata e letto batteria 74%, GATT 0, in 2,681 s;
   il report automatico Drive ha verificato l'intero percorso in sola lettura.
   La build 121 ha anche verificato il riuso della cartella e una lettura in
@@ -249,7 +254,9 @@ scadenza.
 La 2.25.6 conserva inoltre l'esito aggregato dell'ultimo tentativo e lo espone
 in sola lettura alla shell ADB tramite un provider protetto dal permesso di
 sistema `DUMP`. Il comando canonico è
-`adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status`.
+`adb shell content query --uri content://app.deterministic.todo.deterministic_todo.dev.movement_debug/status`
+per Todo Test. Togliere `.dev` interroga invece il fallback Play e non descrive
+il canale operativo corrente.
 Il record include timestamp, prossimo controllo atteso, nome file, stato Drive,
 passi classificati e valori Todo/Google Fit; non include percorsi GPS o dati
 Todo. Questo canale resta disponibile nelle build release senza rendere
@@ -447,13 +454,14 @@ backup cloud.
    controllare `git status -sb`;
 2. non modificare algoritmo, schema o campionamento mentre l'esperimento
    intensivo costituisce la baseline;
-3. verificare via ADB la build installata. Se Play rende disponibile la 118,
-   aggiornarla dal solo track interno, aprire l'app una volta e confermare che
-   notifica, `experiment_id` e scadenza siano continuati dalla 117;
+3. verificare via ADB che Todo Test `.dev` sia attivo, che monitor passivo e
+   diagnostica intensiva procedano e che il package Play resti
+   `disabled-user`; non riabilitare o disinstallare Play;
 4. dopo almeno 12–24 ore analizzare i JSONL con
    `tools/analyze_movement_intensive.py` e confrontare gli snapshot schema 5;
 5. completare in Chrome reale persistenza dopo chiusura, import/export con
    fixture sintetica e diagnostica IndexedDB, senza usare dati personali;
-6. soltanto al termine dell'esperimento valutare il flavor `.dev` parallelo
-   descritto in `TODO_NEXT.md`. Amazfit resta successivo alla validazione del
-   modello solo telefono.
+6. installare ogni nuova build su Todo Test con `adb install -r` e la firma
+   diretta stabile; promuovere separatamente su Play solo gli incrementi
+   validati. Amazfit resta successivo alla validazione del modello solo
+   telefono.

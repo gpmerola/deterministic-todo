@@ -22,6 +22,13 @@ stessa proposta e non suggerire modifiche che contaminino test attivi.
 
 ## Android: leggerezza e aggiornamenti
 
+- Sul Galaxy S21 il canale operativo di sviluppo è **Todo Test**, package
+  `.dev`, aggiornato via ADB con firma diretta stabile. La build Google Play è
+  un fallback installato ma disabilitato e non va riattivato, disinstallato o
+  usato per Movimento senza seguire
+  `docs/operations/ANDROID_DEV_CHANNEL.md`. Un solo package alla volta può
+  eseguire raccolte Movimento.
+
 - Android è il primo canale di collaudo dell'utente: ogni modifica funzionale verificata deve incrementare `version` e `build` in `pubspec.yaml`, essere pubblicata automaticamente come aggiornamento Android e provata sul dispositivo prima di essere considerata conclusa.
 - Un push funzionale su un branch `agent/**` avvia i due percorsi automatici: verifica/build/pubblicazione Android e verifica/build/deployment web. macOS e Windows nativi non sono target supportati. Non riutilizzare mai una versione Android già pubblicata e non affidarsi al solo artefatto CI, che non alimenta l'updater.
 - Raggruppare modifiche correlate in un incremento Android collaudabile. Non pubblicare commit intermedi incompleti; push ravvicinati annullano la build obsoleta tramite concurrency.

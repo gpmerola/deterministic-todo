@@ -242,6 +242,10 @@ installa accanto alla versione Google Play senza toccarne dati o firma.
 Database, sessione, Keystore, permessi e servizi sono separati; procedura ADB e
 passaggio sicuro sono in
 [`docs/operations/ANDROID_DEV_CHANNEL.md`](docs/operations/ANDROID_DEV_CHANNEL.md).
+Sul telefono di collaudo Todo Test è l'unico client da usare; la build Play è
+conservata disabilitata come fallback. Non sono intercambiabili in-place e non
+condividono database, Keystore, permessi o diagnostica. Solo le attività Todo
+convergono tramite Supabase quando un client viene aperto e autenticato.
 
 ## Sviluppo
 

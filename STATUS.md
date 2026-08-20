@@ -7,7 +7,9 @@ Aggiornato il 21 agosto 2026.
 - Canali supportati: Android nativo e browser Chrome/Edge.
 - Versione coordinata corrente: **2.26.0 build 123**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
-  Play. I sandbox sono separati e Play conserva dati e baseline esistenti.
+  Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
+  diagnostica intensiva avviati. La build Play 121 è installata ma
+  `disabled-user`: dati e baseline esistenti restano conservati.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
@@ -37,12 +39,11 @@ Aggiornato il 21 agosto 2026.
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
-- Stato dispositivo distinto dalla release: sul Galaxy S21 è installata
-  **2.25.11 build 119** e la prova BLE è stata avviata senza ADB. La build 120
-  richiede ancora pubblicazione e un nuovo tentativo per produrre il report
-  Drive.
-- Non usare l'APK GitHub sul Galaxy S21, che ha una firma incompatibile con la
-  linea Google Play, e non disinstallare l'app Todo.
+- Stato dispositivo distinto dalla release: **Todo Test 2.26.0-dev build 123**
+  è operativo; la build Play 121 è soltanto fallback disabilitato.
+- Non usare l'APK GitHub per sostituire la build Play e non disinstallare o
+  cancellare i dati di nessuno dei due package. Gli APK `dev` firmati con la
+  linea diretta sono invece il canale rapido previsto per Todo Test.
 - Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit

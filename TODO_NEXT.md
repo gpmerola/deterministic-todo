@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 20 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 21 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,7 +12,10 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.14 build 122. Drive separa automaticamente
+- Release coordinata corrente: 2.26.0 build 123. **Todo Test** (`.dev`) è il
+  solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
+  sono attivi. La build Play 121 resta installata con dati intatti ma è
+  `disabled-user`. Drive separa automaticamente
   cinque categorie e la prova Bip U esporta un report JSON sicuro. La prova
   preferisce il dispositivo già associato e usa la scansione BLE come fallback.
   Gli ID SAF delle sottocartelle sono persistenti dalla 121, perché la cache
@@ -27,14 +30,13 @@ non duplicare qui i dettagli tecnici.
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
-- Sul Galaxy S21 è installata **2.25.13 build 121**. La prova Bip U reale ha
-  letto correttamente batteria 74%, GATT 0, in 691 ms e ha confermato il riuso
-  della cartella Drive. Attendere la build 122 da
-  Play, aprire l'app una volta e verificare che l'esperimento conservi ID e
-  scadenza; non usare l'APK GitHub sulla linea firmata Play.
+- Sul Galaxy S21 coesistono **Todo Test 2.26.0-dev build 123** attiva e la
+  **build Play 121** disabilitata. Non disinstallare la seconda e non usare
+  l'APK GitHub per aggiornarla. Runbook canonico:
+  [`docs/operations/ANDROID_DEV_CHANNEL.md`](docs/operations/ANDROID_DEV_CHANNEL.md).
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
-- Lo stato dell'ultimo snapshot è leggibile in sicurezza con
-  `adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status`.
+- Lo stato dell'ultimo snapshot operativo è leggibile in sicurezza con
+  `adb shell content query --uri content://app.deterministic.todo.deterministic_todo.dev.movement_debug/status`.
 - Supabase reale e convergenza Android↔cloud sono già stati provati.
 
 ## P0 — Ultimi collaudi browser
@@ -84,22 +86,16 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 - dalla build 123 il flavor `dev` usa il package distinto `.dev` ed è
   installabile come **Todo Test** accanto alla versione Play;
-- collaudare login/riallineamento Supabase, permessi Health Connect, selezione
-  Drive e aggiornamento ADB in-place sul Galaxy S21;
-- attivare Movimento soltanto in Todo Test dopo avere fermato la raccolta nella
-  build Play, per evitare due raccolte concorrenti;
-- valutare in seguito un trasferimento esplicito e cifrato della sola chiave
-  Bip U; nessun segreto o dato sanitario viene condiviso implicitamente.
+- login Supabase, Health Connect, cartella Drive e aggiornamento ADB in-place
+  sono collaudati; mantenere invariata la firma diretta;
+- Movimento è attivo soltanto in Todo Test; Play resta `disabled-user`;
+- non implementare condivisione implicita di database, dati sanitari o chiavi
+  fra package. I segmenti storici Play restano su Drive.
 
-## P0 — Collaudo movimento build 122
+## P0 — Collaudo movimento Todo Test build 123
 
-- **Prima azione alla ripresa:** controllare se Play offre la build 122,
-  aggiornare dalla 121 e aprire l'app una volta. Non fermare né
-  riavviare il test: `experiment_id` e scadenza devono restare quelli originari,
-  mentre il nuovo avvio crea soltanto un segmento build 122;
-- se il test non era già partito, premere **Avvia diagnostica intensiva · 7
-  giorni** una sola volta; lasciare attivi test passivo e permessi. La notifica
-  permanente conferma il servizio;
+- lasciare attivi diagnostica intensiva e test passivo già avviati su Todo
+  Test; la notifica permanente conferma il servizio;
 - usare normalmente il telefono. Non servono soste annotate, screenshot o
   sessioni manuali; dopo circa un'ora verificare su Drive un file
   `intensive_<experiment>_<segment>_*.jsonl`;
