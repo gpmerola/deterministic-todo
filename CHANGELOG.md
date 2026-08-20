@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.25.11
+
+- La prova BLE del Bip U usa prima il dispositivo già associato ad Android e
+  ricorre alla scansione soltanto come fallback. Questo permette il collaudo
+  quando l'orologio è già connesso come dispositivo Battery/HID e non emette
+  nuovi annunci BLE.
+- Lo stato della prova è più evidente, indica la durata della scansione e
+  impedisce richieste concorrenti mentre connessione o ricerca sono attive.
+- Restano disattivati autenticazione Huami, download attività, battito live e
+  qualsiasi scrittura verso l'orologio.
+
 ## 2.25.10
 
 - La diagnostica intensiva pianifica un ultimo upload vincolato alla rete quando

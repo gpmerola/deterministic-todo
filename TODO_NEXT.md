@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 19 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 20 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -12,7 +12,8 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.25.10 build 118. Movimento include una
+- Release coordinata corrente: 2.25.11 build 119. La prova Bip U preferisce il
+  dispositivo già associato e usa la scansione BLE come fallback. Movimento include una
   diagnostica intensiva temporanea di sette giorni, segmentata per build e con
   upload JSONL orario e finale crash-safe, oltre agli snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica Android
@@ -23,11 +24,9 @@ non duplicare qui i dettagli tecnici.
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
-- Sul Galaxy S21 è ancora installata **2.25.9 build 117**. L'AAB 118 è stato
-  accettato dal job Play interno, ma il 19 agosto Play Store ha risposto
-  `unreviewed` e non lo ha installato. Non usare l'APK GitHub e non
-  disinstallare: attendere la disponibilità Play, aggiornare, aprire l'app una
-  volta e verificare che l'esperimento conservi ID e scadenza.
+- Sul Galaxy S21 è installata **2.25.10 build 118**. Attendere la build 119 da
+  Play, aprire l'app una volta e verificare che l'esperimento conservi ID e
+  scadenza; non usare l'APK GitHub sulla linea firmata Play.
 - Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
 - Lo stato dell'ultimo snapshot è leggibile in sicurezza con
   `adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status`.
@@ -92,12 +91,12 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - documentare passaggio, rollback e limiti prima del primo utilizzo. Non
   introdurre questo flavor durante l'esperimento intensivo corrente.
 
-## P0 — Collaudo movimento build 118
+## P0 — Collaudo movimento build 119
 
-- **Prima azione alla ripresa:** controllare se Play offre la build 118,
-  aggiornare dalla 117 e aprire l'app una volta. Non fermare né
+- **Prima azione alla ripresa:** controllare se Play offre la build 119,
+  aggiornare dalla 118 e aprire l'app una volta. Non fermare né
   riavviare il test: `experiment_id` e scadenza devono restare quelli originari,
-  mentre il nuovo avvio crea soltanto un segmento build 118;
+  mentre il nuovo avvio crea soltanto un segmento build 119;
 - se il test non era già partito, premere **Avvia diagnostica intensiva · 7
   giorni** una sola volta; lasciare attivi test passivo e permessi. La notifica
   permanente conferma il servizio;
@@ -123,6 +122,8 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P1 — Collaudo corsa Bip U
 
+- installare la build 119, chiudere Zepp e verificare che il Bip U già associato
+  venga collegato senza scansione e che la batteria standard sia leggibile;
 - verificare che la notifica termini la sessione e che riaprire l'attività dopo
   una sospensione conservi durata e distanza;
 - provare scansione e batteria con Zepp completamente chiusa. Se il servizio

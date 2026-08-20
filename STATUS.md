@@ -1,11 +1,13 @@
 # Stato corrente
 
-Aggiornato il 19 agosto 2026.
+Aggiornato il 20 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.25.10 build 118**. La diagnostica intensiva
+- Versione coordinata corrente: **2.25.11 build 119**. La prova BLE Bip U usa
+  prima l'orologio già associato ad Android e mantiene in sola lettura la
+  connessione GATT e il servizio Battery. La diagnostica intensiva
   opzionale osserva per sette giorni GPS e sensori in finestre di cinque
   secondi e carica blocchi JSONL orari su Drive. ID e scadenza sopravvivono
   alle build intermedie, che restano distinguibili per segmento. La build 118
@@ -31,10 +33,11 @@ Aggiornato il 19 agosto 2026.
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
 - Stato dispositivo distinto dalla release: sul Galaxy S21 è installata
-  **2.25.9 build 117**. Il workflow 118 e il caricamento nel track interno sono
-  riusciti, ma il 19 agosto Play Store ha rifiutato l'installazione come
-  `unreviewed`. La 118 non è quindi ancora collaudata sul telefono. Non usare
-  l'APK GitHub, che ha una firma incompatibile, e non disinstallare l'app.
+  **2.25.10 build 118**; la build 119 richiede ancora pubblicazione e collaudo
+  BLE reale. Il workflow 118 e il caricamento nel track interno erano
+  riusciti dopo un ritardo iniziale di disponibilità Play.
+- Non usare l'APK GitHub sul Galaxy S21, che ha una firma incompatibile con la
+  linea Google Play, e non disinstallare l'app Todo.
 - Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
   test interno; la produzione resta manuale e subordinata al test chiuso.
 - Un solo workflow coordina web e Android e rifiuta versioni, build o commit

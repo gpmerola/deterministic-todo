@@ -105,8 +105,11 @@ giorno concluso conserva un report finale distinto.
 
 ## BLE e confine di sicurezza
 
-La prima fase BLE richiede solo scansione e connessione, seleziona un nome che
-contiene `Bip U` e tenta la lettura del servizio standard Battery. Non scrive
+La prima fase BLE cerca prima tra i dispositivi già associati ad Android un
+nome che contiene `Bip U`; soltanto se non lo trova avvia una scansione di 12
+secondi. Questa precedenza è necessaria perché un Bip U già collegato come
+Battery/HID può non pubblicare nuovi annunci. Il modulo apre quindi una
+connessione GATT e tenta la lettura del servizio standard Battery. Non scrive
 caratteristiche. La chiave Huami, inserita manualmente, deve essere di 16 byte
 esadecimali e viene cifrata AES-GCM con una chiave non esportabile in Android
 Keystore. Valore, MAC, titoli e coordinate non entrano nei log.

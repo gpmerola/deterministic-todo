@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 19 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 20 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,7 +30,10 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.25.10 build 118**. Movimento può eseguire
+- Versione coordinata corrente: **2.25.11 build 119**. La prova BLE Bip U
+  preferisce il dispositivo già associato ad Android e usa la scansione come
+  fallback, perché il collegamento Battery/HID può nascondere gli annunci.
+  Movimento può eseguire
   un esperimento diagnostico intensivo opzionale di sette giorni, con finestre
   sensori/GPS di cinque secondi e upload Drive orario segmentato per build.
   L'identità e la scadenza assoluta non vengono azzerate dagli aggiornamenti.
@@ -51,11 +54,9 @@ di cambiare architettura.
   **2.22.3 build 95** ha superato test, build firmate, pubblicazione diretta,
   Google Play interno, Web e controllo di parità; la 96 consolida codice,
   test e documentazione.
-- Sul Galaxy S21 è ancora installata **2.25.9 build 117**. Il workflow della
-  118 ha completato verifica, build, pubblicazione diretta/Web e upload al
-  track Play interno, ma il 19 agosto Play Store ha restituito `unreviewed` e
-  non ha installato l'aggiornamento. Codice pubblicato e collaudo hardware sono
-  quindi stati distinti deliberatamente.
+- Sul Galaxy S21 è installata **2.25.10 build 118**. La build 119 non è ancora
+  collaudata sul Bip U reale; codice pubblicato e collaudo hardware restano
+  distinti deliberatamente.
 - Android viene pubblicato nel test interno Google Play e come APK firmato;
   Web viene distribuito su GitHub Pages dallo stesso workflow coordinato.
 - Telefono reale di riferimento: Samsung Galaxy S21, `arm64-v8a`.
