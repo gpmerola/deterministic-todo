@@ -38,6 +38,7 @@ import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/link_text_editing_controller.dart';
+import 'ui/movement_view.dart';
 import 'ui/smart_date_text_controller.dart';
 import 'ui/todoist_link_text.dart';
 
@@ -1207,9 +1208,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (sectionHistory.length > 20) sectionHistory.removeAt(0);
       section = destination;
     });
-    if (destination == AppSection.movement && isAndroidPlatform) {
-      unawaited(RunTrackerService.open());
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       elapsed.stop();
       unawaited(
@@ -1378,7 +1376,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             key: const ValueKey('daily-step-goal'),
                             steps: dailyMovement?.steps ?? 0,
                             goal: dailyStepGoal,
-                            onTap: RunTrackerService.open,
+                            onTap: () => _navigateTo(AppSection.movement),
                           ),
                         ),
                       if (widget.syncService != null)
@@ -1432,6 +1430,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       !desktop &&
                           section != AppSection.settings &&
                           section != AppSection.projects &&
+                          section != AppSection.movement &&
                           section != AppSection.completed
                       ? FloatingActionButton(
                           tooltip: 'Nuova attività',
@@ -1519,32 +1518,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
     if (section == AppSection.projects) return _projectsView(all);
     if (section == AppSection.movement) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.directions_walk_outlined, size: 56),
-              const SizedBox(height: 16),
-              Text(
-                'Passi, camminate e corse',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'La registrazione si apre in una schermata dedicata e continua anche a schermo spento.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: RunTrackerService.open,
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Apri Movimento'),
-              ),
-            ],
-          ),
-        ),
+      return MovementView(
+        dailyMovement: dailyMovement,
+        stepGoal: dailyStepGoal,
+        refreshDailyMovement: _refreshDailyMovement,
       );
     }
     final today = CivilDate.fromDateTime(DateTime.now()).toString();

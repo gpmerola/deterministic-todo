@@ -11,10 +11,15 @@ import app.deterministic.todo.runtracker.IntensiveDiagnosticScheduler;
 import app.deterministic.todo.runtracker.DailyMovement;
 import app.deterministic.todo.runtracker.DailyStepGoalPolicy;
 import app.deterministic.todo.runtracker.HealthConnectGateway;
+import app.deterministic.todo.runtracker.MovementDashboardBridge;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public final class RunTrackerChannel {
+    private static final ExecutorService IO = Executors.newSingleThreadExecutor();
     private RunTrackerChannel() {}
 
     public static void register(Activity activity, FlutterEngine engine) {
@@ -64,6 +69,21 @@ public final class RunTrackerChannel {
                             .edit().putInt("daily_step_goal", goal).apply();
                         result.success(goal);
                     }
+                    case "movementState" -> IO.execute(() -> {
+                        java.util.Map<String, Object> value =
+                            MovementDashboardBridge.snapshot(activity.getApplicationContext());
+                        activity.runOnUiThread(() -> result.success(value));
+                    });
+                    case "startMovement" -> {
+                        String type = call.argument("activity_type");
+                        result.success(MovementDashboardBridge.start(activity, type));
+                    }
+                    case "stopMovement" -> {
+                        MovementDashboardBridge.stop(activity.getApplicationContext());
+                        result.success(null);
+                    }
+                    case "uploadMovementData" -> result.success(
+                        MovementDashboardBridge.uploadAll(activity.getApplicationContext()));
                     default -> result.notImplemented();
                 }
             });

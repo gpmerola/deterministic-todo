@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.29.1
+
+- Integra Movimento direttamente nella navigazione Flutter: rimossi la pagina
+  segnaposto e l'apertura automatica di una seconda Activity.
+- Allinea la schermata al design dell'app con tre sole schede compatte per
+  riepilogo giornaliero, registrazione e raccolta automatica.
+- Espone al sottile bridge Android stato live della sessione, avvio, arresto e
+  upload completo senza spostare persistenza o logica salute nel dominio Todo.
+- Limita l'aggiornamento al secondo alla sola schermata Movimento visibile; GPS
+  e servizio foreground restano attivi esclusivamente durante sessioni
+  esplicitamente avviate.
+
 ## 2.29.0
 
 - Mostra nell'AppBar Android un anello discreto con passi di oggi e progresso

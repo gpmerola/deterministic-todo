@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.29.0 build 137**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.29.1 build 138**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -62,6 +62,11 @@ di cambiare architettura.
   modificabile nelle Impostazioni. Il reset non è un job: ogni lettura Health
   Connect usa il giorno civile locale. Movimento espone soltanto tre schede
   principali; monitor, confronti e integrazioni rare sono collassati.
+  La build 138 sostituisce la destinazione-segnaposto che apriva
+  `RunTrackerActivity`: riepilogo, sessione e upload sono ora una vera pagina
+  Flutter nella shell principale. `MovementDashboardBridge` mantiene il
+  confine architetturale e legge Room/stato live nel modulo `runtracker`; il
+  timer UI a un secondo vive soltanto finché la pagina è montata.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
@@ -196,8 +201,10 @@ modulo movimento per risolvere problemi Todo e viceversa.
 ## Modulo movimento esistente
 
 Il modulo nativo vive in `android/runtracker` ed è separabile. Flutter espone
-solo `lib/services/run_tracker_service.dart`, il channel Android e una
-destinazione principale Movimento accanto a Progetti. Il database
+`lib/ui/movement_view.dart`, `lib/services/run_tracker_service.dart`, il channel
+Android e una destinazione principale Movimento accanto a Progetti. Il bridge
+pubblico è sottile: dominio, sessioni, Health Connect e diagnostica restano nel
+modulo Android. Il database
 `run_tracker.sqlite` è Room, locale e distinto dal
 database Todo; non è sincronizzato con Supabase.
 

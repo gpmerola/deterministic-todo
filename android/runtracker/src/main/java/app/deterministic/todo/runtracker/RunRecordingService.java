@@ -257,6 +257,14 @@ public final class RunRecordingService extends Service implements LocationListen
     }
 
     private void broadcast(boolean accepted) {
+        MovementDashboardBridge.recordLiveState(
+            this,
+            sessionId,
+            filter == null ? 0 : filter.totalMeters(),
+            sessionSteps,
+            lastAccuracy,
+            gpsStatus
+        );
         Intent state = new Intent(ACTION_STATE).setPackage(getPackageName());
         state.putExtra(EXTRA_SESSION_ID, sessionId);
         state.putExtra(EXTRA_DISTANCE, filter == null ? 0 : filter.totalMeters());

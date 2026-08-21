@@ -16,6 +16,36 @@ final class DailyMovementProgress {
   final DateTime updatedAt;
 }
 
+final class MovementSessionState {
+  const MovementSessionState({
+    required this.recording,
+    required this.sessionId,
+    required this.activityType,
+    required this.startedAt,
+    required this.distanceMeters,
+    required this.steps,
+    required this.accuracyMeters,
+    required this.gpsStatus,
+    required this.passiveActive,
+    required this.driveConfigured,
+    required this.automaticStatus,
+    required this.driveStatus,
+  });
+
+  final bool recording;
+  final int sessionId;
+  final String activityType;
+  final DateTime? startedAt;
+  final double distanceMeters;
+  final int steps;
+  final double accuracyMeters;
+  final String gpsStatus;
+  final bool passiveActive;
+  final bool driveConfigured;
+  final String automaticStatus;
+  final String driveStatus;
+}
+
 final class RunTrackerService {
   const RunTrackerService._();
 
@@ -66,4 +96,47 @@ final class RunTrackerService {
       return normalized;
     }
   }
+
+  static Future<MovementSessionState?> movementState() async {
+    try {
+      final value = await _channel.invokeMapMethod<String, Object?>(
+        'movementState',
+      );
+      if (value == null) return null;
+      final startedAtMillis = (value['started_at_ms'] as num?)?.toInt() ?? 0;
+      return MovementSessionState(
+        recording: value['recording'] as bool? ?? false,
+        sessionId: (value['session_id'] as num?)?.toInt() ?? 0,
+        activityType: value['activity_type'] as String? ?? '',
+        startedAt: startedAtMillis > 0
+            ? DateTime.fromMillisecondsSinceEpoch(startedAtMillis)
+            : null,
+        distanceMeters: (value['distance_m'] as num?)?.toDouble() ?? 0,
+        steps: (value['session_steps'] as num?)?.toInt() ?? 0,
+        accuracyMeters: (value['accuracy_m'] as num?)?.toDouble() ?? 0,
+        gpsStatus: value['gps_status'] as String? ?? 'GPS spento',
+        passiveActive: value['passive_active'] as bool? ?? false,
+        driveConfigured: value['drive_configured'] as bool? ?? false,
+        automaticStatus: value['automatic_status'] as String? ?? '',
+        driveStatus: value['drive_status'] as String? ?? '',
+      );
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  static Future<String> startMovement(String activityType) async {
+    return await _channel.invokeMethod<String>('startMovement', {
+          'activity_type': activityType,
+        }) ??
+        'error';
+  }
+
+  static Future<void> stopMovement() =>
+      _channel.invokeMethod<void>('stopMovement');
+
+  static Future<String> uploadMovementData() async =>
+      await _channel.invokeMethod<String>('uploadMovementData') ?? 'error';
 }

@@ -67,7 +67,9 @@ La sezione principale **Movimento**, accanto a **Progetti**, richiede una
 volta l'accesso ai passi in Health Connect. Il conteggio di sistema può quindi
 continuare anche quando l'app non è aperta; alla riapertura l'app importa in
 modo idempotente il totale aggregato della giornata, evitando la somma diretta
-di record sovrapposti.
+di record sovrapposti. Riepilogo, avvio/stop e upload vivono in una pagina
+integrata nella stessa navigazione, senza aprire una schermata Android
+intermedia. La logica salute resta nel modulo nativo separato.
 
 Durante una sessione i passi sono letti anche direttamente dal contatore
 hardware Android e mostrati come **Passi sessione · sensore telefono**. Il
