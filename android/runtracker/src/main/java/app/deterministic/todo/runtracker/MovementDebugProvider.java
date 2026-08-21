@@ -17,6 +17,8 @@ public final class MovementDebugProvider extends ContentProvider {
         if (getContext() == null || !"status".equals(uri.getLastPathSegment()))
             throw new IllegalArgumentException("Supported path: /status");
         Map<String, Object> values = PassiveMovementDebugState.values(getContext());
+        values.putAll(BipUSyncDebugState.values(getContext()));
+        values.putAll(IntensiveDiagnosticDebugState.values(getContext()));
         String[] columns = projection == null ? values.keySet().toArray(new String[0]) : projection;
         MatrixCursor cursor = new MatrixCursor(columns, 1);
         Object[] row = new Object[columns.length];

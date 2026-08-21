@@ -14,7 +14,7 @@ import java.util.Map;
 
 /** Compact remote-observation report. Raw health timelines and Todo content are excluded. */
 final class UnifiedDiagnosticReport {
-    static final int SCHEMA_VERSION = 1;
+    static final int SCHEMA_VERSION = 2;
     static final int RETAIN_FILES = 15;
     private static final long THREE_HOURS_MS = 3L * 60 * 60 * 1000;
     private static final long DAY_MS = 24L * 60 * 60 * 1000;
@@ -42,6 +42,7 @@ final class UnifiedDiagnosticReport {
             .put("app", app(context))
             .put("phone_and_fit", object(PassiveMovementDebugState.values(context)))
             .put("bip_u", new JSONObject()
+                .put("last_sync", object(BipUSyncDebugState.values(context)))
                 .put("last_3_hours", bipWindow(dao.bipUSamples(observedAtMillis - THREE_HOURS_MS,
                     observedAtMillis), observedAtMillis, THREE_HOURS_MS))
                 .put("last_24_hours", bipWindow(dao.bipUSamples(observedAtMillis - DAY_MS,
@@ -50,7 +51,8 @@ final class UnifiedDiagnosticReport {
                 .put("active", intensive.active(observedAtMillis))
                 .put("started_at_ms", nullable(intensive.startedAtMillis()))
                 .put("end_at_ms", nullable(intensive.endAtMillis()))
-                .put("pending_upload_chunks", IntensiveDiagnosticStore.pendingChunks(context).size()))
+                .put("pending_upload_chunks", IntensiveDiagnosticStore.pendingChunks(context).size())
+                .put("coverage", object(IntensiveDiagnosticDebugState.values(context))))
             .put("app_diagnostic_log", diagnosticFiles(context))
             .put("privacy", new JSONObject().put("todo_content_recorded", false)
                 .put("coordinates_recorded", false).put("mac_recorded", false)

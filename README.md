@@ -131,7 +131,10 @@ Il test passivo di sette giorni non richiede sessioni manuali. Durante il
 debugging crea su Drive uno snapshot cumulativo della giornata corrente circa
 un minuto dopo l'avvio e poi ogni ora, confrontando stima Todo e valori Google
 Fit disponibili in Health Connect. GPS e BLE restano spenti; il report finale
-del giorno precedente viene conservato separatamente.
+del giorno precedente viene conservato separatamente. Ogni snapshot schema 6
+include anche una timeline UTC al minuto ricostruita dai record Health Connect:
+consente di isolare a posteriori un intervallo breve anche quando Google Fit
+sincronizza in ritardo, senza aumentare il polling o tenere il GPS acceso.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo

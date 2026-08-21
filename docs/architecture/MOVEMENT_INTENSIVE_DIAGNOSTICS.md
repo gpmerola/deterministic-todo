@@ -20,6 +20,14 @@ pendenti. Un blocco locale viene eliminato soltanto dopo successo Drive.
 Quando il servizio termina viene pianificato anche un job finale vincolato alla
 rete; viene eseguito prima del controllo di scadenza del test passivo.
 
+Dalla build 135 ogni finestra dichiara durata reale, durata attesa e ritardo.
+Se fra l’ultima finestra persistita e un riavvio passano più di 15 secondi, o
+una singola finestra supera tale soglia, viene scritto un evento
+`coverage_gap` con inizio, fine, durata, causa e numero stimato di finestre
+mancanti. Conteggio, massimo e ultimo gap sono persistiti anche nel provider
+ADB; il watchdog rende il buco osservabile, ma non pretende di ricostruire
+campioni che Android non ha consegnato.
+
 ## Privacy e limiti
 
 Sono vietati coordinate, percorsi ricostruibili, identificatori dei record
@@ -52,8 +60,9 @@ python3 tools/analyze_movement_intensive.py --json \
 ```
 
 Lo strumento non modifica gli input. Valida le righe, deduplica le finestre
-per esperimento, segmento e intervallo e segnala buchi o sovrapposizioni nello
-stesso segmento. Aggrega copertura, attività, passi, qualità GPS, CPU, rete,
+per esperimento, segmento e intervallo e segnala buchi o sovrapposizioni sia
+nello stesso segmento sia fra segmenti. Riporta separatamente anche gli eventi
+`coverage_gap` dichiarati dal telefono. Aggrega copertura, attività, passi, qualità GPS, CPU, rete,
 heap, batteria e stato schermo. Il calo tra percentuali batteria osservate non
 è attribuzione energetica all'app: comprende ricariche, schermo e altre app.
 Il JSON prodotto è un risultato derivato rigenerabile, non un input canonico.

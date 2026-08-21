@@ -112,7 +112,7 @@ sessioni esplicite valide (almeno 1 km/1.000 passi per cammino o 3 km/2.000
 passi per corsa), la mediana degli ultimi sette rapporti GPS/passi calibra il
 solo profilo corrispondente. Ogni sessione viene acquisita una sola volta.
 
-I report schema 5 `passive_intraday_snapshot` e `passive_daily_audit`
+I report schema 6 `passive_intraday_snapshot` e `passive_daily_audit`
 registrano categorie, esclusioni separate veicolo/bicicletta, conflitti
 `STILL + passi`, baseline all-steps e parametri applicati. Conservano inoltre
 finestra effettiva, latenze delle query, record grezzi, valori pre/post
@@ -125,6 +125,14 @@ snapshot cumulativo e immutabile viene creato per ogni fascia oraria; include
 anche un delta validato rispetto allo snapshot precedente. Cambio giorno,
 reset dei contatori e dati Fit mancanti invalidano esplicitamente il delta. Il
 giorno concluso conserva un report finale distinto.
+
+Lo schema 6 aggiunge `minute_timeline`, allineata a minuti UTC. I passi dei
+record Health Connect che attraversano più minuti vengono distribuiti per
+durata con arrotondamento deterministico e poi riconciliati esattamente al
+totale aggregato. Per ogni minuto restano distinti categorie Todo, passi grezzi
+attribuiti a Google Fit e distanza Fit. Questa granularità è ricostruita dai
+timestamp dei record, quindi resta utile anche se la lettura avviene molto dopo
+la camminata; non richiede un job al minuto.
 
 ## BLE e confine di sicurezza
 
@@ -175,6 +183,12 @@ separatamente; finché la fusione per intervalli non sarà validata, i suoi pass
 non vengono sommati o sostituiti automaticamente a quelli del telefono.
 Battito continuo in background resta spento. Sono vietate scritture firmware,
 aggiornamenti, factory reset, modifica di risorse e impostazioni persistenti.
+
+L’ultimo tentativo di recupero Bip è persistito separatamente con fase,
+timestamp, esito, campioni, passi, battito ed esito Drive. Gli stessi campi
+appaiono nel provider diagnostico ADB e nel riepilogo Drive orario: `running`
+rimasto senza conclusione è quindi distinguibile da `activity_empty`, errore
+BLE, successo locale o errore dell’export.
 
 ## Allineamento diagnostico
 

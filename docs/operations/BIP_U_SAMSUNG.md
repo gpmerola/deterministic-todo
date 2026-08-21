@@ -74,6 +74,17 @@ per firmware, reset o scritture sperimentali.
 4. Il telefono continua a funzionare senza orologio. I dati Bip U restano una
    sorgente locale separata e non vengono ancora sommati a Health Connect.
 
+Dalla build 135 l’esito non dipende dallo screenshot. Con ADB:
+
+```sh
+adb shell content query --uri \
+  content://app.deterministic.todo.deterministic_todo.dev.movement_debug/status
+```
+
+controllare `bip_sync_phase`, `bip_sync_outcome`, quantità importate e
+`bip_sync_drive_result`. Senza ADB, gli stessi campi confluiscono nel successivo
+`unified_diagnostics_*.json` orario in `04 App diagnostics`.
+
 L’import non invia il comando finale che potrebbe marcare i campioni come
 consumati. `05 Bip U` riceve il riepilogo tecnico; `01 Sessions` aggiorna per
 ogni sessione interessata il report `*_three_way.json`, che contiene la

@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.28.0 build 134. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.28.1 build 135. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -38,6 +38,9 @@ non duplicare qui i dettagli tecnici.
 - La build 134 mantiene per le ultime 15 sessioni un unico export a tre fonti,
   con timeline UTC Todo/Bip, aggregati Fit, confronti a coppie e campioni Bip
   unici. Il backfill Bip recupera fino a sette giorni con sovrapposizione.
+- La build 135 rende analizzabili gli intervalli passivi brevi tramite timeline
+  al minuto e rende osservabili sync Bip incompleti e gap intensivi. Il prossimo
+  test utile è una camminata passiva con orari noti, senza sessione manuale.
 - Sul Galaxy S21 coesistono **Todo Test** attiva e la
   **build Play 121** disabilitata. Non disinstallare la seconda e non usare
   l'APK GitHub per aggiornarla. Runbook canonico:
@@ -130,7 +133,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - lasciare attivo il test passivo già avviato e raccogliere almeno due giorni
   normali, principalmente camminata e corsa, senza premere altri comandi;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
-  `daily_audit_*.json` schema 5: delta tra snapshot, scarto distanza, quote
+  `daily_audit_*.json` schema 6: timeline al minuto, delta tra snapshot, scarto distanza, quote
   cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
   veicolo/bicicletta, conflitti `STILL + passi` e flag di qualità;
 - per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre

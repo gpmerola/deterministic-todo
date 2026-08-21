@@ -54,8 +54,9 @@ def summarize(paths: list[Path]) -> dict[str, Any]:
     starts = [event for event in events if event.get("kind") == "segment_start"]
     continuations = sum(event.get("kind") == "segment_continuation" for event in events)
     raw_windows = [event for event in events if event.get("kind") == "sensor_window"]
+    declared_gaps = [event for event in events if event.get("kind") == "coverage_gap"]
     unknown = Counter(str(event.get("kind", "missing")) for event in events)
-    for known in ("segment_start", "segment_continuation", "sensor_window"):
+    for known in ("segment_start", "segment_continuation", "sensor_window", "coverage_gap"):
         unknown.pop(known, None)
 
     unique, invalid = {}, 0
@@ -114,6 +115,16 @@ def summarize(paths: list[Path]) -> dict[str, Any]:
                 gaps.append(gap)
             elif gap < -1_000:
                 overlaps += 1
+    ordered_windows = sorted(windows, key=lambda item: item["started_at_ms"])
+    cross_segment_gaps = []
+    for previous, current in zip(ordered_windows, ordered_windows[1:]):
+        if previous.get("segment_id") == current.get("segment_id"):
+            continue
+        gap = int(current["started_at_ms"]) - int(previous["ended_at_ms"])
+        if gap > 1_000:
+            cross_segment_gaps.append(gap)
+    declared_gap_durations = [value for event in declared_gaps
+        if (value := _number(event.get("duration_ms"))) is not None and value >= 0]
     apps = Counter()
     for event in starts:
         app = event.get("app") if isinstance(event.get("app"), dict) else {}
@@ -126,7 +137,14 @@ def summarize(paths: list[Path]) -> dict[str, Any]:
         "integrity": {"files": len(paths), "events": len(events), "empty_lines": empty, "malformed_lines": malformed,
             "sensor_windows": len(windows), "duplicate_windows": duplicates, "invalid_windows": invalid,
             "segment_starts": len(starts), "segment_continuations": continuations, "unknown_kinds": dict(sorted(unknown.items())),
-            "gaps_over_1s": len(gaps), "largest_gap_ms": max(gaps, default=0), "overlaps_over_1s": overlaps},
+            "gaps_over_1s": len(gaps) + len(cross_segment_gaps),
+            "within_segment_gaps_over_1s": len(gaps),
+            "cross_segment_gaps_over_1s": len(cross_segment_gaps),
+            "largest_gap_ms": max(gaps + cross_segment_gaps, default=0),
+            "declared_coverage_gaps": len(declared_gaps),
+            "declared_gap_total_ms": round(sum(declared_gap_durations)),
+            "declared_largest_gap_ms": max(declared_gap_durations, default=0),
+            "overlaps_over_1s": overlaps},
         "coverage": {"elapsed_hours": round(elapsed / 3_600_000, 4), "window_elapsed_ms_p50": _percentile(durations, .5),
             "window_elapsed_ms_p95": _percentile(durations, .95), "experiments": sorted({str(key[0]) for key in by_segment}),
             "segments": len(by_segment), "app_segments": dict(sorted(apps.items()))},

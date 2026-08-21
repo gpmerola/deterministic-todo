@@ -155,6 +155,12 @@ job. Il provider è in sola lettura e richiede il permesso di sistema `DUMP`,
 posseduto dalla shell ADB ma non dalle normali app. Non espone GPX, coordinate,
 database Todo o preferenze complete.
 
+Dalla build 135 la stessa riga espone campi `bip_sync_*` per l’ultimo recupero
+orologio e `intensive_*gap*` per la copertura della diagnostica. Un sync Bip
+riuscito termina con `bip_sync_phase=success`, esito
+`activity_sync_success` e `bip_sync_drive_result=ok`; `running` persistente o
+`drive_error` localizzano il confine senza dover interpretare uno screenshot.
+
 ## Aggiornamenti e firma del dispositivo di test
 
 Prima di usare `adb install -r`, verificare la provenienza dell'app installata.

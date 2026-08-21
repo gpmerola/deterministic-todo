@@ -486,7 +486,7 @@ final class DriveTestExportManager {
                 readPassiveSample(c), currentSample);
             boolean intraday = "passive_intraday_snapshot".equals(kind);
             JSONObject json = new JSONObject()
-                .put("schema_version", 5)
+                .put("schema_version", 6)
                 .put("kind", kind)
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
@@ -566,6 +566,7 @@ final class DriveTestExportManager {
                     .put("steps", audit.getFitSteps() == null ? JSONObject.NULL : audit.getFitSteps())
                     .put("distance_m", audit.getFitDistanceMeters() == null ? JSONObject.NULL : audit.getFitDistanceMeters())
                     .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()))
+                .put("minute_timeline", passiveMinuteTimelineJson(audit, stride, runningStride))
                 .put("comparison", comparisonJson(audit, estimate))
                 .put("delta_from_previous_snapshot", intraday
                     ? deltaJson(delta) : JSONObject.NULL);
@@ -578,6 +579,35 @@ final class DriveTestExportManager {
         } catch (Exception error) {
             return new ExportResult(true, false, "drive_audit_failed_" + error.getClass().getSimpleName());
         }
+    }
+
+    private static JSONArray passiveMinuteTimelineJson(HealthConnectGateway.PassiveAudit audit,
+                                                        double walkingStride,
+                                                        double runningStride) throws Exception {
+        JSONArray result = new JSONArray();
+        for (PassiveMinuteTimeline.Minute minute : audit.getMinuteTimeline()) {
+            long included = minute.walkingSteps() + minute.runningSteps()
+                + minute.unknownSteps() + minute.stillConflictSteps();
+            double todoDistance = (minute.walkingSteps() + minute.unknownSteps()
+                + minute.stillConflictSteps()) * walkingStride
+                + minute.runningSteps() * runningStride;
+            result.put(new JSONObject()
+                .put("start_ms", minute.startMillis())
+                .put("end_ms", minute.endMillis())
+                .put("todo_steps", minute.todoSteps())
+                .put("todo_estimated_distance_m", todoDistance)
+                .put("todo_included_steps", included)
+                .put("walking_steps", minute.walkingSteps())
+                .put("running_steps", minute.runningSteps())
+                .put("unknown_steps", minute.unknownSteps())
+                .put("still_conflict_steps", minute.stillConflictSteps())
+                .put("vehicle_steps", minute.vehicleSteps())
+                .put("bicycle_steps", minute.bicycleSteps())
+                .put("fit_steps_raw", minute.fitStepsRaw())
+                .put("fit_distance_m", minute.fitDistanceMeters())
+                .put("fit_values_are_record_timeline_not_aggregate", true));
+        }
+        return result;
     }
 
     private static JSONObject comparisonJson(HealthConnectGateway.PassiveAudit audit,

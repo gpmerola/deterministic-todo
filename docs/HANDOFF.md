@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.26.9 build 132**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.28.1 build 135**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -47,6 +47,10 @@ di cambiare architettura.
   `2.26.8-dev` come zero: versione normalizzata e build logica impediscono un
   downgrade, con una seconda verifica immediatamente prima del download e un
   nome APK distinto per ogni build.
+  La build 135 rende confrontabili anche i test passivi brevi: lo snapshot
+  schema 6 conserva una timeline Health Connect per minuto, mentre stato Bip e
+  gap del servizio intensivo diventano leggibili sia via ADB sia nel riepilogo
+  Drive. I gap sono evidenza esplicita, non dati ricostruiti.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
@@ -322,7 +326,9 @@ La 2.25.8 build 116 mantiene invariati algoritmo e falcate ma porta gli
 snapshot allo schema 5. Oltre ai cumulativi conserva record grezzi e durate,
 riconciliazione pre/post, tempi Health Connect/Drive, errori percentuali, flag
 di qualità e delta validato dallo snapshot precedente. Questo è il formato
-canonico per decidere i prossimi cambi all'algoritmo senza annotazioni manuali.
+storico; la build 135 introduce lo schema 6 e aggiunge la timeline UTC al
+minuto necessaria a isolare test passivi brevi dopo una sincronizzazione
+ritardata.
 
 Gli audit reali del 13–15 agosto 2026 sulla build 109 hanno isolato una
 regressione: 9,51 km Todo contro 21,26 km Google Fit (-55,3%), con il 61% dei
@@ -512,15 +518,19 @@ sette giorni e la telemetria della cadenza GPS osservata. Il GPS Android resta
 richiesto ogni 1.000 ms: non ridurre l'intervallo prima che p50/p95 dei fix e
 consumo reale dimostrino un beneficio.
 
+La build 135 aggiunge timeline passiva per minuto, stato persistente del sync
+Bip ed eventi di gap intensivo. Il prossimo test deve essere passivo, con
+orario e distanza di riferimento noti; non richiede una sessione GPS manuale.
+
 1. leggere integralmente `AGENTS.md`, `TODO_NEXT.md` e questo handoff, quindi
    controllare `git status -sb`;
-2. non modificare algoritmo, schema o campionamento mentre l'esperimento
-   intensivo costituisce la baseline;
+2. non modificare falcate o campionamento GPS mentre il nuovo schema 6 viene
+   collaudato; correzioni puramente diagnostiche restano ammesse;
 3. verificare via ADB che Todo Test `.dev` sia attivo, che monitor passivo e
    diagnostica intensiva procedano e che il package Play resti
    `disabled-user`; non riabilitare o disinstallare Play;
 4. dopo almeno 12–24 ore analizzare i JSONL con
-   `tools/analyze_movement_intensive.py` e confrontare gli snapshot schema 5;
+   `tools/analyze_movement_intensive.py` e confrontare gli snapshot schema 6;
 5. completare in Chrome reale persistenza dopo chiusura, import/export con
    fixture sintetica e diagnostica IndexedDB, senza usare dati personali;
 6. installare ogni nuova build su Todo Test con `adb install -r` e la firma

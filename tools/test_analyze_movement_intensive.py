@@ -38,6 +38,23 @@ class AnalyzeMovementIntensiveTest(unittest.TestCase):
         self.assertEqual(len(report["integrity"]["malformed_lines"]), 1)
         self.assertEqual(report["integrity"]["invalid_windows"], 1)
 
+    def test_reports_declared_and_cross_segment_gaps(self):
+        first = {"kind": "sensor_window", "experiment_id": "exp", "segment_id": "one",
+                 "started_at_ms": 1_000, "ended_at_ms": 6_000, "elapsed_ms": 5_000}
+        gap = {"kind": "coverage_gap", "experiment_id": "exp", "segment_id": "two",
+               "start_ms": 6_000, "end_ms": 36_000, "duration_ms": 30_000,
+               "missing_expected_windows": 5, "reason": "service_restart"}
+        second = {"kind": "sensor_window", "experiment_id": "exp", "segment_id": "two",
+                  "started_at_ms": 36_000, "ended_at_ms": 41_000, "elapsed_ms": 5_000}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "chunk.jsonl"
+            path.write_text("\n".join(json.dumps(row) for row in (first, gap, second)) + "\n")
+            report = summarize([path])
+        self.assertEqual(report["integrity"]["cross_segment_gaps_over_1s"], 1)
+        self.assertEqual(report["integrity"]["declared_coverage_gaps"], 1)
+        self.assertEqual(report["integrity"]["declared_gap_total_ms"], 30_000)
+        self.assertEqual(report["integrity"]["unknown_kinds"], {})
+
 
 if __name__ == "__main__":
     unittest.main()

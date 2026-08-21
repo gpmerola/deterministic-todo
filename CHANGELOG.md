@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.28.1
+
+- Porta i report passivi allo schema 6 con una timeline UTC al minuto ricavata
+  dai record temporali Health Connect: passi e distanza stimata Todo,
+  classificazione, passi grezzi e distanza Google Fit. I totali aggregati
+  restano canonici e la riconciliazione conserva esattamente il loro conteggio.
+- Rende persistente e leggibile via ADB e nel report unificato lo stato
+  dell’ultimo recupero Bip U, inclusi esito locale, quantità importate ed esito
+  Drive. Un tentativo che non termina non viene più confuso con assenza di dati.
+- Registra eventi `coverage_gap` quando la diagnostica intensiva viene riavviata
+  dopo un periodo scoperto o produce una finestra eccessivamente lunga. Il
+  provider ADB espone conteggio, durata massima e ultimo gap.
+- L’analizzatore offline riconosce i gap dichiarati e misura anche le
+  discontinuità fra segmenti, che prima potevano restare invisibili.
+
 ## 2.28.0
 
 - Crea per ogni sessione un report canonico `*_three_way.json` in `01 Sessions`,

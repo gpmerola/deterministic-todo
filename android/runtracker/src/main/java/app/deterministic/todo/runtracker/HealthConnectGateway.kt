@@ -224,6 +224,7 @@ object HealthConnectGateway {
                     classified.bicycleStepsBeforeReconciliation,
                     classified.stillConflictStepsBeforeReconciliation,
                     classified.reconciliationScaleFactor,
+                    classified.minuteTimeline,
                     allAggregateDuration, fitAggregateDuration, classificationDuration,
                     SystemClock.elapsedRealtime() - auditStarted
                 )
@@ -262,6 +263,7 @@ object HealthConnectGateway {
         var earliestRecordStartMillis: Long? = null
         var latestRecordEndMillis: Long? = null
         var exclusionThresholdRecordCount = 0
+        val minuteTimeline = PassiveMinuteTimeline.Builder()
         var token: String? = null
         do {
             val response = client.readRecords(ReadRecordsRequest(
@@ -284,6 +286,9 @@ object HealthConnectGateway {
                 val allocation = StepIntervalClassifier.classify(
                     recordStart, recordEnd,
                     record.count, timeline)
+                minuteTimeline.addSteps(recordStart, recordEnd, record.count,
+                    record.metadata.dataOrigin.packageName == "com.google.android.apps.fitness",
+                    timeline)
                 walking += allocation.walking()
                 running += allocation.running()
                 unknown += allocation.unknown()
@@ -300,6 +305,21 @@ object HealthConnectGateway {
             }
             token = response.pageToken
         } while (token != null)
+        var distanceToken: String? = null
+        do {
+            val response = client.readRecords(ReadRecordsRequest(
+                recordType = DistanceRecord::class,
+                timeRangeFilter = TimeRangeFilter.between(start, end),
+                pageToken = distanceToken
+            ))
+            for (record in response.records) {
+                if (record.metadata.dataOrigin.packageName == "com.google.android.apps.fitness") {
+                    minuteTimeline.addFitDistance(record.startTime.toEpochMilli(),
+                        record.endTime.toEpochMilli(), record.distance.inMeters)
+                }
+            }
+            distanceToken = response.pageToken
+        } while (distanceToken != null)
         val observed = walking + running + unknown + vehicle + bicycle + stillConflict
         if (observed <= 0 || aggregateSteps <= 0) return ClassifiedSteps(
             0, 0, aggregateSteps, 0, 0, 0, 0,
@@ -309,7 +329,8 @@ object HealthConnectGateway {
             walkingDuration, runningDuration, unknownDuration, vehicleDuration,
             bicycleDuration, stillDuration, exclusionThresholdRecordCount,
             observed, walking, running, unknown, vehicle, bicycle, stillConflict,
-            if (observed > 0) aggregateSteps.toDouble() / observed else 0.0)
+            if (observed > 0) aggregateSteps.toDouble() / observed else 0.0,
+            minuteTimeline.build(aggregateSteps))
         fun scaled(value: Long) = (value.toDouble() * aggregateSteps / observed).toLong()
         val scaledWalking = scaled(walking)
         val scaledRunning = scaled(running)
@@ -328,7 +349,7 @@ object HealthConnectGateway {
             walkingDuration, runningDuration, unknownDuration, vehicleDuration,
             bicycleDuration, stillDuration, exclusionThresholdRecordCount,
             observed, walking, running, unknown, vehicle, bicycle, stillConflict,
-            aggregateSteps.toDouble() / observed)
+            aggregateSteps.toDouble() / observed, minuteTimeline.build(aggregateSteps))
     }
 
     private data class ClassifiedSteps(val walkingSteps: Long, val runningSteps: Long,
@@ -349,7 +370,8 @@ object HealthConnectGateway {
         val vehicleStepsBeforeReconciliation: Long,
         val bicycleStepsBeforeReconciliation: Long,
         val stillConflictStepsBeforeReconciliation: Long,
-        val reconciliationScaleFactor: Double)
+        val reconciliationScaleFactor: Double,
+        val minuteTimeline: List<PassiveMinuteTimeline.Minute>)
 
     data class GoogleFitComparison(
         val steps: Long?,
@@ -401,6 +423,7 @@ object HealthConnectGateway {
         val bicycleStepsBeforeReconciliation: Long,
         val stillConflictStepsBeforeReconciliation: Long,
         val reconciliationScaleFactor: Double,
+        val minuteTimeline: List<PassiveMinuteTimeline.Minute>,
         val allSourcesAggregateDurationMillis: Long,
         val googleFitAggregateDurationMillis: Long,
         val classificationDurationMillis: Long,

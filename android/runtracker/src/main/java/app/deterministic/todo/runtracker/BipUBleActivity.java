@@ -164,6 +164,7 @@ public final class BipUBleActivity extends ComponentActivity {
 
     private void ensurePermissions() {
         attemptStartedAtMillis = System.currentTimeMillis();
+        if (mode == Mode.ACTIVITY_SYNC) BipUSyncDebugState.started(this, attemptStartedAtMillis);
         connectionSource = "none";
         reportWritten.set(false);
         ArrayList<String> missing = new ArrayList<>();
@@ -544,11 +545,16 @@ public final class BipUBleActivity extends ComponentActivity {
         String text = "Bip U importato · " + samples + " minuti · " + steps
             + " passi · " + heartSamples + " campioni battito · " + added + " nuovi";
         setStatus(text);
+        BipUSyncDebugState.localFinished(this, "activity_sync_success", samples, added,
+            steps, heartSamples, requestedWindowHours());
         DriveTestExportManager.exportBipUActivitySync(this, attemptStartedAtMillis,
             connectionSource, "activity_sync_success", samples, added, steps, heartSamples,
             requestedWindowHours(), historyCapApplied(),
-            lastGattStatus, result -> runOnUiThread(() -> status.setText(text
-                + (result.success() ? "\nReport salvato su Drive" : "\nReport Drive non disponibile"))));
+            lastGattStatus, result -> {
+                BipUSyncDebugState.driveFinished(this, result);
+                runOnUiThread(() -> status.setText(text
+                    + (result.success() ? "\nReport salvato su Drive" : "\nReport Drive non disponibile")));
+            });
     }
 
     private void finishActivitySync(String text, String outcome) {
@@ -556,11 +562,16 @@ public final class BipUBleActivity extends ComponentActivity {
         handler.removeCallbacksAndMessages(null);
         closeGatt();
         setStatus(text);
+        BipUSyncDebugState.localFinished(this, outcome, 0, 0, 0, 0,
+            requestedWindowHours());
         DriveTestExportManager.exportBipUActivitySync(this, attemptStartedAtMillis,
             connectionSource, outcome, 0, 0, 0, 0,
             requestedWindowHours(), historyCapApplied(), lastGattStatus,
-            result -> runOnUiThread(() -> status.setText(text
-                + (result.success() ? "\nReport salvato su Drive" : "\nReport Drive non disponibile"))));
+            result -> {
+                BipUSyncDebugState.driveFinished(this, result);
+                runOnUiThread(() -> status.setText(text
+                    + (result.success() ? "\nReport salvato su Drive" : "\nReport Drive non disponibile")));
+            });
     }
 
     private void requestActivityHistory(BluetoothGatt connection) {

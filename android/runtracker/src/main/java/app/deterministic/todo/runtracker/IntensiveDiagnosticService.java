@@ -70,6 +70,7 @@ public final class IntensiveDiagnosticService extends Service
     private float speedSum;
     private float speedMax;
     private boolean running;
+    private long lastWindowEndWall;
 
     private final Runnable flush = new Runnable() {
         @Override public void run() {
@@ -113,6 +114,8 @@ public final class IntensiveDiagnosticService extends Service
     }
 
     private void startCapture() {
+        long previousWindowAt = IntensiveDiagnosticDebugState.prepareExperiment(this,
+            experiment.id());
         segmentId = UUID.randomUUID().toString();
         try {
             IntensiveDiagnosticStore.beginSegment(this, experiment, segmentId, capabilities());
@@ -137,6 +140,8 @@ public final class IntensiveDiagnosticService extends Service
         }
         running = true;
         resetWindow();
+        recordCoverageGap(previousWindowAt, windowStartedWall, "service_restart");
+        lastWindowEndWall = windowStartedWall;
         main.postDelayed(flush, WINDOW_MS);
         recordStatus("running", 0);
     }
@@ -178,11 +183,20 @@ public final class IntensiveDiagnosticService extends Service
     private void writeWindow() {
         long now = System.currentTimeMillis();
         try {
+            recordCoverageGap(lastWindowEndWall, windowStartedWall, "window_discontinuity");
+            long wallDuration = Math.max(0, now - windowStartedWall);
+            if (wallDuration > IntensiveGapPolicy.GAP_THRESHOLD_MILLIS) {
+                recordCoverageGap(windowStartedWall, now, "oversized_window");
+            }
             List<ActivityTimeline.Event> timeline = ActivityTimeline.read(this);
             JSONObject event = new JSONObject().put("schema_version", 1)
                 .put("kind", "sensor_window").put("experiment_id", experiment.id())
                 .put("segment_id", segmentId).put("started_at_ms", windowStartedWall)
                 .put("ended_at_ms", now).put("elapsed_ms", SystemClock.elapsedRealtime() - windowStartedElapsed)
+                .put("wall_duration_ms", wallDuration)
+                .put("expected_window_ms", IntensiveGapPolicy.EXPECTED_WINDOW_MILLIS)
+                .put("late_by_ms", Math.max(0,
+                    wallDuration - IntensiveGapPolicy.EXPECTED_WINDOW_MILLIS))
                 .put("activity", ActivityTimeline.at(timeline, now))
                 .put("accelerometer_magnitude", acceleration.json())
                 .put("gyroscope_magnitude", gyroscope.json()).put("pressure_hpa", pressure.json())
@@ -201,8 +215,26 @@ public final class IntensiveDiagnosticService extends Service
                     .put("power_save", ((PowerManager) getSystemService(POWER_SERVICE)).isPowerSaveMode())
                     .put("interactive", ((PowerManager) getSystemService(POWER_SERVICE)).isInteractive()));
             IntensiveDiagnosticStore.append(this, event);
+            lastWindowEndWall = now;
             recordStatus("running", now);
         } catch (Exception error) { recordStatus("write_failed_" + error.getClass().getSimpleName(), now); }
+    }
+
+    private void recordCoverageGap(long previous, long current, String reason) {
+        IntensiveGapPolicy.Gap gap = IntensiveGapPolicy.between(previous, current);
+        if (!gap.present()) return;
+        IntensiveDiagnosticDebugState.gap(this, gap, reason);
+        try {
+            IntensiveDiagnosticStore.append(this, new JSONObject()
+                .put("schema_version", 2).put("kind", "coverage_gap")
+                .put("experiment_id", experiment.id()).put("segment_id", segmentId)
+                .put("start_ms", gap.startMillis()).put("end_ms", gap.endMillis())
+                .put("duration_ms", gap.durationMillis())
+                .put("missing_expected_windows", gap.missingExpectedWindows())
+                .put("reason", reason));
+        } catch (Exception error) {
+            recordStatus("gap_write_failed_" + error.getClass().getSimpleName(), current);
+        }
     }
 
     private JSONObject resourceSnapshot() throws Exception {
@@ -243,7 +275,7 @@ public final class IntensiveDiagnosticService extends Service
 
     private void recordStatus(String status, long lastWindowAt) {
         android.content.SharedPreferences.Editor editor = getSharedPreferences(
-            "movement_intensive_status", Context.MODE_PRIVATE).edit().putString("status", status);
+            IntensiveDiagnosticDebugState.PREFS, Context.MODE_PRIVATE).edit().putString("status", status);
         if (lastWindowAt > 0) editor.putLong("last_window_at", lastWindowAt);
         editor.apply();
     }

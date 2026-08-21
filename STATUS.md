@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.28.0 build 134**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.28.1 build 135**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -29,6 +29,9 @@ Aggiornato il 21 agosto 2026.
   sessioni. Il recupero Bip usa un'ora di sovrapposizione e fino a sette giorni
   di storico, senza cancellare dati dall'orologio. La diagnostica registra
   anche la distribuzione reale degli intervalli GPS; la richiesta resta a 1 Hz.
+  La build 135 aggiunge ai report passivi una timeline Health Connect UTC al
+  minuto, rende persistente e remoto lo stato del recupero Bip e registra i
+  buchi della diagnostica intensiva anche fra riavvii/segmenti.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
@@ -211,7 +214,7 @@ Aggiornato il 21 agosto 2026.
 - Restano da collaudare sulla build 118 la continuità dell'esperimento avviato
   sulla 117, l'upload orario e quello finale della
   diagnostica intensiva e almeno due giornate
-  principalmente di cammino/corsa, lo schema 5 dei report Drive e la
+  principalmente di cammino/corsa, lo schema 6 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
   Connect.

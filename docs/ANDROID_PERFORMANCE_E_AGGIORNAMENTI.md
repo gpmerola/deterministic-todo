@@ -189,6 +189,12 @@ percentuali, falcate effettive implicite e flag di qualità per dati mancanti,
 record vecchi, prevalenza `unknown` o conflitti `STILL`. Non vengono registrate
 coordinate, percorsi o contenuti Todo.
 
+La 2.28.1 porta questi report allo schema 6 aggiungendo una timeline UTC al
+minuto ricostruita durante la stessa lettura oraria. Non introduce risvegli al
+minuto, BLE permanente o GPS passivo: il costo aggiuntivo è limitato alla
+lettura dei record distanza e alla serializzazione del report durante il job
+diagnostico temporaneo.
+
 ## Motion system UI
 
 La 2.16.15 introduce un motion system limitato alle transizioni informative:
