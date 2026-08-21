@@ -16,6 +16,15 @@ public interface RunDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void upsertDailyMovement(DailyMovement movement);
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    List<Long> insertBipUActivitySamples(List<BipUActivitySample> samples);
+
+    @Query("SELECT * FROM bip_u_activity_samples WHERE timestampMillis >= :startMillis AND timestampMillis < :endMillis ORDER BY timestampMillis")
+    List<BipUActivitySample> bipUSamples(long startMillis, long endMillis);
+
+    @Query("SELECT MAX(timestampMillis) FROM bip_u_activity_samples")
+    Long latestBipUSampleTimestamp();
+
     @Query("SELECT * FROM daily_movement WHERE day = :day AND zoneId = :zoneId ORDER BY updatedAtMillis DESC LIMIT 1")
     DailyMovement dailyMovement(String day, String zoneId);
 

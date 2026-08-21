@@ -2,6 +2,24 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.3
+
+- Interpreta correttamente il contatore annunciato dal Bip U come numero di
+  campioni quando il payload contiene otto byte per minuto. Il primo collaudo
+  della 125 aveva trasferito tutti gli 11.520 byte per 1.440 minuti, ma si era
+  arrestato prudentemente prima di salvarli perché trattava 1.440 come byte.
+
+## 2.26.2
+
+- Aggiunge un’importazione Bip U esplicita e limitata alle ultime 24 ore:
+  autenticazione, trasferimento dei campioni di un minuto e persistenza Room
+  idempotente con timestamp e provenienza separata.
+- Non invia il comando di conferma che potrebbe rimuovere i campioni
+  dall’orologio. Il report Drive contiene soltanto conteggi aggregati e stato
+  tecnico, mai timeline sanitaria, chiave, MAC o pacchetti grezzi.
+- Mantiene il telefono come sistema completo e indipendente: i campioni Bip U
+  sono opzionali e non vengono sommati automaticamente ai passi Health Connect.
+
 ## 2.26.1
 
 - Corregge la prima scrittura di autenticazione Bip U: il client rispetta le

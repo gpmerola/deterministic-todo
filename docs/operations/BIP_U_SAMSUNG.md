@@ -62,3 +62,17 @@ sono disponibili, non ripetere rapidamente: conservare il report e analizzarlo.
 
 Non condividere chiave, MAC, GPX o database nei bug report. Non usare il modulo
 per firmware, reset o scritture sperimentali.
+
+## Importazione attività build 126
+
+1. Indossare o tenere vicino il Bip U e premere **Importa attività Bip U ·
+   ultime 24 h** una sola volta.
+2. Attendere la conferma con minuti, passi, campioni battito e record nuovi.
+3. Un retry è sicuro: la chiave timestamp+sorgente impedisce duplicati e
+   vengono aggiunti soltanto i minuti comparsi nel frattempo.
+4. Il telefono continua a funzionare senza orologio. I dati Bip U restano una
+   sorgente locale separata e non vengono ancora sommati a Health Connect.
+
+L’import non invia il comando finale che potrebbe marcare i campioni come
+consumati. Drive riceve solo il riepilogo tecnico aggregato, non la timeline
+sanitaria.

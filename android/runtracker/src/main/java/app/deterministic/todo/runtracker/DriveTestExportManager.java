@@ -132,6 +132,50 @@ final class DriveTestExportManager {
         }, "bip-u-hr-drive-report").start();
     }
 
+    static void exportBipUActivitySync(Context context, long startedAtMillis,
+                                        String connectionSource, String outcome,
+                                        long sampleCount, long insertedCount,
+                                        long steps, long heartRateSampleCount,
+                                        Integer gattStatus, Completion completion) {
+        new Thread(() -> {
+            if (!isConfigured(context)) {
+                completion.onComplete(new ExportResult(false, false, "not_configured"));
+                return;
+            }
+            try {
+                long observedAt = System.currentTimeMillis();
+                JSONObject report = new JSONObject()
+                    .put("schema_version", 1)
+                    .put("kind", "bip_u_activity_sync")
+                    .put("started_at_ms", startedAtMillis)
+                    .put("observed_at_ms", observedAt)
+                    .put("duration_ms", Math.max(0, observedAt - startedAtMillis))
+                    .put("connection_source", connectionSource)
+                    .put("outcome", outcome)
+                    .put("requested_window_hours", 24)
+                    .put("sample_count", sampleCount)
+                    .put("inserted_count", insertedCount)
+                    .put("reported_steps", steps)
+                    .put("heart_rate_sample_count", heartRateSampleCount)
+                    .put("gatt_status", nullable(gattStatus))
+                    .put("app_version", appVersion(context))
+                    .put("privacy", new JSONObject()
+                        .put("mac_recorded", false)
+                        .put("auth_key_recorded", false)
+                        .put("raw_packets_recorded", false)
+                        .put("health_timeline_exported", false)
+                        .put("activity_data_deleted_from_watch", false)
+                        .put("persistent_configuration_writes", false));
+                writeNewFile(context, "bip_u_activity_sync_" + observedAt + ".json",
+                    "application/json", report.toString(2));
+                completion.onComplete(new ExportResult(true, true, "ok"));
+            } catch (Exception error) {
+                completion.onComplete(new ExportResult(true, false,
+                    "bip_u_activity_drive_failed_" + error.getClass().getSimpleName()));
+            }
+        }, "bip-u-activity-drive-report").start();
+    }
+
     static void setFolder(Context context, Uri uri, int resultFlags) {
         int takeFlags = resultFlags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         if ((takeFlags & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) == 0) {

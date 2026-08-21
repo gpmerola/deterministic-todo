@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.26.1 build 124. **Todo Test** (`.dev`) è il
+- Release coordinata corrente: 2.26.3 build 126. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -121,6 +121,14 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - la build 124 ha superato il precedente GATT 6: prova reale completa con
   autenticazione challenge-response, 7 campioni tra 67 e 73 bpm (media 70),
   stop automatico, GATT 0 e report schema 2 in `05 Bip U`;
+- la build 125 aggiunge l’importazione locale idempotente delle ultime 24 ore,
+  senza ACK distruttivo e senza fusione prematura con Health Connect. Eseguire
+  una prima importazione reale e verificare conteggio, timestamp e retry;
+- il primo test reale ha ricevuto 1.440 campioni/11.520 byte senza errori GATT;
+  la 126 ha poi salvato 1.440 minuti, 2.626 passi e 358 campioni cardiaci. Il
+  retry ha deduplicato l’intersezione e inserito solo due minuti nuovi;
+- prossimo incremento: audit temporale telefono/Bip U e fusione a finestre in
+  modalità osservazione, senza cambiare ancora i valori mostrati all’utente;
 - prossimo passo: integrare una sessione cardiaca esplicita nell'attività e
   verificarne continuità, consumo e timestamp, mantenendo la misura disattiva
   fuori da una sessione richiesta dall'utente;

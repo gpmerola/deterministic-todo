@@ -128,9 +128,25 @@ sono automatici anche senza campioni. Il report conserva conteggio, minimo,
 massimo e media, ma non chiave, MAC o pacchetti grezzi; dichiara esplicitamente
 le scritture di controllo transitorie e l'assenza di configurazioni persistenti.
 
-Download delle attività e battito continuo in background restano spenti. Sono
-vietate scritture firmware, aggiornamenti, factory reset, modifica di risorse e
-impostazioni persistenti.
+La build 125 aggiunge un’importazione manuale delle ultime 24 ore. Dopo
+l’autenticazione abilita i due canali attività, richiede i campioni di un
+minuto e li conserva in `bip_u_activity_samples` con timestamp UTC, sorgente e
+istante di importazione. L’inserimento `IGNORE` sulla chiave composta rende i
+retry idempotenti. Non viene inviato il comando finale di conferma: i dati non
+sono marcati come consumati o rimossi dall’orologio. Il report Drive contiene
+solo conteggi aggregati e stato tecnico; la timeline sanitaria resta locale.
+
+Sul Bip U reale il campo di lunghezza vale 1.440 per una giornata, mentre il
+payload contiene 11.520 byte: è quindi un conteggio di campioni da otto byte,
+non di byte. La build 126 accetta esplicitamente entrambe le semantiche
+osservabili e continua a rifiutare qualunque altra lunghezza.
+
+Il modello resta **phone-first**: Health Connect, sensori del telefono e GPS
+manuale funzionano senza orologio. Bip U è una sorgente opzionale conservata
+separatamente; finché la fusione per intervalli non sarà validata, i suoi passi
+non vengono sommati o sostituiti automaticamente a quelli del telefono.
+Battito continuo in background resta spento. Sono vietate scritture firmware,
+aggiornamenti, factory reset, modifica di risorse e impostazioni persistenti.
 
 ## Allineamento futuro
 

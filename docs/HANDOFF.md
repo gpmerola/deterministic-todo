@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.26.1 build 124**. Il flavor Android `dev`
+- Versione coordinata corrente: **2.26.3 build 126**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -49,6 +49,14 @@ di cambiare architettura.
   Il collaudo reale del 21 agosto ha completato autenticazione, misura e stop:
   7 campioni, 67–73 bpm, media 70 bpm, GATT 0 e report Drive schema 2, senza
   MAC, chiave o pacchetti grezzi.
+  La 125 aggiunge un’importazione manuale e idempotente delle ultime 24 ore di
+  campioni Bip U. La timeline resta locale in Room e non viene inviato l’ACK
+  che potrebbe consumare i dati sull’orologio. Il telefono resta autonomo:
+  nessuna fusione o somma automatica viene applicata prima del collaudo reale.
+  Il collaudo della 126 ha importato 1.440 minuti, 2.626 passi e 358 campioni
+  cardiaci. Un retry due minuti dopo ha inserito soltanto i due nuovi minuti:
+  i 1.438 intervalli sovrapposti non sono stati duplicati. Entrambi i report
+  aggregati risultano nella cartella Drive `05 Bip U`.
   Dalla 121 gli identificatori SAF delle sottocartelle vengono verificati e
   conservati: la cache non aggiornata del provider Drive aveva creato copie
   omonime durante il primo collaudo della 120.
