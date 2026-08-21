@@ -14,6 +14,8 @@ public final class DriveFolderLayoutTest {
         assertEquals(DriveFolderLayout.PASSIVE,
             DriveFolderLayout.folderFor("movement_snapshot_2026-08-20_20.json"));
         assertEquals(DriveFolderLayout.PASSIVE,
+            DriveFolderLayout.folderFor("movement_snapshot_manual_2026-08-21_19-07-00.json"));
+        assertEquals(DriveFolderLayout.PASSIVE,
             DriveFolderLayout.folderFor("daily_audit_2026-08-19.json"));
         assertEquals(DriveFolderLayout.INTENSIVE,
             DriveFolderLayout.folderFor("intensive_experiment_segment_123.jsonl"));
@@ -21,6 +23,10 @@ public final class DriveFolderLayoutTest {
             DriveFolderLayout.folderFor("todo_diagnostics_2026-08-20.jsonl"));
         assertEquals(DriveFolderLayout.APP_DIAGNOSTICS,
             DriveFolderLayout.folderFor("unified_diagnostics_2026-08-21_12.json"));
+        assertEquals(DriveFolderLayout.APP_DIAGNOSTICS,
+            DriveFolderLayout.folderFor("todo_diagnostics_manual_2026-08-21_19-07-00.jsonl"));
+        assertEquals(DriveFolderLayout.APP_DIAGNOSTICS,
+            DriveFolderLayout.folderFor("unified_diagnostics_manual_2026-08-21_19-07-00.json"));
         assertEquals(DriveFolderLayout.BIP_U,
             DriveFolderLayout.folderFor("bip_u_probe_1780000000000.json"));
         assertEquals(DriveFolderLayout.BIP_U,

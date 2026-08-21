@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.28.1 build 135**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.28.2 build 136**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -51,6 +51,11 @@ di cambiare architettura.
   schema 6 conserva una timeline Health Connect per minuto, mentre stato Bip e
   gap del servizio intensivo diventano leggibili sia via ADB sia nel riepilogo
   Drive. I gap sono evidenza esplicita, non dati ricostruiti.
+  La build 136 espone direttamente in Movimento `Carica ora tutti i dati di
+  test`: un'unica catena WorkManager esporta uno snapshot passivo manuale
+  univoco, i segmenti intensivi pendenti, i log applicativi, il riepilogo
+  unificato e i confronti recenti. L'esito finale è mostrato all'utente; il
+  comando non avvia una sessione, GPS o BLE.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.28.2
+
+- Aggiunge nella schermata Movimento un solo comando, `Carica ora tutti i dati
+  di test`, distinto dalla sincronizzazione dell'ultima sessione GPS.
+- Il comando concatena snapshot passivo corrente, upload dei segmenti
+  intensivi pendenti, diagnostica applicativa, report unificato e refresh dei
+  confronti recenti. I file manuali hanno timestamp al secondo e non possono
+  riusare per errore uno snapshot orario immutabile già esistente.
+- Mostra nell'interfaccia il completamento o il fallimento reale del job. Non
+  avvia GPS, una sessione o una connessione BLE e non interrompe i monitor.
+
 ## 2.28.1
 
 - Porta i report passivi allo schema 6 con una timeline UTC al minuto ricavata

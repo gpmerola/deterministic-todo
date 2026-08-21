@@ -202,7 +202,9 @@ def publish_remote(root: Path, apk: Path, version: str, build_number: int) -> No
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("auto", "adb", "remote"), default="auto")
+    parser.add_argument(
+        "--mode", choices=("auto", "adb", "remote", "build"), default="auto"
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     version, build_number = read_version((root / "pubspec.yaml").read_text(encoding="utf-8"))
@@ -211,6 +213,9 @@ def main() -> int:
         raise RuntimeError("ADB mode requested but no authorized device is connected")
     apk = build(root, version, build_number)
     verify_apk(root, apk, DEV_BUILD_OFFSET + build_number)
+    if args.mode == "build":
+        print(f"Todo Test APK verified locally: {apk}")
+        return 0
     if serial is not None:
         install_adb(root, apk, serial)
     else:

@@ -459,6 +459,15 @@ final class DriveTestExportManager {
             "movement_snapshot_" + bucket + ".json", System.currentTimeMillis());
     }
 
+    static ExportResult writeManualPassiveSnapshot(Context c,
+                                                     HealthConnectGateway.PassiveAudit audit,
+                                                     LocalDateTime observedAt) {
+        String timestamp = observedAt.format(
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        return writePassiveReport(c, audit, "passive_manual_snapshot",
+            "movement_snapshot_manual_" + timestamp + ".json", System.currentTimeMillis());
+    }
+
     private static ExportResult writePassiveReport(Context c,
                                                      HealthConnectGateway.PassiveAudit audit,
                                                      String kind,
@@ -484,7 +493,7 @@ final class DriveTestExportManager {
                 audit.getStillConflictSteps());
             PassiveSnapshotDelta.Delta delta = PassiveSnapshotDelta.between(
                 readPassiveSample(c), currentSample);
-            boolean intraday = "passive_intraday_snapshot".equals(kind);
+            boolean intraday = !"passive_daily_audit".equals(kind);
             JSONObject json = new JSONObject()
                 .put("schema_version", 6)
                 .put("kind", kind)

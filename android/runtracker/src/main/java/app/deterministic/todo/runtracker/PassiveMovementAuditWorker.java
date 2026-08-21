@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class PassiveMovementAuditWorker extends Worker {
+    static final String INPUT_MANUAL_EXPORT = "manual_export";
     private static final String WORK = "movement-passive-audit";
     private static final String STARTUP_WORK = "movement-passive-audit-startup";
     private static final String FINAL_INTENSIVE_UPLOAD = "movement-intensive-final-upload";
@@ -95,8 +96,9 @@ public final class PassiveMovementAuditWorker extends Worker {
 
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
+        boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
         uploadIntensiveChunks(context);
-        if (!enabled(context)) {
+        if (!enabled(context) && !manualExport) {
             disable(context);
             return Result.success();
         }
@@ -109,12 +111,14 @@ public final class PassiveMovementAuditWorker extends Worker {
             return resultFor(current.error);
         }
         long exportStarted = SystemClock.elapsedRealtime();
-        DriveTestExportManager.ExportResult snapshot =
-            DriveTestExportManager.writePassiveSnapshot(context, current.audit, now);
+        DriveTestExportManager.ExportResult snapshot = manualExport
+            ? DriveTestExportManager.writeManualPassiveSnapshot(context, current.audit, now)
+            : DriveTestExportManager.writePassiveSnapshot(context, current.audit, now);
         long exportDuration = SystemClock.elapsedRealtime() - exportStarted;
         PassiveMovementDebugState.exportFinished(context, current.audit, now, snapshot,
             exportDuration);
         if (!snapshot.success()) return Result.retry();
+        if (manualExport) return Result.success();
 
         LocalDate finalDay = PassiveAuditWindow.completedDay(now.toLocalDate(), now.getHour());
         String lastFinal = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

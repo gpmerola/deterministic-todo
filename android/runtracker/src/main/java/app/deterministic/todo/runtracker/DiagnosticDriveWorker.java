@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 public final class DiagnosticDriveWorker extends Worker {
+    static final String INPUT_MANUAL_EXPORT = "manual_export";
     private static final String WORK = "todo-diagnostics-daily-drive";
     private static final String STARTUP_WORK = "todo-diagnostics-startup-drive";
     static final long PERIODIC_INTERVAL_HOURS = 1;
@@ -56,16 +57,22 @@ public final class DiagnosticDriveWorker extends Worker {
         Context context = getApplicationContext();
         if (!DriveTestExportManager.isConfigured(context)) return Result.success();
         try {
+            boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
             String diagnostics = readDiagnostics(context);
-            if (diagnostics.isEmpty()) return Result.success();
-            String bucket = LocalDateTime.now().format(
-                DateTimeFormatter.ofPattern("yyyy-MM-dd_HH"));
+            String bucket = LocalDateTime.now().format(DateTimeFormatter.ofPattern(
+                manualExport ? "yyyy-MM-dd_HH-mm-ss" : "yyyy-MM-dd_HH"));
             String name = DiagnosticRetentionPolicy.PREFIX + bucket
                 + DiagnosticRetentionPolicy.SUFFIX;
-            DriveTestExportManager.writeDailyDiagnostics(context, name, diagnostics);
+            if (!diagnostics.isEmpty()) {
+                if (manualExport) name = "todo_diagnostics_manual_" + bucket + ".jsonl";
+                DriveTestExportManager.writeDailyDiagnostics(context, name, diagnostics);
+            }
             long observedAt = System.currentTimeMillis();
+            String unifiedName = manualExport
+                ? "unified_diagnostics_manual_" + bucket + ".json"
+                : UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault());
             DriveTestExportManager.writeUnifiedDiagnostics(context,
-                UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault()),
+                unifiedName,
                 UnifiedDiagnosticReport.create(context, observedAt).toString(2));
             DriveTestExportManager.refreshRecentThreeWayReports(context, 15);
             return Result.success();

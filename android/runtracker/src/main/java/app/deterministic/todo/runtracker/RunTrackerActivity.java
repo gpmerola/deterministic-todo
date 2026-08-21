@@ -29,6 +29,8 @@ import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -228,6 +230,33 @@ public final class RunTrackerActivity extends ComponentActivity {
         driveStatusView = label(DriveTestExportManager.status(this), 14);
         driveStatusView.setGravity(Gravity.CENTER);
         root.addView(driveStatusView, matchWrap(dp(5)));
+
+        Button uploadAll = new Button(this);
+        uploadAll.setText("Carica ora tutti i dati di test");
+        uploadAll.setOnClickListener(v -> {
+            if (!DriveTestExportManager.isConfigured(this)) {
+                Toast.makeText(this, "Collega prima la cartella Drive", Toast.LENGTH_LONG).show();
+                return;
+            }
+            uploadAll.setEnabled(false);
+            uploadAll.setText("Caricamento completo in corso…");
+            java.util.UUID finalWork = ManualDiagnosticExportScheduler.enqueue(this);
+            WorkManager.getInstance(this).getWorkInfoByIdLiveData(finalWork).observe(
+                this, info -> {
+                    if (info == null || !info.getState().isFinished()) return;
+                    uploadAll.setEnabled(true);
+                    if (info.getState() == WorkInfo.State.SUCCEEDED) {
+                        uploadAll.setText("Carica ora tutti i dati di test");
+                        driveStatusView.setText("Upload manuale completo riuscito");
+                        Toast.makeText(this, "Tutti i dati disponibili sono su Drive",
+                            Toast.LENGTH_LONG).show();
+                    } else {
+                        uploadAll.setText("Riprova caricamento completo");
+                        driveStatusView.setText("Upload manuale non completato");
+                    }
+                });
+        });
+        root.addView(uploadAll, matchWrap(dp(8)));
 
         passiveStatusView = label(passiveStatus(), 13);
         passiveStatusView.setGravity(Gravity.CENTER);

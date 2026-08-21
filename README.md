@@ -135,6 +135,9 @@ del giorno precedente viene conservato separatamente. Ogni snapshot schema 6
 include anche una timeline UTC al minuto ricostruita dai record Health Connect:
 consente di isolare a posteriori un intervallo breve anche quando Google Fit
 sincronizza in ritardo, senza aumentare il polling o tenere il GPS acceso.
+Per anticipare un controllo, `Carica ora tutti i dati di test` produce file
+manuali univoci e comprende snapshot passivo, segmenti intensivi pendenti,
+diagnostica applicativa e report unificato senza fermare il monitor.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo

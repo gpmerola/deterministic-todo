@@ -95,6 +95,7 @@ Varianti esplicite:
 make todo-test-adb       # fallisce se ADB non è disponibile
 make todo-test-remote    # forza la pubblicazione per il telefono scollegato
 make todo-test-ci        # fallback: compila sui runner GitHub
+python3 tools/todo_test_fast.py --mode build  # verifica locale, senza consegna
 ```
 
 Il percorso remoto locale richiede `gh` autenticato. Firma e password vengono

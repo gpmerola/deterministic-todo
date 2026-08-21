@@ -132,6 +132,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 - lasciare attivo il test passivo già avviato e raccogliere almeno due giorni
   normali, principalmente camminata e corsa, senza premere altri comandi;
+- quando serve anticipare un controllo remoto usare soltanto `Carica ora tutti
+  i dati di test`; non usare `Sincronizza ultima attività`, che resta limitato
+  alla sessione GPS esplicita più recente;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
   `daily_audit_*.json` schema 6: timeline al minuto, delta tra snapshot, scarto distanza, quote
   cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
