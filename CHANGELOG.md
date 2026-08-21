@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.9
+
+- Corregge il confronto del canale Todo Test: il suffisso `-dev` non azzera
+  più la patch e la build logica viene confrontata con il `versionCode` Android
+  nell’intervallo dedicato. Una build installata non può quindi ricevere per
+  errore una proposta di downgrade.
+- Ricontrolla la versione realmente installata subito prima del download e usa
+  un nome APK distinto per versione e build, eliminando riusi di file obsoleti.
+
 ## 2.26.8
 
 - Unifica il recupero manuale dell’ultima sessione in un solo comando che

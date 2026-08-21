@@ -710,10 +710,22 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       await launchUrl(update.url, mode: LaunchMode.externalApplication);
       return;
     }
+    if (!await UpdateService.stillApplies(update)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('L’app è già aggiornata'),
+            showCloseIcon: true,
+          ),
+        );
+      }
+      return;
+    }
     final ota = OtaUpdate();
     final events = ota.execute(
       update.url.toString(),
-      destinationFilename: 'deterministic-todo-${update.version}.apk',
+      destinationFilename:
+          'deterministic-todo-${update.version}-${update.build}.apk',
       sha256checksum: update.sha256,
     );
     if (!mounted) return;

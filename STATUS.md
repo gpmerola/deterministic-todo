@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.26.8 build 131**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.26.9 build 132**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -14,6 +14,9 @@ Aggiornato il 21 agosto 2026.
   e diagnostica e riprogramma automaticamente il confronto Fit. I retry con
   valori Fit invariati riusano lo stesso sidecar immutabile, mentre un
   aggiornamento reale dei valori crea un nuovo snapshot.
+  La build 132 corregge inoltre il confronto OTA del suffisso `-dev`, verifica
+  anche la build logica e ricontrolla la versione installata prima di avviare
+  il download: il manifest rolling in ritardo non può più proporre downgrade.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e

@@ -18,6 +18,34 @@ void main() {
     test('confronta numericamente e non alfabeticamente', () {
       expect(UpdateService.isNewerVersion('1.10.0', '1.9.0'), isTrue);
     });
+
+    test('ignora il suffisso dev senza trasformare la patch in zero', () {
+      expect(UpdateService.isNewerVersion('2.26.7', '2.26.8-dev'), isFalse);
+      expect(UpdateService.isNewerVersion('2.26.9', '2.26.8-dev'), isTrue);
+    });
+
+    test('confronta la build logica Todo Test con versionCode Android', () {
+      expect(
+        UpdateService.isNewerRelease(
+          candidateVersion: '2.26.8',
+          candidateBuild: 130,
+          installedVersion: '2.26.8-dev',
+          installedBuild: 2131,
+          distributionChannel: 'dev',
+        ),
+        isFalse,
+      );
+      expect(
+        UpdateService.isNewerRelease(
+          candidateVersion: '2.26.8',
+          candidateBuild: 132,
+          installedVersion: '2.26.8-dev',
+          installedBuild: 2131,
+          distributionChannel: 'dev',
+        ),
+        isTrue,
+      );
+    });
   });
 
   test('il manifest usa un cache-buster diverso a ogni controllo', () {
