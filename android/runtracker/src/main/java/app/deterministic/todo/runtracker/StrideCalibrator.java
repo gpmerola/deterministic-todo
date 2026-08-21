@@ -13,23 +13,52 @@ final class StrideCalibrator {
     private static final String PREFS = "movement_profile";
     private static final int REQUIRED_SAMPLES = 3;
     private static final int MAX_SAMPLES = 7;
+    private static final int QUALITY_SCHEMA = 2;
 
     private StrideCalibrator() {}
 
-    static void record(Context context, RunSession session, long steps) {
+    static void ensureQualitySchema(Context context) {
+        SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (preferences.getInt("stride_calibration_quality_schema", 0) >= QUALITY_SCHEMA) return;
+        // Pre-schema running samples did not distinguish mixed running/walking sessions.
+        preferences.edit().remove("running_stride_samples").remove("running_stride_meters")
+            .putInt("stride_calibration_quality_schema", QUALITY_SCHEMA).apply();
+    }
+
+    static void record(Context context, RunSession session, long steps, DirectStepTimeline timeline) {
         if (session == null || steps <= 0) return;
+        ensureQualitySchema(context);
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String sessionKey = "stride_calibrated_session_" + session.id;
         if (preferences.getBoolean(sessionKey, false)) return;
         String type = "run".equals(session.activityType) ? "running" :
             ("walk".equals(session.activityType) ? "walking" : null);
-        if (type == null || !eligible(type, session.distanceMeters, steps)) return;
+        if (type == null) return;
+        StrideCalibrationQuality.Assessment quality = StrideCalibrationQuality.assess(
+            type, timeline, session.startedAtMillis, session.endedAtMillis);
+        SharedPreferences.Editor qualityEditor = preferences.edit()
+            .putLong(session.id + ".stride_calibration_observed_steps", quality.observedSteps())
+            .putLong(session.id + ".stride_calibration_walking_steps", quality.walkingSteps())
+            .putLong(session.id + ".stride_calibration_running_steps", quality.runningSteps())
+            .putFloat(session.id + ".stride_calibration_expected_share", (float) quality.expectedShare());
+        qualityEditor.apply();
+        if (!quality.pure()) {
+            preferences.edit().putString(
+                session.id + ".stride_calibration_status", "mixed_activity").apply();
+            return;
+        }
+        if (!eligible(type, session.distanceMeters, steps)) {
+            preferences.edit().putString(
+                session.id + ".stride_calibration_status", "ineligible_sample").apply();
+            return;
+        }
         double candidate = session.distanceMeters / steps;
         List<Double> samples = decode(preferences.getString(type + "_stride_samples", "[]"));
         samples.add(candidate);
         while (samples.size() > MAX_SAMPLES) samples.remove(0);
         SharedPreferences.Editor editor = preferences.edit()
             .putBoolean(sessionKey, true)
+            .putString(session.id + ".stride_calibration_status", "recorded")
             .putString(type + "_stride_samples", encode(samples));
         if (samples.size() >= REQUIRED_SAMPLES)
             editor.putFloat(type + "_stride_meters", (float) median(samples));

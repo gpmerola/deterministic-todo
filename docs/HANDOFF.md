@@ -496,6 +496,15 @@ backup cloud.
 
 ## Ripresa consigliata nella prossima chat
 
+La build 133 introduce due correzioni fondate sulla corsa mista del 21 agosto:
+il primo fix coerente dopo `gps_discontinuity_reanchor` è un punto di
+stabilizzazione a distanza zero, e la calibrazione della falcata richiede una
+quota di cadenza coerente almeno pari all'80% in finestre di 30 secondi. La
+diagnostica sessione è schema 2 e contiene `stride_calibration`; i campioni
+corsa antecedenti alla nuova regola vengono invalidati una sola volta. Non è
+stato abbassato il tetto GPS della corsa: servono nuovi dati reali prima di
+modificarlo.
+
 1. leggere integralmente `AGENTS.md`, `TODO_NEXT.md` e questo handoff, quindi
    controllare `git status -sb`;
 2. non modificare algoritmo, schema o campionamento mentre l'esperimento

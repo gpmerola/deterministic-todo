@@ -14,6 +14,7 @@ public final class GpsTrackFilter {
     private Sample previous;
     private Sample last;
     private Sample discontinuityCandidate;
+    private boolean settlingAfterReanchor;
     private double totalMeters;
     private final double maximumSpeedMps;
 
@@ -65,6 +66,13 @@ public final class GpsTrackFilter {
                     double recoveredSegment = distanceMeters(last, sample);
                     double recoveredSpeed = recoveredSegment / (elapsedMillis / 1000.0);
                     if (recoveredSpeed <= maximumSpeedMps) {
+                        if (settlingAfterReanchor) {
+                            previous = last;
+                            last = sample;
+                            discontinuityCandidate = null;
+                            settlingAfterReanchor = false;
+                            return reject("gps_discontinuity_settling");
+                        }
                         // The first fix looked too fast only because it arrived early.
                         // Once the confirming fix makes the complete interval plausible,
                         // retain the chord instead of losing genuine movement.
@@ -79,6 +87,7 @@ public final class GpsTrackFilter {
                     last = sample;
                     previous = null;
                     discontinuityCandidate = null;
+                    settlingAfterReanchor = true;
                     return reject("gps_discontinuity_reanchor");
                 }
             }
@@ -94,6 +103,16 @@ public final class GpsTrackFilter {
         if (speed > maximumSpeedMps) {
             discontinuityCandidate = sample;
             return reject("implausible_speed_jump");
+        }
+
+        // A confirmed discontinuity made the previous fix an intentionally untrusted
+        // anchor. Use the first coherent fix only to settle the new track: otherwise a
+        // later return from a false re-anchor can add the entire GPS excursion.
+        if (settlingAfterReanchor) {
+            previous = last;
+            last = sample;
+            settlingAfterReanchor = false;
+            return reject("gps_discontinuity_settling");
         }
 
         if (previous != null && segment < 30 && distanceMeters(previous, last) < 30) {

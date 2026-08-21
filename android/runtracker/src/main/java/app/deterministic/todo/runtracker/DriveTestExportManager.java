@@ -337,7 +337,8 @@ final class DriveTestExportManager {
     }
 
     static void finish(Context context, RunSession session, List<TrackPoint> points, Completion completion) {
-        StrideCalibrator.record(context, session, directSteps(context, session.id));
+        StrideCalibrator.record(context, session, directSteps(context, session.id),
+            directStepTimeline(context, session.id));
         if (!isConfigured(context)) {
             completion.onComplete(new ExportResult(false, false, "not_configured"));
             return;
@@ -724,7 +725,13 @@ final class DriveTestExportManager {
                 .put("local_distance_m", p.getFloat(s.id + ".fit_local_distance_m", 0));
         }
         ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo(); ((ActivityManager)c.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memory);
-        return new JSONObject().put("schema_version", 1).put("session_id", s.id).put("activity", s.activityType)
+        JSONObject strideCalibration = new JSONObject()
+            .put("status", p.getString(s.id + ".stride_calibration_status", "not_evaluated"))
+            .put("observed_steps", p.getLong(s.id + ".stride_calibration_observed_steps", 0))
+            .put("walking_steps", p.getLong(s.id + ".stride_calibration_walking_steps", 0))
+            .put("running_steps", p.getLong(s.id + ".stride_calibration_running_steps", 0))
+            .put("expected_activity_share", p.getFloat(s.id + ".stride_calibration_expected_share", 0));
+        return new JSONObject().put("schema_version", 2).put("session_id", s.id).put("activity", s.activityType)
             .put("started_at_ms", s.startedAtMillis).put("ended_at_ms", s.endedAtMillis).put("duration_ms", s.endedAtMillis - s.startedAtMillis)
             .put("exported_at_ms", exportedAt)
             .put("distance_m", s.distanceMeters).put("steps_start_daily", steps0 < 0 ? JSONObject.NULL : steps0)
@@ -735,6 +742,7 @@ final class DriveTestExportManager {
             .put("session_steps_direct", directSteps < 0 ? JSONObject.NULL : directSteps)
             .put("session_steps_direct_status", directStepStatus)
             .put("session_steps_direct_samples", directStepSamples)
+            .put("stride_calibration", strideCalibration)
             .put("google_fit_comparison", fit)
             .put("gps", new JSONObject().put("samples", points.size()).put("accepted", accepted).put("rejected", points.size()-accepted)
                 .put("rejection_reasons", reasons).put("accuracy_mean_m", points.isEmpty()?JSONObject.NULL:accuracySum/points.size()).put("accuracy_max_m", accuracyMax))

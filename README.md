@@ -90,7 +90,12 @@ quando dominano almeno l'80% del blocco; se il sensore registra passi mentre
 Activity Recognition segnala `STILL`, i passi prevalgono e la quota resta
 visibile come incerta.
 Le falcate partono da fallback dichiarati e vengono calibrate con la mediana
-solo dopo tre sessioni GPS lunghe e plausibili dello stesso tipo. Non sono
+solo dopo tre sessioni GPS lunghe e plausibili dello stesso tipo. Una sessione
+entra nella calibrazione soltanto quando almeno l'80% dei passi osservati in
+finestre di 30 secondi ha una cadenza coerente con camminata o corsa; una corsa
+intervallata da lunghi tratti camminati resta utile alla diagnostica ma non
+altera la falcata. Dopo un riaggancio GPS il primo fix coerente stabilizza il
+nuovo riferimento senza aggiungere distanza. Non sono
 misure cliniche né equivalenti a Google Fit finché il confronto reale non è
 stato validato sul Galaxy S21.
 

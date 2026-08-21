@@ -128,6 +128,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         ActivityClassifier.register(this);
+        StrideCalibrator.ensureQualitySchema(this);
         setTitle("Movimento");
         setContentView(content());
         io.execute(() -> {

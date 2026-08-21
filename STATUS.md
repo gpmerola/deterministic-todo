@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.26.9 build 132**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.27.0 build 133**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -17,6 +17,12 @@ Aggiornato il 21 agosto 2026.
   La build 132 corregge inoltre il confronto OTA del suffisso `-dev`, verifica
   anche la build logica e ricontrolla la versione installata prima di avviare
   il download: il manifest rolling in ritardo non può più proporre downgrade.
+  La build 133 evita che il ritorno da un falso riaggancio GPS aggiunga il
+  percorso spurio: il primo fix coerente dopo il riaggancio stabilizza soltanto
+  il nuovo riferimento ed è registrato come `gps_discontinuity_settling`.
+  Inoltre una sessione calibra la falcata soltanto se almeno l'80% dei passi
+  osservati in finestre di 30 secondi appartiene alla cadenza attesa; i
+  campioni corsa precedenti a questa regola vengono azzerati una sola volta.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
@@ -55,8 +61,9 @@ Aggiornato il 21 agosto 2026.
   Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
   **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
   Web e controllo finale di parità.
-- Stato dispositivo distinto dalla release: **Todo Test 2.26.0-dev build 123**
-  è operativo; la build Play 121 è soltanto fallback disabilitato.
+- Stato dispositivo distinto dalla release: la versione installata viene
+  verificata via ADB dopo ogni consegna Todo Test; la build Play 121 è soltanto
+  fallback disabilitato.
 - Non usare l'APK GitHub per sostituire la build Play e non disinstallare o
   cancellare i dati di nessuno dei due package. Gli APK `dev` firmati con la
   linea diretta sono invece il canale rapido previsto per Todo Test.

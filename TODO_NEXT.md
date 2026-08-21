@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.26.9 build 132. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.27.0 build 133. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -30,7 +30,12 @@ non duplicare qui i dettagli tecnici.
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
   la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
-- Sul Galaxy S21 coesistono **Todo Test 2.26.0-dev build 123** attiva e la
+- La build 133 stabilizza il primo fix coerente dopo un riaggancio GPS senza
+  aggiungerne il segmento e impedisce alle sessioni con oltre il 20% di passi
+  a cadenza diversa dall'etichetta di calibrare la falcata. Il prossimo test
+  utile è una corsa prevalentemente continua, lasciando attivi monitor passivo
+  e diagnostica.
+- Sul Galaxy S21 coesistono **Todo Test** attiva e la
   **build Play 121** disabilitata. Non disinstallare la seconda e non usare
   l'APK GitHub per aggiornarla. Runbook canonico:
   [`docs/operations/ANDROID_DEV_CHANNEL.md`](docs/operations/ANDROID_DEV_CHANNEL.md).

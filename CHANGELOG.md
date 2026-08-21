@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.27.0
+
+- Dopo un riaggancio GPS confermato usa il primo fix coerente soltanto per
+  stabilizzare il nuovo riferimento, evitando di sommare il ritorno da
+  escursioni spurie; la decisione è esportata come
+  `gps_discontinuity_settling`.
+- Classifica la purezza corsa/camminata in finestre di 30 secondi e accetta una
+  calibrazione della falcata solo con almeno l'80% dei passi alla cadenza
+  prevista.
+- Esporta nella diagnostica sessione schema 2 stato della calibrazione, passi
+  per classe e quota attesa. Azzera una volta i campioni corsa raccolti prima
+  del nuovo controllo di purezza.
+
 ## 2.26.9
 
 - Corregge il confronto del canale Todo Test: il suffisso `-dev` non azzera

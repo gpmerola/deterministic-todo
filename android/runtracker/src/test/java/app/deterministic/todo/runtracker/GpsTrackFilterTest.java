@@ -110,8 +110,42 @@ public class GpsTrackFilterTest {
         assertEquals(0, reanchor.totalMeters(), 0.001);
 
         GpsTrackFilter.Decision resumed = walking.evaluate(sample(17_000, 51.50096, -0.1200, 6));
-        assertTrue(resumed.accepted());
-        assertTrue(resumed.totalMeters() > 5 && resumed.totalMeters() < 6);
+        assertFalse(resumed.accepted());
+        assertEquals("gps_discontinuity_settling", resumed.reason());
+        assertEquals(0, resumed.totalMeters(), 0.001);
+
+        GpsTrackFilter.Decision stable = walking.evaluate(sample(22_000, 51.50101, -0.1200, 6));
+        assertTrue(stable.accepted());
+        assertTrue(stable.totalMeters() > 5 && stable.totalMeters() < 6);
+    }
+
+    @Test public void returnAfterFalseReanchorDoesNotAddExcursionChord() {
+        GpsTrackFilter running = new GpsTrackFilter(GpsTrackFilter.MAX_RUNNING_SPEED_MPS);
+        running.evaluate(sample(0, 51.5000, -0.1200, 6));
+        assertEquals("implausible_speed_jump",
+            running.evaluate(sample(5_000, 51.5010, -0.1200, 6)).reason());
+        assertEquals("gps_discontinuity_reanchor",
+            running.evaluate(sample(7_000, 51.50105, -0.1200, 6)).reason());
+
+        GpsTrackFilter.Decision returned = running.evaluate(sample(27_000, 51.5001, -0.1200, 6));
+        assertFalse(returned.accepted());
+        assertEquals("gps_discontinuity_settling", returned.reason());
+        assertEquals(0, returned.totalMeters(), 0.001);
+    }
+
+    @Test public void confirmingReturnAfterFalseReanchorStillOnlySettles() {
+        GpsTrackFilter running = new GpsTrackFilter(GpsTrackFilter.MAX_RUNNING_SPEED_MPS);
+        running.evaluate(sample(0, 51.5000, -0.1200, 6));
+        running.evaluate(sample(5_000, 51.5010, -0.1200, 6));
+        running.evaluate(sample(7_000, 51.50105, -0.1200, 6));
+
+        assertEquals("implausible_speed_jump",
+            running.evaluate(sample(12_000, 51.5001, -0.1200, 6)).reason());
+        GpsTrackFilter.Decision confirmed =
+            running.evaluate(sample(17_000, 51.50015, -0.1200, 6));
+        assertFalse(confirmed.accepted());
+        assertEquals("gps_discontinuity_settling", confirmed.reason());
+        assertEquals(0, confirmed.totalMeters(), 0.001);
     }
 
     @Test public void confirmingFixRecoversPlausibleWholeWalkingInterval() {
