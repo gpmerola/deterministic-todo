@@ -230,6 +230,14 @@ jobs:
             --split-debug-info=build/private-symbols \
             --dart-define=DISTRIBUTION_CHANNEL=direct \
             --dart-define-from-file=supabase/config.json
+          flutter build apk --release --flavor dev \
+            --split-debug-info=build/private-symbols/dev-universal \
+            --dart-define=DISTRIBUTION_CHANNEL=dev \
+            --dart-define-from-file=supabase/config.json
+          flutter build apk --release --flavor dev --split-per-abi \
+            --split-debug-info=build/private-symbols/dev \
+            --dart-define=DISTRIBUTION_CHANNEL=dev \
+            --dart-define-from-file=supabase/config.json
           python3 tools/check_release_budgets.py \
             build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk \
             build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk \
@@ -258,6 +266,10 @@ jobs:
           cp build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
           cp build/app/outputs/flutter-apk/app-x86_64-direct-release.apk release-assets/DeterministicTodo-Android-x86_64.apk
+          cp build/app/outputs/flutter-apk/app-dev-release.apk release-assets/TodoTest-Android-universal.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-dev-release.apk release-assets/TodoTest-Android-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-dev-release.apk release-assets/TodoTest-Android-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-dev-release.apk release-assets/TodoTest-Android-x86_64.apk
           python3 tools/generate_release_manifest.py \
             --version "$VERSION" \
             --build "$BUILD" \
@@ -267,6 +279,10 @@ jobs:
             --arm64 release-assets/DeterministicTodo-Android-arm64-v8a.apk \
             --arm32 release-assets/DeterministicTodo-Android-armeabi-v7a.apk \
             --x86-64 release-assets/DeterministicTodo-Android-x86_64.apk \
+            --dev-universal release-assets/TodoTest-Android-universal.apk \
+            --dev-arm64 release-assets/TodoTest-Android-arm64-v8a.apk \
+            --dev-arm32 release-assets/TodoTest-Android-armeabi-v7a.apk \
+            --dev-x86-64 release-assets/TodoTest-Android-x86_64.apk \
             --output release-assets/manifest.json
 
       - name: Upload staged Android release
@@ -406,7 +422,9 @@ jobs:
           assert (android['version'], android['build'], android['source_commit']) == expected
           expected_path = f"/releases/download/v{os.environ['VERSION']}/"
           assert set(android['platforms']) == {
-              'android', 'android-arm64-v8a', 'android-armeabi-v7a', 'android-x86_64'
+              'android', 'android-arm64-v8a', 'android-armeabi-v7a', 'android-x86_64',
+              'android-dev', 'android-dev-arm64-v8a',
+              'android-dev-armeabi-v7a', 'android-dev-x86_64'
           }
           for platform in android['platforms'].values():
               assert expected_path in platform['url']

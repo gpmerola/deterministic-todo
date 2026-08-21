@@ -32,6 +32,11 @@ class UpdateService {
   final http.Client _client;
   final Uri _manifest;
 
+  static const distributionChannel = String.fromEnvironment(
+    'DISTRIBUTION_CHANNEL',
+    defaultValue: 'direct',
+  );
+
   static Uri cacheBustedManifest(Uri manifest, DateTime now) =>
       manifest.replace(
         queryParameters: {
@@ -60,10 +65,11 @@ class UpdateService {
     String? platformKey;
     if (isAndroidPlatform) {
       final abi = await OtaUpdate().getAbi();
-      final abiKey = abi == null ? null : 'android-$abi';
-      platformKey = abiKey != null && platforms.containsKey(abiKey)
-          ? abiKey
-          : 'android';
+      platformKey = platformKeyFor(
+        distributionChannel: distributionChannel,
+        abi: abi,
+        available: platforms.keys,
+      );
     }
     if (platformKey == null) return null;
     final platform = platforms[platformKey];
@@ -81,6 +87,18 @@ class UpdateService {
 
   static bool isNewerVersion(String candidate, String installed) =>
       _compareVersions(candidate, installed) > 0;
+
+  static String? platformKeyFor({
+    required String distributionChannel,
+    required String? abi,
+    required Iterable<String> available,
+  }) {
+    final keys = available.toSet();
+    final prefix = distributionChannel == 'dev' ? 'android-dev' : 'android';
+    final abiKey = abi == null ? null : '$prefix-$abi';
+    if (abiKey != null && keys.contains(abiKey)) return abiKey;
+    return keys.contains(prefix) ? prefix : null;
+  }
 
   static int _compareVersions(String left, String right) {
     final a = left.split('.').map((value) => int.tryParse(value) ?? 0).toList();

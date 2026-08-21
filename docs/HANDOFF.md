@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.26.4 build 127**. Il flavor Android `dev`
+- Versione coordinata corrente: **2.26.5 build 128**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -107,6 +107,11 @@ Ogni modifica funzionale Android deve incrementare versione/build e superare i
 test. Durante lo sviluppo viene collaudata prima sul flavor `dev` via ADB; il
 workflow conserva Play come canale stabile. Una modifica soltanto documentale
 non richiede una nuova build.
+
+Dalla build 128 la release GitHub include APK distinti `TodoTest-Android-*` e
+voci manifest `android-dev-*`. Todo Test seleziona esclusivamente tali asset;
+gli APK `DeterministicTodo-Android-*` appartengono al package principale e
+produrrebbero un conflitto di package/firma. ADB resta solo un fallback.
 
 ## Come funziona il Todo
 

@@ -71,9 +71,15 @@ create automaticamente.
 
 ## Aggiornamenti successivi
 
-Ricostruire e ripetere `adb install -r`. Firma e application ID devono restare
-gli stessi. Il comando conserva dati, login, autorizzazioni e chiave Keystore
-di Todo Test. Non usare `adb uninstall` come procedura di aggiornamento.
+Dalla build 128 il manifest pubblico contiene asset `android-dev-*` firmati e
+con package `.dev`. L'updater di Todo Test seleziona esclusivamente questi
+asset e rifiuta implicitamente il fallback `android-*` della linea principale:
+questo evita l'errore Android “package conflicts with an existing package”.
+
+L'aggiornamento in-app è il percorso normale e conserva dati, login,
+autorizzazioni e chiave Keystore. `adb install -r` con l'APK `dev` resta un
+fallback rapido. Non usare `adb uninstall` e non tentare di installare un APK
+`DeterministicTodo-Android-*` dentro Todo Test.
 
 ## Passaggio e rollback
 

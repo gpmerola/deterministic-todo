@@ -36,4 +36,28 @@ void main() {
     expect(second.queryParameters['check'], '2000');
     expect(second, isNot(first));
   });
+
+  test('Todo Test seleziona soltanto un APK con package dev', () {
+    final platforms = {
+      'android-arm64-v8a',
+      'android-dev-arm64-v8a',
+      'android-dev',
+    };
+    expect(
+      UpdateService.platformKeyFor(
+        distributionChannel: 'dev',
+        abi: 'arm64-v8a',
+        available: platforms,
+      ),
+      'android-dev-arm64-v8a',
+    );
+    expect(
+      UpdateService.platformKeyFor(
+        distributionChannel: 'dev',
+        abi: 'x86_64',
+        available: {'android', 'android-arm64-v8a'},
+      ),
+      isNull,
+    );
+  });
 }

@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.5
+
+- Pubblica APK OTA dedicati a Todo Test con package `.dev` e firma diretta
+  stabile. L'updater seleziona soltanto le voci manifest `android-dev-*` e non
+  tenta più di installare l'APK incompatibile della linea principale.
+
 ## 2.26.4
 
 - Crea ogni tre ore un riepilogo unificato di telefono, Google Fit, Bip U,

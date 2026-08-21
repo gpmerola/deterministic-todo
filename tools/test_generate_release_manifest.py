@@ -14,9 +14,10 @@ class ReleaseManifestTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             apks = []
-            for index, name in enumerate(
-                ("universal.apk", "arm64.apk", "arm32.apk", "x86.apk")
-            ):
+            for index, name in enumerate((
+                "universal.apk", "arm64.apk", "arm32.apk", "x86.apk",
+                "dev-universal.apk", "dev-arm64.apk", "dev-arm32.apk", "dev-x86.apk",
+            )):
                 path = root / name
                 path.write_bytes(f"synthetic-apk-{index}".encode())
                 apks.append(path)
@@ -42,6 +43,14 @@ class ReleaseManifestTest(unittest.TestCase):
                     str(apks[2]),
                     "--x86-64",
                     str(apks[3]),
+                    "--dev-universal",
+                    str(apks[4]),
+                    "--dev-arm64",
+                    str(apks[5]),
+                    "--dev-arm32",
+                    str(apks[6]),
+                    "--dev-x86-64",
+                    str(apks[7]),
                     "--output",
                     str(output),
                 ],
@@ -57,6 +66,10 @@ class ReleaseManifestTest(unittest.TestCase):
                 "android-arm64-v8a",
                 "android-armeabi-v7a",
                 "android-x86_64",
+                "android-dev",
+                "android-dev-arm64-v8a",
+                "android-dev-armeabi-v7a",
+                "android-dev-x86_64",
             ):
                 self.assertEqual(len(manifest["platforms"][platform]["sha256"]), 64)
                 self.assertIn("/v9.8.7/", manifest["platforms"][platform]["url"])
