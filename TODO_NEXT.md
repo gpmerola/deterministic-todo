@@ -135,6 +135,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - quando serve anticipare un controllo remoto usare soltanto `Carica ora tutti
   i dati di test`; non usare `Sincronizza ultima attività`, che resta limitato
   alla sessione GPS esplicita più recente;
+- verificare sulla build 137 che l'anello passi sia leggibile nelle viste
+  principali, che il target cambi dalle Impostazioni e che Movimento non
+  richieda scorrimento per le tre azioni ordinarie;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
   `daily_audit_*.json` schema 6: timeline al minuto, delta tra snapshot, scarto distanza, quote
   cammino/corsa/incerte, record grezzi e riconciliazione, esclusi

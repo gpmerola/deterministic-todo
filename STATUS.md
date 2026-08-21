@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.28.2 build 136**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.29.0 build 137**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -36,6 +36,10 @@ Aggiornato il 21 agosto 2026.
   crea file univoci per snapshot passivo e diagnostica, carica i blocchi
   intensivi pendenti, aggiorna il report unificato e i confronti recenti senza
   avviare GPS o BLE.
+  La build 137 aggiunge l'obiettivo passi globale (10.000 predefiniti,
+  configurabile), con anello persistente e celebrazione una volta al giorno;
+  riduce Movimento a tre schede principali e sposta i controlli rari nei
+  dettagli. L'upload completo è richiamabile anche dalla shell ADB protetta.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e

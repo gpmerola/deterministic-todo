@@ -139,6 +139,11 @@ Per anticipare un controllo, `Carica ora tutti i dati di test` produce file
 manuali univoci e comprende snapshot passivo, segmenti intensivi pendenti,
 diagnostica applicativa e report unificato senza fermare il monitor.
 
+Su Android l'AppBar mostra in tutte le schermate un anello compatto con i passi
+del giorno e il progresso verso l'obiettivo. Il target predefinito di 10.000
+passi è modificabile nelle Impostazioni; il giorno e il reset derivano da
+Health Connect e dal fuso locale, non da un contatore parallelo dell'app.
+
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo
 (`poor_accuracy`, `implausible_speed_jump`, `gps_zigzag`, rumore da fermo o

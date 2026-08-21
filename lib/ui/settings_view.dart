@@ -5,6 +5,8 @@ class SettingsView extends StatelessWidget {
     required this.repository,
     required this.checkForUpdates,
     required this.showCompleted,
+    required this.dailyStepGoal,
+    required this.onDailyStepGoalChanged,
     this.syncClient,
     this.syncService,
     super.key,
@@ -13,8 +15,45 @@ class SettingsView extends StatelessWidget {
   final TaskRepository repository;
   final Future<void> Function() checkForUpdates;
   final VoidCallback showCompleted;
+  final int dailyStepGoal;
+  final Future<void> Function(int) onDailyStepGoalChanged;
   final SupabaseClient? syncClient;
   final SyncService? syncService;
+
+  Future<void> _editDailyStepGoal(BuildContext context) async {
+    final controller = TextEditingController(text: '$dailyStepGoal');
+    final value = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Obiettivo passi giornaliero'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            labelText: 'Passi',
+            helperText: 'Da 1.000 a 100.000',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = int.tryParse(controller.text);
+              if (parsed != null) Navigator.pop(dialogContext, parsed);
+            },
+            child: const Text('Salva'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value != null) await onDailyStepGoalChanged(value);
+  }
 
   Future<void> _export(BuildContext context, bool json) async {
     final service = ExportService(repository.db);
@@ -381,6 +420,15 @@ class SettingsView extends StatelessWidget {
             ),
           ),
         ),
+      ),
+      ListTile(
+        leading: const Icon(Icons.track_changes_outlined),
+        title: const Text('Obiettivo passi'),
+        subtitle: Text(
+          '${NumberFormat.decimalPattern('it').format(dailyStepGoal)} passi al giorno',
+        ),
+        trailing: const Icon(Icons.edit_outlined),
+        onTap: () => _editDailyStepGoal(context),
       ),
       ListTile(
         leading: const Icon(Icons.check_circle_outline),

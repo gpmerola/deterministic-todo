@@ -2,6 +2,23 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.29.0
+
+- Mostra nell'AppBar Android un anello discreto con passi di oggi e progresso
+  verso l'obiettivo. Il valore predefinito è 10.000, modificabile nelle
+  Impostazioni; Health Connect usa sempre il giorno civile corrente, quindi il
+  conteggio riparte automaticamente a mezzanotte.
+- Al primo raggiungimento giornaliero anima l'anello, mostra una stella e una
+  conferma celebrativa senza notifiche ripetitive. La lettura avviene
+  all'apertura, al ritorno in primo piano e ogni 15 minuti soltanto mentre
+  l'app è visibile.
+- Ridisegna Movimento in tre schede compatte (`Oggi`, `Registra`, `Raccolta
+  dati`). Confronti dettagliati, controllo dei monitor, Drive, GPX e Bip U
+  restano disponibili sotto `Dettagli e strumenti`.
+- Il singolo comando `Carica tutti i dati ora` resta nella vista principale.
+  La stessa esportazione completa può essere programmata via provider ADB
+  protetto da `DUMP`, utile quando il telefono è collegato ma bloccato.
+
 ## 2.28.2
 
 - Aggiunge nella schermata Movimento un solo comando, `Carica ora tutti i dati

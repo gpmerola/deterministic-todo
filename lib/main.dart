@@ -36,6 +36,7 @@ import 'services/play_update_service.dart';
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
+import 'ui/daily_step_goal_indicator.dart';
 import 'ui/link_text_editing_controller.dart';
 import 'ui/smart_date_text_controller.dart';
 import 'ui/todoist_link_text.dart';
@@ -356,6 +357,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   late final Stream<List<Task>> completedTasks;
   bool backgroundSnapshotTaken = false;
   Timer? updateTimer;
+  Timer? movementRefreshTimer;
   DateTime? lastUpdateCheck;
   bool checkingForUpdates = false;
   bool appIsForeground = true;
@@ -364,6 +366,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Timer? remoteHighlightTimer;
   List<Project> quickAddProjects = const [];
   String? lastQuickProjectId;
+  DailyMovementProgress? dailyMovement;
+  int dailyStepGoal = 10000;
+  String? celebratedGoalDay;
 
   @override
   void initState() {
@@ -388,6 +393,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _refreshDailyMovement();
       await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
@@ -397,6 +403,54 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         if (appIsForeground) unawaited(_checkForUpdates(automatic: true));
       });
     }
+    if (isAndroidPlatform) {
+      movementRefreshTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+        if (appIsForeground) unawaited(_refreshDailyMovement());
+      });
+    }
+  }
+
+  Future<void> _refreshDailyMovement() async {
+    if (!isAndroidPlatform) return;
+    final results = await Future.wait<Object?>([
+      RunTrackerService.dailyMovement(),
+      RunTrackerService.getStepGoal(),
+      (widget.repository.db.select(widget.repository.db.appSettings)
+            ..where((row) => row.key.equals('step_goal_celebrated_day')))
+          .getSingleOrNull(),
+    ]);
+    if (!mounted) return;
+    final movement = results[0] as DailyMovementProgress?;
+    final goal = results[1] as int;
+    final savedCelebration = results[2] as AppSetting?;
+    celebratedGoalDay ??= savedCelebration?.value;
+    final reachedNow = movement != null && movement.steps >= goal;
+    final shouldCelebrate = reachedNow && celebratedGoalDay != movement.day;
+    setState(() {
+      dailyMovement = movement;
+      dailyStepGoal = goal;
+      if (shouldCelebrate) celebratedGoalDay = movement.day;
+    });
+    if (shouldCelebrate) {
+      await _savePreference('step_goal_celebrated_day', movement.day);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Obiettivo passi raggiunto! Ottimo lavoro ★'),
+          duration: Duration(seconds: 4),
+          showCloseIcon: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _setDailyStepGoal(int value) async {
+    final goal = await RunTrackerService.setStepGoal(value);
+    if (!mounted) return;
+    setState(() {
+      dailyStepGoal = goal;
+      if ((dailyMovement?.steps ?? 0) < goal) celebratedGoalDay = null;
+    });
   }
 
   Future<void> _initializeProjectCaches() async {
@@ -535,6 +589,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       appIsForeground = true;
       backgroundSnapshotTaken = false;
       widget.syncService?.resume();
+      unawaited(_refreshDailyMovement());
       unawaited(
         PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
       );
@@ -798,6 +853,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
+    movementRefreshTimer?.cancel();
     remoteHighlightTimer?.cancel();
     remoteTaskSubscription?.cancel();
     search.dispose();
@@ -1315,6 +1371,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       ),
                     ),
                     actions: [
+                      if (isAndroidPlatform)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: DailyStepGoalIndicator(
+                            key: const ValueKey('daily-step-goal'),
+                            steps: dailyMovement?.steps ?? 0,
+                            goal: dailyStepGoal,
+                            onTap: RunTrackerService.open,
+                          ),
+                        ),
                       if (widget.syncService != null)
                         SyncStatusAction(service: widget.syncService!),
                       if (section != AppSection.settings) ...[
@@ -1447,6 +1513,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         syncService: widget.syncService,
         checkForUpdates: _checkForUpdates,
         showCompleted: () => _navigateTo(AppSection.completed),
+        dailyStepGoal: dailyStepGoal,
+        onDailyStepGoalChanged: _setDailyStepGoal,
       );
     }
     if (section == AppSection.projects) return _projectsView(all);

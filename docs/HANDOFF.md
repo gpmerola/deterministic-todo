@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.28.2 build 136**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.29.0 build 137**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -56,6 +56,12 @@ di cambiare architettura.
   univoco, i segmenti intensivi pendenti, i log applicativi, il riepilogo
   unificato e i confronti recenti. L'esito finale è mostrato all'utente; il
   comando non avvia una sessione, GPS o BLE.
+  La build 137 rende il progresso passi visibile nell'AppBar Flutter su tutte
+  le schermate Android e nella scheda `Oggi` di Movimento. Il target canonico
+  vive in `movement_profile/daily_step_goal`, vale 10.000 se assente ed è
+  modificabile nelle Impostazioni. Il reset non è un job: ogni lettura Health
+  Connect usa il giorno civile locale. Movimento espone soltanto tre schede
+  principali; monitor, confronti e integrazioni rare sono collassati.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

@@ -143,6 +143,18 @@ senza abilitare `run-as`:
 adb shell content query --uri content://app.deterministic.todo.deterministic_todo.movement_debug/status
 ```
 
+Solo sul canale Todo Test, la shell autorizzata può programmare lo stesso
+upload completo del pulsante nell'interfaccia, senza sbloccare il telefono:
+
+```sh
+adb shell content call \
+  --uri content://app.deterministic.todo.deterministic_todo.dev.movement_debug/status \
+  --method export_now
+```
+
+Il provider resta protetto dal permesso Android `DUMP`; l'operazione non è
+accessibile ad app ordinarie e non avvia GPS o BLE.
+
 L'output atteso contiene una sola riga con `phase`, `result_code`, timestamp,
 nome dello snapshot, stato Drive, passi classificati e aggregati Todo/Google
 Fit. Dalla build 116 include anche finestra misurata, quantità e somma dei

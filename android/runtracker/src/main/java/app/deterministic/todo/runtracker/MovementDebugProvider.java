@@ -5,11 +5,20 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
 
 import java.util.Map;
 
-/** Read-only aggregate diagnostics. The manifest restricts callers to Android's DUMP permission. */
+/** DUMP-protected aggregate status plus an explicit shell-only export trigger. */
 public final class MovementDebugProvider extends ContentProvider {
+    @Override public Bundle call(String method, String arg, Bundle extras) {
+        if (!"export_now".equals(method)) return super.call(method, arg, extras);
+        Bundle result = new Bundle();
+        result.putString("work_id", ManualDiagnosticExportScheduler.enqueue(
+            java.util.Objects.requireNonNull(getContext())).toString());
+        result.putString("status", "scheduled");
+        return result;
+    }
     @Override public boolean onCreate() { return true; }
 
     @Override public Cursor query(Uri uri, String[] projection, String selection,

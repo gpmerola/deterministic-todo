@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -63,6 +64,8 @@ public final class RunTrackerActivity extends ComponentActivity {
     private TextView passiveStatusView;
     private Button passiveButton;
     private TextView intensiveStatusView;
+    private TextView automaticStatusView;
+    private DailyStepGoalView dailyGoalView;
     private Button intensiveButton;
     private LinearLayout advancedTools;
     private String pendingActivityType = "run";
@@ -156,127 +159,94 @@ public final class RunTrackerActivity extends ComponentActivity {
     }
 
     private View content() {
-        int pad = dp(16);
+        int pad = dp(14);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(pad, pad, pad, pad);
-        root.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        TextView movementTitle = label("RIEPILOGO DI OGGI", 13);
-        movementTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(movementTitle, matchWrap(0));
+        LinearLayout dailyCard = sectionCard();
+        dailyCard.addView(sectionTitle("OGGI"), matchWrap(0));
+        LinearLayout dailyOverview = new LinearLayout(this);
+        dailyOverview.setOrientation(LinearLayout.HORIZONTAL);
+        dailyOverview.setGravity(Gravity.CENTER_VERTICAL);
+        dailyGoalView = new DailyStepGoalView(this);
+        dailyOverview.addView(dailyGoalView, new LinearLayout.LayoutParams(dp(76), dp(76)));
         LinearLayout dailyMetrics = new LinearLayout(this);
         dailyMetrics.setOrientation(LinearLayout.HORIZONTAL);
-        dailyMetrics.setGravity(Gravity.CENTER);
-        dailyStepsView = metric("—", 22);
-        dailyDistanceView = metric("— km", 22);
-        dailyCaloriesView = metric("— kcal", 22);
+        dailyStepsView = metric("—", 20);
+        dailyDistanceView = metric("— km", 20);
+        dailyCaloriesView = metric("— kcal", 20);
         dailyMetrics.addView(metricBlock("PASSI", dailyStepsView), weighted());
-        dailyMetrics.addView(metricBlock("DISTANZA STIMATA", dailyDistanceView), weighted());
-        dailyMetrics.addView(metricBlock("CALORIE STIMATE", dailyCaloriesView), weighted());
-        root.addView(dailyMetrics, matchWrap(dp(8)));
-
-        movementStatusView = label("Controllo Health Connect…", 14);
-        movementStatusView.setGravity(Gravity.CENTER);
-        root.addView(movementStatusView, matchWrap(dp(8)));
-
+        dailyMetrics.addView(metricBlock("DISTANZA", dailyDistanceView), weighted());
+        dailyMetrics.addView(metricBlock("CALORIE", dailyCaloriesView), weighted());
+        dailyOverview.addView(dailyMetrics, weighted());
+        dailyCard.addView(dailyOverview, matchWrap(dp(6)));
+        movementStatusView = centeredLabel("Health Connect…", 12);
+        dailyCard.addView(movementStatusView, matchWrap(dp(4)));
         healthPermissionButton = new Button(this);
         healthPermissionButton.setText("Consenti Health Connect");
-        healthPermissionButton.setOnClickListener(v -> healthPermissions.launch(HealthConnectGateway.permissions(this)));
+        healthPermissionButton.setOnClickListener(v ->
+            healthPermissions.launch(HealthConnectGateway.permissions(this)));
         healthPermissionButton.setVisibility(View.GONE);
-        root.addView(healthPermissionButton, matchWrap(dp(8)));
+        dailyCard.addView(healthPermissionButton, matchWrap(dp(6)));
+        root.addView(dailyCard, matchWrap(0));
 
-        TextView title = label("NUOVA SESSIONE", 13);
-        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(title, matchWrap(dp(12)));
-        durationView = metric("00:00:00", 34);
-        root.addView(durationView, matchWrap(dp(8)));
-
+        LinearLayout sessionCard = sectionCard();
+        sessionCard.addView(sectionTitle("REGISTRA"), matchWrap(0));
+        durationView = metric("00:00:00", 31);
+        sessionCard.addView(durationView, matchWrap(dp(2)));
         LinearLayout metrics = new LinearLayout(this);
         metrics.setOrientation(LinearLayout.HORIZONTAL);
-        metrics.setGravity(Gravity.CENTER);
-        distanceView = metric("0,00 km", 21);
-        sessionStepsView = metric("0", 21);
-        paceView = metric("— /km", 21);
+        distanceView = metric("0,00 km", 19);
+        sessionStepsView = metric("0", 19);
+        paceView = metric("— /km", 19);
         metrics.addView(metricBlock("DISTANZA", distanceView), weighted());
         metrics.addView(metricBlock("PASSI", sessionStepsView), weighted());
-        metrics.addView(metricBlock("PASSO MEDIO", paceView), weighted());
-        root.addView(metrics, matchWrap(dp(8)));
-
-        accuracyView = label("Pronto. Il GPS si attiva soltanto durante la sessione.", 16);
-        accuracyView.setGravity(Gravity.CENTER);
-        root.addView(accuracyView, matchWrap(dp(10)));
-
+        metrics.addView(metricBlock("PASSO", paceView), weighted());
+        sessionCard.addView(metrics, matchWrap(dp(4)));
+        accuracyView = centeredLabel("Pronto · GPS spento", 13);
+        sessionCard.addView(accuracyView, matchWrap(dp(6)));
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         primaryButton = new Button(this);
-        primaryButton.setText("Avvia camminata");
-        primaryButton.setOnClickListener(v -> { if (sessionId == 0) ensurePermissions("walk"); else stopRun(); });
+        primaryButton.setText("Camminata");
+        primaryButton.setOnClickListener(v -> {
+            if (sessionId == 0) ensurePermissions("walk"); else stopRun();
+        });
         actions.addView(primaryButton, weighted());
-
         secondaryButton = new Button(this);
-        secondaryButton.setText("Avvia corsa");
+        secondaryButton.setText("Corsa");
         secondaryButton.setOnClickListener(v -> ensurePermissions("run"));
         actions.addView(secondaryButton, weighted());
-        root.addView(actions, matchWrap(dp(12)));
+        sessionCard.addView(actions, matchWrap(dp(6)));
+        root.addView(sessionCard, matchWrap(dp(10)));
 
-        TextView automationTitle = label("TEST AUTOMATICO", 13);
-        automationTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(automationTitle, matchWrap(dp(14)));
-        comparisonView = label("Confronto automatico pronto", 13);
-        comparisonView.setGravity(Gravity.CENTER);
-        root.addView(comparisonView, matchWrap(dp(5)));
-
-        driveStatusView = label(DriveTestExportManager.status(this), 14);
-        driveStatusView.setGravity(Gravity.CENTER);
-        root.addView(driveStatusView, matchWrap(dp(5)));
-
+        LinearLayout automationCard = sectionCard();
+        automationCard.addView(sectionTitle("RACCOLTA DATI"), matchWrap(0));
+        automaticStatusView = centeredLabel(automaticStatus(), 13);
+        automationCard.addView(automaticStatusView, matchWrap(dp(5)));
+        comparisonView = centeredLabel("Confronto automatico pronto", 13);
+        driveStatusView = centeredLabel(DriveTestExportManager.status(this), 13);
         Button uploadAll = new Button(this);
-        uploadAll.setText("Carica ora tutti i dati di test");
-        uploadAll.setOnClickListener(v -> {
-            if (!DriveTestExportManager.isConfigured(this)) {
-                Toast.makeText(this, "Collega prima la cartella Drive", Toast.LENGTH_LONG).show();
-                return;
-            }
-            uploadAll.setEnabled(false);
-            uploadAll.setText("Caricamento completo in corso…");
-            java.util.UUID finalWork = ManualDiagnosticExportScheduler.enqueue(this);
-            WorkManager.getInstance(this).getWorkInfoByIdLiveData(finalWork).observe(
-                this, info -> {
-                    if (info == null || !info.getState().isFinished()) return;
-                    uploadAll.setEnabled(true);
-                    if (info.getState() == WorkInfo.State.SUCCEEDED) {
-                        uploadAll.setText("Carica ora tutti i dati di test");
-                        driveStatusView.setText("Upload manuale completo riuscito");
-                        Toast.makeText(this, "Tutti i dati disponibili sono su Drive",
-                            Toast.LENGTH_LONG).show();
-                    } else {
-                        uploadAll.setText("Riprova caricamento completo");
-                        driveStatusView.setText("Upload manuale non completato");
-                    }
-                });
-        });
-        root.addView(uploadAll, matchWrap(dp(8)));
+        uploadAll.setText("Carica tutti i dati ora");
+        uploadAll.setOnClickListener(v -> startCompleteUpload(uploadAll));
+        automationCard.addView(uploadAll, matchWrap(dp(6)));
+        root.addView(automationCard, matchWrap(dp(10)));
 
-        passiveStatusView = label(passiveStatus(), 13);
-        passiveStatusView.setGravity(Gravity.CENTER);
-        root.addView(passiveStatusView, matchWrap(dp(8)));
+        passiveStatusView = centeredLabel(passiveStatus(), 13);
         passiveButton = new Button(this);
         renderPassiveButton();
         passiveButton.setOnClickListener(v -> {
             if (PassiveMovementAuditWorker.enabled(this)) PassiveMovementAuditWorker.disable(this);
             else if (!DriveTestExportManager.isConfigured(this)) {
-                Toast.makeText(this, "Collega prima la cartella Drive negli strumenti avanzati", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Collega prima la cartella Drive", Toast.LENGTH_LONG).show();
                 return;
             } else PassiveMovementAuditWorker.enable(this);
             renderPassiveButton();
             passiveStatusView.setText(passiveStatus());
+            renderAutomaticStatus();
         });
-        root.addView(passiveButton, matchWrap(dp(8)));
-
-        intensiveStatusView = label(intensiveStatus(), 13);
-        intensiveStatusView.setGravity(Gravity.CENTER);
-        root.addView(intensiveStatusView, matchWrap(dp(8)));
+        intensiveStatusView = centeredLabel(intensiveStatus(), 13);
         intensiveButton = new Button(this);
         renderIntensiveButton();
         intensiveButton.setOnClickListener(v -> {
@@ -284,76 +254,73 @@ public final class RunTrackerActivity extends ComponentActivity {
                 IntensiveDiagnosticScheduler.disable(this);
                 renderIntensiveState();
             } else if (!DriveTestExportManager.isConfigured(this)) {
-                Toast.makeText(this, "Collega prima la cartella Drive negli strumenti avanzati", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Collega prima la cartella Drive", Toast.LENGTH_LONG).show();
             } else ensureIntensivePermissions();
         });
-        root.addView(intensiveButton, matchWrap(dp(8)));
 
         Button advancedToggle = new Button(this);
-        advancedToggle.setText("Strumenti avanzati");
-        root.addView(advancedToggle, matchWrap(dp(10)));
-
-        advancedTools = new LinearLayout(this);
-        advancedTools.setOrientation(LinearLayout.VERTICAL);
+        advancedToggle.setText("Dettagli e strumenti");
+        root.addView(advancedToggle, matchWrap(dp(8)));
+        advancedTools = sectionCard();
         advancedTools.setVisibility(View.GONE);
-        root.addView(advancedTools, matchWrap(0));
+        root.addView(advancedTools, matchWrap(dp(4)));
         advancedToggle.setOnClickListener(v -> {
             boolean show = advancedTools.getVisibility() != View.VISIBLE;
             advancedTools.setVisibility(show ? View.VISIBLE : View.GONE);
-            advancedToggle.setText(show ? "Nascondi strumenti avanzati" : "Strumenti avanzati");
+            advancedToggle.setText(show ? "Nascondi dettagli" : "Dettagli e strumenti");
         });
-
-        TextView adbStatus = label(PassiveMovementDebugState.uiSummary(this), 12);
-        adbStatus.setGravity(Gravity.CENTER);
-        advancedTools.addView(adbStatus, matchWrap(dp(6)));
-
+        TextView adbStatus = centeredLabel(PassiveMovementDebugState.uiSummary(this), 12);
+        advancedTools.addView(adbStatus, matchWrap(0));
+        advancedTools.addView(comparisonView, matchWrap(dp(8)));
+        advancedTools.addView(driveStatusView, matchWrap(dp(6)));
+        advancedTools.addView(passiveStatusView, matchWrap(dp(8)));
+        advancedTools.addView(passiveButton, matchWrap(dp(4)));
+        advancedTools.addView(intensiveStatusView, matchWrap(dp(8)));
+        advancedTools.addView(intensiveButton, matchWrap(dp(4)));
         driveButton = new Button(this);
-        driveButton.setText(DriveTestExportManager.isConfigured(this) ? "Drive test collegato · cambia cartella" : "Collega cartella Google Drive per i test");
+        driveButton.setText(DriveTestExportManager.isConfigured(this)
+            ? "Cambia cartella Drive" : "Collega cartella Drive");
         driveButton.setOnClickListener(v -> {
             Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                    | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
             startActivityForResult(picker, DRIVE_FOLDER_REQUEST);
         });
         advancedTools.addView(driveButton, matchWrap(dp(8)));
-
         Button retryDrive = new Button(this);
-        retryDrive.setText("Sincronizza ultima attività · pacchetto completo");
+        retryDrive.setText("Riesporta ultima sessione");
         retryDrive.setOnClickListener(v -> retryLatestPackage());
-        advancedTools.addView(retryDrive, matchWrap(dp(8)));
-
+        advancedTools.addView(retryDrive, matchWrap(dp(4)));
         Button export = new Button(this);
-        export.setText("Condividi manualmente ultima attività in GPX");
+        export.setText("Condividi ultimo GPX");
         export.setOnClickListener(v -> exportLatest());
-        advancedTools.addView(export, matchWrap(dp(8)));
-
+        advancedTools.addView(export, matchWrap(dp(4)));
         Button watch = new Button(this);
-        watch.setText("Bip U · prova BLE in sola lettura");
+        watch.setText("Bip U");
         watch.setOnClickListener(v -> BipUBleActivity.open(this));
-        advancedTools.addView(watch, matchWrap(dp(8)));
+        advancedTools.addView(watch, matchWrap(dp(4)));
+
         ScrollView scroll = new ScrollView(this);
-        scroll.setSaveEnabled(false);
         scroll.setFillViewport(true);
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
-        root.setFocusableInTouchMode(true);
-        root.requestFocus();
-        TextView toolbar = label("Movimento", 24);
+        TextView toolbar = label("Movimento", 22);
         toolbar.setTextColor(Color.WHITE);
         toolbar.setBackgroundColor(Color.rgb(32, 33, 36));
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(16), dp(12), dp(16), dp(12));
+        toolbar.setPadding(dp(16), dp(10), dp(16), dp(10));
         LinearLayout shell = new LinearLayout(this);
         shell.setOrientation(LinearLayout.VERTICAL);
-        shell.setBackgroundColor(Color.rgb(247, 245, 252));
+        shell.setBackgroundColor(Color.rgb(247, 245, 250));
         shell.addView(toolbar, new LinearLayout.LayoutParams(-1, -2));
         shell.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         ViewCompat.setOnApplyWindowInsetsListener(shell, (view, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            toolbar.setPadding(dp(16), bars.top + dp(12), dp(16), dp(12));
+            toolbar.setPadding(dp(16), bars.top + dp(10), dp(16), dp(10));
             scroll.setPadding(0, 0, 0, bars.bottom);
             return insets;
         });
-        scroll.post(() -> scroll.scrollTo(0, 0));
         return shell;
     }
 
@@ -363,6 +330,43 @@ public final class RunTrackerActivity extends ComponentActivity {
         long hours = Math.max(1, java.util.concurrent.TimeUnit.MILLISECONDS.toHours(
             PassiveMovementAuditWorker.endAt(this) - System.currentTimeMillis()));
         return "Test passivo attivo · snapshot ogni ora · ancora " + hours + " h";
+    }
+
+    private String automaticStatus() {
+        boolean passive = PassiveMovementAuditWorker.enabled(this);
+        boolean intensive = IntensiveDiagnosticExperiment.active(this);
+        if (passive && intensive) return "Passivo e diagnostica intensiva attivi";
+        if (passive) return "Monitor passivo attivo";
+        if (intensive) return "Diagnostica intensiva attiva";
+        return "Monitor automatici spenti";
+    }
+
+    private void renderAutomaticStatus() {
+        if (automaticStatusView != null) automaticStatusView.setText(automaticStatus());
+    }
+
+    private void startCompleteUpload(Button button) {
+        if (!DriveTestExportManager.isConfigured(this)) {
+            Toast.makeText(this, "Collega prima la cartella Drive", Toast.LENGTH_LONG).show();
+            return;
+        }
+        button.setEnabled(false);
+        button.setText("Caricamento…");
+        java.util.UUID finalWork = ManualDiagnosticExportScheduler.enqueue(this);
+        WorkManager.getInstance(this).getWorkInfoByIdLiveData(finalWork).observe(
+            this, info -> {
+                if (info == null || !info.getState().isFinished()) return;
+                button.setEnabled(true);
+                if (info.getState() == WorkInfo.State.SUCCEEDED) {
+                    button.setText("Carica tutti i dati ora");
+                    driveStatusView.setText("Upload completo riuscito");
+                    Toast.makeText(this, "Dati disponibili caricati su Drive",
+                        Toast.LENGTH_LONG).show();
+                } else {
+                    button.setText("Riprova caricamento");
+                    driveStatusView.setText("Upload non completato");
+                }
+            });
     }
 
     private void renderPassiveButton() {
@@ -391,6 +395,7 @@ public final class RunTrackerActivity extends ComponentActivity {
     private void renderIntensiveState() {
         renderIntensiveButton();
         intensiveStatusView.setText(intensiveStatus());
+        renderAutomaticStatus();
     }
 
     private void refreshDailyMovement() {
@@ -399,7 +404,10 @@ public final class RunTrackerActivity extends ComponentActivity {
                 dailyStepsView.setText(String.format(Locale.ITALY, "%,d", movement.steps));
                 dailyDistanceView.setText(String.format(Locale.ITALY, "%.2f km", movement.estimatedDistanceMeters / 1000));
                 dailyCaloriesView.setText(String.format(Locale.ITALY, "%.0f kcal", movement.estimatedActiveCalories));
-                movementStatusView.setText("Health Connect · aggiornato ora · valori di distanza e calorie stimati");
+                int goal = getSharedPreferences("movement_profile", MODE_PRIVATE).getInt(
+                    "daily_step_goal", DailyStepGoalPolicy.DEFAULT_GOAL);
+                dailyGoalView.setProgress(movement.steps, goal);
+                movementStatusView.setText("Aggiornato ora");
                 healthPermissionButton.setVisibility(View.GONE);
             }
 
@@ -609,6 +617,29 @@ public final class RunTrackerActivity extends ComponentActivity {
     private LinearLayout metricBlock(String caption, TextView value) {
         LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER);
         box.addView(value); box.addView(label(caption, 12)); return box;
+    }
+    private LinearLayout sectionCard() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(Color.WHITE);
+        background.setCornerRadius(dp(18));
+        background.setStroke(dp(1), Color.rgb(231, 228, 235));
+        card.setBackground(background);
+        card.setElevation(dp(1));
+        return card;
+    }
+    private TextView sectionTitle(String value) {
+        TextView title = label(value, 12);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setTextColor(Color.rgb(92, 88, 98));
+        return title;
+    }
+    private TextView centeredLabel(String value, int size) {
+        TextView view = label(value, size);
+        view.setGravity(Gravity.CENTER);
+        return view;
     }
     private TextView metric(String value, int size) { TextView v = label(value, size); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.DEFAULT, Typeface.BOLD); return v; }
     private TextView label(String value, int size) { TextView v = new TextView(this); v.setText(value); v.setTextSize(size); return v; }
