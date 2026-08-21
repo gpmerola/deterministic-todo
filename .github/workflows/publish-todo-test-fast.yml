@@ -55,6 +55,7 @@ jobs:
           test "$BUILD" -gt 0
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "dev_build=$((2000 + BUILD))" >> "$GITHUB_OUTPUT"
 
       - name: Fast channel checks
         run: |
@@ -73,6 +74,7 @@ jobs:
         run: |
           flutter build apk --release --flavor dev \
             --target-platform android-arm64 \
+            --build-number ${{ steps.version.outputs.dev_build }} \
             --split-debug-info=build/private-symbols/dev-arm64 \
             --dart-define=DISTRIBUTION_CHANNEL=dev \
             --dart-define-from-file=supabase/config.json

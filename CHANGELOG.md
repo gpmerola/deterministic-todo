@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.7
+
+- Il canale rapido applica automaticamente l'intervallo `versionCode` di Todo
+  Test (`2000 + build`), evitando downgrade rispetto alle installazioni `.dev`.
+
 ## 2.26.6
 
 - Separa il canale rapido Todo Test dalla release stabile: ogni push `agent/**`

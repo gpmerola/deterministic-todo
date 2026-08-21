@@ -92,6 +92,10 @@ conferma `PUBBLICA`, poi costruisce Web, Google Play, APK direct e tutte le ABI.
 La build 128 è l'unico ponte che permette alla vecchia 126 di passare dal
 manifest stabile a quello rapido.
 
+Il numero Android di Todo Test è sempre `2000 + build` (per esempio build 130
+→ `versionCode 2130`). Non costruire né pubblicare il flavor dev senza questo
+offset: Android lo rifiuterebbe come downgrade rispetto ai Todo Test esistenti.
+
 ## Passaggio e rollback
 
 - Prima di attivare il monitor passivo o intensivo in Todo Test, fermarlo nella
