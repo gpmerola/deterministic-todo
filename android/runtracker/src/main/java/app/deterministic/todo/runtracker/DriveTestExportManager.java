@@ -802,6 +802,12 @@ final class DriveTestExportManager {
         pruneDailyDiagnostics(context, 15);
     }
 
+    static void writeUnifiedDiagnostics(Context context, String name, String text) throws Exception {
+        writeNewFile(context, name, "application/json", text);
+        pruneManagedFiles(context, "unified_diagnostics_", ".json",
+            UnifiedDiagnosticReport.RETAIN_FILES);
+    }
+
     static ExportResult writeIntensiveDiagnosticChunk(Context context, java.io.File chunk) {
         if (!isConfigured(context)) return new ExportResult(false, false, "not_configured");
         try {
@@ -816,6 +822,12 @@ final class DriveTestExportManager {
     }
 
     private static void pruneDailyDiagnostics(Context context, int keep) throws Exception {
+        pruneManagedFiles(context, DiagnosticRetentionPolicy.PREFIX,
+            DiagnosticRetentionPolicy.SUFFIX, keep);
+    }
+
+    private static void pruneManagedFiles(Context context, String prefix, String suffix,
+                                          int keep) throws Exception {
         Uri tree = tree(context); if (tree == null) throw new IllegalStateException("folder missing");
         Uri dir = managedDirectory(context, tree, DriveFolderLayout.APP_DIAGNOSTICS);
         String directoryId = DocumentsContract.getDocumentId(dir);
@@ -826,15 +838,22 @@ final class DriveTestExportManager {
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
             if (cursor != null) while (cursor.moveToNext()) {
                 String name = cursor.getString(1);
-                if (DiagnosticRetentionPolicy.isManaged(name))
+                if (name != null && name.startsWith(prefix) && name.endsWith(suffix))
                     entries.add(new DiagnosticRetentionPolicy.Entry(cursor.getString(0), name));
             }
         }
         for (DiagnosticRetentionPolicy.Entry entry :
-            DiagnosticRetentionPolicy.entriesToDelete(entries, keep)) {
+            entriesToDelete(entries, keep)) {
             Uri document = DocumentsContract.buildDocumentUriUsingTree(tree, entry.id());
             DocumentsContract.deleteDocument(context.getContentResolver(), document);
         }
+    }
+
+    private static List<DiagnosticRetentionPolicy.Entry> entriesToDelete(
+        List<DiagnosticRetentionPolicy.Entry> entries, int keep) {
+        entries.sort(java.util.Comparator.comparing(DiagnosticRetentionPolicy.Entry::name).reversed());
+        if (entries.size() <= keep) return java.util.List.of();
+        return new java.util.ArrayList<>(entries.subList(keep, entries.size()));
     }
 
     private static synchronized Uri managedDirectory(Context context, Uri tree,

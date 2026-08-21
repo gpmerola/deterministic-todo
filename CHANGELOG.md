@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.4
+
+- Crea ogni tre ore un riepilogo unificato di telefono, Google Fit, Bip U,
+  log applicativi e stato dell'esperimento intensivo.
+- Usa snapshot JSONL immutabili per fascia oraria, così gli aggiornamenti
+  successivi al primo del giorno non vengono più ignorati.
+- Conserva separatamente gli ultimi 15 riepiloghi e 15 snapshot senza
+  esportare contenuti Todo, coordinate, MAC, chiavi o timeline sanitarie.
+
 ## 2.26.3
 
 - Interpreta correttamente il contatore annunciato dal Bip U come numero di

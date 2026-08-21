@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.26.3 build 126. **Todo Test** (`.dev`) è il
+- Release coordinata corrente: 2.26.4 build 127. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -127,6 +127,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - il primo test reale ha ricevuto 1.440 campioni/11.520 byte senza errori GATT;
   la 126 ha poi salvato 1.440 minuti, 2.626 passi e 358 campioni cardiaci. Il
   retry ha deduplicato l’intersezione e inserito solo due minuti nuovi;
+- la 127 esporta ogni tre ore un report telefono/Fit/Bip U con copertura e
+  anzianità dei campioni. L'import dell'orologio resta esplicito e non viene
+  mantenuta una connessione BLE permanente;
 - prossimo incremento: audit temporale telefono/Bip U e fusione a finestre in
   modalità osservazione, senza cambiare ancora i valori mostrati all’utente;
 - prossimo passo: integrare una sessione cardiaca esplicita nell'attività e

@@ -14,7 +14,8 @@ final class DriveFolderLayout {
         if (name.startsWith("movement_snapshot_") || name.startsWith("daily_audit_"))
             return PASSIVE;
         if (name.startsWith("intensive_")) return INTENSIVE;
-        if (name.startsWith("todo_diagnostics_")) return APP_DIAGNOSTICS;
+        if (name.startsWith("todo_diagnostics_") || name.startsWith("unified_diagnostics_"))
+            return APP_DIAGNOSTICS;
         if (name.startsWith("bip_u_")) return BIP_U;
         if (name.matches("\\d+_(walk|run)_session-\\d+.*")
             || name.matches("(walk|run)-\\d+\\.gpx")) return SESSIONS;

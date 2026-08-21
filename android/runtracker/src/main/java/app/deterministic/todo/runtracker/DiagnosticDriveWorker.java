@@ -17,7 +17,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 public final class DiagnosticDriveWorker extends Worker {
@@ -56,9 +58,15 @@ public final class DiagnosticDriveWorker extends Worker {
         try {
             String diagnostics = readDiagnostics(context);
             if (diagnostics.isEmpty()) return Result.success();
-            String name = DiagnosticRetentionPolicy.PREFIX + LocalDate.now()
+            String bucket = LocalDateTime.now().format(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd_HH"));
+            String name = DiagnosticRetentionPolicy.PREFIX + bucket
                 + DiagnosticRetentionPolicy.SUFFIX;
             DriveTestExportManager.writeDailyDiagnostics(context, name, diagnostics);
+            long observedAt = System.currentTimeMillis();
+            DriveTestExportManager.writeUnifiedDiagnostics(context,
+                UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault()),
+                UnifiedDiagnosticReport.create(context, observedAt).toString(2));
             return Result.success();
         } catch (SecurityException permissionLost) {
             return Result.failure();

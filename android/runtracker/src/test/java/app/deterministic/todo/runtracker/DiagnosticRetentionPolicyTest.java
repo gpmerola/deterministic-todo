@@ -1,6 +1,7 @@
 package app.deterministic.todo.runtracker;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -10,6 +11,11 @@ import java.util.List;
 public class DiagnosticRetentionPolicyTest {
     @Test public void diagnosticUploadRunsEveryThreeHoursDuringDebugging() {
         assertEquals(3, DiagnosticDriveWorker.PERIODIC_INTERVAL_HOURS);
+    }
+
+    @Test public void acceptsThreeHourlyDiagnosticSnapshots() {
+        assertTrue(DiagnosticRetentionPolicy.isManaged(
+            "todo_diagnostics_2026-08-21_12.jsonl"));
     }
 
     @Test public void keepsNewestFifteenAndIgnoresOtherFiles() {

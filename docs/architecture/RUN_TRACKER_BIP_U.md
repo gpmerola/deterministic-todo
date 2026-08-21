@@ -1,5 +1,18 @@
 # Modulo corsa Amazfit Bip U
 
+## Diagnostica remota unificata
+
+Dalla build 127 `DiagnosticDriveWorker` produce ogni tre ore in
+`04 App diagnostics` un report compatto che accoppia per timestamp lo stato
+telefono/Google Fit con gli aggregati Bip U delle ultime 3 e 24 ore. Registra
+copertura al minuto, passi, sintesi del battito, anzianità dell'ultimo campione,
+stato intensivo, chunk in attesa e metadati dei log.
+
+Non contiene timeline puntuali, coordinate, MAC, chiave Huami o contenuti Todo.
+I JSONL intensivi orari rimangono separati perché voluminosi. L'import Bip U
+resta esplicito e idempotente: nessuna connessione BLE viene mantenuta in
+background. Vengono conservati gli ultimi 15 report unificati.
+
 ## Decisione
 
 Il modulo vive in `android/runtracker` come libreria Android autonoma. Il client

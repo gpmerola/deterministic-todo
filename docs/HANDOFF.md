@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione coordinata corrente: **2.26.3 build 126**. Il flavor Android `dev`
+- Versione coordinata corrente: **2.26.4 build 127**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -134,12 +134,16 @@ diagnostico. `sync_completed.rebased_entities` conta i recuperi. Questa
 garanzia copre le nuove operazioni; non ricostruisce automaticamente stati già
 sovrascritti prima dell'aggiornamento.
 
-La build 112 aggiorna il report diagnostico Drive dopo circa un minuto
-dall'avvio Android e poi ogni tre ore con rete disponibile. Il periodico usa
+La build 127 aggiorna la diagnostica Drive dopo circa un minuto dall'avvio
+Android e poi ogni tre ore con rete disponibile. Ogni esecuzione crea uno
+snapshot JSONL immutabile per fascia oraria e un `unified_diagnostics_*.json`
+con stato telefono/Fit, aggregati Bip U delle ultime 3 e 24 ore, freschezza del
+campione, stato intensivo e metadati dei log. Il periodico usa
 `ExistingPeriodicWorkPolicy.UPDATE` per sostituire il precedente job di 24 ore
-già registrato. Il nome resta giornaliero e la retention resta di 15 file:
-questa frequenza è temporanea per il debugging e va rivalutata prima della
-stabilizzazione del prodotto.
+già registrato. Le due serie conservano gli ultimi 15 file. La timeline Bip U
+resta locale e l'import resta esplicito: il report rende evidente quando è
+obsoleta senza connessione BLE permanente. Questa frequenza è temporanea per
+il debugging e va rivalutata prima della stabilizzazione del prodotto.
 
 Dettagli completi in [`ARCHITETTURA.md`](ARCHITETTURA.md). Non modificare il
 modulo movimento per risolvere problemi Todo e viceversa.

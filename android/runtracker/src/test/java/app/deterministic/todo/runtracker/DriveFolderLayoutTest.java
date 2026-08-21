@@ -17,6 +17,8 @@ public final class DriveFolderLayoutTest {
             DriveFolderLayout.folderFor("intensive_experiment_segment_123.jsonl"));
         assertEquals(DriveFolderLayout.APP_DIAGNOSTICS,
             DriveFolderLayout.folderFor("todo_diagnostics_2026-08-20.jsonl"));
+        assertEquals(DriveFolderLayout.APP_DIAGNOSTICS,
+            DriveFolderLayout.folderFor("unified_diagnostics_2026-08-21_12.json"));
         assertEquals(DriveFolderLayout.BIP_U,
             DriveFolderLayout.folderFor("bip_u_probe_1780000000000.json"));
         assertEquals(DriveFolderLayout.BIP_U,

@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione coordinata corrente: **2.26.3 build 126**. Il flavor Android `dev`
+- Versione coordinata corrente: **2.26.4 build 127**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -19,7 +19,10 @@ Aggiornato il 21 agosto 2026.
   Drive schema 2 completati. La build 126 ha inoltre importato dal dispositivo
   reale 1.440 campioni di un minuto con 2.626 passi e 358 valori cardiaci; il
   retry sovrapposto ha inserito soltanto due minuti nuovi. I dati restano
-  locali e separati dalla sorgente telefono. La diagnostica intensiva
+  locali e separati dalla sorgente telefono. La build 127 aggiunge ogni tre
+  ore un report remoto unificato con stato telefono/Fit, aggregati Bip U a 3 e
+  24 ore, freschezza dei campioni, stato intensivo e metadati dei log. Conserva
+  gli ultimi 15 report e 15 snapshot JSONL. La diagnostica intensiva
   opzionale osserva per sette giorni GPS e sensori in finestre di cinque
   secondi e carica blocchi JSONL orari su Drive. ID e scadenza sopravvivono
   alle build intermedie, che restano distinguibili per segmento. La build 118
@@ -29,8 +32,9 @@ Aggiornato il 21 agosto 2026.
   passivo Movimento
   crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
   ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
-  aggiorna durante il debugging la diagnostica Drive all'apertura e ogni tre ore con rete
-  disponibile, mantenendo un solo file al giorno e gli ultimi 15 giorni. La
+  aggiorna durante il debugging la diagnostica Drive all'apertura e ogni tre
+  ore con rete disponibile. Dalla 127 usa snapshot immutabili per fascia
+  oraria invece di un file giornaliero non aggiornabile. La
   2.25.3 build 111 verifica ogni
   scrittura task sul server prima di riconoscere l'outbox e ribasa
   automaticamente le versioni Lamport remote più alte. La 2.25.2 build 110
