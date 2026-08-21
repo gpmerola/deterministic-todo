@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.8
+
+- Unifica il recupero manuale dell’ultima sessione in un solo comando che
+  riesporta GPX e diagnostica e riprogramma automaticamente il confronto con
+  Google Fit.
+- Deduplica i sidecar immutabili del confronto: i retry necessari mentre Fit
+  si sincronizza riusano lo stesso file finché i valori non cambiano.
+
 ## 2.26.7
 
 - Il canale rapido applica automaticamente l'intervallo `versionCode` di Todo

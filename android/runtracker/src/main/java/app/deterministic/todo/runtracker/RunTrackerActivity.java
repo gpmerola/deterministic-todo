@@ -288,19 +288,14 @@ public final class RunTrackerActivity extends ComponentActivity {
         advancedTools.addView(driveButton, matchWrap(dp(8)));
 
         Button retryDrive = new Button(this);
-        retryDrive.setText("Riesporta ultima attività su Drive · GPX + JSON");
-        retryDrive.setOnClickListener(v -> retryLatestToDrive());
+        retryDrive.setText("Sincronizza ultima attività · pacchetto completo");
+        retryDrive.setOnClickListener(v -> retryLatestPackage());
         advancedTools.addView(retryDrive, matchWrap(dp(8)));
 
         Button export = new Button(this);
         export.setText("Condividi manualmente ultima attività in GPX");
         export.setOnClickListener(v -> exportLatest());
         advancedTools.addView(export, matchWrap(dp(8)));
-
-        Button compare = new Button(this);
-        compare.setText("Confronta ultima attività con Google Fit");
-        compare.setOnClickListener(v -> compareLatestWithGoogleFit());
-        advancedTools.addView(compare, matchWrap(dp(8)));
 
         Button watch = new Button(this);
         watch.setText("Bip U · prova BLE in sola lettura");
@@ -463,8 +458,8 @@ public final class RunTrackerActivity extends ComponentActivity {
         });
     }
 
-    private void retryLatestToDrive() {
-        driveStatusView.setText("Export Drive in corso…");
+    private void retryLatestPackage() {
+        driveStatusView.setText("Sincronizzazione pacchetto in corso…");
         io.execute(() -> {
             RunDao dao = RunDatabase.get(this).runs();
             java.util.List<RunSession> sessions = dao.sessions();
@@ -475,8 +470,11 @@ public final class RunTrackerActivity extends ComponentActivity {
             RunSession latest = sessions.get(0);
             DriveTestExportManager.finish(this, latest, dao.points(latest.id), result -> runOnUiThread(() -> {
                 driveStatusView.setText(DriveTestExportManager.status(this));
+                if (result.success()) MovementComparisonWorker.schedule(this, latest.id);
                 Toast.makeText(this,
-                    result.success() ? "GPX e JSON caricati su Drive" : "Export Drive non riuscito: " + result.code(),
+                    result.success()
+                        ? "GPX e diagnostica caricati · confronto Fit automatico programmato"
+                        : "Sincronizzazione Drive non riuscita: " + result.code(),
                     Toast.LENGTH_LONG).show();
             }));
         });

@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test corrente: 2.26.7 build 130. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.26.8 build 131. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -96,6 +96,8 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   prudentemente il primo APK CI con valore 129;
 - `make todo-test` è il comando canonico: ADB locale se disponibile, altrimenti
   upload diretto del build Mac; Actions resta il fallback non interattivo;
+- dalla 131 il recupero manuale usa un solo pulsante per GPX, diagnostica e
+  riprogrammazione Fit; i retry Fit identici sono idempotenti su Drive;
 - login Supabase, Health Connect, cartella Drive e aggiornamento ADB in-place
   sono collaudati; mantenere invariata la firma diretta;
 - Movimento è attivo soltanto in Todo Test; Play resta `disabled-user`;

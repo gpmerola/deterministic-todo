@@ -241,11 +241,21 @@ final class DriveTestExportManager {
     static void captureGoogleFitComparison(Context context, long id,
                                            HealthConnectGateway.GoogleFitComparison comparison) {
         if (id == 0 || comparison == null) return;
-        android.content.SharedPreferences.Editor editor = context
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putLong(id + ".fit_observed_at", System.currentTimeMillis())
+        android.content.SharedPreferences preferences = context
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String fingerprint = comparisonFingerprint(comparison);
+        String previousFingerprint = preferences.getString(id + ".fit_fingerprint", null);
+        android.content.SharedPreferences.Editor editor = preferences.edit()
+            .putString(id + ".fit_fingerprint", fingerprint)
             .putLong(id + ".fit_local_steps", comparison.getLocalSteps())
             .putFloat(id + ".fit_local_distance_m", (float) comparison.getLocalDistanceMeters());
+        // WorkManager intentionally rereads Fit while it is settling. Keep the immutable
+        // sidecar identity stable when the actual values did not change, otherwise every
+        // retry would create an indistinguishable file on Drive.
+        if (!fingerprint.equals(previousFingerprint)
+            || !preferences.contains(id + ".fit_observed_at")) {
+            editor.putLong(id + ".fit_observed_at", System.currentTimeMillis());
+        }
         if (comparison.getSteps() != null) editor.putLong(id + ".fit_steps", comparison.getSteps());
         else editor.remove(id + ".fit_steps");
         if (comparison.getDistanceMeters() != null) editor.putFloat(id + ".fit_distance_m", comparison.getDistanceMeters().floatValue());
@@ -264,6 +274,19 @@ final class DriveTestExportManager {
             fitDistance, fitSteps, comparison.getLocalDistanceMeters() / 1000,
             distanceDelta, comparison.getLocalSteps(), stepDelta));
         editor.apply();
+    }
+
+    static String comparisonFingerprint(HealthConnectGateway.GoogleFitComparison comparison) {
+        return comparison.getLocalSteps() + "|"
+            + Double.doubleToLongBits(comparison.getLocalDistanceMeters()) + "|"
+            + nullableNumberFingerprint(comparison.getSteps()) + "|"
+            + nullableNumberFingerprint(comparison.getDistanceMeters()) + "|"
+            + nullableNumberFingerprint(comparison.getActiveCalories());
+    }
+
+    private static String nullableNumberFingerprint(Number value) {
+        return value == null ? "null" : Long.toUnsignedString(
+            Double.doubleToLongBits(value.doubleValue()));
     }
 
     static void setComparisonStatus(Context context, String status) {

@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test corrente: **2.26.7 build 130**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.26.8 build 131**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -39,6 +39,10 @@ di cambiare architettura.
   diagnostica intensiva sono attivi. La build Play 121 rimane installata con
   dati intatti ma è `disabled-user`; non aprirla, riattivarla o disinstallarla
   fuori dalla procedura di rollback documentata.
+  La build 131 consolida il recupero dell’ultima sessione in un unico pulsante:
+  riesporta GPX e diagnostica e riprogramma il confronto Fit. L’identità del
+  sidecar resta stabile durante retry con gli stessi valori, evitando duplicati
+  senza nascondere aggiornamenti reali successivi di Google Fit.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
