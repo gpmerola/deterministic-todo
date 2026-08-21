@@ -144,6 +144,13 @@ identifica la configurazione tramite SHA-256; `diagnostic_resources` chiarisce
 che CPU/rete sono attribuibili al processo/UID mentre la batteria è soltanto
 contesto dell'intero dispositivo.
 
+Dal 21 agosto 2026 la radice `02 Passive` contiene soltanto report schema 7
+prodotti dalla build 139 o successive. I 27 report precedenti sono conservati
+immutabili nella sottocartella `Archive - schema 6 and earlier`; gli strumenti
+di analisi correnti devono ignorare quella sottocartella salvo confronti
+storici espliciti. L'app continua a scrivere nella radice autorizzata, quindi
+l'archiviazione non modifica né interrompe gli upload automatici.
+
 ## BLE e confine di sicurezza
 
 La prima fase BLE cerca prima tra i dispositivi già associati ad Android un
