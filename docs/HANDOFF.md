@@ -123,6 +123,11 @@ La pipeline dev usa `versionCode = 2000 + build`: la build logica 130 diventa
 2130 sul package `.dev`, restando monotona rispetto alla 129 installata come
 2129 e separata dalla numerazione Android stabile.
 
+Il percorso operativo più rapido è `make todo-test`: compila sul Mac con cache
+calda e installa via ADB se disponibile; in assenza di un dispositivo pubblica
+direttamente lo stesso APK verificato su `todo-test-latest`. GitHub Actions è
+un terzo fallback (`make todo-test-ci`), non il percorso interattivo normale.
+
 ## Come funziona il Todo
 
 - Schema e query locali: `lib/data/local/` con Drift/SQLite.

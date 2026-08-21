@@ -1,4 +1,4 @@
-.PHONY: check check-generated check-docs test-tools
+.PHONY: check check-generated check-docs test-tools todo-test todo-test-adb todo-test-remote todo-test-ci
 
 check: test-tools check-docs
 	flutter analyze
@@ -13,3 +13,16 @@ check-docs:
 
 test-tools:
 	python3 -m unittest discover -s tools -p 'test_*.py'
+
+# Fastest safe delivery: ADB when connected, otherwise publish the locally built APK.
+todo-test:
+	python3 tools/todo_test_fast.py
+
+todo-test-adb:
+	python3 tools/todo_test_fast.py --mode adb
+
+todo-test-remote:
+	python3 tools/todo_test_fast.py --mode remote
+
+todo-test-ci:
+	gh workflow run publish-todo-test-fast.yml --ref $$(git branch --show-current)

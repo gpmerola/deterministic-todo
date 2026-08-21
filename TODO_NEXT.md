@@ -94,6 +94,8 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - dalla 130 la pipeline calcola sempre `versionCode = 2000 + build`; la 129 è
   stata installata localmente come 2129 dopo che Android aveva rifiutato
   prudentemente il primo APK CI con valore 129;
+- `make todo-test` è il comando canonico: ADB locale se disponibile, altrimenti
+  upload diretto del build Mac; Actions resta il fallback non interattivo;
 - login Supabase, Health Connect, cartella Drive e aggiornamento ADB in-place
   sono collaudati; mantenere invariata la firma diretta;
 - Movimento è attivo soltanto in Todo Test; Play resta `disabled-user`;

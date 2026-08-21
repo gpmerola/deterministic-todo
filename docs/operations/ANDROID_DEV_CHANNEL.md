@@ -71,6 +71,37 @@ create automaticamente.
 
 ## Aggiornamenti successivi
 
+### Comando canonico adattivo
+
+Usare dalla radice del repository:
+
+```sh
+make todo-test
+```
+
+Il comando costruisce localmente un APK release arm64 firmato, applica
+automaticamente `versionCode = 2000 + build` e ne verifica package e numero.
+Poi sceglie il percorso più rapido disponibile:
+
+- con almeno un dispositivo ADB autorizzato: `adb install -r`, apertura e
+  verifica in-place, conservando i dati;
+- senza dispositivo ADB: upload diretto dal Mac nella prerelease
+  `todo-test-latest`, prima l'APK e poi il manifest; il telefono può quindi
+  usare **Controlla aggiornamenti** senza attendere GitHub Actions.
+
+Varianti esplicite:
+
+```sh
+make todo-test-adb       # fallisce se ADB non è disponibile
+make todo-test-remote    # forza la pubblicazione per il telefono scollegato
+make todo-test-ci        # fallback: compila sui runner GitHub
+```
+
+Il percorso remoto locale richiede `gh` autenticato. Firma e password vengono
+lette soltanto da `private_release_keys/`, mai stampate, caricate o inserite nel
+repository. La versione in `pubspec.yaml` deve essere già stata incrementata:
+il comando non modifica sorgenti né inventa numeri di release.
+
 Dalla build 128 il manifest pubblico contiene asset `android-dev-*` firmati e
 con package `.dev`. L'updater di Todo Test seleziona esclusivamente questi
 asset e rifiuta implicitamente il fallback `android-*` della linea principale:

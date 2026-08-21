@@ -6,6 +6,8 @@ Cronologia delle modifiche distribuite, dalla più recente.
 
 - Il canale rapido applica automaticamente l'intervallo `versionCode` di Todo
   Test (`2000 + build`), evitando downgrade rispetto alle installazioni `.dev`.
+- Aggiunge `make todo-test`: consegna adattiva via ADB oppure pubblicazione
+  diretta dal Mac quando il telefono è scollegato, senza attendere la CI.
 
 ## 2.26.6
 

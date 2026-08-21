@@ -30,6 +30,10 @@ stessa proposta e non suggerire modifiche che contaminino test attivi.
   eseguire raccolte Movimento.
 
 - Android è il primo canale di collaudo dell'utente: ogni modifica funzionale verificata deve incrementare `version` e `build` in `pubspec.yaml`, essere pubblicata automaticamente come aggiornamento Android e provata sul dispositivo prima di essere considerata conclusa.
+- Per consegnare Todo Test usare `make todo-test`: installa via ADB quando un
+  dispositivo autorizzato è presente, altrimenti pubblica direttamente dal Mac
+  l'APK locale sul manifest rolling. `make todo-test-ci` è solo il fallback
+  quando il Mac non può compilare. Non ricreare manualmente questa logica.
 - Un push funzionale su un branch `agent/**` avvia il canale rapido Todo Test:
   controlli mirati, APK arm64 `.dev` e manifest rolling dedicato. La release
   stabile coordinata (Play, Web, APK direct e tutte le ABI) è manuale e richiede
