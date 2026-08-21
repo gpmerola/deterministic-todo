@@ -81,6 +81,17 @@ autorizzazioni e chiave Keystore. `adb install -r` con l'APK `dev` resta un
 fallback rapido. Non usare `adb uninstall` e non tentare di installare un APK
 `DeterministicTodo-Android-*` dentro Todo Test.
 
+Dalla build 129 Todo Test usa il manifest rolling dedicato:
+
+`releases/download/todo-test-latest/manifest.json`
+
+Ogni push sul branch operativo costruisce soltanto l'APK arm64 necessario al
+Galaxy S21 e lo pubblica nella prerelease `todo-test-latest`. La pipeline
+stabile non parte più automaticamente: richiede `workflow_dispatch` e la
+conferma `PUBBLICA`, poi costruisce Web, Google Play, APK direct e tutte le ABI.
+La build 128 è l'unico ponte che permette alla vecchia 126 di passare dal
+manifest stabile a quello rapido.
+
 ## Passaggio e rollback
 
 - Prima di attivare il monitor passivo o intensivo in Todo Test, fermarlo nella

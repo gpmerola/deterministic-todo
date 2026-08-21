@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release coordinata corrente: 2.26.5 build 128. **Todo Test** (`.dev`) è il
+- Release Todo Test corrente in preparazione: 2.26.6 build 129. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -88,6 +88,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   installabile come **Todo Test** accanto alla versione Play;
 - dalla 128 il manifest pubblico contiene APK `android-dev-*`; l'updater Todo
   Test non può più selezionare gli APK della linea principale;
+- dalla 129 i push `agent/**` pubblicano soltanto Todo Test arm64 sul manifest
+  rolling `todo-test-latest`; Play/Web/direct multi-ABI usano la pipeline
+  stabile manuale e non bloccano più il collaudo;
 - login Supabase, Health Connect, cartella Drive e aggiornamento ADB in-place
   sono collaudati; mantenere invariata la firma diretta;
 - Movimento è attivo soltanto in Todo Test; Play resta `disabled-user`;

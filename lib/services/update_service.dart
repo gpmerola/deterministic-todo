@@ -22,11 +22,14 @@ class AvailableUpdate {
 class UpdateService {
   UpdateService({http.Client? client, Uri? manifest})
     : _client = client ?? http.Client(),
-      _manifest = manifest ?? manifestUri;
+      _manifest = manifest ?? manifestUriFor(distributionChannel);
 
-  static final manifestUri = Uri.parse(
-    'https://github.com/gpmerola/deterministic-todo-releases/'
-    'releases/latest/download/manifest.json',
+  static Uri manifestUriFor(String channel) => Uri.parse(
+    channel == 'dev'
+        ? 'https://github.com/gpmerola/deterministic-todo-releases/'
+              'releases/download/todo-test-latest/manifest.json'
+        : 'https://github.com/gpmerola/deterministic-todo-releases/'
+              'releases/latest/download/manifest.json',
   );
 
   final http.Client _client;

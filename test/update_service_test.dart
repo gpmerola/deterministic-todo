@@ -60,4 +60,15 @@ void main() {
       isNull,
     );
   });
+
+  test('Todo Test usa un manifest rolling separato da quello stabile', () {
+    expect(
+      UpdateService.manifestUriFor('dev').path,
+      contains('/releases/download/todo-test-latest/manifest.json'),
+    );
+    expect(
+      UpdateService.manifestUriFor('direct').path,
+      contains('/releases/latest/download/manifest.json'),
+    );
+  });
 }

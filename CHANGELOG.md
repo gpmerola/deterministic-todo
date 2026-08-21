@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.26.6
+
+- Separa il canale rapido Todo Test dalla release stabile: ogni push `agent/**`
+  costruisce e pubblica soltanto l'APK arm64 `.dev` su un manifest rolling.
+- La release coordinata Web, Play, APK direct e multi-ABI diventa esplicita e
+  richiede conferma manuale `PUBBLICA`.
+- Todo Test legge il manifest `todo-test-latest`; i canali direct/Play
+  continuano a leggere esclusivamente la release stabile più recente.
+
 ## 2.26.5
 
 - Pubblica APK OTA dedicati a Todo Test con package `.dev` e firma diretta
