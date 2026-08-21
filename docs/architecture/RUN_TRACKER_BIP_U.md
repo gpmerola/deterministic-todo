@@ -112,7 +112,7 @@ sessioni esplicite valide (almeno 1 km/1.000 passi per cammino o 3 km/2.000
 passi per corsa), la mediana degli ultimi sette rapporti GPS/passi calibra il
 solo profilo corrispondente. Ogni sessione viene acquisita una sola volta.
 
-I report schema 6 `passive_intraday_snapshot` e `passive_daily_audit`
+I report schema 7 `passive_intraday_snapshot` e `passive_daily_audit`
 registrano categorie, esclusioni separate veicolo/bicicletta, conflitti
 `STILL + passi`, baseline all-steps e parametri applicati. Conservano inoltre
 finestra effettiva, latenze delle query, record grezzi, valori pre/post
@@ -133,6 +133,16 @@ totale aggregato. Per ogni minuto restano distinti categorie Todo, passi grezzi
 attribuiti a Google Fit e distanza Fit. Questa granularità è ricostruita dai
 timestamp dei record, quindi resta utile anche se la lettura avviene molto dopo
 la camminata; non richiede un job al minuto.
+
+Lo schema 7 affianca a ogni minuto i campioni Bip U già importati, senza
+attivare BLE. Un analizzatore esclusivamente diagnostico raggruppa minuti attivi
+in episodi e può colmare una sola pausa intermedia; non modifica categorie,
+passi o distanza mostrati. Ogni episodio conserva valori Todo/Fit/Bip, battito
+medio disponibile, sovrapposizioni e flag. `source_coverage` distingue assenza
+di campioni da valore zero e misura freschezza/ritardo; `model_provenance`
+identifica la configurazione tramite SHA-256; `diagnostic_resources` chiarisce
+che CPU/rete sono attribuibili al processo/UID mentre la batteria è soltanto
+contesto dell'intero dispositivo.
 
 ## BLE e confine di sicurezza
 

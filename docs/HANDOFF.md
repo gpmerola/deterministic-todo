@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.29.1 build 138**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.30.0 build 139**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -67,6 +67,11 @@ di cambiare architettura.
   Flutter nella shell principale. `MovementDashboardBridge` mantiene il
   confine architetturale e legge Room/stato live nel modulo `runtracker`; il
   timer UI a un secondo vive soltanto finché la pagina è montata.
+  La build 139 estende soltanto l'osservabilità passiva allo schema 7. Timeline
+  Todo/Fit/Bip, episodi diagnostici con una pausa breve ricostruibile,
+  copertura e latenza delle sorgenti, hash configurazione e checkpoint risorse
+  sono nello stesso JSON. Nessuna soglia del modello, falcata, richiesta GPS o
+  pianificazione WorkManager viene modificata.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
@@ -542,13 +547,13 @@ orario e distanza di riferimento noti; non richiede una sessione GPS manuale.
 
 1. leggere integralmente `AGENTS.md`, `TODO_NEXT.md` e questo handoff, quindi
    controllare `git status -sb`;
-2. non modificare falcate o campionamento GPS mentre il nuovo schema 6 viene
+2. non modificare falcate o campionamento GPS mentre il nuovo schema 7 viene
    collaudato; correzioni puramente diagnostiche restano ammesse;
 3. verificare via ADB che Todo Test `.dev` sia attivo, che monitor passivo e
    diagnostica intensiva procedano e che il package Play resti
    `disabled-user`; non riabilitare o disinstallare Play;
 4. dopo almeno 12–24 ore analizzare i JSONL con
-   `tools/analyze_movement_intensive.py` e confrontare gli snapshot schema 6;
+   `tools/analyze_movement_intensive.py` e confrontare gli snapshot schema 7;
 5. completare in Chrome reale persistenza dopo chiusura, import/export con
    fixture sintetica e diagnostica IndexedDB, senza usare dati personali;
 6. installare ogni nuova build su Todo Test con `adb install -r` e la firma

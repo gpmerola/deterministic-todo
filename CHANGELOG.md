@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.30.0
+
+- Porta snapshot e audit passivi allo schema 7 senza cambiare l'algoritmo di
+  distanza: ogni minuto allinea Todo, Google Fit e campioni Bip U già importati.
+- Segmenta automaticamente episodi di cammino, corsa, attività mista e pause;
+  conserva totali a tre fonti, battito medio disponibile, discrepanza Fit e
+  flag di qualità, oltre ai dieci episodi peggiori.
+- Registra copertura e freschezza per sorgente, ritardi di import Bip/Fit,
+  versione e hash della configurazione del modello.
+- Aggiunge checkpoint CPU, PSS, rete UID e batteria con semantica di
+  attribuzione esplicita; la batteria resta contesto dell'intero dispositivo.
+- Mantiene invariati GPS, falcate, classificatore, frequenza degli upload e
+  durata del test passivo già avviato.
+
 ## 2.29.1
 
 - Integra Movimento direttamente nella navigazione Flutter: rimossi la pagina

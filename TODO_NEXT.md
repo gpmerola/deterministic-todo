@@ -135,11 +135,12 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - quando serve anticipare un controllo remoto usare soltanto `Carica ora tutti
   i dati di test`; non usare `Sincronizza ultima attività`, che resta limitato
   alla sessione GPS esplicita più recente;
-- verificare sulla build 138 che l'anello passi sia leggibile nelle viste
+- verificare sulla build 139 che l'anello passi sia leggibile nelle viste
   principali, che il target cambi dalle Impostazioni e che Movimento integrato
   consenta avvio/stop/upload senza redirect o scorrimento anomalo;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
-  `daily_audit_*.json` schema 6: timeline al minuto, delta tra snapshot, scarto distanza, quote
+  `daily_audit_*.json` schema 7: timeline Todo/Fit/Bip al minuto, episodi e
+  pause automatici, copertura/ritardi, delta tra snapshot, scarto distanza, quote
   cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
   veicolo/bicicletta, conflitti `STILL + passi` e flag di qualità;
 - per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre

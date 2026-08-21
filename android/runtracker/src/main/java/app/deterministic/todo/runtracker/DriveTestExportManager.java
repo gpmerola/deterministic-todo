@@ -21,10 +21,14 @@ import org.json.JSONObject;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 final class DriveTestExportManager {
@@ -494,8 +498,14 @@ final class DriveTestExportManager {
             PassiveSnapshotDelta.Delta delta = PassiveSnapshotDelta.between(
                 readPassiveSample(c), currentSample);
             boolean intraday = !"passive_daily_audit".equals(kind);
+            List<BipUActivitySample> bipSamples = RunDatabase.get(c).runs().bipUSamples(
+                audit.getIntervalStartMillis(), audit.getIntervalEndMillis());
+            List<PassiveEpisodeAnalyzer.MinuteEvidence> evidence = passiveEvidence(
+                audit, stride, runningStride, bipSamples);
+            List<PassiveEpisodeAnalyzer.Episode> episodes =
+                PassiveEpisodeAnalyzer.episodes(evidence);
             JSONObject json = new JSONObject()
-                .put("schema_version", 6)
+                .put("schema_version", 7)
                 .put("kind", kind)
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
@@ -575,7 +585,15 @@ final class DriveTestExportManager {
                     .put("steps", audit.getFitSteps() == null ? JSONObject.NULL : audit.getFitSteps())
                     .put("distance_m", audit.getFitDistanceMeters() == null ? JSONObject.NULL : audit.getFitDistanceMeters())
                     .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()))
-                .put("minute_timeline", passiveMinuteTimelineJson(audit, stride, runningStride))
+                .put("model_provenance", passiveModelProvenance(c, stride,
+                    runningStride, weight))
+                .put("source_coverage", passiveSourceCoverage(audit, evidence,
+                    bipSamples, observedAtMillis))
+                .put("diagnostic_resources", passiveResourceCheckpoint(c,
+                    observedAtMillis))
+                .put("minute_timeline", passiveMinuteTimelineJson(evidence))
+                .put("episodes", passiveEpisodesJson(episodes))
+                .put("worst_episodes", worstEpisodesJson(episodes, 10))
                 .put("comparison", comparisonJson(audit, estimate))
                 .put("delta_from_previous_snapshot", intraday
                     ? deltaJson(delta) : JSONObject.NULL);
@@ -590,33 +608,233 @@ final class DriveTestExportManager {
         }
     }
 
-    private static JSONArray passiveMinuteTimelineJson(HealthConnectGateway.PassiveAudit audit,
-                                                        double walkingStride,
-                                                        double runningStride) throws Exception {
-        JSONArray result = new JSONArray();
+    private static List<PassiveEpisodeAnalyzer.MinuteEvidence> passiveEvidence(
+        HealthConnectGateway.PassiveAudit audit, double walkingStride,
+        double runningStride, List<BipUActivitySample> bipSamples) {
+        Map<Long, BipMinute> bipByMinute = new HashMap<>();
+        for (BipUActivitySample sample : bipSamples) {
+            long minute = Math.floorDiv(sample.timestampMillis, 60_000L) * 60_000L;
+            BipMinute value = bipByMinute.computeIfAbsent(minute, ignored -> new BipMinute());
+            value.steps += Math.max(0, sample.steps);
+            value.samples++;
+            if (sample.heartRate > 0) {
+                value.heartRateSum += sample.heartRate;
+                value.heartRateSamples++;
+            }
+        }
+        Map<Long, PassiveEpisodeAnalyzer.MinuteEvidence> byMinute = new HashMap<>();
         for (PassiveMinuteTimeline.Minute minute : audit.getMinuteTimeline()) {
             long included = minute.walkingSteps() + minute.runningSteps()
                 + minute.unknownSteps() + minute.stillConflictSteps();
             double todoDistance = (minute.walkingSteps() + minute.unknownSteps()
                 + minute.stillConflictSteps()) * walkingStride
                 + minute.runningSteps() * runningStride;
+            BipMinute bip = bipByMinute.remove(minute.startMillis());
+            byMinute.put(minute.startMillis(), evidence(minute.startMillis(),
+                minute.endMillis(), minute.todoSteps(), todoDistance,
+                minute.walkingSteps(), minute.runningSteps(), minute.unknownSteps(),
+                minute.stillConflictSteps(), minute.vehicleSteps(), minute.bicycleSteps(),
+                minute.fitStepsRaw(), minute.fitDistanceMeters() > 0
+                    ? minute.fitDistanceMeters() : null, bip));
+        }
+        for (Map.Entry<Long, BipMinute> entry : bipByMinute.entrySet()) {
+            long start = entry.getKey();
+            if (start < audit.getIntervalStartMillis() || start >= audit.getIntervalEndMillis())
+                continue;
+            byMinute.put(start, evidence(start, start + 60_000L, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, null, entry.getValue()));
+        }
+        List<PassiveEpisodeAnalyzer.MinuteEvidence> result = new ArrayList<>(byMinute.values());
+        result.sort(Comparator.comparingLong(PassiveEpisodeAnalyzer.MinuteEvidence::startMillis));
+        return result;
+    }
+
+    private static PassiveEpisodeAnalyzer.MinuteEvidence evidence(
+        long start, long end, long todoSteps, double todoDistance, long walking,
+        long running, long unknown, long still, long vehicle, long bicycle,
+        long fitSteps, Double fitDistance, BipMinute bip) {
+        return new PassiveEpisodeAnalyzer.MinuteEvidence(start, end, todoSteps,
+            todoDistance, walking, running, unknown, still, vehicle, bicycle,
+            fitSteps, fitDistance, bip == null ? 0 : bip.steps,
+            bip == null || bip.heartRateSamples == 0 ? null
+                : (int) Math.round(bip.heartRateSum / (double) bip.heartRateSamples),
+            bip == null ? 0 : bip.samples);
+    }
+
+    private static JSONArray passiveMinuteTimelineJson(
+        List<PassiveEpisodeAnalyzer.MinuteEvidence> evidence) throws Exception {
+        JSONArray result = new JSONArray();
+        for (PassiveEpisodeAnalyzer.MinuteEvidence minute : evidence) {
             result.put(new JSONObject()
                 .put("start_ms", minute.startMillis())
                 .put("end_ms", minute.endMillis())
                 .put("todo_steps", minute.todoSteps())
-                .put("todo_estimated_distance_m", todoDistance)
-                .put("todo_included_steps", included)
+                .put("todo_estimated_distance_m", minute.todoDistanceMeters())
+                .put("todo_included_steps", minute.walkingSteps() + minute.runningSteps()
+                    + minute.unknownSteps() + minute.stillSteps())
                 .put("walking_steps", minute.walkingSteps())
                 .put("running_steps", minute.runningSteps())
                 .put("unknown_steps", minute.unknownSteps())
-                .put("still_conflict_steps", minute.stillConflictSteps())
+                .put("still_conflict_steps", minute.stillSteps())
                 .put("vehicle_steps", minute.vehicleSteps())
                 .put("bicycle_steps", minute.bicycleSteps())
-                .put("fit_steps_raw", minute.fitStepsRaw())
+                .put("fit_steps_raw", minute.fitSteps())
                 .put("fit_distance_m", minute.fitDistanceMeters())
-                .put("fit_values_are_record_timeline_not_aggregate", true));
+                .put("fit_values_are_record_timeline_not_aggregate", true)
+                .put("bip_steps", minute.bipSteps())
+                .put("bip_heart_rate_bpm", nullable(minute.bipHeartRate()))
+                .put("bip_sample_count", minute.bipSamples())
+                .put("evidence_flags", minuteFlags(minute)));
         }
         return result;
+    }
+
+    private static JSONArray minuteFlags(PassiveEpisodeAnalyzer.MinuteEvidence minute) {
+        JSONArray flags = new JSONArray();
+        if (minute.todoSteps() > 0 && minute.fitSteps() == 0) flags.put("fit_steps_delayed_or_missing");
+        if (minute.todoSteps() > 0 && minute.bipSamples() == 0) flags.put("bip_not_observed");
+        if (minute.stillSteps() > 0) flags.put("still_with_steps");
+        if (minute.vehicleSteps() > 0) flags.put("vehicle_overlap");
+        if (minute.bicycleSteps() > 0) flags.put("bicycle_overlap");
+        if (minute.walkingSteps() > 0 && minute.runningSteps() > 0) flags.put("mixed_walk_run");
+        return flags;
+    }
+
+    private static JSONArray passiveEpisodesJson(List<PassiveEpisodeAnalyzer.Episode> episodes)
+        throws Exception {
+        JSONArray result = new JSONArray();
+        for (PassiveEpisodeAnalyzer.Episode episode : episodes)
+            result.put(passiveEpisodeJson(episode));
+        return result;
+    }
+
+    private static JSONArray worstEpisodesJson(List<PassiveEpisodeAnalyzer.Episode> episodes,
+                                                int maximum) throws Exception {
+        List<PassiveEpisodeAnalyzer.Episode> ranked = new ArrayList<>(episodes);
+        ranked.sort((left, right) -> Double.compare(
+            episodeSeverity(right), episodeSeverity(left)));
+        JSONArray result = new JSONArray();
+        for (int i = 0; i < Math.min(maximum, ranked.size()); i++)
+            result.put(passiveEpisodeJson(ranked.get(i)));
+        return result;
+    }
+
+    private static double episodeSeverity(PassiveEpisodeAnalyzer.Episode episode) {
+        Double percent = episode.distancePercentVsFit();
+        return percent == null ? -1 : Math.abs(percent);
+    }
+
+    private static JSONObject passiveEpisodeJson(PassiveEpisodeAnalyzer.Episode episode)
+        throws Exception {
+        return new JSONObject()
+            .put("episode_id", episode.startMillis() + "-" + episode.endMillis())
+            .put("start_ms", episode.startMillis()).put("end_ms", episode.endMillis())
+            .put("duration_ms", episode.endMillis() - episode.startMillis())
+            .put("activity", episode.activity())
+            .put("active_minutes", episode.activeMinutes())
+            .put("pause_minutes", episode.pauseMinutes())
+            .put("todo", new JSONObject().put("steps", episode.todoSteps())
+                .put("distance_m", episode.todoDistanceMeters())
+                .put("walking_steps", episode.walkingSteps())
+                .put("running_steps", episode.runningSteps())
+                .put("unknown_steps", episode.unknownSteps())
+                .put("still_steps", episode.stillSteps())
+                .put("vehicle_steps", episode.vehicleSteps())
+                .put("bicycle_steps", episode.bicycleSteps()))
+            .put("google_fit", new JSONObject().put("steps", episode.fitSteps())
+                .put("distance_m", nullable(episode.fitDistanceMeters())))
+            .put("bip_u", new JSONObject().put("steps", episode.bipSteps())
+                .put("heart_rate_mean_bpm", nullable(episode.bipHeartRateMean())))
+            .put("distance_percent_vs_fit", nullable(episode.distancePercentVsFit()))
+            .put("quality_flags", new JSONArray(episode.qualityFlags()));
+    }
+
+    private static JSONObject passiveSourceCoverage(HealthConnectGateway.PassiveAudit audit,
+        List<PassiveEpisodeAnalyzer.MinuteEvidence> evidence,
+        List<BipUActivitySample> bipSamples, long observedAtMillis) throws Exception {
+        long todoMinutes = evidence.stream().filter(x -> x.todoSteps() > 0).count();
+        long fitMinutes = evidence.stream().filter(x -> x.fitSteps() > 0
+            || x.fitDistanceMeters() != null && x.fitDistanceMeters() > 0).count();
+        long bipMinutes = evidence.stream().filter(x -> x.bipSamples() > 0).count();
+        Long latestFit = evidence.stream().filter(x -> x.fitSteps() > 0
+            || x.fitDistanceMeters() != null && x.fitDistanceMeters() > 0)
+            .map(PassiveEpisodeAnalyzer.MinuteEvidence::endMillis).max(Long::compare).orElse(null);
+        BipUActivitySample latestBip = bipSamples.stream()
+            .max(Comparator.comparingLong(x -> x.timestampMillis)).orElse(null);
+        return new JSONObject()
+            .put("window_minutes", Math.max(0,
+                (audit.getIntervalEndMillis() - audit.getIntervalStartMillis()) / 60_000L))
+            .put("todo_minutes_with_steps", todoMinutes)
+            .put("fit_minutes_with_values", fitMinutes)
+            .put("bip_minutes_with_samples", bipMinutes)
+            .put("fit_latest_value_end_ms", nullable(latestFit))
+            .put("fit_latest_value_age_ms", latestFit == null ? JSONObject.NULL
+                : Math.max(0, observedAtMillis - latestFit))
+            .put("bip_latest_sample_ms", latestBip == null ? JSONObject.NULL
+                : latestBip.timestampMillis)
+            .put("bip_latest_sample_age_ms", latestBip == null ? JSONObject.NULL
+                : Math.max(0, observedAtMillis - latestBip.timestampMillis))
+            .put("bip_latest_imported_at_ms", latestBip == null ? JSONObject.NULL
+                : latestBip.importedAtMillis)
+            .put("bip_latest_import_delay_ms", latestBip == null ? JSONObject.NULL
+                : Math.max(0, latestBip.importedAtMillis - latestBip.timestampMillis))
+            .put("absence_semantics", "missing minutes are coverage gaps, not zero activity")
+            .put("bip_backfill_cap_days", 7);
+    }
+
+    private static JSONObject passiveModelProvenance(Context context, double walkingStride,
+        double runningStride, double weight) throws Exception {
+        String config = "schema=7|app=" + appVersion(context) + "|code="
+            + appVersionCode(context) + "|walk=" + walkingStride
+            + "|run=" + runningStride + "|weight=" + weight
+            + "|exclude=0.8|episode_steps=" + PassiveEpisodeAnalyzer.ACTIVE_STEP_THRESHOLD
+            + "|episode_pause=" + PassiveEpisodeAnalyzer.MAX_BRIDGED_PAUSE_MINUTES;
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(config.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hex = new StringBuilder();
+        for (byte b : hash) hex.append(String.format(java.util.Locale.ROOT, "%02x", b));
+        return new JSONObject().put("app_version", appVersion(context))
+            .put("android_version_code", appVersionCode(context))
+            .put("report_schema", 7).put("configuration_sha256", hex.toString())
+            .put("walking_stride_m", walkingStride).put("running_stride_m", runningStride)
+            .put("weight_kg", weight).put("transport_exclusion_threshold", 0.80)
+            .put("episode_active_step_threshold", PassiveEpisodeAnalyzer.ACTIVE_STEP_THRESHOLD)
+            .put("episode_bridged_pause_minutes",
+                PassiveEpisodeAnalyzer.MAX_BRIDGED_PAUSE_MINUTES)
+            .put("diagnostic_only", true);
+    }
+
+    private static JSONObject passiveResourceCheckpoint(Context context, long observedAtMillis)
+        throws Exception {
+        android.content.SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        long cpu = Process.getElapsedCpuTime(), elapsed = android.os.SystemClock.elapsedRealtime();
+        long rx = TrafficStats.getUidRxBytes(Process.myUid());
+        long tx = TrafficStats.getUidTxBytes(Process.myUid());
+        int battery = battery(context);
+        JSONObject result = new JSONObject().put("observed_at_ms", observedAtMillis)
+            .put("battery_percent_device", battery).put("process_pss_kb", Debug.getPss())
+            .put("process_cpu_ms", cpu).put("device_elapsed_realtime_ms", elapsed)
+            .put("uid_network_rx_bytes", rx).put("uid_network_tx_bytes", tx)
+            .put("since_previous_checkpoint", new JSONObject()
+                .put("duration_ms", monotonicDelta(p.getLong("passive_resource_elapsed", 0), elapsed))
+                .put("process_cpu_ms", monotonicDelta(p.getLong("passive_resource_cpu", 0), cpu))
+                .put("uid_network_rx_bytes", delta(p.getLong("passive_resource_rx", -1), rx))
+                .put("uid_network_tx_bytes", delta(p.getLong("passive_resource_tx", -1), tx))
+                .put("battery_percentage_points", p.contains("passive_resource_battery")
+                    ? battery - p.getInt("passive_resource_battery", battery) : JSONObject.NULL))
+            .put("attribution", "CPU and network are app UID/process; battery is whole-device context");
+        p.edit().putLong("passive_resource_elapsed", elapsed)
+            .putLong("passive_resource_cpu", cpu).putLong("passive_resource_rx", rx)
+            .putLong("passive_resource_tx", tx).putInt("passive_resource_battery", battery)
+            .putLong("passive_resource_observed_at", observedAtMillis).apply();
+        return result;
+    }
+
+    private static final class BipMinute {
+        long steps;
+        long heartRateSum;
+        int heartRateSamples;
+        int samples;
     }
 
     private static JSONObject comparisonJson(HealthConnectGateway.PassiveAudit audit,
@@ -850,6 +1068,13 @@ final class DriveTestExportManager {
     private static String appVersion(Context c) {
         try { return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName; }
         catch (Exception ignored) { return "unknown"; }
+    }
+    private static long appVersionCode(Context c) {
+        try {
+            android.content.pm.PackageInfo info = c.getPackageManager()
+                .getPackageInfo(c.getPackageName(), 0);
+            return Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode;
+        } catch (Exception ignored) { return -1; }
     }
     private static Uri tree(Context c) { String value=c.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getString(TREE_URI,null); return value==null?null:Uri.parse(value); }
     private static boolean canReadFolder(Context c, Uri tree) {

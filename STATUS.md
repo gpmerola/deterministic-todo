@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.29.1 build 138**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.30.0 build 139**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -44,6 +44,10 @@ Aggiornato il 21 agosto 2026.
   Movimento è una pagina coerente con il resto dell'app e usa un bridge
   sottile per stato live, avvio/stop e upload. Il refresh al secondo è
   confinato alla pagina visibile e non modifica il monitor passivo.
+  La build 139 porta il report passivo allo schema 7: timeline Todo/Fit/Bip,
+  episodi diagnostici automatici con pause, copertura e ritardo delle sorgenti,
+  provenienza/hash del modello e checkpoint risorse. Algoritmo, GPS e cadenza
+  degli upload restano invariati, quindi il test in corso continua.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
@@ -226,7 +230,7 @@ Aggiornato il 21 agosto 2026.
 - Restano da collaudare sulla build 118 la continuità dell'esperimento avviato
   sulla 117, l'upload orario e quello finale della
   diagnostica intensiva e almeno due giornate
-  principalmente di cammino/corsa, lo schema 6 dei report Drive e la
+  principalmente di cammino/corsa, lo schema 7 dei report Drive e la
   calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
   con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
   Connect.
