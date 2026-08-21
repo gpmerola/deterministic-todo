@@ -2,9 +2,9 @@
 
 ## Installazione
 
-1. Attendere che Google Play mostri la build 83 nel test interno e premere
-   **Aggiorna**. In alternativa installare l'APK `arm64-v8a` firmato della
-   release 2.19.0; non alternare firme diverse.
+1. Durante lo sviluppo usare esclusivamente **Todo Test** con `make todo-test`;
+   la build Play resta il canale stabile separato. Non alternare package o
+   firme e non cancellare i dati per aggiornare.
 2. Aprire **Impostazioni → Movimento · passi, calorie e GPS**.
 3. Alla prima corsa concedere **Posizione precisa** e **Notifiche**. Non serve
    Posizione sempre: il servizio viene avviato dalla schermata visibile e resta
@@ -63,16 +63,20 @@ sono disponibili, non ripetere rapidamente: conservare il report e analizzarlo.
 Non condividere chiave, MAC, GPX o database nei bug report. Non usare il modulo
 per firmware, reset o scritture sperimentali.
 
-## Importazione attività build 126
+## Sincronizzazione attività dalla build 134
 
-1. Indossare o tenere vicino il Bip U e premere **Importa attività Bip U ·
-   ultime 24 h** una sola volta.
+1. Indossare o tenere vicino il Bip U e premere **Sincronizza Bip U · recupera
+   arretrati** una sola volta.
 2. Attendere la conferma con minuti, passi, campioni battito e record nuovi.
-3. Un retry è sicuro: la chiave timestamp+sorgente impedisce duplicati e
-   vengono aggiunti soltanto i minuti comparsi nel frattempo.
+3. Un retry è sicuro: la chiave timestamp+sorgente impedisce duplicati. La
+   richiesta riparte dall'ultimo minuto meno un'ora e recupera fino a sette
+   giorni disponibili; disconnessioni più lunghe sono dichiarate come limitate.
 4. Il telefono continua a funzionare senza orologio. I dati Bip U restano una
    sorgente locale separata e non vengono ancora sommati a Health Connect.
 
 L’import non invia il comando finale che potrebbe marcare i campioni come
-consumati. Drive riceve solo il riepilogo tecnico aggregato, non la timeline
-sanitaria.
+consumati. `05 Bip U` riceve il riepilogo tecnico; `01 Sessions` aggiorna per
+ogni sessione interessata il report `*_three_way.json`, che contiene la
+timeline sanitaria Bip necessaria al confronto personale. Non condividere
+questi report: non contengono coordinate o chiavi, ma contengono battito e
+attività fisica.

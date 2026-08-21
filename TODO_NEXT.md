@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.27.0 build 133. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.28.0 build 134. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -23,7 +23,7 @@ non duplicare qui i dettagli tecnici.
   diagnostica intensiva temporanea di sette giorni, segmentata per build e con
   upload JSONL orario e finale crash-safe, oltre agli snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica Android
-  aggiorna il file Drive giornaliero all'avvio e ogni tre ore. Il sync task conferma sul
+  aggiorna il file Drive giornaliero all'avvio e ogni ora. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
   contatori Lamport più alti. I record passi sono ripartiti
   sull'intero intervallo e l'esclusione di veicolo/bicicletta richiede una quota
@@ -35,6 +35,9 @@ non duplicare qui i dettagli tecnici.
   a cadenza diversa dall'etichetta di calibrare la falcata. Il prossimo test
   utile è una corsa prevalentemente continua, lasciando attivi monitor passivo
   e diagnostica.
+- La build 134 mantiene per le ultime 15 sessioni un unico export a tre fonti,
+  con timeline UTC Todo/Bip, aggregati Fit, confronti a coppie e campioni Bip
+  unici. Il backfill Bip recupera fino a sette giorni con sovrapposizione.
 - Sul Galaxy S21 coesistono **Todo Test** attiva e la
   **build Play 121** disabilitata. Non disinstallare la seconda e non usare
   l'APK GitHub per aggiornarla. Runbook canonico:
@@ -141,17 +144,16 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - la build 124 ha superato il precedente GATT 6: prova reale completa con
   autenticazione challenge-response, 7 campioni tra 67 e 73 bpm (media 70),
   stop automatico, GATT 0 e report schema 2 in `05 Bip U`;
-- la build 125 aggiunge l’importazione locale idempotente delle ultime 24 ore,
-  senza ACK distruttivo e senza fusione prematura con Health Connect. Eseguire
-  una prima importazione reale e verificare conteggio, timestamp e retry;
+- la build 134 usa un’importazione locale idempotente incrementale, con un'ora
+  di sovrapposizione, fino a sette giorni di backfill e senza ACK distruttivo;
 - il primo test reale ha ricevuto 1.440 campioni/11.520 byte senza errori GATT;
   la 126 ha poi salvato 1.440 minuti, 2.626 passi e 358 campioni cardiaci. Il
   retry ha deduplicato l’intersezione e inserito solo due minuti nuovi;
-- la 127 esporta ogni tre ore un report telefono/Fit/Bip U con copertura e
-  anzianità dei campioni. L'import dell'orologio resta esplicito e non viene
-  mantenuta una connessione BLE permanente;
-- prossimo incremento: audit temporale telefono/Bip U e fusione a finestre in
-  modalità osservazione, senza cambiare ancora i valori mostrati all’utente;
+- la 134 esporta ogni ora riepilogo unificato e report sessione canonico a tre
+  fonti con finestre UTC, dati Bip nativi e differenze a coppie. L'import
+  dell'orologio resta esplicito e non mantiene una connessione BLE permanente;
+- prossimo incremento: stimare offset/drift temporale e validare la qualità dei
+  campioni Bip prima di usarli nell'algoritmo mostrato all’utente;
 - prossimo passo: integrare una sessione cardiaca esplicita nell'attività e
   verificarne continuità, consumo e timestamp, mantenendo la misura disattiva
   fuori da una sessione richiesta dall'utente;

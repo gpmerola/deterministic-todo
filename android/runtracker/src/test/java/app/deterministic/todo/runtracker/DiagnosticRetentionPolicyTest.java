@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DiagnosticRetentionPolicyTest {
-    @Test public void diagnosticUploadRunsEveryThreeHoursDuringDebugging() {
-        assertEquals(3, DiagnosticDriveWorker.PERIODIC_INTERVAL_HOURS);
+    @Test public void diagnosticUploadRunsHourlyDuringDebugging() {
+        assertEquals(1, DiagnosticDriveWorker.PERIODIC_INTERVAL_HOURS);
     }
 
     @Test public void acceptsThreeHourlyDiagnosticSnapshots() {

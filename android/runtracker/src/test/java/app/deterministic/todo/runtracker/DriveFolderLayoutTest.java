@@ -9,6 +9,8 @@ public final class DriveFolderLayoutTest {
     @Test public void routesEveryManagedDiagnosticKind() {
         assertEquals(DriveFolderLayout.SESSIONS,
             DriveFolderLayout.folderFor("178_walk_session-000123_diagnostics.json"));
+        assertEquals(DriveFolderLayout.SESSIONS,
+            DriveFolderLayout.folderFor("178_run_session-000123_three_way.json"));
         assertEquals(DriveFolderLayout.PASSIVE,
             DriveFolderLayout.folderFor("movement_snapshot_2026-08-20_20.json"));
         assertEquals(DriveFolderLayout.PASSIVE,

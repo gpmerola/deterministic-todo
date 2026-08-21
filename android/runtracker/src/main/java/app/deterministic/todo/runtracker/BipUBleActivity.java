@@ -62,6 +62,7 @@ public final class BipUBleActivity extends ComponentActivity {
     private static final byte[] STOP_CONTINUOUS_HEART_RATE = new byte[] {0x15, 0x01, 0x00};
     private static final long HEART_RATE_WINDOW_MILLIS = 60_000;
     private static final long AUTH_TIMEOUT_MILLIS = 20_000;
+    private static final long ACTIVITY_SYNC_TIMEOUT_MILLIS = 8L * 60 * 1000;
     private enum Mode { BATTERY, HEART_RATE, ACTIVITY_SYNC }
     private enum Stage { IDLE, AUTH_NOTIFY, AUTH_CHALLENGE, AUTH_ENCRYPTED, HR_NOTIFY,
         HR_STOP_MANUAL, HR_START, HR_LISTENING, HR_STOP, ACTIVITY_DATA_NOTIFY,
@@ -92,6 +93,7 @@ public final class BipUBleActivity extends ComponentActivity {
     private String failedStage;
     private BipUActivityProtocol.PacketBuffer activityBuffer;
     private BipUActivityProtocol.Metadata activityMetadata;
+    private BipUBackfillPolicy.Request activityRequest;
 
     static void open(Activity activity) { activity.startActivity(new Intent(activity, BipUBleActivity.class)); }
 
@@ -121,10 +123,10 @@ public final class BipUBleActivity extends ComponentActivity {
         heartRateProbe = new Button(this); heartRateProbe.setText("Autentica e leggi battito · 60 s");
         heartRateProbe.setEnabled(keys.hasKey());
         heartRateProbe.setOnClickListener(v -> begin(Mode.HEART_RATE)); root.addView(heartRateProbe);
-        activitySyncProbe = new Button(this); activitySyncProbe.setText("Importa attività Bip U · ultime 24 h");
+        activitySyncProbe = new Button(this); activitySyncProbe.setText("Sincronizza Bip U · recupera arretrati");
         activitySyncProbe.setEnabled(keys.hasKey());
         activitySyncProbe.setOnClickListener(v -> begin(Mode.ACTIVITY_SYNC)); root.addView(activitySyncProbe);
-        TextView note = new TextView(this); note.setText("Telefono sempre autonomo: il Bip U è una sorgente opzionale e non viene mai sommato alla cieca. L’importazione conserva i campioni localmente e non li cancella dall’orologio. Chiave, MAC e pacchetti grezzi non entrano nei report."); note.setGravity(Gravity.CENTER); note.setPadding(0, dp(24), 0, 0); root.addView(note);
+        TextView note = new TextView(this); note.setText("Telefono sempre autonomo: il Bip U è una sorgente opzionale e non viene mai sommato alla cieca. La sincronizzazione recupera con sovrapposizione gli arretrati disponibili, conserva i campioni e non li cancella dall’orologio. Chiave, MAC e pacchetti grezzi non entrano nei report."); note.setGravity(Gravity.CENTER); note.setPadding(0, dp(24), 0, 0); root.addView(note);
         setContentView(root);
     }
 
@@ -143,6 +145,7 @@ public final class BipUBleActivity extends ComponentActivity {
         activityData = null;
         activityBuffer = null;
         activityMetadata = null;
+        activityRequest = null;
         authKey = null;
         if (mode != Mode.BATTERY) {
             try {
@@ -306,12 +309,7 @@ public final class BipUBleActivity extends ComponentActivity {
             } else if (stage == Stage.ACTIVITY_CONTROL_NOTIFY) {
                 stage = Stage.ACTIVITY_REQUEST;
                 activityBuffer = new BipUActivityProtocol.PacketBuffer();
-                Instant since = Instant.ofEpochMilli(System.currentTimeMillis() - 86_400_000L);
-                byte[] request = BipUActivityProtocol.requestSince(since,
-                    ZoneId.systemDefault().getRules().getOffset(since));
-                setBusyStatus("Richiedo le ultime 24 ore senza cancellarle dall’orologio…");
-                if (!writeCharacteristic(connection, activityControl, request))
-                    finishActivitySync("Richiesta attività non avviata", "activity_request_failed");
+                requestActivityHistory(connection);
             }
         }
         @Override public void onCharacteristicWrite(@NonNull BluetoothGatt connection,
@@ -476,7 +474,7 @@ public final class BipUBleActivity extends ComponentActivity {
         stage = Stage.ACTIVITY_DATA_NOTIFY;
         setBusyStatus("Autenticazione riuscita · preparo importazione attività…");
         handler.postDelayed(() -> finishActivitySync("Importazione attività scaduta",
-            "activity_sync_timeout"), 90_000);
+            "activity_sync_timeout"), ACTIVITY_SYNC_TIMEOUT_MILLIS);
         if (!enableNotifications(connection, activityData))
             finishActivitySync("Notifiche dati attività non disponibili",
                 "activity_data_notifications_unavailable");
@@ -487,7 +485,7 @@ public final class BipUBleActivity extends ComponentActivity {
         if (metadata != null) {
             activityMetadata = metadata;
             if (metadata.expectedBytes() == 0) {
-                finishActivitySync("Nessun nuovo campione Bip U nelle ultime 24 ore", "activity_empty");
+                finishActivitySync("Nessun campione Bip U nell’intervallo richiesto", "activity_empty");
                 return;
             }
             stage = Stage.ACTIVITY_FETCH;
@@ -531,6 +529,10 @@ public final class BipUBleActivity extends ComponentActivity {
             long steps = samples.stream().mapToLong(sample -> sample.steps).sum();
             long heart = samples.stream().filter(sample -> sample.heartRate > 0
                 && sample.heartRate < 255).count();
+            if (added > 0 && !samples.isEmpty())
+                DriveTestExportManager.refreshThreeWayReportsForBipRange(this,
+                    samples.get(0).timestampMillis,
+                    samples.get(samples.size() - 1).timestampMillis + 60_000L);
             runOnUiThread(() -> finishActivitySyncSuccess(samples.size(), added, steps, heart));
         }, "bip-u-activity-store").start();
     }
@@ -544,6 +546,7 @@ public final class BipUBleActivity extends ComponentActivity {
         setStatus(text);
         DriveTestExportManager.exportBipUActivitySync(this, attemptStartedAtMillis,
             connectionSource, "activity_sync_success", samples, added, steps, heartSamples,
+            requestedWindowHours(), historyCapApplied(),
             lastGattStatus, result -> runOnUiThread(() -> status.setText(text
                 + (result.success() ? "\nReport salvato su Drive" : "\nReport Drive non disponibile"))));
     }
@@ -554,9 +557,37 @@ public final class BipUBleActivity extends ComponentActivity {
         closeGatt();
         setStatus(text);
         DriveTestExportManager.exportBipUActivitySync(this, attemptStartedAtMillis,
-            connectionSource, outcome, 0, 0, 0, 0, lastGattStatus,
+            connectionSource, outcome, 0, 0, 0, 0,
+            requestedWindowHours(), historyCapApplied(), lastGattStatus,
             result -> runOnUiThread(() -> status.setText(text
                 + (result.success() ? "\nReport salvato su Drive" : "\nReport Drive non disponibile"))));
+    }
+
+    private void requestActivityHistory(BluetoothGatt connection) {
+        long now = System.currentTimeMillis();
+        new Thread(() -> {
+            Long latest = RunDatabase.get(this).runs().latestBipUSampleTimestamp();
+            BipUBackfillPolicy.Request request = BipUBackfillPolicy.request(now, latest);
+            runOnUiThread(() -> {
+                if (connection != gatt || stage != Stage.ACTIVITY_REQUEST) return;
+                activityRequest = request;
+                Instant since = Instant.ofEpochMilli(request.sinceMillis());
+                byte[] payload = BipUActivityProtocol.requestSince(since,
+                    ZoneId.systemDefault().getRules().getOffset(since));
+                setBusyStatus("Recupero Bip U: " + request.requestedHours()
+                    + " ore, con sovrapposizione anti-gap…");
+                if (!writeCharacteristic(connection, activityControl, payload))
+                    finishActivitySync("Richiesta attività non avviata", "activity_request_failed");
+            });
+        }, "bip-u-backfill-plan").start();
+    }
+
+    private int requestedWindowHours() {
+        return activityRequest == null ? 0 : activityRequest.requestedHours();
+    }
+
+    private boolean historyCapApplied() {
+        return activityRequest != null && activityRequest.historyCapApplied();
     }
 
     private boolean enableNotifications(BluetoothGatt connection,

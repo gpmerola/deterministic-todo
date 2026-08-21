@@ -1,0 +1,19 @@
+package app.deterministic.todo.runtracker;
+
+/** Bounded, overlapping history request so reconnects recover data without gaps. */
+final class BipUBackfillPolicy {
+    static final long MAX_BACKFILL_MILLIS = 7L * 24 * 60 * 60 * 1000;
+    static final long OVERLAP_MILLIS = 60L * 60 * 1000;
+
+    record Request(long sinceMillis, int requestedHours, boolean historyCapApplied) {}
+
+    private BipUBackfillPolicy() {}
+
+    static Request request(long nowMillis, Long latestStoredMillis) {
+        long floor = nowMillis - MAX_BACKFILL_MILLIS;
+        long desired = latestStoredMillis == null ? floor : latestStoredMillis - OVERLAP_MILLIS;
+        long since = Math.max(floor, Math.min(nowMillis, desired));
+        int hours = (int) Math.max(1, (nowMillis - since + 3_599_999L) / 3_600_000L);
+        return new Request(since, hours, desired < floor);
+    }
+}

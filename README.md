@@ -118,6 +118,15 @@ restano nel JSON Drive anche quando il confronto non riesce. Dopo il consenso,
 un tentativo immediato in primo piano recupera anche l'ultima sessione rimasta
 in attesa.
 
+Ogni sessione mantiene inoltre in `01 Sessions` un solo report canonico
+`*_three_way.json`. Le finestre UTC di un minuto affiancano passi e distanza
+Todo Test ai campioni Bip U; i valori Google Fit disponibili a risoluzione di
+sessione sono riportati nei totali, con differenze assolute e percentuali fra
+le fonti. Il report viene aggiornato dopo il confronto Fit, dopo un nuovo
+backfill Bip pertinente e ogni ora per le 15 sessioni più recenti. Include la
+timeline sanitaria Bip richiesta per il collaudo, ma mai coordinate, chiave,
+MAC, pacchetti BLE o contenuti Todo.
+
 Il test passivo di sette giorni non richiede sessioni manuali. Durante il
 debugging crea su Drive uno snapshot cumulativo della giornata corrente circa
 un minuto dopo l'avvio e poi ogni ora, confrontando stima Todo e valori Google
@@ -146,12 +155,13 @@ non mantiene GPS, BLE o un servizio foreground e può funzionare con l'app
 chiusa. Terminarlo e riavviarlo estende la finestra senza cancellare gli audit
 già caricati.
 
-La prima prova BLE cerca il Bip U e legge soltanto il servizio standard della
-batteria, quando esposto. La chiave Huami opzionale viene cifrata con Android
-Keystore e non viene mai inserita in log o repository. Autenticazione Huami,
-download delle sessioni, allineamento con GPS e battito live restano disattivati
-finché l'implementazione indipendente non sarà validata su hardware. Non sono
-presenti funzioni di aggiornamento firmware.
+La chiave Huami viene cifrata con Android Keystore e non entra in log o
+repository. La sincronizzazione Bip U autenticata conserva localmente i
+campioni di un minuto senza cancellarli dall'orologio: riparte dall'ultimo
+campione con un'ora di sovrapposizione idempotente e recupera fino a sette
+giorni quando l'orologio è rimasto scollegato. Batteria, battito live limitato
+e import storico sono stati validati sul dispositivo reale. Non sono presenti
+funzioni di aggiornamento firmware.
 
 ## Import e reimport Todoist
 
@@ -214,7 +224,7 @@ La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.
 Durante la fase di debugging, Android aggiorna lo stesso report diagnostico
-Drive giornaliero circa un minuto dopo l'avvio e quindi ogni tre ore quando è
+Drive giornaliero circa un minuto dopo l'avvio e quindi ogni ora quando è
 disponibile una rete. Il job non attiva GPS o BLE e conserva gli ultimi 15 file.
 Priorità, date e ricorrenze hanno anche descrizioni accessibili indipendenti
 dal colore; l'app rispetta testo di sistema, alto contrasto e navigazione da

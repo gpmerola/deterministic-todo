@@ -57,8 +57,9 @@ di cambiare architettura.
   Il collaudo reale del 21 agosto ha completato autenticazione, misura e stop:
   7 campioni, 67–73 bpm, media 70 bpm, GATT 0 e report Drive schema 2, senza
   MAC, chiave o pacchetti grezzi.
-  La 125 aggiunge un’importazione manuale e idempotente delle ultime 24 ore di
-  campioni Bip U. La timeline resta locale in Room e non viene inviato l’ACK
+  La 125 aggiunge l’importazione manuale e idempotente dei campioni Bip U; la
+  134 la rende incrementale con un'ora di sovrapposizione e fino a sette giorni
+  di backfill. Non viene inviato l’ACK
   che potrebbe consumare i dati sull’orologio. Il telefono resta autonomo:
   nessuna fusione o somma automatica viene applicata prima del collaudo reale.
   Il collaudo della 126 ha importato 1.440 minuti, 2.626 passi e 358 campioni
@@ -77,7 +78,7 @@ di cambiare architettura.
   passivo; algoritmo e campionamento restano quelli della 117.
   Movimento crea inoltre snapshot
   cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
-  viene aggiornata all'avvio e ogni tre ore; il sync delle attività
+  viene aggiornata all'avvio e ogni ora; il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
   e riconosce l'outbox solo dopo conferma della stessa versione server. La
   2.25.2 build 110 corregge la classificazione passiva. Il test dura sette
@@ -162,15 +163,16 @@ diagnostico. `sync_completed.rebased_entities` conta i recuperi. Questa
 garanzia copre le nuove operazioni; non ricostruisce automaticamente stati già
 sovrascritti prima dell'aggiornamento.
 
-La build 127 aggiorna la diagnostica Drive dopo circa un minuto dall'avvio
-Android e poi ogni tre ore con rete disponibile. Ogni esecuzione crea uno
+La build 134 aggiorna la diagnostica Drive dopo circa un minuto dall'avvio
+Android e poi ogni ora con rete disponibile. Ogni esecuzione crea uno
 snapshot JSONL immutabile per fascia oraria e un `unified_diagnostics_*.json`
 con stato telefono/Fit, aggregati Bip U delle ultime 3 e 24 ore, freschezza del
 campione, stato intensivo e metadati dei log. Il periodico usa
 `ExistingPeriodicWorkPolicy.UPDATE` per sostituire il precedente job di 24 ore
-già registrato. Le due serie conservano gli ultimi 15 file. La timeline Bip U
-resta locale e l'import resta esplicito: il report rende evidente quando è
-obsoleta senza connessione BLE permanente. Questa frequenza è temporanea per
+già registrato. Le due serie conservano gli ultimi 15 file. Per le ultime 15
+sessioni viene inoltre aggiornato un unico `*_three_way.json` con finestre UTC,
+totali e confronti Todo/Fit/Bip e timeline Bip nativa. L'import resta esplicito
+e recupera gli arretrati senza connessione BLE permanente. Questa frequenza è temporanea per
 il debugging e va rivalutata prima della stabilizzazione del prodotto.
 
 Dettagli completi in [`ARCHITETTURA.md`](ARCHITETTURA.md). Non modificare il
@@ -504,6 +506,11 @@ diagnostica sessione è schema 2 e contiene `stride_calibration`; i campioni
 corsa antecedenti alla nuova regola vengono invalidati una sola volta. Non è
 stato abbassato il tetto GPS della corsa: servono nuovi dati reali prima di
 modificarlo.
+
+La build 134 aggiunge il report sessione a tre fonti, il backfill Bip fino a
+sette giorni e la telemetria della cadenza GPS osservata. Il GPS Android resta
+richiesto ogni 1.000 ms: non ridurre l'intervallo prima che p50/p95 dei fix e
+consumo reale dimostrino un beneficio.
 
 1. leggere integralmente `AGENTS.md`, `TODO_NEXT.md` e questo handoff, quindi
    controllare `git status -sb`;

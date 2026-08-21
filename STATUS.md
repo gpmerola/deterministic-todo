@@ -5,7 +5,7 @@ Aggiornato il 21 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.27.0 build 133**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.28.0 build 134**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -23,6 +23,12 @@ Aggiornato il 21 agosto 2026.
   Inoltre una sessione calibra la falcata soltanto se almeno l'80% dei passi
   osservati in finestre di 30 secondi appartiene alla cadenza attesa; i
   campioni corsa precedenti a questa regola vengono azzerati una sola volta.
+  La build 134 aggiunge un report canonico per sessione confrontabile fra Todo
+  Test, Google Fit e Bip U, con finestre UTC di un minuto e campioni Bip nativi.
+  Si aggiorna dopo Fit, dopo il recupero Bip e ogni ora per le ultime 15
+  sessioni. Il recupero Bip usa un'ora di sovrapposizione e fino a sette giorni
+  di storico, senza cancellare dati dall'orologio. La diagnostica registra
+  anche la distribuzione reale degli intervalli GPS; la richiesta resta a 1 Hz.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
@@ -32,7 +38,7 @@ Aggiornato il 21 agosto 2026.
   Drive schema 2 completati. La build 126 ha inoltre importato dal dispositivo
   reale 1.440 campioni di un minuto con 2.626 passi e 358 valori cardiaci; il
   retry sovrapposto ha inserito soltanto due minuti nuovi. I dati restano
-  locali e separati dalla sorgente telefono. La build 127 aggiunge ogni tre
+  locali e separati dalla sorgente telefono. La build 127 aggiunge un
   ore un report remoto unificato con stato telefono/Fit, aggregati Bip U a 3 e
   24 ore, freschezza dei campioni, stato intensivo e metadati dei log. Conserva
   gli ultimi 15 report e 15 snapshot JSONL. La diagnostica intensiva
@@ -45,7 +51,8 @@ Aggiornato il 21 agosto 2026.
   passivo Movimento
   crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
   ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
-  aggiorna durante il debugging la diagnostica Drive all'apertura e ogni tre
+  aggiorna durante il debugging la diagnostica Drive all'apertura; dalla 134 il
+  job periodico gira ogni ora invece che ogni tre
   ore con rete disponibile. Dalla 127 usa snapshot immutabili per fascia
   oraria invece di un file giornaliero non aggiornabile. La
   2.25.3 build 111 verifica ogni

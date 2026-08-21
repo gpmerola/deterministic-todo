@@ -2,6 +2,23 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.28.0
+
+- Crea per ogni sessione un report canonico `*_three_way.json` in `01 Sessions`,
+  allineato su finestre UTC di un minuto: passi e distanza Todo Test, aggregati
+  Google Fit, passi e battito Bip U, copertura e differenze a coppie.
+- Conserva nel report anche i campioni Bip U nativi disponibili — battito,
+  intensità, tipo grezzo e campi sonno — senza coordinate, MAC, chiave Huami,
+  pacchetti BLE o contenuti Todo.
+- Aggiorna lo stesso report ordinato dopo il confronto Fit, dopo un backfill Bip
+  pertinente e ogni ora per le 15 sessioni più recenti, evitando duplicati.
+- La sincronizzazione Bip riparte dall’ultimo minuto locale con un’ora di
+  sovrapposizione idempotente e recupera fino a sette giorni. Un limite
+  applicato a una disconnessione più lunga è dichiarato nel report tecnico.
+- Aggiunge alla diagnostica GPS intervallo richiesto e distribuzione osservata
+  degli intervalli tra fix. Il polling resta a un secondo perché aumentarlo
+  senza evidenza aggiungerebbe principalmente consumo e rumore.
+
 ## 2.27.0
 
 - Dopo un riaggancio GPS confermato usa il primo fix coerente soltanto per

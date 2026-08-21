@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public final class DiagnosticDriveWorker extends Worker {
     private static final String WORK = "todo-diagnostics-daily-drive";
     private static final String STARTUP_WORK = "todo-diagnostics-startup-drive";
-    static final long PERIODIC_INTERVAL_HOURS = 3;
+    static final long PERIODIC_INTERVAL_HOURS = 1;
 
     public DiagnosticDriveWorker(@NonNull Context context,
                                  @NonNull WorkerParameters parameters) {
@@ -67,6 +67,7 @@ public final class DiagnosticDriveWorker extends Worker {
             DriveTestExportManager.writeUnifiedDiagnostics(context,
                 UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault()),
                 UnifiedDiagnosticReport.create(context, observedAt).toString(2));
+            DriveTestExportManager.refreshRecentThreeWayReports(context, 15);
             return Result.success();
         } catch (SecurityException permissionLost) {
             return Result.failure();

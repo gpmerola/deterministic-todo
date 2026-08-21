@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 final class DriveTestExportManager {
-    private static final String PREFS = "movement_drive_export";
+    static final String PREFS = "movement_drive_export";
     private static final String TREE_URI = "tree_uri";
     private static final String LAST_STATUS = "last_status";
     private static final String LAST_ERROR = "last_error";
@@ -136,6 +136,7 @@ final class DriveTestExportManager {
                                         String connectionSource, String outcome,
                                         long sampleCount, long insertedCount,
                                         long steps, long heartRateSampleCount,
+                                        int requestedWindowHours, boolean historyCapApplied,
                                         Integer gattStatus, Completion completion) {
         new Thread(() -> {
             if (!isConfigured(context)) {
@@ -152,7 +153,8 @@ final class DriveTestExportManager {
                     .put("duration_ms", Math.max(0, observedAt - startedAtMillis))
                     .put("connection_source", connectionSource)
                     .put("outcome", outcome)
-                    .put("requested_window_hours", 24)
+                    .put("requested_window_hours", requestedWindowHours)
+                    .put("history_cap_applied", historyCapApplied)
                     .put("sample_count", sampleCount)
                     .put("inserted_count", insertedCount)
                     .put("reported_steps", steps)
@@ -390,6 +392,8 @@ final class DriveTestExportManager {
                 .put("local_distance_m", p.getFloat(s.id + ".fit_local_distance_m", 0));
             writeNewFile(c, base + "_comparison-" + observedAt + ".json",
                 "application/json", fit.toString(2));
+            ExportResult threeWay = writeThreeWayReport(c, s, observedAt);
+            if (!threeWay.success()) throw new IOException(threeWay.code());
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(LAST_STATUS, "success").remove(LAST_ERROR)
                 .putLong(LAST_EXPORTED_AT, System.currentTimeMillis()).apply();
@@ -399,6 +403,46 @@ final class DriveTestExportManager {
             c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString(LAST_STATUS, "failed").putString(LAST_ERROR, code).apply();
             return new ExportResult(true, false, code);
+        }
+    }
+
+    static ExportResult writeThreeWayReport(Context context, RunSession session, long observedAt) {
+        if (!isConfigured(context)) return new ExportResult(false, false, "not_configured");
+        if (session == null || session.endedAtMillis == null)
+            return new ExportResult(true, false, "session_incomplete");
+        try {
+            String base = String.format(java.util.Locale.ROOT, "%d_%s_session-%06d",
+                session.startedAtMillis, session.activityType, session.id);
+            writeFile(context, base + "_three_way.json",
+                "application/json",
+                SessionThreeWayReport.create(context, session, observedAt).toString(2));
+            return new ExportResult(true, true, "ok");
+        } catch (Exception error) {
+            return new ExportResult(true, false,
+                "three_way_failed_" + error.getClass().getSimpleName());
+        }
+    }
+
+    static void refreshThreeWayReportsForBipRange(Context context, long startMillis,
+                                                   long endMillis) {
+        if (!isConfigured(context) || endMillis <= startMillis) return;
+        RunDao dao = RunDatabase.get(context).runs();
+        long observedAt = System.currentTimeMillis();
+        for (RunSession session : dao.sessions()) {
+            if (session.endedAtMillis == null) continue;
+            if (session.startedAtMillis < endMillis && session.endedAtMillis > startMillis)
+                writeThreeWayReport(context, session, observedAt);
+        }
+    }
+
+    static void refreshRecentThreeWayReports(Context context, int maximumSessions) {
+        if (!isConfigured(context) || maximumSessions <= 0) return;
+        long observedAt = System.currentTimeMillis();
+        int written = 0;
+        for (RunSession session : RunDatabase.get(context).runs().sessions()) {
+            if (session.endedAtMillis == null) continue;
+            writeThreeWayReport(context, session, observedAt);
+            if (++written >= maximumSessions) break;
         }
     }
 
@@ -725,6 +769,7 @@ final class DriveTestExportManager {
                 .put("local_distance_m", p.getFloat(s.id + ".fit_local_distance_m", 0));
         }
         ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo(); ((ActivityManager)c.getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memory);
+        GpsSamplingStats.Summary gpsTiming = GpsSamplingStats.summarize(points);
         JSONObject strideCalibration = new JSONObject()
             .put("status", p.getString(s.id + ".stride_calibration_status", "not_evaluated"))
             .put("observed_steps", p.getLong(s.id + ".stride_calibration_observed_steps", 0))
@@ -745,7 +790,12 @@ final class DriveTestExportManager {
             .put("stride_calibration", strideCalibration)
             .put("google_fit_comparison", fit)
             .put("gps", new JSONObject().put("samples", points.size()).put("accepted", accepted).put("rejected", points.size()-accepted)
-                .put("rejection_reasons", reasons).put("accuracy_mean_m", points.isEmpty()?JSONObject.NULL:accuracySum/points.size()).put("accuracy_max_m", accuracyMax))
+                .put("rejection_reasons", reasons).put("accuracy_mean_m", points.isEmpty()?JSONObject.NULL:accuracySum/points.size()).put("accuracy_max_m", accuracyMax)
+                .put("requested_interval_ms", 1_000).put("observed_interval_count", gpsTiming.intervalCount())
+                .put("observed_interval_mean_ms", nullable(gpsTiming.meanMillis()))
+                .put("observed_interval_median_ms", nullable(gpsTiming.medianMillis()))
+                .put("observed_interval_p95_ms", nullable(gpsTiming.p95Millis()))
+                .put("observed_interval_max_ms", nullable(gpsTiming.maximumMillis())))
             .put("resources", new JSONObject().put("battery_start_pct", p.getInt(s.id + ".battery", -1)).put("battery_end_pct", battery(c))
                 .put("wall_elapsed_ms", monotonicDelta(elapsed0, android.os.SystemClock.elapsedRealtime()))
                 .put("process_cpu_ms", monotonicDelta(cpu0, Process.getElapsedCpuTime())).put("process_pss_kb", Debug.getPss())

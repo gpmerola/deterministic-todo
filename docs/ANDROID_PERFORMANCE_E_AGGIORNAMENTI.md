@@ -287,7 +287,7 @@ I dati restano in due blocchi rotanti da 512 KiB e si esportano esplicitamente d
 
 Dalla 2.24.2 Android pianifica inoltre con WorkManager una copia nella stessa
 cartella Drive già autorizzata per i test Movimento. Dalla 2.25.4, durante la
-fase di debugging, l'app la aggiorna all'avvio (dopo circa un minuto) e ogni tre
+fase di debugging, l'app la aggiorna all'avvio (dopo circa un minuto) e ogni ora
 ore quando è disponibile una rete. Il job non richiede che l'app resti aperta;
 Android può comunque differirlo secondo le proprie politiche energetiche. Il nome è
 `todo_diagnostics_YYYY-MM-DD.jsonl` dentro `04 App diagnostics`; la scrittura è

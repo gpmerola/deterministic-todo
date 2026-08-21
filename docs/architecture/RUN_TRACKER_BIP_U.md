@@ -2,16 +2,26 @@
 
 ## Diagnostica remota unificata
 
-Dalla build 127 `DiagnosticDriveWorker` produce ogni tre ore in
+Dalla build 134 `DiagnosticDriveWorker` produce ogni ora in
 `04 App diagnostics` un report compatto che accoppia per timestamp lo stato
 telefono/Google Fit con gli aggregati Bip U delle ultime 3 e 24 ore. Registra
 copertura al minuto, passi, sintesi del battito, anzianità dell'ultimo campione,
 stato intensivo, chunk in attesa e metadati dei log.
 
-Non contiene timeline puntuali, coordinate, MAC, chiave Huami o contenuti Todo.
+Il riepilogo unificato non contiene timeline puntuali, coordinate, MAC, chiave
+Huami o contenuti Todo.
 I JSONL intensivi orari rimangono separati perché voluminosi. L'import Bip U
 resta esplicito e idempotente: nessuna connessione BLE viene mantenuta in
 background. Vengono conservati gli ultimi 15 report unificati.
+
+Ogni sessione terminata ha inoltre un report canonico `*_three_way.json` in
+`01 Sessions`, sovrascritto in modo verificato invece di creare copie. Usa
+finestre UTC di un minuto e contiene totali, copertura, scarti a coppie e la
+timeline nativa Bip necessaria al collaudo: passi, battito, tipo, intensità e
+campi sonno. Google Fit resta a risoluzione di sessione finché Health Connect
+non attribuisce intervalli più granulari alla sorgente. Questo report contiene
+dati sanitari personali sul Drive scelto dall'utente, ma mai coordinate, MAC,
+chiave, pacchetti BLE o contenuti Todo.
 
 ## Decisione
 
@@ -141,13 +151,18 @@ sono automatici anche senza campioni. Il report conserva conteggio, minimo,
 massimo e media, ma non chiave, MAC o pacchetti grezzi; dichiara esplicitamente
 le scritture di controllo transitorie e l'assenza di configurazioni persistenti.
 
-La build 125 aggiunge un’importazione manuale delle ultime 24 ore. Dopo
+La build 125 aggiunge l’importazione manuale iniziale. Dalla build 134 la
+richiesta parte dall'ultimo campione conservato meno un'ora di sovrapposizione
+e recupera fino a sette giorni: una disconnessione più lunga viene dichiarata
+come troncata, non nascosta. Dopo
 l’autenticazione abilita i due canali attività, richiede i campioni di un
 minuto e li conserva in `bip_u_activity_samples` con timestamp UTC, sorgente e
 istante di importazione. L’inserimento `IGNORE` sulla chiave composta rende i
-retry idempotenti. Non viene inviato il comando finale di conferma: i dati non
-sono marcati come consumati o rimossi dall’orologio. Il report Drive contiene
-solo conteggi aggregati e stato tecnico; la timeline sanitaria resta locale.
+retry idempotenti. Dopo un inserimento vengono rigenerati i report a tre delle
+sessioni temporalmente sovrapposte. Non viene inviato il comando finale di conferma: i dati non
+sono marcati come consumati o rimossi dall’orologio. Il report tecnico Bip
+contiene aggregati; la timeline sanitaria compare soltanto nei report sessione
+esplicitamente destinati al confronto.
 
 Sul Bip U reale il campo di lunghezza vale 1.440 per una giornata, mentre il
 payload contiene 11.520 byte: è quindi un conteggio di campioni da otto byte,
@@ -161,10 +176,10 @@ non vengono sommati o sostituiti automaticamente a quelli del telefono.
 Battito continuo in background resta spento. Sono vietate scritture firmware,
 aggiornamenti, factory reset, modifica di risorse e impostazioni persistenti.
 
-## Allineamento futuro
+## Allineamento diagnostico
 
-GPS del telefono e campioni sportivi dell'orologio conserveranno timestamp UTC
-originali. L'allineamento non cambierà gli istanti: userà una stima robusta di
-offset iniziale, segnalerà drift o discontinuità e lascerà entrambe le serie
-grezze disponibili. Una corsa può iniziare prima su uno dei due dispositivi;
-l'intersezione temporale costituisce il tratto combinato.
+GPS del telefono e campioni dell'orologio conservano timestamp UTC originali.
+La build 134 non altera gli istanti e dichiara che non applica ancora una
+correzione di clock: raggruppa i dati in finestre di un minuto e segnala
+copertura e risoluzione. Un'eventuale stima robusta di offset o drift sarà una
+trasformazione futura esplicita, mai una modifica dei campioni originali.
