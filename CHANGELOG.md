@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.30.1
+
+- Rende transazionali gli export diagnostici immutabili su Drive: il contenuto
+  viene scritto e verificato con un nome parziale, quindi rinominato soltanto a
+  completamento. Un placeholder esistente da 0 byte viene eliminato e ritentato.
+- Porta il riepilogo unificato allo schema 3 e registra separatamente il
+  tentativo di upload corrente e l'ultimo tentativo
+  concluso, con durata, contatore, fallimenti consecutivi e sola classe sicura
+  dell'errore.
+- Normalizza CPU e rete rispetto al tempo trascorso, aggiunge il delta PSS e
+  rende esplicito quando i campioni Bip mancano o sono obsoleti. Nessuna
+  connessione BLE implicita viene avviata in background.
+- Mantiene invariati algoritmo, falcate, GPS, pianificazione oraria e test
+  passivo in corso.
+
 ## 2.30.0
 
 - Porta snapshot e audit passivi allo schema 7 senza cambiare l'algoritmo di

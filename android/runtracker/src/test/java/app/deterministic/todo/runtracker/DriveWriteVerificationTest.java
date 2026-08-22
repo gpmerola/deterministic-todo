@@ -14,4 +14,10 @@ public class DriveWriteVerificationTest {
         assertTrue(DriveWriteVerification.matchesSize(200, null));
         assertTrue(DriveWriteVerification.matchesSize(200, -1L));
     }
+
+    @Test public void neverTreatsAZeroBytePlaceholderAsComplete() {
+        assertFalse(DriveWriteVerification.completeImmutableFile(200, 0L));
+        assertTrue(DriveWriteVerification.completeImmutableFile(200, 200L));
+        assertTrue(DriveWriteVerification.completeImmutableFile(200, null));
+    }
 }

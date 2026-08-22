@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 21 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 22 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.30.0 build 139**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.30.1 build 140**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -72,6 +72,13 @@ di cambiare architettura.
   copertura e latenza delle sorgenti, hash configurazione e checkpoint risorse
   sono nello stesso JSON. Nessuna soglia del modello, falcata, richiesta GPS o
   pianificazione WorkManager viene modificata.
+  La build 140 corregge il placeholder Drive da 0 byte osservato il 22 agosto:
+  i file immutabili usano ora scrittura parziale, verifica dimensione e rename
+  finale; un retry recupera file vuoti e residui parziali. Il report unificato
+  separa il tentativo corrente dall'ultimo concluso e i report passivi
+  normalizzano CPU/rete, delta PSS e disponibilità Bip. BLE non viene avviato
+  implicitamente: un recupero davvero automatico richiederà un foreground
+  worker esplicito e resta separato da questa correzione diagnostica.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

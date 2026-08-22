@@ -1151,7 +1151,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(DatePickerDialog), findsOneWidget);
-    final target = DateTime.now().add(const Duration(days: 10));
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final target = DateTime(
+      now.year,
+      now.month,
+      now.day == daysInMonth ? now.day - 1 : now.day + 1,
+    );
     await tester.tap(find.text('${target.day}').last);
     await tester.tap(find.text('OK'));
     await tester.pump(const Duration(milliseconds: 300));

@@ -761,6 +761,8 @@ final class DriveTestExportManager {
             .map(PassiveEpisodeAnalyzer.MinuteEvidence::endMillis).max(Long::compare).orElse(null);
         BipUActivitySample latestBip = bipSamples.stream()
             .max(Comparator.comparingLong(x -> x.timestampMillis)).orElse(null);
+        String bipStatus = BipAvailabilityPolicy.status(
+            latestBip == null ? null : latestBip.timestampMillis, observedAtMillis);
         return new JSONObject()
             .put("window_minutes", Math.max(0,
                 (audit.getIntervalEndMillis() - audit.getIntervalStartMillis()) / 60_000L))
@@ -778,6 +780,9 @@ final class DriveTestExportManager {
                 : latestBip.importedAtMillis)
             .put("bip_latest_import_delay_ms", latestBip == null ? JSONObject.NULL
                 : Math.max(0, latestBip.importedAtMillis - latestBip.timestampMillis))
+            .put("bip_availability_status", bipStatus)
+            .put("bip_background_ble_attempted", false)
+            .put("bip_recovery_action", BipAvailabilityPolicy.recoveryAction(bipStatus))
             .put("absence_semantics", "missing minutes are coverage gaps, not zero activity")
             .put("bip_backfill_cap_days", 7);
     }
@@ -811,21 +816,37 @@ final class DriveTestExportManager {
         long rx = TrafficStats.getUidRxBytes(Process.myUid());
         long tx = TrafficStats.getUidTxBytes(Process.myUid());
         int battery = battery(context);
+        long pss = Debug.getPss();
+        Long durationDelta = nullableDelta(p.getLong("passive_resource_elapsed", 0), elapsed);
+        Long cpuDelta = nullableDelta(p.getLong("passive_resource_cpu", 0), cpu);
+        Long rxDelta = nullableTrafficDelta(p.getLong("passive_resource_rx", -1), rx);
+        Long txDelta = nullableTrafficDelta(p.getLong("passive_resource_tx", -1), tx);
+        Long previousPss = p.contains("passive_resource_pss")
+            ? p.getLong("passive_resource_pss", pss) : null;
         JSONObject result = new JSONObject().put("observed_at_ms", observedAtMillis)
-            .put("battery_percent_device", battery).put("process_pss_kb", Debug.getPss())
+            .put("battery_percent_device", battery).put("process_pss_kb", pss)
             .put("process_cpu_ms", cpu).put("device_elapsed_realtime_ms", elapsed)
             .put("uid_network_rx_bytes", rx).put("uid_network_tx_bytes", tx)
             .put("since_previous_checkpoint", new JSONObject()
-                .put("duration_ms", monotonicDelta(p.getLong("passive_resource_elapsed", 0), elapsed))
-                .put("process_cpu_ms", monotonicDelta(p.getLong("passive_resource_cpu", 0), cpu))
-                .put("uid_network_rx_bytes", delta(p.getLong("passive_resource_rx", -1), rx))
-                .put("uid_network_tx_bytes", delta(p.getLong("passive_resource_tx", -1), tx))
+                .put("duration_ms", nullable(durationDelta))
+                .put("process_cpu_ms", nullable(cpuDelta))
+                .put("process_cpu_percent_of_one_core", nullable(
+                    DiagnosticResourceMetrics.cpuPercentOfOneCore(cpuDelta, durationDelta)))
+                .put("process_pss_delta_kb", previousPss == null ? JSONObject.NULL
+                    : pss - previousPss)
+                .put("uid_network_rx_bytes", nullable(rxDelta))
+                .put("uid_network_tx_bytes", nullable(txDelta))
+                .put("uid_network_rx_bytes_per_hour", nullable(
+                    DiagnosticResourceMetrics.bytesPerHour(rxDelta, durationDelta)))
+                .put("uid_network_tx_bytes_per_hour", nullable(
+                    DiagnosticResourceMetrics.bytesPerHour(txDelta, durationDelta)))
                 .put("battery_percentage_points", p.contains("passive_resource_battery")
                     ? battery - p.getInt("passive_resource_battery", battery) : JSONObject.NULL))
             .put("attribution", "CPU and network are app UID/process; battery is whole-device context");
         p.edit().putLong("passive_resource_elapsed", elapsed)
             .putLong("passive_resource_cpu", cpu).putLong("passive_resource_rx", rx)
-            .putLong("passive_resource_tx", tx).putInt("passive_resource_battery", battery)
+            .putLong("passive_resource_tx", tx).putLong("passive_resource_pss", pss)
+            .putInt("passive_resource_battery", battery)
             .putLong("passive_resource_observed_at", observedAtMillis).apply();
         return result;
     }
@@ -1064,6 +1085,12 @@ final class DriveTestExportManager {
 
     private static Object delta(long a, long b) { return a < 0 || b < 0 ? JSONObject.NULL : Math.max(0, b-a); }
     private static Object monotonicDelta(long a, long b) { return a <= 0 || b < a ? JSONObject.NULL : b-a; }
+    private static Long nullableDelta(long previous, long current) {
+        return previous <= 0 || current < previous ? null : current - previous;
+    }
+    private static Long nullableTrafficDelta(long previous, long current) {
+        return previous < 0 || current < 0 ? null : Math.max(0, current - previous);
+    }
     private static int battery(Context c) { return ((BatteryManager)c.getSystemService(Context.BATTERY_SERVICE)).getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY); }
     private static String appVersion(Context c) {
         try { return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName; }
@@ -1126,20 +1153,51 @@ final class DriveTestExportManager {
         Uri dir = managedDirectory(c, tree, DriveFolderLayout.folderFor(name));
         String directoryId = DocumentsContract.getDocumentId(dir);
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
-        try (Cursor cursor = c.getContentResolver().query(children,
-            new String[] {DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
-            if (cursor != null) while (cursor.moveToNext())
-                if (name.equals(cursor.getString(0))) return;
-        }
-        Uri file = DocumentsContract.createDocument(c.getContentResolver(), dir, mime, name);
-        if (file == null) throw new IllegalStateException("create failed");
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
-        try (ParcelFileDescriptor descriptor = c.getContentResolver().openFileDescriptor(file, "rwt")) {
+        String partialName = name + ".partial";
+        List<Uri> stale = new ArrayList<>();
+        try (Cursor cursor = c.getContentResolver().query(children,
+            new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_SIZE}, null, null, null)) {
+            if (cursor != null) while (cursor.moveToNext()) {
+                String existingName = cursor.getString(1);
+                Long size = cursor.isNull(2) ? null : cursor.getLong(2);
+                Uri existing = DocumentsContract.buildDocumentUriUsingTree(tree, cursor.getString(0));
+                if (name.equals(existingName)) {
+                    if (DriveWriteVerification.completeImmutableFile(bytes.length, size)) return;
+                    stale.add(existing);
+                } else if (partialName.equals(existingName)) stale.add(existing);
+            }
+        }
+        for (Uri document : stale)
+            DocumentsContract.deleteDocument(c.getContentResolver(), document);
+        Uri partial = DocumentsContract.createDocument(c.getContentResolver(), dir, mime, partialName);
+        if (partial == null) throw new IllegalStateException("create partial failed");
+        try (ParcelFileDescriptor descriptor = c.getContentResolver().openFileDescriptor(partial, "rwt")) {
             if (descriptor == null) throw new IllegalStateException("open failed");
             try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
                 out.write(bytes); out.flush(); descriptor.getFileDescriptor().sync();
             }
         }
+        Long observedSize = documentSize(c, partial);
+        if (!DriveWriteVerification.matchesSize(bytes.length, observedSize)) {
+            DocumentsContract.deleteDocument(c.getContentResolver(), partial);
+            throw new IOException("provider size mismatch");
+        }
+        Uri renamed = DocumentsContract.renameDocument(c.getContentResolver(), partial, name);
+        if (renamed == null) {
+            DocumentsContract.deleteDocument(c.getContentResolver(), partial);
+            throw new IOException("provider rename failed");
+        }
+    }
+
+    private static Long documentSize(Context context, Uri document) {
+        try (Cursor cursor = context.getContentResolver().query(document,
+            new String[] {DocumentsContract.Document.COLUMN_SIZE}, null, null, null)) {
+            return cursor != null && cursor.moveToFirst() && !cursor.isNull(0)
+                ? cursor.getLong(0) : null;
+        } catch (Exception ignored) { return null; }
     }
 
     static void writeDailyDiagnostics(Context context, String name, String text) throws Exception {

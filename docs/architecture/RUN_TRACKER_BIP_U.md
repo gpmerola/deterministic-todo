@@ -144,6 +144,14 @@ identifica la configurazione tramite SHA-256; `diagnostic_resources` chiarisce
 che CPU/rete sono attribuibili al processo/UID mentre la batteria è soltanto
 contesto dell'intero dispositivo.
 
+La build 140 rende il commit Drive dei report immutabili transazionale rispetto
+al provider SAF: crea `*.partial`, forza e verifica i byte, quindi rinomina il
+documento. Placeholder finali da 0 byte e residui parziali vengono eliminati e
+ricreati al retry. `diagnostic_upload` distingue il tentativo in corso
+dall'ultimo concluso; le risorse espongono CPU percentuale di un core, rete per
+ora e delta PSS. Lo stato Bip è osservazionale: non confonde assenza con zero e
+non apre una connessione BLE implicita in background.
+
 Dal 21 agosto 2026 la radice `02 Passive` contiene soltanto report schema 7
 prodotti dalla build 139 o successive. I 27 report precedenti sono conservati
 immutabili nella sottocartella `Archive - schema 6 and earlier`; gli strumenti

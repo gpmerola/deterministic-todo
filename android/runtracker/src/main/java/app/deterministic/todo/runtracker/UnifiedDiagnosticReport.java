@@ -14,7 +14,7 @@ import java.util.Map;
 
 /** Compact remote-observation report. Raw health timelines and Todo content are excluded. */
 final class UnifiedDiagnosticReport {
-    static final int SCHEMA_VERSION = 2;
+    static final int SCHEMA_VERSION = 3;
     static final int RETAIN_FILES = 15;
     private static final long THREE_HOURS_MS = 3L * 60 * 60 * 1000;
     private static final long DAY_MS = 24L * 60 * 60 * 1000;
@@ -53,6 +53,7 @@ final class UnifiedDiagnosticReport {
                 .put("end_at_ms", nullable(intensive.endAtMillis()))
                 .put("pending_upload_chunks", IntensiveDiagnosticStore.pendingChunks(context).size())
                 .put("coverage", object(IntensiveDiagnosticDebugState.values(context))))
+            .put("diagnostic_upload", object(DiagnosticUploadDebugState.values(context)))
             .put("app_diagnostic_log", diagnosticFiles(context))
             .put("privacy", new JSONObject().put("todo_content_recorded", false)
                 .put("coordinates_recorded", false).put("mac_recorded", false)

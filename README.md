@@ -139,6 +139,11 @@ Bip U già importati. Segmenti automatici raggruppano cammino, corsa e pause e
 registrano copertura, ritardi delle sorgenti, configurazione esatta e risorse;
 consentono di isolare a posteriori un intervallo breve senza aumentare il
 polling o tenere il GPS acceso.
+Dalla build 140 i file diagnostici immutabili vengono prima scritti e
+verificati con un nome parziale e diventano visibili col nome definitivo solo
+al termine; eventuali placeholder da 0 byte vengono recuperati al retry. CPU e
+rete sono normalizzate per ora, PSS include il delta e lo stato Bip distingue
+campioni correnti, obsoleti o assenti. L'assenza non avvia BLE implicitamente.
 Per anticipare un controllo, `Carica ora tutti i dati di test` produce file
 manuali univoci e comprende snapshot passivo, segmenti intensivi pendenti,
 diagnostica applicativa e report unificato senza fermare il monitor.

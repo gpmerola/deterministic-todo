@@ -48,6 +48,10 @@ Aggiornato il 21 agosto 2026.
   episodi diagnostici automatici con pause, copertura e ritardo delle sorgenti,
   provenienza/hash del modello e checkpoint risorse. Algoritmo, GPS e cadenza
   degli upload restano invariati, quindi il test in corso continua.
+  La build 140 rende crash-safe la scrittura dei report immutabili su Drive,
+  recupera i file da 0 byte e registra tentativo corrente/ultimo upload
+  concluso. Normalizza CPU e rete, aggiunge il delta PSS e rende esplicita
+  l'assenza o obsolescenza dei campioni Bip senza avviare BLE in background.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e

@@ -56,8 +56,9 @@ public final class DiagnosticDriveWorker extends Worker {
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
         if (!DriveTestExportManager.isConfigured(context)) return Result.success();
+        boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
+        DiagnosticUploadDebugState.started(context, System.currentTimeMillis(), manualExport);
         try {
-            boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
             String diagnostics = readDiagnostics(context);
             String bucket = LocalDateTime.now().format(DateTimeFormatter.ofPattern(
                 manualExport ? "yyyy-MM-dd_HH-mm-ss" : "yyyy-MM-dd_HH"));
@@ -75,10 +76,13 @@ public final class DiagnosticDriveWorker extends Worker {
                 unifiedName,
                 UnifiedDiagnosticReport.create(context, observedAt).toString(2));
             DriveTestExportManager.refreshRecentThreeWayReports(context, 15);
+            DiagnosticUploadDebugState.succeeded(context, System.currentTimeMillis());
             return Result.success();
         } catch (SecurityException permissionLost) {
+            DiagnosticUploadDebugState.failed(context, System.currentTimeMillis(), permissionLost);
             return Result.failure();
         } catch (Exception transientFailure) {
+            DiagnosticUploadDebugState.failed(context, System.currentTimeMillis(), transientFailure);
             return Result.retry();
         }
     }
