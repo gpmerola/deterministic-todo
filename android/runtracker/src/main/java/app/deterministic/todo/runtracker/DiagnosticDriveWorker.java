@@ -59,23 +59,38 @@ public final class DiagnosticDriveWorker extends Worker {
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
         DiagnosticUploadDebugState.started(context, System.currentTimeMillis(), manualExport);
         try {
-            String diagnostics = readDiagnostics(context);
+            String diagnostics = requiredPhase(context, "read_local_log",
+                () -> readDiagnostics(context));
             String bucket = LocalDateTime.now().format(DateTimeFormatter.ofPattern(
                 manualExport ? "yyyy-MM-dd_HH-mm-ss" : "yyyy-MM-dd_HH"));
             String name = DiagnosticRetentionPolicy.PREFIX + bucket
                 + DiagnosticRetentionPolicy.SUFFIX;
             if (!diagnostics.isEmpty()) {
                 if (manualExport) name = "todo_diagnostics_manual_" + bucket + ".jsonl";
-                DriveTestExportManager.writeDailyDiagnostics(context, name, diagnostics);
+                final String finalName = name;
+                requiredPhase(context, "raw_log_upload", () -> {
+                    DriveTestExportManager.writeDailyDiagnostics(context, finalName, diagnostics);
+                    return null;
+                });
             }
             long observedAt = System.currentTimeMillis();
             String unifiedName = manualExport
                 ? "unified_diagnostics_manual_" + bucket + ".json"
                 : UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault());
-            DriveTestExportManager.writeUnifiedDiagnostics(context,
-                unifiedName,
-                UnifiedDiagnosticReport.create(context, observedAt).toString(2));
-            DriveTestExportManager.refreshRecentThreeWayReports(context, 15);
+            requiredPhase(context, "unified_upload", () -> {
+                DriveTestExportManager.writeUnifiedDiagnostics(context, unifiedName,
+                    UnifiedDiagnosticReport.create(context, observedAt).toString(2));
+                return null;
+            });
+            optionalPhase(context, "three_way_refresh", () -> {
+                DriveTestExportManager.ThreeWayRefreshSummary summary =
+                    DriveTestExportManager.refreshRecentThreeWayReports(context, 15);
+                DiagnosticUploadDebugState.threeWaySummary(context, summary.attempted(),
+                    summary.succeeded(), summary.firstFailureCode());
+                if (summary.succeeded() != summary.attempted())
+                    throw new ThreeWayRefreshPartialFailure();
+                return null;
+            });
             DiagnosticUploadDebugState.succeeded(context, System.currentTimeMillis());
             return Result.success();
         } catch (SecurityException permissionLost) {
@@ -84,6 +99,39 @@ public final class DiagnosticDriveWorker extends Worker {
         } catch (Exception transientFailure) {
             DiagnosticUploadDebugState.failed(context, System.currentTimeMillis(), transientFailure);
             return Result.retry();
+        }
+    }
+
+    private interface PhaseCall<T> { T run() throws Exception; }
+
+    private static final class ThreeWayRefreshPartialFailure extends Exception {}
+
+    private static <T> T requiredPhase(Context context, String name, PhaseCall<T> call)
+        throws Exception {
+        long started = System.currentTimeMillis();
+        DiagnosticUploadDebugState.phaseStarted(context, name, started);
+        try {
+            T value = call.run();
+            DiagnosticUploadDebugState.phaseFinished(context, name,
+                System.currentTimeMillis(), null, true);
+            return value;
+        } catch (Exception error) {
+            DiagnosticUploadDebugState.phaseFinished(context, name,
+                System.currentTimeMillis(), error, true);
+            throw error;
+        }
+    }
+
+    private static <T> void optionalPhase(Context context, String name, PhaseCall<T> call) {
+        long started = System.currentTimeMillis();
+        DiagnosticUploadDebugState.phaseStarted(context, name, started);
+        try {
+            call.run();
+            DiagnosticUploadDebugState.phaseFinished(context, name,
+                System.currentTimeMillis(), null, false);
+        } catch (Exception error) {
+            DiagnosticUploadDebugState.phaseFinished(context, name,
+                System.currentTimeMillis(), error, false);
         }
     }
 

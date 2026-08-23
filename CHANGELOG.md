@@ -2,6 +2,24 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.31.0
+
+- Porta il report passivo allo schema 8 e qualifica esplicitamente Google Fit /
+  Health Connect come `current`, `delayed`, `stale` o `missing`: un dato in
+  ritardo non viene più interpretato come conteggio giornaliero definitivo.
+- Registra avanzamento dell'ultimo intervallo Fit, delta passi rispetto
+  all'osservazione precedente e arrivi retroattivi inferiti, con soglie e
+  semantica incluse nel JSON. Il cambio di giorno usa uno spazio storico
+  distinto e non produce falsi delta negativi.
+- Porta il report unificato allo schema 4 e scompone ogni upload nelle fasi
+  `read_local_log`, `raw_log_upload`, `unified_upload` e
+  `three_way_refresh`, ciascuna con tempi, esito, obbligatorietà e sola classe
+  sicura dell'errore.
+- Un fallimento del refresh opzionale dei confronti a tre non ritenta più
+  l'intero upload dopo che log e report unificato sono stati salvati. Restano
+  invariati algoritmo, falcate, GPS, test passivo e campionamento intensivo del
+  contatore hardware.
+
 ## 2.30.1
 
 - Rende transazionali gli export diagnostici immutabili su Drive: il contenuto

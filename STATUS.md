@@ -1,11 +1,11 @@
 # Stato corrente
 
-Aggiornato il 21 agosto 2026.
+Aggiornato il 23 agosto 2026.
 
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.30.0 build 139**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.31.0 build 141**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -52,6 +52,13 @@ Aggiornato il 21 agosto 2026.
   recupera i file da 0 byte e registra tentativo corrente/ultimo upload
   concluso. Normalizza CPU e rete, aggiunge il delta PSS e rende esplicita
   l'assenza o obsolescenza dei campioni Bip senza avviare BLE in background.
+  La build 141 rende diagnosticabile ogni singola fase del job Drive e tratta
+  il refresh dei confronti storici come opzionale, senza ritentare log e
+  riepilogo già riusciti. Lo snapshot passivo schema 8 distingue Fit corrente,
+  ritardato, obsoleto o mancante e registra avanzamento, delta e arrivi tardivi
+  fra osservazioni. Il contatore hardware indipendente continua a essere
+  registrato nei segmenti intensivi come `step_counter_delta`; nessun secondo
+  monitor permanente è stato aggiunto.
   Drive separa sessioni,
   confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
   cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e

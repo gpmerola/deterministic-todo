@@ -14,7 +14,7 @@ import java.util.Map;
 
 /** Compact remote-observation report. Raw health timelines and Todo content are excluded. */
 final class UnifiedDiagnosticReport {
-    static final int SCHEMA_VERSION = 3;
+    static final int SCHEMA_VERSION = 4;
     static final int RETAIN_FILES = 15;
     private static final long THREE_HOURS_MS = 3L * 60 * 60 * 1000;
     private static final long DAY_MS = 24L * 60 * 60 * 1000;

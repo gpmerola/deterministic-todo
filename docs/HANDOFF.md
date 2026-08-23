@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.30.1 build 140**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.31.0 build 141**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -79,6 +79,14 @@ di cambiare architettura.
   normalizzano CPU/rete, delta PSS e disponibilità Bip. BLE non viene avviato
   implicitamente: un recupero davvero automatico richiederà un foreground
   worker esplicito e resta separato da questa correzione diagnostica.
+  La build 141 porta snapshot e report unificato rispettivamente agli schemi 8
+  e 4. Ogni job Drive conserva esito e durata delle quattro fasi; soltanto
+  lettura log, upload JSONL e upload unificato sono necessari, mentre il
+  refresh dei confronti a tre non può più provocare retry globali. La copertura
+  Fit dichiara soglie di freschezza, dato utilizzabile o non definitivo,
+  avanzamento rispetto allo snapshot precedente e backfill tardivo inferito.
+  Il confronto indipendente con il sensore Samsung è già nei chunk intensivi
+  (`step_counter_delta`) e resta distinto dai totali Health Connect.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

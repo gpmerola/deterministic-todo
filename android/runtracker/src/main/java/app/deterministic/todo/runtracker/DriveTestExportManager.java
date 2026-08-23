@@ -439,15 +439,24 @@ final class DriveTestExportManager {
         }
     }
 
-    static void refreshRecentThreeWayReports(Context context, int maximumSessions) {
-        if (!isConfigured(context) || maximumSessions <= 0) return;
+    record ThreeWayRefreshSummary(int attempted, int succeeded, String firstFailureCode) {}
+
+    static ThreeWayRefreshSummary refreshRecentThreeWayReports(Context context,
+                                                                 int maximumSessions) {
+        if (!isConfigured(context) || maximumSessions <= 0)
+            return new ThreeWayRefreshSummary(0, 0, null);
         long observedAt = System.currentTimeMillis();
-        int written = 0;
+        int attempted = 0, succeeded = 0;
+        String firstFailure = null;
         for (RunSession session : RunDatabase.get(context).runs().sessions()) {
             if (session.endedAtMillis == null) continue;
-            writeThreeWayReport(context, session, observedAt);
-            if (++written >= maximumSessions) break;
+            ExportResult result = writeThreeWayReport(context, session, observedAt);
+            attempted++;
+            if (result.success()) succeeded++;
+            else if (firstFailure == null) firstFailure = result.code();
+            if (attempted >= maximumSessions) break;
         }
+        return new ThreeWayRefreshSummary(attempted, succeeded, firstFailure);
     }
 
     static ExportResult writePassiveAudit(Context c, HealthConnectGateway.PassiveAudit audit) {
@@ -505,7 +514,7 @@ final class DriveTestExportManager {
             List<PassiveEpisodeAnalyzer.Episode> episodes =
                 PassiveEpisodeAnalyzer.episodes(evidence);
             JSONObject json = new JSONObject()
-                .put("schema_version", 7)
+                .put("schema_version", 8)
                 .put("kind", kind)
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
@@ -587,7 +596,7 @@ final class DriveTestExportManager {
                     .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()))
                 .put("model_provenance", passiveModelProvenance(c, stride,
                     runningStride, weight))
-                .put("source_coverage", passiveSourceCoverage(audit, evidence,
+                .put("source_coverage", passiveSourceCoverage(c, audit, evidence,
                     bipSamples, observedAtMillis))
                 .put("diagnostic_resources", passiveResourceCheckpoint(c,
                     observedAtMillis))
@@ -749,7 +758,8 @@ final class DriveTestExportManager {
             .put("quality_flags", new JSONArray(episode.qualityFlags()));
     }
 
-    private static JSONObject passiveSourceCoverage(HealthConnectGateway.PassiveAudit audit,
+    private static JSONObject passiveSourceCoverage(Context context,
+        HealthConnectGateway.PassiveAudit audit,
         List<PassiveEpisodeAnalyzer.MinuteEvidence> evidence,
         List<BipUActivitySample> bipSamples, long observedAtMillis) throws Exception {
         long todoMinutes = evidence.stream().filter(x -> x.todoSteps() > 0).count();
@@ -763,6 +773,26 @@ final class DriveTestExportManager {
             .max(Comparator.comparingLong(x -> x.timestampMillis)).orElse(null);
         String bipStatus = BipAvailabilityPolicy.status(
             latestBip == null ? null : latestBip.timestampMillis, observedAtMillis);
+        String fitStatus = HealthSourceFreshness.status(latestFit, observedAtMillis);
+        android.content.SharedPreferences history = contextPrefs(context, audit);
+        Long previousFitEnd = history.contains("fit_latest_end_ms")
+            ? history.getLong("fit_latest_end_ms", 0) : null;
+        Long previousObservedAt = history.contains("fit_observed_at_ms")
+            ? history.getLong("fit_observed_at_ms", 0) : null;
+        Long previousFitSteps = history.contains("fit_steps")
+            ? history.getLong("fit_steps", 0) : null;
+        Long fitSteps = audit.getFitSteps();
+        long endpointAdvance = latestFit == null || previousFitEnd == null
+            ? 0 : Math.max(0, latestFit - previousFitEnd);
+        Long stepDelta = fitSteps == null || previousFitSteps == null
+            ? null : fitSteps - previousFitSteps;
+        boolean lateArrival = endpointAdvance > 0 && previousObservedAt != null
+            && latestFit <= previousObservedAt;
+        android.content.SharedPreferences.Editor historyEdit = history.edit()
+            .putLong("fit_observed_at_ms", observedAtMillis);
+        if (latestFit != null) historyEdit.putLong("fit_latest_end_ms", latestFit);
+        if (fitSteps != null) historyEdit.putLong("fit_steps", fitSteps);
+        historyEdit.apply();
         return new JSONObject()
             .put("window_minutes", Math.max(0,
                 (audit.getIntervalEndMillis() - audit.getIntervalStartMillis()) / 60_000L))
@@ -772,6 +802,21 @@ final class DriveTestExportManager {
             .put("fit_latest_value_end_ms", nullable(latestFit))
             .put("fit_latest_value_age_ms", latestFit == null ? JSONObject.NULL
                 : Math.max(0, observedAtMillis - latestFit))
+            .put("fit_freshness_status", fitStatus)
+            .put("fit_freshness_applies_to", "record_timeline")
+            .put("fit_aggregate_steps_available", audit.getFitSteps() != null)
+            .put("fit_aggregate_distance_available", audit.getFitDistanceMeters() != null)
+            .put("fit_current_max_age_ms", HealthSourceFreshness.CURRENT_MAX_MS)
+            .put("fit_delayed_max_age_ms", HealthSourceFreshness.DELAYED_MAX_MS)
+            .put("fit_values_final_for_comparison",
+                HealthSourceFreshness.finalEnoughForComparison(fitStatus))
+            .put("fit_previous_observed_at_ms", nullable(previousObservedAt))
+            .put("fit_previous_latest_value_end_ms", nullable(previousFitEnd))
+            .put("fit_latest_endpoint_advance_ms", endpointAdvance)
+            .put("fit_steps_delta_since_previous_observation", nullable(stepDelta))
+            .put("fit_late_arrival_inferred", lateArrival)
+            .put("fit_late_arrival_semantics",
+                "true means newly visible Fit data still ended before the previous observation")
             .put("bip_latest_sample_ms", latestBip == null ? JSONObject.NULL
                 : latestBip.timestampMillis)
             .put("bip_latest_sample_age_ms", latestBip == null ? JSONObject.NULL
@@ -787,9 +832,16 @@ final class DriveTestExportManager {
             .put("bip_backfill_cap_days", 7);
     }
 
+    private static android.content.SharedPreferences contextPrefs(Context context,
+        HealthConnectGateway.PassiveAudit audit) {
+        // The day is part of each key-space so midnight never looks like a negative backfill.
+        return context.getSharedPreferences("passive_source_history_" + audit.getDay(),
+            Context.MODE_PRIVATE);
+    }
+
     private static JSONObject passiveModelProvenance(Context context, double walkingStride,
         double runningStride, double weight) throws Exception {
-        String config = "schema=7|app=" + appVersion(context) + "|code="
+        String config = "schema=8|app=" + appVersion(context) + "|code="
             + appVersionCode(context) + "|walk=" + walkingStride
             + "|run=" + runningStride + "|weight=" + weight
             + "|exclude=0.8|episode_steps=" + PassiveEpisodeAnalyzer.ACTIVE_STEP_THRESHOLD
@@ -800,7 +852,7 @@ final class DriveTestExportManager {
         for (byte b : hash) hex.append(String.format(java.util.Locale.ROOT, "%02x", b));
         return new JSONObject().put("app_version", appVersion(context))
             .put("android_version_code", appVersionCode(context))
-            .put("report_schema", 7).put("configuration_sha256", hex.toString())
+            .put("report_schema", 8).put("configuration_sha256", hex.toString())
             .put("walking_stride_m", walkingStride).put("running_stride_m", runningStride)
             .put("weight_kg", weight).put("transport_exclusion_threshold", 0.80)
             .put("episode_active_step_threshold", PassiveEpisodeAnalyzer.ACTIVE_STEP_THRESHOLD)
