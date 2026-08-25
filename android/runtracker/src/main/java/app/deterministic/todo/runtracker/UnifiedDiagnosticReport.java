@@ -14,7 +14,7 @@ import java.util.Map;
 
 /** Compact remote-observation report. Raw health timelines and Todo content are excluded. */
 final class UnifiedDiagnosticReport {
-    static final int SCHEMA_VERSION = 5;
+    static final int SCHEMA_VERSION = 6;
     static final int RETAIN_FILES = 15;
     private static final long THREE_HOURS_MS = 3L * 60 * 60 * 1000;
     private static final long DAY_MS = 24L * 60 * 60 * 1000;
@@ -37,6 +37,7 @@ final class UnifiedDiagnosticReport {
         IntensiveDiagnosticExperiment.State intensive = IntensiveDiagnosticExperiment.state(context);
         return new JSONObject().put("schema_version", SCHEMA_VERSION)
             .put("kind", "unified_remote_diagnostics")
+            .put("report_status", "complete")
             .put("observed_at_ms", observedAtMillis)
             .put("zone_id", ZoneId.systemDefault().getId())
             .put("app", app(context))
@@ -56,6 +57,18 @@ final class UnifiedDiagnosticReport {
                 .put("coverage", object(IntensiveDiagnosticDebugState.values(context))))
             .put("diagnostic_upload", object(DiagnosticUploadDebugState.values(context)))
             .put("app_diagnostic_log", diagnosticFiles(context))
+            .put("privacy", new JSONObject().put("todo_content_recorded", false)
+                .put("coordinates_recorded", false).put("mac_recorded", false)
+                .put("auth_key_recorded", false).put("raw_health_timeline_exported", false));
+    }
+
+    static JSONObject fallback(long observedAtMillis, ZoneId zone, String errorCode)
+        throws Exception {
+        return new JSONObject().put("schema_version", SCHEMA_VERSION)
+            .put("kind", "unified_remote_diagnostics")
+            .put("report_status", "generation_fallback")
+            .put("generation_error_code", errorCode == null ? "Unknown" : errorCode)
+            .put("observed_at_ms", observedAtMillis).put("zone_id", zone.getId())
             .put("privacy", new JSONObject().put("todo_content_recorded", false)
                 .put("coordinates_recorded", false).put("mac_recorded", false)
                 .put("auth_key_recorded", false).put("raw_health_timeline_exported", false));
@@ -133,6 +146,8 @@ final class UnifiedDiagnosticReport {
 
     static Object jsonValue(Object value) throws Exception {
         if (value == null) return JSONObject.NULL;
+        if (value instanceof Double number && !Double.isFinite(number)) return JSONObject.NULL;
+        if (value instanceof Float number && !Float.isFinite(number)) return JSONObject.NULL;
         if (value instanceof Map<?, ?> map) {
             JSONObject object = new JSONObject();
             for (Map.Entry<?, ?> entry : map.entrySet())

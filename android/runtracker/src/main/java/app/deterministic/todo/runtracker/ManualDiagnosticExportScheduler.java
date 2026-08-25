@@ -10,6 +10,8 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
 import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /** One user action exports every diagnostic source already available on the phone. */
 final class ManualDiagnosticExportScheduler {
@@ -19,6 +21,8 @@ final class ManualDiagnosticExportScheduler {
     private ManualDiagnosticExportScheduler() {}
 
     static UUID enqueue(Context context) {
+        String manualBucket = LocalDateTime.now().format(
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         Constraints connected = new Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED).build();
         OneTimeWorkRequest movement = new OneTimeWorkRequest.Builder(
@@ -30,8 +34,10 @@ final class ManualDiagnosticExportScheduler {
         OneTimeWorkRequest unified = new OneTimeWorkRequest.Builder(
             DiagnosticDriveWorker.class)
             .setConstraints(connected)
-            .setInputData(new Data.Builder().putBoolean(
-                DiagnosticDriveWorker.INPUT_MANUAL_EXPORT, true).build())
+            .setInputData(new Data.Builder()
+                .putBoolean(DiagnosticDriveWorker.INPUT_MANUAL_EXPORT, true)
+                .putString(DiagnosticDriveWorker.INPUT_MANUAL_BUCKET, manualBucket)
+                .build())
             .build();
         WorkManager workManager = WorkManager.getInstance(context);
         // Keep the branches independent: a passive/Health Connect retry must not

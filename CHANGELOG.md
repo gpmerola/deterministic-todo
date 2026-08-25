@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.31.3
+
+- Mantiene stabile il nome degli export manuali durante i retry, evitando file
+  duplicati dello stesso comando.
+- Separa generazione e upload del report unificato nello stato diagnostico,
+  normalizza a `null` le metriche numeriche non finite e porta il report allo
+  schema 6.
+- Se la generazione completa fallisce, carica comunque un report minimo,
+  privacy-safe e machine-readable con il solo codice tecnico dell'errore.
+
 ## 2.31.2
 
 - Rende indipendenti i due rami di `Carica tutti i dati ora`: un retry dello

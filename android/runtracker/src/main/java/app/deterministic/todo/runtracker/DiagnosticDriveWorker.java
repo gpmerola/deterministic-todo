@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 public final class DiagnosticDriveWorker extends Worker {
     static final String INPUT_MANUAL_EXPORT = "manual_export";
+    static final String INPUT_MANUAL_BUCKET = "manual_bucket";
     private static final String WORK = "todo-diagnostics-daily-drive";
     private static final String STARTUP_WORK = "todo-diagnostics-startup-drive";
     static final long PERIODIC_INTERVAL_HOURS = 1;
@@ -62,8 +63,8 @@ public final class DiagnosticDriveWorker extends Worker {
         try {
             String diagnostics = requiredPhase(context, "read_local_log",
                 () -> readDiagnostics(context));
-            String bucket = LocalDateTime.now().format(DateTimeFormatter.ofPattern(
-                manualExport ? "yyyy-MM-dd_HH-mm-ss" : "yyyy-MM-dd_HH"));
+            String bucket = exportBucket(manualExport,
+                getInputData().getString(INPUT_MANUAL_BUCKET), LocalDateTime.now());
             String name = DiagnosticRetentionPolicy.PREFIX + bucket
                 + DiagnosticRetentionPolicy.SUFFIX;
             if (!diagnostics.isEmpty()) {
@@ -78,9 +79,9 @@ public final class DiagnosticDriveWorker extends Worker {
             String unifiedName = manualExport
                 ? "unified_diagnostics_manual_" + bucket + ".json"
                 : UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault());
+            String unifiedReport = buildUnifiedReport(context, observedAt);
             requiredPhase(context, "unified_upload", () -> {
-                DriveTestExportManager.writeUnifiedDiagnostics(context, unifiedName,
-                    UnifiedDiagnosticReport.create(context, observedAt).toString(2));
+                DriveTestExportManager.writeUnifiedDiagnostics(context, unifiedName, unifiedReport);
                 return null;
             });
             optionalPhase(context, "three_way_refresh", () -> {
@@ -106,6 +107,28 @@ public final class DiagnosticDriveWorker extends Worker {
     private interface PhaseCall<T> { T run() throws Exception; }
 
     private static final class ThreeWayRefreshPartialFailure extends Exception {}
+
+    static String exportBucket(boolean manual, String scheduledBucket, LocalDateTime now) {
+        if (manual && scheduledBucket != null && !scheduledBucket.isBlank()) return scheduledBucket;
+        return now.format(DateTimeFormatter.ofPattern(
+            manual ? "yyyy-MM-dd_HH-mm-ss" : "yyyy-MM-dd_HH"));
+    }
+
+    private static String buildUnifiedReport(Context context, long observedAt) throws Exception {
+        long started = System.currentTimeMillis();
+        DiagnosticUploadDebugState.phaseStarted(context, "unified_generate", started);
+        try {
+            String report = UnifiedDiagnosticReport.create(context, observedAt).toString(2);
+            DiagnosticUploadDebugState.phaseFinished(context, "unified_generate",
+                System.currentTimeMillis(), null, true);
+            return report;
+        } catch (Exception error) {
+            DiagnosticUploadDebugState.phaseFinished(context, "unified_generate",
+                System.currentTimeMillis(), error, true);
+            return UnifiedDiagnosticReport.fallback(observedAt, ZoneId.systemDefault(),
+                DiagnosticUploadDebugState.errorCode(error)).toString(2);
+        }
+    }
 
     private static <T> T requiredPhase(Context context, String name, PhaseCall<T> call)
         throws Exception {

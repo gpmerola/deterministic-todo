@@ -90,7 +90,7 @@ final class DiagnosticUploadDebugState {
         result.put("error_code", p.getString("error_code", null));
         LinkedHashMap<String, Object> phases = new LinkedHashMap<>();
         for (String phase : new String[] {"read_local_log", "raw_log_upload",
-            "unified_upload", "three_way_refresh"}) {
+            "unified_generate", "unified_upload", "three_way_refresh"}) {
             LinkedHashMap<String, Object> value = new LinkedHashMap<>();
             value.put("outcome", p.getString("phase_" + phase + "_outcome", "never_run"));
             value.put("required", p.contains("phase_" + phase + "_required")
