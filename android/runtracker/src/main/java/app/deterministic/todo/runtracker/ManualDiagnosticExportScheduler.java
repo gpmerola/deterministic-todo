@@ -13,7 +13,8 @@ import java.util.UUID;
 
 /** One user action exports every diagnostic source already available on the phone. */
 final class ManualDiagnosticExportScheduler {
-    private static final String WORK = "movement-manual-complete-export";
+    static final String MOVEMENT_WORK = "movement-manual-passive-export";
+    static final String DIAGNOSTIC_WORK = "movement-manual-diagnostic-export";
 
     private ManualDiagnosticExportScheduler() {}
 
@@ -32,8 +33,11 @@ final class ManualDiagnosticExportScheduler {
             .setInputData(new Data.Builder().putBoolean(
                 DiagnosticDriveWorker.INPUT_MANUAL_EXPORT, true).build())
             .build();
-        WorkManager.getInstance(context).beginUniqueWork(
-            WORK, ExistingWorkPolicy.REPLACE, movement).then(unified).enqueue();
+        WorkManager workManager = WorkManager.getInstance(context);
+        // Keep the branches independent: a passive/Health Connect retry must not
+        // prevent the raw diagnostic log and unified report from being uploaded.
+        workManager.enqueueUniqueWork(MOVEMENT_WORK, ExistingWorkPolicy.REPLACE, movement);
+        workManager.enqueueUniqueWork(DIAGNOSTIC_WORK, ExistingWorkPolicy.REPLACE, unified);
         return unified.getId();
     }
 }

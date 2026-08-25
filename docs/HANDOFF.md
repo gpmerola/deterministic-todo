@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.31.1 build 142**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.31.2 build 143**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -95,6 +95,11 @@ di cambiare architettura.
   annidati reali per fasi e riepiloghi. La coda intensiva viene drenata, otto
   file per ciclo, sia dal worker passivo sia dal worker diagnostico orario; il
   report espone backlog prima/dopo, tentativi, successi, durata e primo errore.
+  La build 143 separa i due rami del comando manuale completo: snapshot
+  passivo e diagnostica generale partono indipendentemente, quindi il retry di
+  Health Connect o del relativo file Drive non può più impedire l'upload del
+  log applicativo e del report unificato. I nomi WorkManager sono distinti e
+  ogni nuovo comando sostituisce soltanto il proprio ramo precedente.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.31.1 build 142. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.31.2 build 143. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -112,6 +112,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - dalla 132 l’updater normalizza `-dev`, confronta la build logica e ricontrolla
   il package installato prima del download, impedendo downgrade da manifest
   rolling in ritardo;
+- dalla 143 il caricamento manuale avvia snapshot passivo e diagnostica
+  generale come rami WorkManager indipendenti: un retry Health Connect/Drive
+  del primo non impedisce più log grezzi e report unificato;
 - login Supabase, Health Connect, cartella Drive e aggiornamento ADB in-place
   sono collaudati; mantenere invariata la firma diretta;
 - Movimento è attivo soltanto in Todo Test; Play resta `disabled-user`;

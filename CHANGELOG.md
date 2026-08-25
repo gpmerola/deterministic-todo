@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.31.2
+
+- Rende indipendenti i due rami di `Carica tutti i dati ora`: un retry dello
+  snapshot passivo non blocca più l'upload dei log applicativi e del report
+  unificato. Il drenaggio della diagnostica intensiva resta serializzato e
+  idempotente.
+
 ## 2.31.1
 
 - Considera riuscita una rinomina SAF/Google Drive con ritorno nullo o eccezione

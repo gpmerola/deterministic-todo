@@ -5,7 +5,7 @@ Aggiornato il 23 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.31.1 build 142**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.31.2 build 143**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -59,7 +59,10 @@ Aggiornato il 23 agosto 2026.
   fra osservazioni. Il contatore hardware indipendente continua a essere
   registrato nei segmenti intensivi come `step_counter_delta`; nessun secondo
   monitor permanente è stato aggiunto.
-  La build 142 gestisce la semantica asincrona del provider Drive: se
+  La build 143 elimina la dipendenza sequenziale del caricamento manuale:
+  snapshot passivo e diagnostica generale sono due lavori indipendenti, così
+  un retry parziale non blocca log e report unificato. La build 142 gestisce la
+  semantica asincrona del provider Drive: se
   `renameDocument` non restituisce un URI o segnala un errore ambiguo, accetta il successo soltanto dopo
   aver verificato nome e dimensione del file finale. Il report unificato schema
   5 conserva le fasi come JSON annidato e registra lo smaltimento della coda
