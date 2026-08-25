@@ -56,6 +56,7 @@ public final class DiagnosticDriveWorker extends Worker {
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
         if (!DriveTestExportManager.isConfigured(context)) return Result.success();
+        IntensiveChunkUploader.uploadPending(context);
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
         DiagnosticUploadDebugState.started(context, System.currentTimeMillis(), manualExport);
         try {

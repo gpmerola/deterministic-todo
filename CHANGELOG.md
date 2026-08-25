@@ -2,6 +2,22 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.31.1
+
+- Considera riuscita una rinomina SAF/Google Drive con ritorno nullo o eccezione
+  ambigua soltanto
+  se il file finale ricompare nella cartella con dimensione completa. La
+  verifica è limitata a quattro letture brevi; un esito non verificabile resta
+  un errore e conserva il file recuperabile per il retry.
+- Porta il report unificato allo schema 5 e serializza ricorsivamente mappe e
+  liste diagnostiche come veri oggetti/array JSON. Le singole fasi di upload
+  non sono più stringhe opache.
+- Sposta lo smaltimento dei chunk intensivi in un uploader serializzato comune
+  ai worker passivo e diagnostico. Ogni ciclo carica al massimo otto file e
+  registra coda iniziale/finale, tentativi, successi, durata e primo errore.
+- Mantiene invariati algoritmo, falcate, GPS, classificazione, schema passivo 8
+  e durata degli esperimenti già avviati.
+
 ## 2.31.0
 
 - Porta il report passivo allo schema 8 e qualifica esplicitamente Google Fit /

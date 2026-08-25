@@ -20,4 +20,13 @@ public class DriveWriteVerificationTest {
         assertTrue(DriveWriteVerification.completeImmutableFile(200, 200L));
         assertTrue(DriveWriteVerification.completeImmutableFile(200, null));
     }
+
+    @Test public void acceptsAnAmbiguousRenameOnlyAfterFinalVerification() {
+        assertTrue(DriveWriteVerification.renameCompleted(true, false));
+        assertTrue(DriveWriteVerification.renameCompleted(false, true));
+        assertFalse(DriveWriteVerification.renameCompleted(false, false));
+        assertTrue(DriveWriteVerification.verifiedFinalFile(200, 200L));
+        assertFalse(DriveWriteVerification.verifiedFinalFile(200, null));
+        assertFalse(DriveWriteVerification.verifiedFinalFile(200, 0L));
+    }
 }

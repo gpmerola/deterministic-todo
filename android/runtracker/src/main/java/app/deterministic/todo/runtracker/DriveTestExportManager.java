@@ -1237,11 +1237,45 @@ final class DriveTestExportManager {
             DocumentsContract.deleteDocument(c.getContentResolver(), partial);
             throw new IOException("provider size mismatch");
         }
-        Uri renamed = DocumentsContract.renameDocument(c.getContentResolver(), partial, name);
-        if (renamed == null) {
-            DocumentsContract.deleteDocument(c.getContentResolver(), partial);
-            throw new IOException("provider rename failed");
+        Uri renamed = null;
+        Exception renameError = null;
+        try {
+            renamed = DocumentsContract.renameDocument(c.getContentResolver(), partial, name);
+        } catch (Exception ambiguousProviderFailure) {
+            renameError = ambiguousProviderFailure;
         }
+        boolean finalVerified = renamed == null
+            && awaitCompleteChild(c, children, name, bytes.length);
+        if (!DriveWriteVerification.renameCompleted(renamed != null, finalVerified)) {
+            if (renameError != null) throw renameError;
+            throw new IOException("provider rename unverified");
+        }
+    }
+
+    private static boolean awaitCompleteChild(Context context, Uri children,
+                                               String name, long expectedBytes) {
+        for (int attempt = 0; attempt < 4; attempt++) {
+            try (Cursor cursor = context.getContentResolver().query(children,
+                new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_SIZE}, null, null, null)) {
+                if (cursor != null) while (cursor.moveToNext()) {
+                    if (!name.equals(cursor.getString(1))) continue;
+                    Long size = cursor.isNull(2) ? null : cursor.getLong(2);
+                    if (DriveWriteVerification.verifiedFinalFile(expectedBytes, size))
+                        return true;
+                }
+            } catch (RuntimeException ignored) {
+                // A later bounded query may observe the provider's asynchronous rename.
+            }
+            if (attempt < 3) try {
+                Thread.sleep(150L);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
     }
 
     private static Long documentSize(Context context, Uri document) {

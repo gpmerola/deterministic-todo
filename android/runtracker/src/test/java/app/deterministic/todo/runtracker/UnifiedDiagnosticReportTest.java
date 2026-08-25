@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 
 public class UnifiedDiagnosticReportTest {
     @Test public void stableThreeHourBucketName() {
@@ -22,6 +23,14 @@ public class UnifiedDiagnosticReportTest {
         assertEquals(72.0, summary.heartRateMeanBpm(), 0.001);
         assertTrue(summary.minuteCoverageRatio() <= 1.0);
         assertEquals(Long.valueOf(60_000), summary.lastSampleAgeMillis());
+    }
+
+    @Test public void serializesNestedDiagnosticMapsAsJsonObjects() throws Exception {
+        Object value = UnifiedDiagnosticReport.jsonValue(Map.of(
+            "phase", Map.of("outcome", "success", "duration_ms", 12L)));
+        org.json.JSONObject json = (org.json.JSONObject) value;
+        assertEquals("success", json.getJSONObject("phase").getString("outcome"));
+        assertEquals(12L, json.getJSONObject("phase").getLong("duration_ms"));
     }
 
     private static BipUActivitySample sample(long timestamp, int steps, int heartRate) {

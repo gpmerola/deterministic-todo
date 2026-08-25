@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.31.0 build 141**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.31.1 build 142**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -87,6 +87,14 @@ di cambiare architettura.
   avanzamento rispetto allo snapshot precedente e backfill tardivo inferito.
   Il confronto indipendente con il sensore Samsung è già nei chunk intensivi
   (`step_counter_delta`) e resta distinto dai totali Health Connect.
+  La build 142 risolve l'`IOException` spurio osservato sulla 141: il provider
+  Google Drive può completare una rinomina SAF pur restituendo `null` o
+  un'eccezione ambigua; l'app la
+  riconosce come riuscita soltanto mediante lettura successiva del nome finale
+  e della dimensione attesa. Il report unificato schema 5 usa oggetti JSON
+  annidati reali per fasi e riepiloghi. La coda intensiva viene drenata, otto
+  file per ciclo, sia dal worker passivo sia dal worker diagnostico orario; il
+  report espone backlog prima/dopo, tentativi, successi, durata e primo errore.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

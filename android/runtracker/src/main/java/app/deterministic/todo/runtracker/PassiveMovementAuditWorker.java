@@ -97,7 +97,7 @@ public final class PassiveMovementAuditWorker extends Worker {
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
-        uploadIntensiveChunks(context);
+        IntensiveChunkUploader.uploadPending(context);
         if (!enabled(context) && !manualExport) {
             disable(context);
             return Result.success();
@@ -161,17 +161,4 @@ public final class PassiveMovementAuditWorker extends Worker {
         return "permission_required".equals(error) ? Result.failure() : Result.retry();
     }
 
-    private static void uploadIntensiveChunks(Context context) {
-        if (!IntensiveDiagnosticStore.checkpoint(context)) return;
-        if (IntensiveDiagnosticStore.pendingChunks(context).isEmpty()) return;
-        int uploaded = 0;
-        for (java.io.File chunk : IntensiveDiagnosticStore.pendingChunks(context)) {
-            if (uploaded >= 8) break;
-            DriveTestExportManager.ExportResult result =
-                DriveTestExportManager.writeIntensiveDiagnosticChunk(context, chunk);
-            if (!result.success()) break;
-            IntensiveDiagnosticStore.uploaded(chunk);
-            uploaded++;
-        }
-    }
 }

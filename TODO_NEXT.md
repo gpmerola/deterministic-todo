@@ -12,7 +12,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.30.1 build 140. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.31.1 build 142. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -135,17 +135,18 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 - quando serve anticipare un controllo remoto usare soltanto `Carica ora tutti
   i dati di test`; non usare `Sincronizza ultima attività`, che resta limitato
   alla sessione GPS esplicita più recente;
-- verificare sulla build 140 che l'anello passi sia leggibile nelle viste
+- verificare sulla build 142 che l'anello passi sia leggibile nelle viste
   principali, che il target cambi dalle Impostazioni e che Movimento integrato
   consenta avvio/stop/upload senza redirect o scorrimento anomalo;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
-  `daily_audit_*.json` schema 7: timeline Todo/Fit/Bip al minuto, episodi e
+  `daily_audit_*.json` schema 8: timeline Todo/Fit/Bip al minuto, episodi e
   pause automatici, copertura/ritardi, delta tra snapshot, scarto distanza, quote
   cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
   veicolo/bicicletta, conflitti `STILL + passi` e flag di qualità;
 - verificare che nessun nuovo file Drive resti a 0 byte e che il report
-  unificato successivo mostri l'ultimo upload concluso, CPU/rete normalizzate,
-  delta PSS e stato Bip esplicito;
+  unificato schema 5 mostri fasi JSON strutturate, ultimo upload concluso,
+  smaltimento della coda intensiva, CPU/rete normalizzate, delta PSS e stato
+  Bip esplicito;
 - per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre
   corse da almeno 3 km con i pulsanti dedicati. Non servono soste annotate né
   screenshot: GPX, passi, confronto e report vengono esportati automaticamente;
