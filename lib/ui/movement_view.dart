@@ -96,11 +96,14 @@ class _MovementViewState extends State<MovementView>
     final outcome = await RunTrackerService.uploadMovementData();
     if (!mounted) return;
     setState(() => busy = false);
-    _message(
-      outcome == 'scheduled'
-          ? 'Caricamento completo programmato.'
-          : 'Collega prima la cartella Drive dagli strumenti avanzati.',
-    );
+    _message(switch (outcome) {
+      'success' => 'Bundle diagnostico verificato su Drive.',
+      'drive_not_configured' =>
+        'Collega prima la cartella Drive dagli strumenti avanzati.',
+      'permission_failure' =>
+        'Autorizzazione Drive scaduta: ricollega la cartella.',
+      _ => 'Upload non riuscito. Il dettaglio è stato registrato.',
+    });
   }
 
   void _message(String text) => ScaffoldMessenger.of(

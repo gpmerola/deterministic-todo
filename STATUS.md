@@ -5,7 +5,7 @@ Aggiornato il 23 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.33.1 build 150**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.33.2 build 151**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma

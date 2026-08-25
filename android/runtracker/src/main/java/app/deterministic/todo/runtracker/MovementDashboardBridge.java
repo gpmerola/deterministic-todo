@@ -74,8 +74,11 @@ public final class MovementDashboardBridge {
 
     public static String uploadAll(Context context) {
         if (!DriveTestExportManager.isConfigured(context)) return "drive_not_configured";
-        ManualDiagnosticExportScheduler.enqueue(context);
-        return "scheduled";
+        return switch (DiagnosticDriveWorker.exportNow(context, true)) {
+            case SUCCESS -> "success";
+            case PERMISSION_FAILURE -> "permission_failure";
+            case RETRY -> "retry";
+        };
     }
 
     static void recordLiveState(Context context, long sessionId, double distanceMeters,

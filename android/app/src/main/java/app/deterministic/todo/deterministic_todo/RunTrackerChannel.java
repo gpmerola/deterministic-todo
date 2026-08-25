@@ -82,8 +82,11 @@ public final class RunTrackerChannel {
                         MovementDashboardBridge.stop(activity.getApplicationContext());
                         result.success(null);
                     }
-                    case "uploadMovementData" -> result.success(
-                        MovementDashboardBridge.uploadAll(activity.getApplicationContext()));
+                    case "uploadMovementData" -> IO.execute(() -> {
+                        String value = MovementDashboardBridge.uploadAll(
+                            activity.getApplicationContext());
+                        activity.runOnUiThread(() -> result.success(value));
+                    });
                     default -> result.notImplemented();
                 }
             });

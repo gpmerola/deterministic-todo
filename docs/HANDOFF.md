@@ -36,7 +36,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.33.1 build 150**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.33.2 build 151**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -241,7 +241,7 @@ diagnostico. `sync_completed.rebased_entities` conta i recuperi. Questa
 garanzia copre le nuove operazioni; non ricostruisce automaticamente stati già
 sovrascritti prima dell'aggiornamento.
 
-La build 150 conserva sette giorni di eventi diagnostici nello storage privato
+La build 151 conserva sette giorni di eventi diagnostici nello storage privato
 Android e aggiorna su Drive, circa un minuto dopo l'avvio e poi ogni tre ore,
 un unico bundle rolling con stato telefono/Fit, aggregati Bip U, freschezza,
 copertura intensiva, risorse e stato degli upload. Il comando manuale usa lo

@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.33.2
+
+- `Carica tutti i dati ora` attende l'esito reale della pipeline su un thread
+  I/O e mostra successo soltanto dopo la scrittura Drive verificata.
+- Upload manuale e automatico sono serializzati per impedire sovrapposizioni.
+
 ## 2.33.1
 
 - Il bundle rolling viene caricato anche quando una sorgente secondaria non è

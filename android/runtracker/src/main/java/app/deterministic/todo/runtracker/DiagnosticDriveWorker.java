@@ -62,7 +62,7 @@ public final class DiagnosticDriveWorker extends Worker {
         };
     }
 
-    static ExportOutcome exportNow(Context context, boolean manualExport) {
+    static synchronized ExportOutcome exportNow(Context context, boolean manualExport) {
         if (!DriveTestExportManager.isConfigured(context)) return ExportOutcome.SUCCESS;
         DiagnosticUploadDebugState.started(context, System.currentTimeMillis(), manualExport);
         try {
