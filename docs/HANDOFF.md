@@ -26,7 +26,7 @@ di cambiare architettura.
 
 ## Stato distribuibile
 
-- Build corrente: **2.32.1+147**. Tutte le scritture sul DocumentsProvider di
+- Build corrente: **2.32.2+148**. Tutte le scritture sul DocumentsProvider di
   Drive sono serializzate; dopo successo verificato del percorso manuale
   diretto, il fallback WorkManager viene cancellato. Questa correzione deriva
   dal collaudo hardware della 146, che aveva lasciato un `.partial` vuoto per

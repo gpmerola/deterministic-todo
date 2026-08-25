@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.32.2
+
+- Sostituisce il thread manuale legato alla vita dell'app con una catena
+  WorkManager persistente ed expedited: diagnostica grezza e unificata vengono
+  completate prima dello snapshot passivo, anche se Android sospende la UI.
+- Mantiene l'upload intensivo indipendente e conserva la serializzazione Drive
+  introdotta nella 147.
+
 ## 2.32.1
 
 - Serializza tutte le transazioni `create/write/rename` nel DocumentsProvider

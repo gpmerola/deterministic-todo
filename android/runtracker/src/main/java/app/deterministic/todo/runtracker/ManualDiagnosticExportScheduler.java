@@ -7,6 +7,7 @@ import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 import androidx.work.BackoffPolicy;
 
@@ -14,8 +15,6 @@ import java.util.UUID;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /** One user action exports every diagnostic source already available on the phone. */
 final class ManualDiagnosticExportScheduler {
@@ -23,13 +22,6 @@ final class ManualDiagnosticExportScheduler {
     static final String DIAGNOSTIC_WORK = "movement-manual-diagnostic-export";
     static final String INTENSIVE_WORK = "movement-manual-intensive-upload";
     static final long INTENSIVE_DELAY_MINUTES = 2;
-    static final long DIAGNOSTIC_FALLBACK_DELAY_MINUTES = 1;
-    private static final ExecutorService DIRECT_DIAGNOSTIC =
-        Executors.newSingleThreadExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "manual-diagnostic-export");
-            thread.setDaemon(true);
-            return thread;
-        });
 
     private ManualDiagnosticExportScheduler() {}
 
@@ -47,7 +39,7 @@ final class ManualDiagnosticExportScheduler {
         OneTimeWorkRequest unified = new OneTimeWorkRequest.Builder(
             DiagnosticDriveWorker.class)
             .setConstraints(connected)
-            .setInitialDelay(DIAGNOSTIC_FALLBACK_DELAY_MINUTES, TimeUnit.MINUTES)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .setInputData(new Data.Builder()
                 .putBoolean(DiagnosticDriveWorker.INPUT_MANUAL_EXPORT, true)
                 .putString(DiagnosticDriveWorker.INPUT_MANUAL_BUCKET, manualBucket)
@@ -61,19 +53,11 @@ final class ManualDiagnosticExportScheduler {
                 OneTimeWorkRequest.MIN_BACKOFF_MILLIS, TimeUnit.MILLISECONDS)
             .build();
         WorkManager workManager = WorkManager.getInstance(context);
-        // Keep the branches independent: a passive/Health Connect retry must not
-        // prevent the raw diagnostic log and unified report from being uploaded.
-        workManager.enqueueUniqueWork(MOVEMENT_WORK, ExistingWorkPolicy.REPLACE, movement);
-        Context appContext = context.getApplicationContext();
-        workManager.enqueueUniqueWork(DIAGNOSTIC_WORK, ExistingWorkPolicy.REPLACE, unified);
-        DIRECT_DIAGNOSTIC.execute(() -> {
-            DiagnosticDriveWorker.ExportOutcome outcome =
-                DiagnosticDriveWorker.exportNow(appContext, true, manualBucket);
-            // This request is only a persisted fallback. Do not rewrite a package
-            // whose direct upload has already completed and passed verification.
-            if (outcome == DiagnosticDriveWorker.ExportOutcome.SUCCESS)
-                WorkManager.getInstance(appContext).cancelUniqueWork(DIAGNOSTIC_WORK);
-        });
+        // A single durable chain owns the essential package. WorkManager resumes
+        // it even if Android suspends the UI process between individual files.
+        workManager.beginUniqueWork(DIAGNOSTIC_WORK, ExistingWorkPolicy.REPLACE, unified)
+            .then(movement)
+            .enqueue();
         workManager.enqueueUniqueWork(INTENSIVE_WORK, ExistingWorkPolicy.REPLACE, intensive);
         return unified.getId();
     }
