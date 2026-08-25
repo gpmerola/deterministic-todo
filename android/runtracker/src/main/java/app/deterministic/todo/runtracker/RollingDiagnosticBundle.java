@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
 /** Seven-day, privacy-safe diagnostic payload written to one of two crash-safe slots. */
 final class RollingDiagnosticBundle {
@@ -49,6 +50,13 @@ final class RollingDiagnosticBundle {
                 invalidLines++;
             }
         }
+        JSONObject unified;
+        try {
+            unified = UnifiedDiagnosticReport.create(context, observedAt);
+        } catch (Exception sectionFailure) {
+            unified = UnifiedDiagnosticReport.fallback(observedAt, ZoneId.systemDefault(),
+                DiagnosticUploadDebugState.errorCode(sectionFailure));
+        }
         return new JSONObject()
             .put("schema_version", SCHEMA_VERSION)
             .put("kind", "rolling_diagnostic_bundle")
@@ -58,7 +66,7 @@ final class RollingDiagnosticBundle {
             .put("window_days", WINDOW_DAYS)
             .put("app_events", events)
             .put("invalid_app_event_lines", invalidLines)
-            .put("unified_snapshot", UnifiedDiagnosticReport.create(context, observedAt))
+            .put("unified_snapshot", unified)
             .put("storage", new JSONObject()
                 .put("strategy", "alternating_two_slots")
                 .put("automatic_drive_deletion", false))

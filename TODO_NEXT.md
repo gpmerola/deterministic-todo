@@ -6,7 +6,7 @@ Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimo collaudo build 149
+## Prossimo collaudo build 150
 
 - [ ] Premere una volta `Carica tutti i dati ora` e verificare uno slot
   `diagnostics_last_7_days_{a,b}.json` completo, nessun `.partial` e nessuna
@@ -18,7 +18,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.33.0 build 149. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.33.1 build 150. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente

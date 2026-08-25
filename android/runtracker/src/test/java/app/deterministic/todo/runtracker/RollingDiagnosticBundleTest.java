@@ -14,4 +14,11 @@ public class RollingDiagnosticBundleTest {
         assertEquals(DriveFolderLayout.APP_DIAGNOSTICS,
             DriveFolderLayout.folderFor(RollingDiagnosticBundle.fileName("a")));
     }
+
+    @Test public void fallbackSnapshotIsAlwaysSerializable() throws Exception {
+        org.json.JSONObject fallback = UnifiedDiagnosticReport.fallback(1234L,
+            java.time.ZoneId.of("Europe/Rome"), "RoomFailure");
+        assertEquals("generation_fallback", fallback.getString("report_status"));
+        assertEquals("RoomFailure", fallback.getString("generation_error_code"));
+    }
 }

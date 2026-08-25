@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.33.1
+
+- Il bundle rolling viene caricato anche quando una sorgente secondaria non è
+  leggibile: la sezione usa un fallback esplicito con codice errore invece di
+  bloccare l'intero upload.
+
 ## 2.33.0
 
 - Un solo bundle rolling degli ultimi 7 giorni per diagnostica generale,
