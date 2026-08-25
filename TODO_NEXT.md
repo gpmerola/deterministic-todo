@@ -6,13 +6,18 @@ Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
+## Prossimo collaudo build 147
+
+- [ ] Premere una volta `Carica tutti i dati ora` e verificare diagnostica
+  manuale, report unificato e snapshot passivo completi, senza `.partial`.
+
 ## Stato corrente
 
 - Repository sorgente pubblico: `gpmerola/deterministic-todo`.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.32.0 build 146. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.32.1 build 147. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente

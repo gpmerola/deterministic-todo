@@ -65,10 +65,15 @@ final class ManualDiagnosticExportScheduler {
         // prevent the raw diagnostic log and unified report from being uploaded.
         workManager.enqueueUniqueWork(MOVEMENT_WORK, ExistingWorkPolicy.REPLACE, movement);
         Context appContext = context.getApplicationContext();
-        DIRECT_DIAGNOSTIC.execute(() ->
-            DiagnosticDriveWorker.exportNow(appContext, true, manualBucket));
-        // Persisted fallback: idempotent names make this harmless if the direct path succeeded.
         workManager.enqueueUniqueWork(DIAGNOSTIC_WORK, ExistingWorkPolicy.REPLACE, unified);
+        DIRECT_DIAGNOSTIC.execute(() -> {
+            DiagnosticDriveWorker.ExportOutcome outcome =
+                DiagnosticDriveWorker.exportNow(appContext, true, manualBucket);
+            // This request is only a persisted fallback. Do not rewrite a package
+            // whose direct upload has already completed and passed verification.
+            if (outcome == DiagnosticDriveWorker.ExportOutcome.SUCCESS)
+                WorkManager.getInstance(appContext).cancelUniqueWork(DIAGNOSTIC_WORK);
+        });
         workManager.enqueueUniqueWork(INTENSIVE_WORK, ExistingWorkPolicy.REPLACE, intensive);
         return unified.getId();
     }

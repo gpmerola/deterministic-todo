@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.32.1
+
+- Serializza tutte le transazioni `create/write/rename` nel DocumentsProvider
+  di Drive, impedendo che diagnostica, snapshot passivo e upload intensivo
+  interferiscano con lo stesso file `.partial`.
+- Annulla il retry persistente manuale dopo un upload diretto verificato; il
+  fallback resta disponibile quando il percorso diretto non ha successo.
+
 ## 2.32.0
 
 - Aggiorna il totale passi ogni 30 secondi soltanto mentre l'app è visibile,

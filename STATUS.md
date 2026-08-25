@@ -5,11 +5,15 @@ Aggiornato il 23 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.32.0 build 146**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.32.1 build 147**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
-  `disabled-user`: dati e baseline esistenti restano conservati.
+  `disabled-user`: dati e baseline esistenti restano conservati. La build 147
+  serializza tutte le scritture Drive: il collaudo reale della 146 aveva
+  mostrato un diagnostico manuale `.partial` vuoto quando worker manuale,
+  periodico e intensivo si sovrapponevano. Il fallback viene cancellato dopo
+  un upload diretto verificato.
   La build 131 unifica il recupero manuale dell’ultima sessione: riesporta GPX
   e diagnostica e riprogramma automaticamente il confronto Fit. I retry con
   valori Fit invariati riusano lo stesso sidecar immutabile, mentre un

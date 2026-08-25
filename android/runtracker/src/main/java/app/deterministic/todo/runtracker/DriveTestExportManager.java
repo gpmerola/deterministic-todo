@@ -1200,7 +1200,10 @@ final class DriveTestExportManager {
             throw new IOException("provider size mismatch");
     }
 
-    private static void writeNewFile(Context c, String name, String mime, String text) throws Exception {
+    // Google Drive's DocumentsProvider can corrupt competing create/write/rename
+    // transactions in the same tree. All exporters share this serialization point.
+    private static synchronized void writeNewFile(Context c, String name, String mime,
+                                                  String text) throws Exception {
         Uri tree = tree(c); if (tree == null) throw new IllegalStateException("folder missing");
         Uri dir = managedDirectory(c, tree, DriveFolderLayout.folderFor(name));
         String directoryId = DocumentsContract.getDocumentId(dir);
