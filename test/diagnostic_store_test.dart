@@ -21,6 +21,23 @@ void main() {
     expect(utf8.decode(await store.read()), 'prima-riga\nseconda-riga\n');
   });
 
+  test('conserva sette giorni locali e segmenta senza perdere righe', () async {
+    final directory = await Directory.systemTemp.createTemp('todo-week-log-');
+    addTearDown(() => directory.delete(recursive: true));
+    var now = DateTime(2026, 8, 25, 12);
+    final store = FileDiagnosticStore(
+      File('${directory.path}/diagnostics.jsonl'),
+      8,
+      now: () => now,
+    );
+    await store.append('giorno-1\n');
+    await store.append('segmento\n');
+    now = now.add(const Duration(days: 8));
+    await store.append('giorno-9\n');
+
+    expect(utf8.decode(await store.read()), 'giorno-9\n');
+  });
+
   test('il log browser sopravvive alla riapertura dello store', () async {
     final database = await idbFactoryMemory.open(
       'diagnostics-test',

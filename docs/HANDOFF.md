@@ -26,11 +26,11 @@ di cambiare architettura.
 
 ## Stato distribuibile
 
-- Build corrente: **2.32.2+148**. Tutte le scritture sul DocumentsProvider di
-  Drive sono serializzate; dopo successo verificato del percorso manuale
-  diretto, il fallback WorkManager viene cancellato. Questa correzione deriva
-  dal collaudo hardware della 146, che aveva lasciato un `.partial` vuoto per
-  sovrapposizione fra worker.
+- Build corrente: **2.33.0+149**. Diagnostica automatica e manuale usano lo
+  stesso worker e lo stesso bundle rolling di 7 giorni. Ogni 3 ore viene
+  aggiornato uno dei due slot `diagnostics_last_7_days_{a,b}.json`; l'altro è
+  il fallback integro. Non esiste più retention remota né alcuna cancellazione
+  automatica su Drive. La retention è esclusivamente locale e app-private.
 
 - Repository sorgente: `gpmerola/deterministic-todo`.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
@@ -154,8 +154,9 @@ di cambiare architettura.
   orfani e pianifica l'upload finale indipendentemente dalla scadenza del test
   passivo; algoritmo e campionamento restano quelli della 117.
   Movimento crea inoltre snapshot
-  cumulativi Todo/Google Fit all'avvio e ogni ora. La diagnostica Drive
-  viene aggiornata all'avvio e ogni ora; il sync delle attività
+  cumulativi Todo/Google Fit all'avvio e ogni ora. Dalla build 149 la diagnostica
+  generale usa invece il bundle rolling di 7 giorni, all'avvio e ogni 3 ore;
+  il sync delle attività
   conserva un massimo Lamport osservato, verifica il risultato di `merge_task`
   e riconosce l'outbox solo dopo conferma della stessa versione server. La
   2.25.2 build 110 corregge la classificazione passiva. Il test dura sette
@@ -240,14 +241,15 @@ diagnostico. `sync_completed.rebased_entities` conta i recuperi. Questa
 garanzia copre le nuove operazioni; non ricostruisce automaticamente stati già
 sovrascritti prima dell'aggiornamento.
 
-La build 134 aggiorna la diagnostica Drive dopo circa un minuto dall'avvio
-Android e poi ogni ora con rete disponibile. Ogni esecuzione crea uno
-snapshot JSONL immutabile per fascia oraria e un `unified_diagnostics_*.json`
-con stato telefono/Fit, aggregati Bip U delle ultime 3 e 24 ore, freschezza del
-campione, stato intensivo e metadati dei log. Il periodico usa
-`ExistingPeriodicWorkPolicy.UPDATE` per sostituire il precedente job di 24 ore
-già registrato. Le due serie conservano gli ultimi 15 file. Per le ultime 15
-sessioni viene inoltre aggiornato un unico `*_three_way.json` con finestre UTC,
+La build 149 conserva sette giorni di eventi diagnostici nello storage privato
+Android e aggiorna su Drive, circa un minuto dopo l'avvio e poi ogni tre ore,
+un unico bundle rolling con stato telefono/Fit, aggregati Bip U, freschezza,
+copertura intensiva, risorse e stato degli upload. Il comando manuale usa lo
+stesso worker. Due soli slot fissi `diagnostics_last_7_days_a.json` e `_b.json`
+si alternano così che una copia resti valida durante la scrittura dell'altra.
+Questo flusso non esegue cancellazioni su Drive; la retention è esclusivamente
+locale. Per le ultime 15 sessioni viene inoltre aggiornato un unico
+`*_three_way.json` con finestre UTC,
 totali e confronti Todo/Fit/Bip e timeline Bip nativa. L'import resta esplicito
 e recupera gli arretrati senza connessione BLE permanente. Questa frequenza è temporanea per
 il debugging e va rivalutata prima della stabilizzazione del prodotto.

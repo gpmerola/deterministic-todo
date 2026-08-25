@@ -15,7 +15,6 @@ import java.util.Map;
 /** Compact remote-observation report. Raw health timelines and Todo content are excluded. */
 final class UnifiedDiagnosticReport {
     static final int SCHEMA_VERSION = 6;
-    static final int RETAIN_FILES = 15;
     private static final long THREE_HOURS_MS = 3L * 60 * 60 * 1000;
     private static final long DAY_MS = 24L * 60 * 60 * 1000;
 
@@ -120,8 +119,14 @@ final class UnifiedDiagnosticReport {
 
     private static JSONObject diagnosticFiles(Context context) throws Exception {
         JSONArray files = new JSONArray();
-        addFile(files, new File(context.getFilesDir(), "diagnostics.jsonl.1"));
-        addFile(files, new File(context.getFilesDir(), "diagnostics.jsonl"));
+        File[] retained = context.getFilesDir().listFiles((directory, name) ->
+            name.equals("diagnostics.jsonl") || name.equals("diagnostics.jsonl.1")
+                || name.matches("diagnostics-\\d{4}-\\d{2}-\\d{2}(-\\d+)?\\.jsonl"));
+        if (retained != null) {
+            java.util.Arrays.sort(retained, java.util.Comparator.comparing(File::getName));
+            long threshold = System.currentTimeMillis() - RollingDiagnosticBundle.WINDOW_MILLIS;
+            for (File file : retained) if (file.lastModified() >= threshold) addFile(files, file);
+        }
         return new JSONObject().put("files", files);
     }
 

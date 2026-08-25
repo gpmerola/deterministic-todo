@@ -6,10 +6,11 @@ Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimo collaudo build 147
+## Prossimo collaudo build 149
 
-- [ ] Premere una volta `Carica tutti i dati ora` e verificare diagnostica
-  manuale, report unificato e snapshot passivo completi, senza `.partial`.
+- [ ] Premere una volta `Carica tutti i dati ora` e verificare uno slot
+  `diagnostics_last_7_days_{a,b}.json` completo, nessun `.partial` e nessuna
+  nuova operazione nel cestino Drive.
 
 ## Stato corrente
 
@@ -17,7 +18,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.32.2 build 148. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.33.0 build 149. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -27,8 +28,8 @@ non duplicare qui i dettagli tecnici.
   del provider Drive aveva causato directory omonime nella 120. Movimento include una
   diagnostica intensiva temporanea di sette giorni, segmentata per build e con
   upload JSONL orario e finale crash-safe, oltre agli snapshot
-  cumulativi Todo/Google Fit ogni ora; la diagnostica Android
-  aggiorna il file Drive giornaliero all'avvio e ogni ora. Il sync task conferma sul
+  cumulativi Todo/Google Fit ogni ora; la diagnostica generale Android conserva
+  sette giorni locali e alterna due bundle Drive ogni tre ore o su comando. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
   contatori Lamport più alti. I record passi sono ripartiti
   sull'intero intervallo e l'esclusione di veicolo/bicicletta richiede una quota

@@ -83,7 +83,8 @@ adb shell content query --uri \
 
 controllare `bip_sync_phase`, `bip_sync_outcome`, quantità importate e
 `bip_sync_drive_result`. Senza ADB, gli stessi campi confluiscono nel successivo
-`unified_diagnostics_*.json` orario in `04 App diagnostics`.
+slot `diagnostics_last_7_days_{a,b}.json`, al massimo entro tre ore, in
+`04 App diagnostics`.
 
 L’import non invia il comando finale che potrebbe marcare i campioni come
 consumati. `05 Bip U` riceve il riepilogo tecnico; `01 Sessions` aggiorna per

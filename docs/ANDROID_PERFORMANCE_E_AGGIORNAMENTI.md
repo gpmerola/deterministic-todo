@@ -289,16 +289,18 @@ pianificate e inizializzazione Supabase. Sul Web il documento precarica
 primo frame Flutter. Il report reale del 5–8 agosto 2026 è in
 [`diagnostics/2026-08-08-web-android.md`](diagnostics/2026-08-08-web-android.md).
 
-I dati restano in due blocchi rotanti da 512 KiB e si esportano esplicitamente da Impostazioni: file applicativi su Android e IndexedDB nel browser. L'export include sia il blocco precedente sia quello corrente. Non contengono titoli, note, email, URL, token, identificatori di attività o identificatori dispositivo. Ogni riga include versione/build, schema log e un identificatore casuale valido soltanto per l'apertura corrente. La raccolta è event-driven e non mantiene servizi o polling aggiuntivi. Una sola volta per giorno, all’apertura, l’app propone facoltativamente di esportare il file e offre un prompt pronto da copiare; la data dell’ultimo avviso resta locale in `app_settings`.
+Su Android i dati sono segmentati per giorno e dimensione nello storage privato,
+con retention locale di 7 giorni. Non contengono titoli, note, email, URL, token,
+identificatori di attività o identificatori dispositivo. Ogni riga include
+versione/build, schema log e un identificatore casuale valido soltanto per
+l'apertura corrente. La raccolta è event-driven e non mantiene servizi o
+polling aggiuntivi.
 
-Dalla 2.24.2 Android pianifica inoltre con WorkManager una copia nella stessa
-cartella Drive già autorizzata per i test Movimento. Dalla 2.25.4, durante la
-fase di debugging, l'app la aggiorna all'avvio (dopo circa un minuto) e ogni ora
-ore quando è disponibile una rete. Il job non richiede che l'app resti aperta;
-Android può comunque differirlo secondo le proprie politiche energetiche. Il nome è
-`todo_diagnostics_YYYY-MM-DD.jsonl` dentro `04 App diagnostics`; la scrittura è
-idempotente per data e la retention elimina soltanto i file con quel prefisso
-oltre i 15 più recenti.
+Dalla 2.33.0 WorkManager costruisce lo stesso bundle rolling di 7 giorni sia
+automaticamente (avvio e ogni 3 ore) sia su comando manuale. Drive contiene due
+soli slot alternati, `diagnostics_last_7_days_a.json` e `_b.json`, così una
+scrittura interrotta non invalida l'ultima copia buona. Non esiste cancellazione
+o retention automatica su Drive.
 Il lavoro non attiva GPS o BLE e Android può differirlo per risparmiare
 batteria. Browser ed esportazione manuale restano invariati.
 

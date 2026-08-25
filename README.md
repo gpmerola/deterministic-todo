@@ -243,9 +243,11 @@ interrompe la bozza aperta nel pannello laterale.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home.
-Durante la fase di debugging, Android aggiorna lo stesso report diagnostico
-Drive giornaliero circa un minuto dopo l'avvio e quindi ogni ora quando è
-disponibile una rete. Il job non attiva GPS o BLE e conserva gli ultimi 15 file.
+Durante la fase di debugging, Android aggiorna un bundle diagnostico rolling
+di 7 giorni circa un minuto dopo l'avvio e quindi ogni 3 ore quando è disponibile
+una rete. Il comando manuale usa lo stesso flusso. Due slot Drive alternati
+proteggono dalle scritture interrotte; il job non attiva GPS o BLE e non elimina
+mai file su Drive.
 Priorità, date e ricorrenze hanno anche descrizioni accessibili indipendenti
 dal colore; l'app rispetta testo di sistema, alto contrasto e navigazione da
 tastiera. Sul Web SQLite WebAssembly e il worker Drift vengono precaricati,

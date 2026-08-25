@@ -1163,7 +1163,8 @@ final class DriveTestExportManager {
             return cursor != null && cursor.moveToFirst();
         }
     }
-    private static void writeFile(Context c, String name, String mime, String text) throws Exception {
+    private static synchronized void writeFile(Context c, String name, String mime,
+                                               String text) throws Exception {
         Uri tree=tree(c); if(tree==null)throw new IllegalStateException("folder missing");
         Uri dir = managedDirectory(c, tree, DriveFolderLayout.folderFor(name));
         String directoryId = DocumentsContract.getDocumentId(dir);
@@ -1291,13 +1292,15 @@ final class DriveTestExportManager {
 
     static void writeDailyDiagnostics(Context context, String name, String text) throws Exception {
         writeNewFile(context, name, "application/x-ndjson", text);
-        pruneDailyDiagnostics(context, 15);
     }
 
     static void writeUnifiedDiagnostics(Context context, String name, String text) throws Exception {
         writeNewFile(context, name, "application/json", text);
-        pruneManagedFiles(context, "unified_diagnostics_", ".json",
-            UnifiedDiagnosticReport.RETAIN_FILES);
+    }
+
+    static void writeRollingDiagnostics(Context context, String name, String text)
+        throws Exception {
+        writeFile(context, name, "application/json", text);
     }
 
     static ExportResult writeIntensiveDiagnosticChunk(Context context, java.io.File chunk) {
@@ -1311,41 +1314,6 @@ final class DriveTestExportManager {
             return new ExportResult(true, false,
                 "intensive_chunk_failed_" + error.getClass().getSimpleName());
         }
-    }
-
-    private static void pruneDailyDiagnostics(Context context, int keep) throws Exception {
-        pruneManagedFiles(context, DiagnosticRetentionPolicy.PREFIX,
-            DiagnosticRetentionPolicy.SUFFIX, keep);
-    }
-
-    private static void pruneManagedFiles(Context context, String prefix, String suffix,
-                                          int keep) throws Exception {
-        Uri tree = tree(context); if (tree == null) throw new IllegalStateException("folder missing");
-        Uri dir = managedDirectory(context, tree, DriveFolderLayout.APP_DIAGNOSTICS);
-        String directoryId = DocumentsContract.getDocumentId(dir);
-        Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, directoryId);
-        List<DiagnosticRetentionPolicy.Entry> entries = new ArrayList<>();
-        try (Cursor cursor = context.getContentResolver().query(children,
-            new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME}, null, null, null)) {
-            if (cursor != null) while (cursor.moveToNext()) {
-                String name = cursor.getString(1);
-                if (name != null && name.startsWith(prefix) && name.endsWith(suffix))
-                    entries.add(new DiagnosticRetentionPolicy.Entry(cursor.getString(0), name));
-            }
-        }
-        for (DiagnosticRetentionPolicy.Entry entry :
-            entriesToDelete(entries, keep)) {
-            Uri document = DocumentsContract.buildDocumentUriUsingTree(tree, entry.id());
-            DocumentsContract.deleteDocument(context.getContentResolver(), document);
-        }
-    }
-
-    private static List<DiagnosticRetentionPolicy.Entry> entriesToDelete(
-        List<DiagnosticRetentionPolicy.Entry> entries, int keep) {
-        entries.sort(java.util.Comparator.comparing(DiagnosticRetentionPolicy.Entry::name).reversed());
-        if (entries.size() <= keep) return java.util.List.of();
-        return new java.util.ArrayList<>(entries.subList(keep, entries.size()));
     }
 
     private static synchronized Uri managedDirectory(Context context, Uri tree,

@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.33.0
+
+- Un solo bundle rolling degli ultimi 7 giorni per diagnostica generale,
+  prodotto dalla stessa pipeline automaticamente ogni 3 ore e tramite
+  `Carica tutti i dati ora`.
+- Drive usa due slot alternati (`diagnostics_last_7_days_a.json` e `_b.json`):
+  uno resta valido durante la scrittura dell'altro.
+- Nessuna cancellazione automatica su Drive. La retention di 7 giorni avviene
+  esclusivamente nello storage privato locale e non alimenta il cestino.
+- Il bundle include eventi app, telefono/Google Fit/Bip U, copertura intensiva,
+  risorse e stato upload, senza contenuto Todo, coordinate o segreti.
+
 ## 2.32.2
 
 - Sostituisce il thread manuale legato alla vita dell'app con una catena

@@ -17,17 +17,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 public final class DiagnosticDriveWorker extends Worker {
     static final String INPUT_MANUAL_EXPORT = "manual_export";
-    static final String INPUT_MANUAL_BUCKET = "manual_bucket";
     private static final String WORK = "todo-diagnostics-daily-drive";
     private static final String STARTUP_WORK = "todo-diagnostics-startup-drive";
-    static final long PERIODIC_INTERVAL_HOURS = 1;
+    static final long PERIODIC_INTERVAL_HOURS = 3;
     enum ExportOutcome { SUCCESS, PERMISSION_FAILURE, RETRY }
 
     public DiagnosticDriveWorker(@NonNull Context context,
@@ -58,8 +54,7 @@ public final class DiagnosticDriveWorker extends Worker {
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
-        ExportOutcome outcome = exportNow(context, manualExport,
-            getInputData().getString(INPUT_MANUAL_BUCKET));
+        ExportOutcome outcome = exportNow(context, manualExport);
         return switch (outcome) {
             case SUCCESS -> Result.success();
             case PERMISSION_FAILURE -> Result.failure();
@@ -67,41 +62,23 @@ public final class DiagnosticDriveWorker extends Worker {
         };
     }
 
-    static ExportOutcome exportNow(Context context, boolean manualExport, String manualBucket) {
+    static ExportOutcome exportNow(Context context, boolean manualExport) {
         if (!DriveTestExportManager.isConfigured(context)) return ExportOutcome.SUCCESS;
         DiagnosticUploadDebugState.started(context, System.currentTimeMillis(), manualExport);
         try {
             String diagnostics = requiredPhase(context, "read_local_log",
                 () -> readDiagnostics(context));
-            String bucket = exportBucket(manualExport, manualBucket, LocalDateTime.now());
-            String name = DiagnosticRetentionPolicy.PREFIX + bucket
-                + DiagnosticRetentionPolicy.SUFFIX;
-            if (!diagnostics.isEmpty()) {
-                if (manualExport) name = "todo_diagnostics_manual_" + bucket + ".jsonl";
-                final String finalName = name;
-                requiredPhase(context, "raw_log_upload", () -> {
-                    DriveTestExportManager.writeDailyDiagnostics(context, finalName, diagnostics);
-                    return null;
-                });
-            }
             long observedAt = System.currentTimeMillis();
-            String unifiedName = manualExport
-                ? "unified_diagnostics_manual_" + bucket + ".json"
-                : UnifiedDiagnosticReport.fileName(observedAt, ZoneId.systemDefault());
-            String unifiedReport = buildUnifiedReport(context, observedAt);
+            String slot = RollingDiagnosticBundle.nextSlot(context);
+            String bundle = requiredPhase(context, "unified_generate", () ->
+                RollingDiagnosticBundle.create(context, observedAt, manualExport, diagnostics)
+                    .toString(2));
             requiredPhase(context, "unified_upload", () -> {
-                DriveTestExportManager.writeUnifiedDiagnostics(context, unifiedName, unifiedReport);
+                DriveTestExportManager.writeRollingDiagnostics(context,
+                    RollingDiagnosticBundle.fileName(slot), bundle);
                 return null;
             });
-            optionalPhase(context, "three_way_refresh", () -> {
-                DriveTestExportManager.ThreeWayRefreshSummary summary =
-                    DriveTestExportManager.refreshRecentThreeWayReports(context, 15);
-                DiagnosticUploadDebugState.threeWaySummary(context, summary.attempted(),
-                    summary.succeeded(), summary.firstFailureCode());
-                if (summary.succeeded() != summary.attempted())
-                    throw new ThreeWayRefreshPartialFailure();
-                return null;
-            });
+            RollingDiagnosticBundle.markSuccessful(context, slot);
             DiagnosticUploadDebugState.succeeded(context, System.currentTimeMillis());
             return ExportOutcome.SUCCESS;
         } catch (SecurityException permissionLost) {
@@ -114,30 +91,6 @@ public final class DiagnosticDriveWorker extends Worker {
     }
 
     private interface PhaseCall<T> { T run() throws Exception; }
-
-    private static final class ThreeWayRefreshPartialFailure extends Exception {}
-
-    static String exportBucket(boolean manual, String scheduledBucket, LocalDateTime now) {
-        if (manual && scheduledBucket != null && !scheduledBucket.isBlank()) return scheduledBucket;
-        return now.format(DateTimeFormatter.ofPattern(
-            manual ? "yyyy-MM-dd_HH-mm-ss" : "yyyy-MM-dd_HH"));
-    }
-
-    private static String buildUnifiedReport(Context context, long observedAt) throws Exception {
-        long started = System.currentTimeMillis();
-        DiagnosticUploadDebugState.phaseStarted(context, "unified_generate", started);
-        try {
-            String report = UnifiedDiagnosticReport.create(context, observedAt).toString(2);
-            DiagnosticUploadDebugState.phaseFinished(context, "unified_generate",
-                System.currentTimeMillis(), null, true);
-            return report;
-        } catch (Exception error) {
-            DiagnosticUploadDebugState.phaseFinished(context, "unified_generate",
-                System.currentTimeMillis(), error, true);
-            return UnifiedDiagnosticReport.fallback(observedAt, ZoneId.systemDefault(),
-                DiagnosticUploadDebugState.errorCode(error)).toString(2);
-        }
-    }
 
     private static <T> T requiredPhase(Context context, String name, PhaseCall<T> call)
         throws Exception {
@@ -155,25 +108,17 @@ public final class DiagnosticDriveWorker extends Worker {
         }
     }
 
-    private static <T> void optionalPhase(Context context, String name, PhaseCall<T> call) {
-        long started = System.currentTimeMillis();
-        DiagnosticUploadDebugState.phaseStarted(context, name, started);
-        try {
-            call.run();
-            DiagnosticUploadDebugState.phaseFinished(context, name,
-                System.currentTimeMillis(), null, false);
-        } catch (Exception error) {
-            DiagnosticUploadDebugState.phaseFinished(context, name,
-                System.currentTimeMillis(), error, false);
-        }
-    }
-
     private static String readDiagnostics(Context context) throws Exception {
-        File current = new File(context.getFilesDir(), "diagnostics.jsonl");
-        File previous = new File(context.getFilesDir(), "diagnostics.jsonl.1");
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        append(previous, output);
-        append(current, output);
+        File[] files = context.getFilesDir().listFiles((directory, name) ->
+            name.equals("diagnostics.jsonl") || name.equals("diagnostics.jsonl.1")
+                || name.matches("diagnostics-\\d{4}-\\d{2}-\\d{2}(-\\d+)?\\.jsonl"));
+        if (files != null) {
+            java.util.Arrays.sort(files, java.util.Comparator
+                .comparingLong(File::lastModified).thenComparing(File::getName));
+            long threshold = System.currentTimeMillis() - RollingDiagnosticBundle.WINDOW_MILLIS;
+            for (File file : files) if (file.lastModified() >= threshold) append(file, output);
+        }
         return new String(output.toByteArray(), StandardCharsets.UTF_8);
     }
 

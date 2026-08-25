@@ -2,17 +2,19 @@
 
 ## Diagnostica remota unificata
 
-Dalla build 134 `DiagnosticDriveWorker` produce ogni ora in
-`04 App diagnostics` un report compatto che accoppia per timestamp lo stato
+Dalla build 149 `DiagnosticDriveWorker` aggiorna ogni 3 ore (e su comando
+manuale) un bundle rolling di 7 giorni in due slot Drive alternati, senza
+cancellazioni remote. Il bundle include un report compatto che accoppia lo stato
 telefono/Google Fit con gli aggregati Bip U delle ultime 3 e 24 ore. Registra
 copertura al minuto, passi, sintesi del battito, anzianità dell'ultimo campione,
 stato intensivo, chunk in attesa e metadati dei log.
 
 Il riepilogo unificato non contiene timeline puntuali, coordinate, MAC, chiave
 Huami o contenuti Todo.
-I JSONL intensivi orari rimangono separati perché voluminosi. L'import Bip U
+I vecchi JSONL intensivi remoti sono storici; il bundle espone stato e copertura
+intensiva senza avviare una seconda pipeline di upload. L'import Bip U
 resta esplicito e idempotente: nessuna connessione BLE viene mantenuta in
-background. Vengono conservati gli ultimi 15 report unificati.
+background. Gli eventi diagnostici locali vengono conservati per 7 giorni.
 
 Ogni sessione terminata ha inoltre un report canonico `*_three_way.json` in
 `01 Sessions`, sovrascritto in modo verificato invece di creare copie. Usa
