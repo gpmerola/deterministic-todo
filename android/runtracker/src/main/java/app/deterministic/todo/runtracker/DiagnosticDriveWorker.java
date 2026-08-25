@@ -28,6 +28,7 @@ public final class DiagnosticDriveWorker extends Worker {
     private static final String WORK = "todo-diagnostics-daily-drive";
     private static final String STARTUP_WORK = "todo-diagnostics-startup-drive";
     static final long PERIODIC_INTERVAL_HOURS = 1;
+    enum ExportOutcome { SUCCESS, PERMISSION_FAILURE, RETRY }
 
     public DiagnosticDriveWorker(@NonNull Context context,
                                  @NonNull WorkerParameters parameters) {
@@ -56,14 +57,23 @@ public final class DiagnosticDriveWorker extends Worker {
 
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
-        if (!DriveTestExportManager.isConfigured(context)) return Result.success();
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
+        ExportOutcome outcome = exportNow(context, manualExport,
+            getInputData().getString(INPUT_MANUAL_BUCKET));
+        return switch (outcome) {
+            case SUCCESS -> Result.success();
+            case PERMISSION_FAILURE -> Result.failure();
+            case RETRY -> Result.retry();
+        };
+    }
+
+    static ExportOutcome exportNow(Context context, boolean manualExport, String manualBucket) {
+        if (!DriveTestExportManager.isConfigured(context)) return ExportOutcome.SUCCESS;
         DiagnosticUploadDebugState.started(context, System.currentTimeMillis(), manualExport);
         try {
             String diagnostics = requiredPhase(context, "read_local_log",
                 () -> readDiagnostics(context));
-            String bucket = exportBucket(manualExport,
-                getInputData().getString(INPUT_MANUAL_BUCKET), LocalDateTime.now());
+            String bucket = exportBucket(manualExport, manualBucket, LocalDateTime.now());
             String name = DiagnosticRetentionPolicy.PREFIX + bucket
                 + DiagnosticRetentionPolicy.SUFFIX;
             if (!diagnostics.isEmpty()) {
@@ -93,13 +103,13 @@ public final class DiagnosticDriveWorker extends Worker {
                 return null;
             });
             DiagnosticUploadDebugState.succeeded(context, System.currentTimeMillis());
-            return Result.success();
+            return ExportOutcome.SUCCESS;
         } catch (SecurityException permissionLost) {
             DiagnosticUploadDebugState.failed(context, System.currentTimeMillis(), permissionLost);
-            return Result.failure();
+            return ExportOutcome.PERMISSION_FAILURE;
         } catch (Exception transientFailure) {
             DiagnosticUploadDebugState.failed(context, System.currentTimeMillis(), transientFailure);
-            return Result.retry();
+            return ExportOutcome.RETRY;
         }
     }
 

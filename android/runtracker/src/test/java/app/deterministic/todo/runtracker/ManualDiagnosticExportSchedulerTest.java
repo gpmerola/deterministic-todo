@@ -14,5 +14,6 @@ public class ManualDiagnosticExportSchedulerTest {
         assertNotEquals(ManualDiagnosticExportScheduler.DIAGNOSTIC_WORK,
             ManualDiagnosticExportScheduler.INTENSIVE_WORK);
         assertEquals(2, ManualDiagnosticExportScheduler.INTENSIVE_DELAY_MINUTES);
+        assertEquals(1, ManualDiagnosticExportScheduler.DIAGNOSTIC_FALLBACK_DELAY_MINUTES);
     }
 }

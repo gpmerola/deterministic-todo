@@ -14,6 +14,8 @@ import java.util.UUID;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** One user action exports every diagnostic source already available on the phone. */
 final class ManualDiagnosticExportScheduler {
@@ -21,6 +23,13 @@ final class ManualDiagnosticExportScheduler {
     static final String DIAGNOSTIC_WORK = "movement-manual-diagnostic-export";
     static final String INTENSIVE_WORK = "movement-manual-intensive-upload";
     static final long INTENSIVE_DELAY_MINUTES = 2;
+    static final long DIAGNOSTIC_FALLBACK_DELAY_MINUTES = 1;
+    private static final ExecutorService DIRECT_DIAGNOSTIC =
+        Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "manual-diagnostic-export");
+            thread.setDaemon(true);
+            return thread;
+        });
 
     private ManualDiagnosticExportScheduler() {}
 
@@ -38,6 +47,7 @@ final class ManualDiagnosticExportScheduler {
         OneTimeWorkRequest unified = new OneTimeWorkRequest.Builder(
             DiagnosticDriveWorker.class)
             .setConstraints(connected)
+            .setInitialDelay(DIAGNOSTIC_FALLBACK_DELAY_MINUTES, TimeUnit.MINUTES)
             .setInputData(new Data.Builder()
                 .putBoolean(DiagnosticDriveWorker.INPUT_MANUAL_EXPORT, true)
                 .putString(DiagnosticDriveWorker.INPUT_MANUAL_BUCKET, manualBucket)
@@ -54,6 +64,10 @@ final class ManualDiagnosticExportScheduler {
         // Keep the branches independent: a passive/Health Connect retry must not
         // prevent the raw diagnostic log and unified report from being uploaded.
         workManager.enqueueUniqueWork(MOVEMENT_WORK, ExistingWorkPolicy.REPLACE, movement);
+        Context appContext = context.getApplicationContext();
+        DIRECT_DIAGNOSTIC.execute(() ->
+            DiagnosticDriveWorker.exportNow(appContext, true, manualBucket));
+        // Persisted fallback: idempotent names make this harmless if the direct path succeeded.
         workManager.enqueueUniqueWork(DIAGNOSTIC_WORK, ExistingWorkPolicy.REPLACE, unified);
         workManager.enqueueUniqueWork(INTENSIVE_WORK, ExistingWorkPolicy.REPLACE, intensive);
         return unified.getId();

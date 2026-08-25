@@ -405,9 +405,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       });
     }
     if (isAndroidPlatform) {
-      movementRefreshTimer = Timer.periodic(const Duration(minutes: 15), (_) {
-        if (appIsForeground) unawaited(_refreshDailyMovement());
-      });
+      movementRefreshTimer = Timer.periodic(
+        RunTrackerService.foregroundRefreshInterval,
+        (_) {
+          if (appIsForeground) unawaited(_refreshDailyMovement());
+        },
+      );
     }
   }
 

@@ -5,7 +5,7 @@ Aggiornato il 23 agosto 2026.
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.
-- Versione Todo Test preparata: **2.31.4 build 145**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.32.0 build 146**. Il flavor Android `dev`
   produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
   Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
   diagnostica intensiva avviati. La build Play 121 è installata ma
@@ -59,7 +59,10 @@ Aggiornato il 23 agosto 2026.
   fra osservazioni. Il contatore hardware indipendente continua a essere
   registrato nei segmenti intensivi come `step_counter_delta`; nessun secondo
   monitor permanente è stato aggiunto.
-  La build 145 confina il drenaggio intensivo in un worker dedicato e ritardato
+  La build 146 aggiorna il contatore visibile ogni 30 secondi solo in foreground
+  e avvia l'export manuale essenziale su un executor dedicato, con fallback
+  WorkManager idempotente dopo un minuto. La build 145 confina il drenaggio
+  intensivo in un worker dedicato e ritardato
   di due minuti nel percorso manuale: snapshot, log e report non attraversano
   più quella coda e non possono essere bloccati da un chunk o dal provider SAF.
   La build 144 rende idempotente ogni singolo comando manuale anche attraverso

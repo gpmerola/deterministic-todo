@@ -49,6 +49,9 @@ final class MovementSessionState {
 final class RunTrackerService {
   const RunTrackerService._();
 
+  /// Health Connect aggregation while the UI is visible; no background polling.
+  static const foregroundRefreshInterval = Duration(seconds: 30);
+
   static const _channel = MethodChannel('app.deterministic.todo/run_tracker');
 
   static Future<void> open() => _channel.invokeMethod<void>('open');

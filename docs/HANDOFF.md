@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.31.4 build 145**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.32.0 build 146**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -111,6 +111,13 @@ di cambiare architettura.
   per ciclo e riprova con backoff lineare; nel comando manuale parte due minuti
   dopo i rami essenziali. Anche un blocco SAF durante un chunk resta quindi
   confinato e non può precedere log, report unificato o snapshot passivo.
+  La build 146 non affida più l'avvio del report manuale alla disponibilità
+  dello scheduler Android: un executor dedicato lo esegue immediatamente e un
+  WorkRequest con lo stesso bucket lo ripete dopo un minuto soltanto come
+  fallback persistente. I nomi idempotenti impediscono duplicati. Il totale
+  passi dell'anello viene riletto da Health Connect ogni 30 secondi con app
+  visibile; a schermo spento non esiste nuovo polling e il sistema continua a
+  contare autonomamente.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

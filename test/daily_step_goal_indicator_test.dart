@@ -1,8 +1,16 @@
+import 'package:deterministic_todo/services/run_tracker_service.dart';
 import 'package:deterministic_todo/ui/daily_step_goal_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('aggiorna il totale visibile senza polling aggressivo', () {
+    expect(
+      RunTrackerService.foregroundRefreshInterval,
+      const Duration(seconds: 30),
+    );
+  });
+
   testWidgets('mostra progresso compatto e celebra il completamento', (
     tester,
   ) async {

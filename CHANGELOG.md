@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.32.0
+
+- Aggiorna il totale passi ogni 30 secondi soltanto mentre l'app è visibile,
+  oltre ai refresh già esistenti su avvio, resume, pull-to-refresh e fine
+  sessione. Non aggiunge polling in background.
+- Avvia l'export diagnostico manuale immediatamente su un executor dedicato,
+  fuori dalla coda WorkManager; conserva un fallback persistente e idempotente
+  dopo un minuto e mantiene separato il worker intensivo ritardato.
+
 ## 2.31.4
 
 - Separa definitivamente l'upload dei chunk intensivi dagli export essenziali:
