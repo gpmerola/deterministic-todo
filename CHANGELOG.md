@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.31.4
+
+- Separa definitivamente l'upload dei chunk intensivi dagli export essenziali:
+  log generale, report unificato e snapshot passivo non invocano più il relativo
+  uploader e non possono essere bloccati da un file grande o da un provider SAF
+  lento.
+- Introduce un worker intensivo dedicato, limitato a otto file per ciclo, con
+  retry lineare. Il comando manuale lo avvia due minuti dopo i rami essenziali.
+
 ## 2.31.3
 
 - Mantiene stabile il nome degli export manuali durante i retry, evitando file

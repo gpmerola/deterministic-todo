@@ -89,7 +89,9 @@ public final class PassiveMovementAuditWorker extends Worker {
         Constraints connected = new Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED).build();
         OneTimeWorkRequest upload = new OneTimeWorkRequest.Builder(
-            PassiveMovementAuditWorker.class).setConstraints(connected).build();
+            IntensiveDiagnosticUploadWorker.class).setConstraints(connected)
+            .setBackoffCriteria(androidx.work.BackoffPolicy.LINEAR,
+                OneTimeWorkRequest.MIN_BACKOFF_MILLIS, TimeUnit.MILLISECONDS).build();
         WorkManager.getInstance(context).enqueueUniqueWork(
             FINAL_INTENSIVE_UPLOAD, ExistingWorkPolicy.REPLACE, upload);
     }
@@ -97,7 +99,6 @@ public final class PassiveMovementAuditWorker extends Worker {
     @NonNull @Override public Result doWork() {
         Context context = getApplicationContext();
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
-        IntensiveChunkUploader.uploadPending(context);
         if (!enabled(context) && !manualExport) {
             disable(context);
             return Result.success();

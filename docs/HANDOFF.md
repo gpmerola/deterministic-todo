@@ -30,7 +30,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.31.3 build 144**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.31.4 build 145**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
@@ -106,6 +106,11 @@ di cambiare architettura.
   lo schema 6 converte metriche `NaN`/infinite in `null` e, se la costruzione
   completa fallisce, scrive comunque un report minimo con codice tecnico,
   timestamp, fuso e dichiarazioni privacy.
+  La build 145 rimuove `IntensiveChunkUploader` dai worker passivo e diagnostico.
+  Un `IntensiveDiagnosticUploadWorker` autonomo gestisce al massimo otto chunk
+  per ciclo e riprova con backoff lineare; nel comando manuale parte due minuti
+  dopo i rami essenziali. Anche un blocco SAF durante un chunk resta quindi
+  confinato e non può precedere log, report unificato o snapshot passivo.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo

@@ -8,15 +8,19 @@ import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
+import androidx.work.BackoffPolicy;
 
 import java.util.UUID;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 /** One user action exports every diagnostic source already available on the phone. */
 final class ManualDiagnosticExportScheduler {
     static final String MOVEMENT_WORK = "movement-manual-passive-export";
     static final String DIAGNOSTIC_WORK = "movement-manual-diagnostic-export";
+    static final String INTENSIVE_WORK = "movement-manual-intensive-upload";
+    static final long INTENSIVE_DELAY_MINUTES = 2;
 
     private ManualDiagnosticExportScheduler() {}
 
@@ -39,11 +43,19 @@ final class ManualDiagnosticExportScheduler {
                 .putString(DiagnosticDriveWorker.INPUT_MANUAL_BUCKET, manualBucket)
                 .build())
             .build();
+        OneTimeWorkRequest intensive = new OneTimeWorkRequest.Builder(
+            IntensiveDiagnosticUploadWorker.class)
+            .setConstraints(connected)
+            .setInitialDelay(INTENSIVE_DELAY_MINUTES, TimeUnit.MINUTES)
+            .setBackoffCriteria(BackoffPolicy.LINEAR,
+                OneTimeWorkRequest.MIN_BACKOFF_MILLIS, TimeUnit.MILLISECONDS)
+            .build();
         WorkManager workManager = WorkManager.getInstance(context);
         // Keep the branches independent: a passive/Health Connect retry must not
         // prevent the raw diagnostic log and unified report from being uploaded.
         workManager.enqueueUniqueWork(MOVEMENT_WORK, ExistingWorkPolicy.REPLACE, movement);
         workManager.enqueueUniqueWork(DIAGNOSTIC_WORK, ExistingWorkPolicy.REPLACE, unified);
+        workManager.enqueueUniqueWork(INTENSIVE_WORK, ExistingWorkPolicy.REPLACE, intensive);
         return unified.getId();
     }
 }

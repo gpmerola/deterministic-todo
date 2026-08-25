@@ -11,13 +11,14 @@ final class IntensiveChunkUploader {
 
     private IntensiveChunkUploader() {}
 
-    static synchronized void uploadPending(Context context) {
+    /** Returns the number of chunks still pending after this bounded cycle. */
+    static synchronized int uploadPending(Context context) {
         long startedAt = System.currentTimeMillis();
         if (!IntensiveDiagnosticStore.checkpoint(context)) {
             int pending = IntensiveDiagnosticStore.pendingChunks(context).size();
             IntensiveUploadDebugState.finished(context, startedAt, pending, 0, 0,
                 pending, "checkpoint_failed");
-            return;
+            return pending;
         }
         List<File> pending = IntensiveDiagnosticStore.pendingChunks(context);
         int attempted = 0, succeeded = 0;
@@ -37,5 +38,6 @@ final class IntensiveChunkUploader {
         int after = IntensiveDiagnosticStore.pendingChunks(context).size();
         IntensiveUploadDebugState.finished(context, startedAt, pending.size(), attempted,
             succeeded, after, firstFailure);
+        return after;
     }
 }
