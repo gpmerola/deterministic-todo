@@ -55,10 +55,15 @@ public final class DiagnosticDriveWorker extends Worker {
         Context context = getApplicationContext();
         boolean manualExport = getInputData().getBoolean(INPUT_MANUAL_EXPORT, false);
         ExportOutcome outcome = exportNow(context, manualExport);
+        return workResult(outcome, manualExport);
+    }
+
+    /** Keep automatic cadence independent from transient Drive provider failures. */
+    static Result workResult(ExportOutcome outcome, boolean manualExport) {
         return switch (outcome) {
             case SUCCESS -> Result.success();
             case PERMISSION_FAILURE -> Result.failure();
-            case RETRY -> Result.retry();
+            case RETRY -> manualExport ? Result.retry() : Result.success();
         };
     }
 

@@ -26,7 +26,7 @@ di cambiare architettura.
 
 ## Stato distribuibile
 
-- Build corrente: **2.33.0+149**. Diagnostica automatica e manuale usano lo
+- Build corrente: **2.33.3+152**. Diagnostica automatica e manuale usano lo
   stesso worker e lo stesso bundle rolling di 7 giorni. Ogni 3 ore viene
   aggiornato uno dei due slot `diagnostics_last_7_days_{a,b}.json`; l'altro è
   il fallback integro. Non esiste più retention remota né alcuna cancellazione
@@ -36,11 +36,17 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.33.2 build 151**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.33.3 build 152**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi
   [`operations/ANDROID_DEV_CHANNEL.md`](operations/ANDROID_DEV_CHANNEL.md).
+  La build 152 registra gli errori transitori Drive/SAF ma conclude il singolo
+  ciclo automatico senza chiedere il retry WorkManager: resta così disponibile
+  la successiva opportunità ordinaria a tre ore, invece del backoff
+  esponenziale fino a cinque ore osservato sul Galaxy S21. Soltanto il fallback
+  persistente di un comando manuale mantiene il retry. I bundle salute e
+  diagnostica restano nel Drive privato e non transitano da Supabase.
   Sul Galaxy S21 Todo Test è il solo client operativo: monitor passivo e
   diagnostica intensiva sono attivi. La build Play 121 rimane installata con
   dati intatti ma è `disabled-user`; non aprirla, riattivarla o disinstallarla

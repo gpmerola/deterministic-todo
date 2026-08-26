@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.33.3
+
+- La diagnostica automatica conserva la cadenza WorkManager di tre ore anche
+  quando il provider Drive/SAF restituisce un errore transitorio: il fallimento
+  resta registrato localmente ma non attiva più il backoff esponenziale,
+  osservato fino a cinque ore sul Galaxy S21. Il fallback di un comando
+  manuale continua invece a riprovare.
+- I bundle sanitari e diagnostici restano nel Drive privato configurato e non
+  vengono inviati a Supabase.
+
 ## 2.33.2
 
 - `Carica tutti i dati ora` attende l'esito reale della pipeline su un thread
