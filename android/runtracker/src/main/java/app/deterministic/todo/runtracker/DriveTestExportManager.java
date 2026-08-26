@@ -20,6 +20,7 @@ import org.json.JSONObject;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
@@ -1163,8 +1164,8 @@ final class DriveTestExportManager {
             return cursor != null && cursor.moveToFirst();
         }
     }
-    private static synchronized void writeFile(Context c, String name, String mime,
-                                               String text) throws Exception {
+    private static synchronized boolean writeFile(Context c, String name, String mime,
+                                                  String text) throws Exception {
         Uri tree=tree(c); if(tree==null)throw new IllegalStateException("folder missing");
         Uri dir = managedDirectory(c, tree, DriveFolderLayout.folderFor(name));
         String directoryId = DocumentsContract.getDocumentId(dir);
@@ -1183,22 +1184,60 @@ final class DriveTestExportManager {
         if (file == null) file=DocumentsContract.createDocument(c.getContentResolver(),dir,mime,name);
         if(file==null)throw new IllegalStateException("create failed");
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
-        try (ParcelFileDescriptor descriptor = c.getContentResolver().openFileDescriptor(file, "rwt")) {
-            if (descriptor == null) throw new IllegalStateException("open failed");
-            try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
-                out.write(bytes);
-                out.flush();
-                descriptor.getFileDescriptor().sync();
+        Exception providerError = null;
+        try {
+            try (ParcelFileDescriptor descriptor = c.getContentResolver()
+                .openFileDescriptor(file, "rwt")) {
+                if (descriptor == null) throw new IllegalStateException("open failed");
+                try (FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
+                    out.write(bytes);
+                    out.flush();
+                    descriptor.getFileDescriptor().sync();
+                }
+            }
+            Long observedSize = documentSize(c, file);
+            if (DriveWriteVerification.matchesSize(bytes.length, observedSize)) return false;
+            providerError = new IOException("provider size mismatch");
+        } catch (Exception ambiguousProviderFailure) {
+            providerError = ambiguousProviderFailure;
+        }
+        if (awaitMatchingContent(c, file, bytes)) return true;
+        throw providerError;
+    }
+
+    /**
+     * Drive's SAF provider may commit a write but throw while flushing or refreshing metadata.
+     * A bounded exact readback distinguishes that false negative from a genuinely stale file.
+     */
+    private static boolean awaitMatchingContent(Context context, Uri document,
+                                                byte[] expected) {
+        for (int attempt = 0; attempt < 6; attempt++) {
+            try (InputStream input = context.getContentResolver().openInputStream(document)) {
+                if (input != null && contentEquals(input, expected)) return true;
+            } catch (Exception ignored) {
+                // The provider cache can become readable on a later bounded attempt.
+            }
+            if (attempt < 5) try {
+                Thread.sleep(400L);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return false;
             }
         }
-        Long observedSize = null;
-        try (Cursor cursor = c.getContentResolver().query(file,
-            new String[] {DocumentsContract.Document.COLUMN_SIZE}, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0))
-                observedSize = cursor.getLong(0);
+        return false;
+    }
+
+    static boolean contentEquals(InputStream input, byte[] expected) throws IOException {
+        byte[] buffer = new byte[8192];
+        int offset = 0;
+        int read;
+        while ((read = input.read(buffer)) != -1) {
+            if (offset + read > expected.length) return false;
+            for (int i = 0; i < read; i++)
+                if (buffer[i] != expected[offset + i]) return false;
+            offset += read;
         }
-        if (!DriveWriteVerification.matchesSize(bytes.length, observedSize))
-            throw new IOException("provider size mismatch");
+        return offset == expected.length;
     }
 
     // Google Drive's DocumentsProvider can corrupt competing create/write/rename
@@ -1298,9 +1337,9 @@ final class DriveTestExportManager {
         writeNewFile(context, name, "application/json", text);
     }
 
-    static void writeRollingDiagnostics(Context context, String name, String text)
+    static boolean writeRollingDiagnostics(Context context, String name, String text)
         throws Exception {
-        writeFile(context, name, "application/json", text);
+        return writeFile(context, name, "application/json", text);
     }
 
     static ExportResult writeIntensiveDiagnosticChunk(Context context, java.io.File chunk) {

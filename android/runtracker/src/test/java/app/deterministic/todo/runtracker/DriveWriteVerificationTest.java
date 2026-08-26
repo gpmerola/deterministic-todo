@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+
 public class DriveWriteVerificationTest {
     @Test public void rejectsAProviderThatKeptTheOldFileSize() {
         assertFalse(DriveWriteVerification.matchesSize(200, 100L));
@@ -28,5 +30,17 @@ public class DriveWriteVerificationTest {
         assertTrue(DriveWriteVerification.verifiedFinalFile(200, 200L));
         assertFalse(DriveWriteVerification.verifiedFinalFile(200, null));
         assertFalse(DriveWriteVerification.verifiedFinalFile(200, 0L));
+    }
+
+    @Test public void exactReadbackRejectsStaleContentEvenWithTheSameSize() throws Exception {
+        byte[] expected = "new-bundle".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(DriveTestExportManager.contentEquals(
+            new ByteArrayInputStream(expected), expected));
+        assertFalse(DriveTestExportManager.contentEquals(
+            new ByteArrayInputStream("old-bundle".getBytes(
+                java.nio.charset.StandardCharsets.UTF_8)), expected));
+        assertFalse(DriveTestExportManager.contentEquals(
+            new ByteArrayInputStream("new-bundle-extra".getBytes(
+                java.nio.charset.StandardCharsets.UTF_8)), expected));
     }
 }

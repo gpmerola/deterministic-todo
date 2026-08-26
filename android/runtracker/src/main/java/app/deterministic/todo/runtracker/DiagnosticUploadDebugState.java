@@ -61,6 +61,13 @@ final class DiagnosticUploadDebugState {
             .putLong("consecutive_failures", 0).remove("error_code").apply();
     }
 
+    static void providerWriteReconciled(Context context, long now) {
+        SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        p.edit().putLong("last_provider_write_reconciled_at_ms", now)
+            .putLong("provider_write_reconciled_count",
+                p.getLong("provider_write_reconciled_count", 0) + 1).apply();
+    }
+
     static void failed(Context context, long now, Throwable error) {
         SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         long started = p.getLong("current_started_at_ms", now);
@@ -88,6 +95,9 @@ final class DiagnosticUploadDebugState {
         result.put("attempt_count", p.getLong("attempt_count", 0));
         result.put("consecutive_failures", p.getLong("consecutive_failures", 0));
         result.put("error_code", p.getString("error_code", null));
+        addLong(result, p, "last_provider_write_reconciled_at_ms");
+        result.put("provider_write_reconciled_count",
+            p.getLong("provider_write_reconciled_count", 0));
         LinkedHashMap<String, Object> phases = new LinkedHashMap<>();
         for (String phase : new String[] {"read_local_log", "raw_log_upload",
             "unified_generate", "unified_upload", "three_way_refresh"}) {

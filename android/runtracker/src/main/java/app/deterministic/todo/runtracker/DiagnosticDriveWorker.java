@@ -79,8 +79,10 @@ public final class DiagnosticDriveWorker extends Worker {
                 RollingDiagnosticBundle.create(context, observedAt, manualExport, diagnostics)
                     .toString(2));
             requiredPhase(context, "unified_upload", () -> {
-                DriveTestExportManager.writeRollingDiagnostics(context,
+                boolean reconciled = DriveTestExportManager.writeRollingDiagnostics(context,
                     RollingDiagnosticBundle.fileName(slot), bundle);
+                if (reconciled) DiagnosticUploadDebugState.providerWriteReconciled(
+                    context, System.currentTimeMillis());
                 return null;
             });
             RollingDiagnosticBundle.markSuccessful(context, slot);

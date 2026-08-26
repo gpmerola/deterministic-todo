@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.33.4
+
+- Le sovrascritture dei due slot diagnostici riconciliano gli `IOException`
+  ambigui del provider Drive mediante una rilettura esatta e limitata del
+  contenuto. Un file viene accettato solo se tutti i byte coincidono, evitando
+  falsi successi quando il file precedente ha casualmente la stessa dimensione.
+- Il bundle successivo espone conteggio e timestamp delle scritture recuperate,
+  distinguendole dai fallimenti Drive reali senza registrare contenuto o dati
+  sensibili aggiuntivi.
+
 ## 2.33.3
 
 - La diagnostica automatica conserva la cadenza WorkManager di tre ore anche

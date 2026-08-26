@@ -6,12 +6,13 @@ Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimo collaudo build 152
+## Prossimo collaudo build 153
 
-- [ ] Installare la build 152, aprirla una volta e lasciarla chiusa per almeno
+- [ ] Installare la build 153, aprirla una volta e lasciarla chiusa per almeno
   7 ore. Verificare almeno due aggiornamenti automatici alternati di
-  `diagnostics_last_7_days_{a,b}.json`: un errore SAF resta osservabile ma non
-  deve più portare il job periodico nel backoff WorkManager di cinque ore.
+  `diagnostics_last_7_days_{a,b}.json`: un errore SAF riconciliato deve
+  incrementare `provider_write_reconciled_count`, mentre un fallimento reale
+  non deve più portare il job periodico nel backoff WorkManager di cinque ore.
 
 ## Stato corrente
 
@@ -19,7 +20,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.33.3 build 152. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.33.4 build 153. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
