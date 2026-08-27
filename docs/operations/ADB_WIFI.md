@@ -173,6 +173,22 @@ riuscito termina con `bip_sync_phase=success`, esito
 `activity_sync_success` e `bip_sync_drive_result=ok`; `running` persistente o
 `drive_error` localizzano il confine senza dover interpretare uno screenshot.
 
+## Stato sincronizzazione Todo dalla build 154
+
+Todo Test espone un provider distinto, in sola lettura e protetto dallo stesso
+permesso Android `DUMP`:
+
+```sh
+adb shell content query --uri \
+  content://app.deterministic.todo.deterministic_todo.dev.todo_sync_debug/status
+```
+
+`state` distingue `healthy`, `recovered`, `error` e `unknown`. Gli altri campi
+riportano ultimo successo, fallimento e recupero, fase, classe tecnica, stato
+rete/sessione, quantità in attesa e retry. Il provider legge esclusivamente il
+giornale diagnostico minimizzato: non apre SQLite e non espone attività,
+progetti, titoli, note, email, URL, token o messaggi restituiti dal server.
+
 ## Aggiornamenti e firma del dispositivo di test
 
 Prima di usare `adb install -r`, verificare la provenienza dell'app installata.

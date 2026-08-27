@@ -64,6 +64,29 @@ void main() {
     expect(syncRetryDelay(20), const Duration(minutes: 2));
   });
 
+  test('la diagnostica calcola l età della modifica più vecchia', () {
+    final now = DateTime.utc(2026, 8, 27, 12);
+    expect(
+      syncOutboxOldestAgeMs([
+        now.subtract(const Duration(seconds: 2)).microsecondsSinceEpoch,
+        now.subtract(const Duration(seconds: 5)).microsecondsSinceEpoch,
+      ], now),
+      5000,
+    );
+    expect(syncOutboxOldestAgeMs(const [], now), isNull);
+  });
+
+  test('la diagnostica classifica gli errori senza conservarne il messaggio', () {
+    expect(
+      safeSyncErrorClass(const SyncWriteVerificationException()),
+      'write_verification',
+    );
+    expect(
+      safeSyncErrorClass(const PostgrestException(message: 'dato privato')),
+      'supabase',
+    );
+  });
+
   test('una scrittura server non confermata mantiene retry e outbox', () {
     expect(
       isTransientSyncError(const SyncWriteVerificationException()),

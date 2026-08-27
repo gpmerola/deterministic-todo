@@ -58,6 +58,34 @@ class DataHealthView extends StatelessWidget {
                 title: 'Modifiche in attesa',
                 value: '${data.pending}',
               ),
+              if (sync?.retryAt != null)
+                _HealthRow(
+                  ok: false,
+                  icon: Icons.schedule_outlined,
+                  title: 'Nuovo tentativo',
+                  value: DateFormat(
+                    'HH:mm:ss',
+                    'it',
+                  ).format(sync!.retryAt!.toLocal()),
+                ),
+              if (sync?.lastFailure != null)
+                _HealthRow(
+                  ok: sync?.lastRecovery != null &&
+                      sync!.lastRecovery!.isAfter(sync.lastFailure!),
+                  icon: Icons.troubleshoot_outlined,
+                  title: 'Ultimo problema sync',
+                  value: _syncIncidentLabel(sync!),
+                ),
+              if (sync?.lastSuccess != null)
+                _HealthRow(
+                  ok: true,
+                  icon: Icons.cloud_done_outlined,
+                  title: 'Ultimo sync riuscito',
+                  value: DateFormat(
+                    'd MMM, HH:mm:ss',
+                    'it',
+                  ).format(sync!.lastSuccess!.toLocal()),
+                ),
               _HealthRow(
                 ok: true,
                 icon: Icons.storage_outlined,
@@ -102,6 +130,25 @@ class DataHealthView extends StatelessWidget {
       );
     },
   );
+}
+
+String _syncIncidentLabel(SyncSnapshot snapshot) {
+  final timestamp = DateFormat(
+    'd MMM, HH:mm:ss',
+    'it',
+  ).format(snapshot.lastFailure!.toLocal());
+  final stage = switch (snapshot.lastFailureStage) {
+    SyncStage.projects => 'progetti',
+    SyncStage.taskUpload => 'invio attività',
+    SyncStage.receipt => 'ricevuta outbox',
+    SyncStage.taskPull => 'download attività',
+    SyncStage.taskMerge => 'merge locale',
+    _ => 'avvio',
+  };
+  final recovered = snapshot.lastRecovery != null &&
+      snapshot.lastRecovery!.isAfter(snapshot.lastFailure!);
+  return '$timestamp · $stage · ${snapshot.lastError ?? 'errore'}'
+      '${recovered ? ' · recuperato' : ''}';
 }
 
 class _HealthRow extends StatelessWidget {

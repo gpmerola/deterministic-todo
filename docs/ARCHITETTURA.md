@@ -62,6 +62,13 @@ Ogni transazione utente aggiorna SQLite e aggiunge un'operazione all'outbox pers
 
 Ogni record porta una versione Lamport `(logical_version, device_id)`. Prima di modificare, il client imposta `logical_version = max(versione locale, massimo remoto osservato) + 1`. Vince la coppia massima in ordine lessicografico: prima contatore, poi UUID stabile del dispositivo. Dopo `merge_task` il client rilegge la riga server: riconosce e rimuove l'outbox soltanto quando la versione coincide; una versione remota superiore causa rebase e retry, mentre una conferma assente mantiene l'operazione pendente. Questa regola include i tombstone e rende la convergenza indipendente dall'orologio. Gli orari UTC sono audit, mai arbitri del conflitto.
 
+La diagnostica del sync registra soltanto metadati tecnici ammessi: ciclo,
+fase, conteggi, età dell'outbox, stato rete/sessione, classe errore, retry,
+recupero e numero di rebase. Non registra payload, messaggi server, titoli,
+note, email, token o identificatori delle attività. Su Android un provider
+separato, in sola lettura e protetto dal permesso di sistema `DUMP`, sintetizza
+gli ultimi eventi del giornale per la shell ADB senza aprire SQLite.
+
 Supabase usa JWT client e RLS `auth.uid() = user_id`; nel client entrano soltanto URL e chiave anon/publishable. Il primo collegamento usa l'account personale condiviso sui propri dispositivi. La sessione viene rinnovata automaticamente e persiste tramite `flutter_secure_storage`: keystore su Android e storage cifrato dal browser. Non è richiesto un login quotidiano. La disconnessione è esplicita e locale; QR/codice monouso e revoca remota per dispositivo richiedono ancora Edge Functions e schema server dedicato. I tombstone restano almeno 90 giorni; la pulizia fisica è una futura procedura server consapevole dei checkpoint dei dispositivi.
 
 ## Inserimento rapido e agenda

@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.33.5
+
+- Ogni ciclo Todo registra una fase tecnica, un identificatore locale, stato
+  rete/sessione, età dell'outbox, retry e recupero senza conservare titoli,
+  note, email, token o messaggi server.
+- I rebase Lamport, già calcolati dal sync, entrano ora realmente nella
+  diagnostica; “Salute dati” mostra ultimo problema, fase, recupero e ultimo
+  successo.
+- Android espone alla sola shell ADB autorizzata un riepilogo Todo in sola
+  lettura protetto da `DUMP`, separato dal provider Movimento.
+
 ## 2.33.4
 
 - Le sovrascritture dei due slot diagnostici riconciliano gli `IOException`

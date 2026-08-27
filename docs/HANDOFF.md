@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 22 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 27 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -26,7 +26,12 @@ di cambiare architettura.
 
 ## Stato distribuibile
 
-- Build corrente: **2.33.4+153**. Diagnostica automatica e manuale usano lo
+- Build corrente: **2.33.5+154**. Il comportamento Movimento della 153 resta
+  invariato. La 154 aggiunge un giornale diagnostico Todo privo di contenuti:
+  ogni ciclo conserva fase, classe errore, rete/sessione, età outbox, retry,
+  recupero e rebase Lamport. “Salute dati” mostra ultimo incidente e recupero;
+  Android espone lo stesso riepilogo alla sola shell ADB tramite un provider
+  `DUMP` in sola lettura. Diagnostica automatica e manuale usano lo
   stesso worker e lo stesso bundle rolling di 7 giorni. Ogni 3 ore viene
   aggiornato uno dei due slot `diagnostics_last_7_days_{a,b}.json`; l'altro è
   il fallback integro. Non esiste più retention remota né alcuna cancellazione
@@ -36,7 +41,7 @@ di cambiare architettura.
 - Repository degli APK diretti: `gpmerola/deterministic-todo-releases`.
 - Branch operativo al momento dell’handoff:
   `agent/verify-public-release-token`.
-- Versione Todo Test preparata: **2.33.4 build 153**. Il flavor Android `dev`
+- Versione Todo Test preparata: **2.33.5 build 154**. Il flavor Android `dev`
   produce **Todo Test** con package `.dev`, aggiornabile direttamente via ADB
   e installabile accanto alla linea Play. Database, Keystore, permessi e
   servizi restano separati; vedi

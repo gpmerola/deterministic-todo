@@ -242,7 +242,9 @@ stati vuoti restano una sola riga discreta. Sul Web una sincronizzazione non
 interrompe la bozza aperta nel pannello laterale.
 La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
-senza aggiungere indicatori alla home.
+senza aggiungere indicatori alla home. Dalla build 154 conserva nell'apertura
+corrente anche fase e ora dell'ultimo problema Todo, retry, recupero e ultimo
+successo, senza mostrare o registrare contenuto delle attività.
 Durante la fase di debugging, Android aggiorna un bundle diagnostico rolling
 di 7 giorni circa un minuto dopo l'avvio e quindi ogni 3 ore quando è disponibile
 una rete. Il comando manuale usa lo stesso flusso. Due slot Drive alternati
@@ -331,7 +333,9 @@ Struttura canonica:
 Titoli e note restano nel database locale e, dopo il collegamento, nel progetto
 Supabase personale. Non entrano nei log. La diagnostica registra soltanto
 conteggi e metriche tecniche in due blocchi rotanti da 512 KiB: file applicativi
-su Android e IndexedDB nel browser. Nessun log viene inviato automaticamente.
+su Android e IndexedDB nel browser. Sul canale Android di collaudo questi eventi
+minimizzati confluiscono nel bundle privato Drive già autorizzato; un provider
+ADB protetto espone soltanto il riepilogo tecnico del sync e non apre SQLite.
 
 Il Cestino conserva tombstone sincronizzati. La cancellazione simultanea e
 definitiva di dispositivo e cloud non è ancora offerta: richiede una funzione

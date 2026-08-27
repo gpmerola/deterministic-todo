@@ -11,6 +11,15 @@ import '../local/database.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
 
+enum SyncStage {
+  idle,
+  projects,
+  taskUpload,
+  receipt,
+  taskPull,
+  taskMerge,
+}
+
 final class SyncWriteVerificationException implements Exception {
   const SyncWriteVerificationException();
 }
@@ -21,11 +30,25 @@ class SyncSnapshot {
     this.pending = 0,
     this.lastSuccess,
     this.error,
+    this.stage = SyncStage.idle,
+    this.lastFailure,
+    this.lastError,
+    this.lastFailureStage,
+    this.lastRecovery,
+    this.retryAt,
+    this.consecutiveFailures = 0,
   });
   final SyncPhase phase;
   final int pending;
   final DateTime? lastSuccess;
   final String? error;
+  final SyncStage stage;
+  final DateTime? lastFailure;
+  final String? lastError;
+  final SyncStage? lastFailureStage;
+  final DateTime? lastRecovery;
+  final DateTime? retryAt;
+  final int consecutiveFailures;
 }
 
 class SyncService {
@@ -51,6 +74,11 @@ class SyncService {
   bool _pullAllRequested = false;
   bool _paused = false;
   int _consecutiveFailures = 0;
+  int _syncCycle = 0;
+  DateTime? _lastFailureAt;
+  String? _lastError;
+  SyncStage? _lastFailureStage;
+  DateTime? _lastRecoveryAt;
   Set<String> _observedOutboxOperations = const {};
   final Map<String, Set<String>> _pendingRealtimeIds = {
     'tasks': <String>{},
@@ -328,11 +356,30 @@ class SyncService {
     final entries = await (db.select(
       db.outboxEntries,
     )..orderBy([(row) => OrderingTerm(expression: row.createdAt)])).get();
-    _emit(SyncSnapshot(SyncPhase.syncing, pending: entries.length));
+    final cycle = ++_syncCycle;
+    var stage = SyncStage.projects;
+    final oldestOutboxAgeMs = syncOutboxOldestAgeMs(
+      entries.map((entry) => entry.createdAt),
+      DateTime.now().toUtc(),
+    );
+    _emit(
+      SyncSnapshot(
+        SyncPhase.syncing,
+        pending: entries.length,
+        stage: stage,
+        consecutiveFailures: _consecutiveFailures,
+      ),
+    );
     unawaited(
       DiagnosticLogService.instance.event(
         'sync_started',
-        fields: {'pending': entries.length},
+        fields: {
+          'pending': entries.length,
+          'cycle_id': cycle,
+          'sync_stage': stage.name,
+          'outbox_oldest_age_ms': oldestOutboxAgeMs,
+          'auth_state': syncAuthState(client.auth.currentSession),
+        },
       ),
     );
     final timer = Stopwatch()..start();
@@ -347,6 +394,7 @@ class SyncService {
       var uploadedEntities = 0;
       var rebasedEntities = 0;
       if (pendingIds.isNotEmpty) {
+        stage = SyncStage.taskUpload;
         final pendingTasks = await (db.select(
           db.tasks,
         )..where((row) => row.id.isIn(pendingIds))).get();
@@ -363,6 +411,7 @@ class SyncService {
         uploadedEntities = pendingTasks.length;
       }
       if (acknowledged.isNotEmpty) {
+        stage = SyncStage.receipt;
         await client
             .from('sync_operations')
             .upsert(
@@ -387,6 +436,7 @@ class SyncService {
           }
         });
       }
+      stage = SyncStage.taskPull;
       final remoteRows = pullAll
           ? await client.from('tasks').select()
           : const <Map<String, dynamic>>[];
@@ -399,20 +449,34 @@ class SyncService {
               db.tasks,
             )..where((row) => row.id.isIn(remoteIds))).get();
       final localById = {for (final task in localTasks) task.id: task};
+      stage = SyncStage.taskMerge;
       for (final raw in remoteRows) {
         await _mergeRemote(raw, localById[raw['id'] as String]);
       }
       final now = DateTime.now().toUtc();
       timer.stop();
+      final recoveredFailures = _consecutiveFailures;
       _consecutiveFailures = 0;
       _retryTimer?.cancel();
       _retryTimer = null;
-      _emit(SyncSnapshot(SyncPhase.current, lastSuccess: now));
+      if (recoveredFailures > 0) _lastRecoveryAt = now;
+      _emit(
+        SyncSnapshot(
+          SyncPhase.current,
+          lastSuccess: now,
+          lastFailure: _lastFailureAt,
+          lastError: _lastError,
+          lastFailureStage: _lastFailureStage,
+          lastRecovery: _lastRecoveryAt,
+        ),
+      );
       unawaited(
         DiagnosticLogService.instance.event(
           'sync_completed',
           fields: {
             'count': entries.length,
+            'cycle_id': cycle,
+            'sync_stage': SyncStage.idle.name,
             'uploaded_entities': uploadedEntities,
             'rebased_entities': rebasedEntities,
             'remote_rows': remoteRows.length,
@@ -422,14 +486,42 @@ class SyncService {
           },
         ),
       );
+      if (recoveredFailures > 0) {
+        unawaited(
+          DiagnosticLogService.instance.event(
+            'sync_recovered',
+            fields: {
+              'cycle_id': cycle,
+              'recovered_failures': recoveredFailures,
+              'pending': entries.length,
+              'duration_ms': timer.elapsedMilliseconds,
+            },
+          ),
+        );
+      }
     } catch (error) {
       timer.stop();
       final errorCode = safeSyncErrorCode(error);
+      final failedAt = DateTime.now().toUtc();
+      final transient = isTransientSyncError(error);
+      final retryDelay = transient ? _scheduleRetry() : null;
+      final retryAt = retryDelay == null ? null : failedAt.add(retryDelay);
+      final networkState = await safeSyncNetworkState();
+      _lastFailureAt = failedAt;
+      _lastError = errorCode;
+      _lastFailureStage = stage;
       _emit(
         SyncSnapshot(
           SyncPhase.error,
           pending: entries.length,
           error: errorCode,
+          stage: stage,
+          lastFailure: failedAt,
+          lastError: errorCode,
+          lastFailureStage: stage,
+          lastRecovery: _lastRecoveryAt,
+          retryAt: retryAt,
+          consecutiveFailures: _consecutiveFailures,
         ),
       );
       if (entries.isNotEmpty) {
@@ -461,24 +553,33 @@ class SyncService {
           level: 'error',
           fields: {
             'pending': entries.length,
+            'cycle_id': cycle,
+            'sync_stage': stage.name,
             'error_type': error.runtimeType.toString(),
             if (error is PostgrestException) 'error_code': error.code,
+            'error_class': safeSyncErrorClass(error),
+            'network_state': networkState,
+            'auth_state': syncAuthState(client.auth.currentSession),
+            'failure_index': _consecutiveFailures,
+            'retry_delay_ms': retryDelay?.inMilliseconds,
+            'retry_at': retryAt?.toIso8601String(),
+            'outbox_oldest_age_ms': oldestOutboxAgeMs,
             'duration_ms': timer.elapsedMilliseconds,
           },
         ),
       );
-      if (isTransientSyncError(error)) _scheduleRetry();
     }
   }
 
-  void _scheduleRetry() {
-    if (_paused || client.auth.currentUser == null) return;
+  Duration? _scheduleRetry() {
+    if (_paused || client.auth.currentUser == null) return null;
     _retryTimer?.cancel();
     final delay = syncRetryDelay(_consecutiveFailures++);
     _retryTimer = Timer(delay, () {
       _retryTimer = null;
       if (!_paused) unawaited(sync());
     });
+    return delay;
   }
 
   Future<({int skippedProjects, int skippedSections})> _syncProjects() async {
@@ -948,6 +1049,51 @@ Duration syncRetryDelay(int failureIndex) {
     Duration(minutes: 2),
   ];
   return delays[failureIndex.clamp(0, delays.length - 1)];
+}
+
+int? syncOutboxOldestAgeMs(Iterable<int> createdAtMicros, DateTime now) {
+  if (createdAtMicros.isEmpty) return null;
+  final oldest = createdAtMicros.reduce((left, right) => left < right ? left : right);
+  final age = now.microsecondsSinceEpoch - oldest;
+  return age <= 0 ? 0 : age ~/ Duration.microsecondsPerMillisecond;
+}
+
+String syncAuthState(Session? session, {DateTime? now}) {
+  if (session == null) return 'missing';
+  final expiresAt = session.expiresAt;
+  if (expiresAt == null) return 'active_unknown_expiry';
+  final seconds = (now ?? DateTime.now().toUtc()).millisecondsSinceEpoch ~/ 1000;
+  if (expiresAt <= seconds) return 'expired';
+  if (expiresAt - seconds <= 60) return 'near_expiry';
+  return 'active';
+}
+
+Future<String> safeSyncNetworkState() async {
+  try {
+    final result = await Connectivity().checkConnectivity();
+    if (result.isEmpty || result.contains(ConnectivityResult.none)) {
+      return 'none';
+    }
+    return result.map((item) => item.name).toSet().join('+');
+  } on Object {
+    return 'unknown';
+  }
+}
+
+String safeSyncErrorClass(Object error) {
+  if (error is SyncWriteVerificationException) return 'write_verification';
+  if (error is PostgrestException) return 'supabase';
+  final type = error.runtimeType.toString().toLowerCase();
+  if (type.contains('retryablefetch')) return 'auth_transport';
+  if (type.contains('timeout')) return 'timeout';
+  if (type.contains('socket') ||
+      type.contains('network') ||
+      type.contains('connection') ||
+      type.contains('handshake') ||
+      type.contains('clientexception')) {
+    return 'network';
+  }
+  return 'unexpected';
 }
 
 bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>

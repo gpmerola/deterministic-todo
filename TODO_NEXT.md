@@ -1,18 +1,23 @@
 # TODO e handover
 
-Aggiornato il 22 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 27 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimo collaudo build 153
+## Prossimi collaudi build 154
 
-- [ ] Installare la build 153, aprirla una volta e lasciarla chiusa per almeno
-  7 ore. Verificare almeno due aggiornamenti automatici alternati di
-  `diagnostics_last_7_days_{a,b}.json`: un errore SAF riconciliato deve
+- [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
+  proseguito sulla 154: aprire la nuova build una volta e non usare upload
+  manuali. Verificare almeno due aggiornamenti automatici alternati di
+  `diagnostics_last_7_days_{a,b}.json`; un errore SAF riconciliato deve
   incrementare `provider_write_reconciled_count`, mentre un fallimento reale
   non deve più portare il job periodico nel backoff WorkManager di cinque ore.
+- [ ] Al prossimo avviso Todo, non forzare retry ripetuti: attendere il recupero
+  ordinario e leggere lo stato sicuro con il provider ADB `todo_sync_debug`.
+  Verificare fase, classe errore, rete/sessione, outbox, retry e successivo
+  `sync_recovered` senza ispezionare il database personale.
 
 ## Stato corrente
 
@@ -20,7 +25,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.33.4 build 153. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.33.5 build 154. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
@@ -33,7 +38,9 @@ non duplicare qui i dettagli tecnici.
   cumulativi Todo/Google Fit ogni ora; la diagnostica generale Android conserva
   sette giorni locali e alterna due bundle Drive ogni tre ore o su comando. Il sync task conferma sul
   server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
-  contatori Lamport più alti. I record passi sono ripartiti
+  contatori Lamport più alti. Dalla build 154 ogni incidente Todo registra fase,
+  classe tecnica, rete/sessione, outbox, retry e recupero ed è leggibile in
+  sicurezza anche via provider ADB protetto. I record passi sono ripartiti
   sull'intero intervallo e l'esclusione di veicolo/bicicletta richiede una quota
   temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
   superato Web, manifest Android, Google Play interno e controllo di parità;
