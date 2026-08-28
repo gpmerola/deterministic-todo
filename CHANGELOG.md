@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.8
+
+- Corretto il cambio di giorno del contatore hardware: il primo campione dopo
+  mezzanotte stabilisce la nuova baseline e non attribuisce al nuovo giorno il
+  delta accumulato dalla lettura del giorno precedente.
+
 ## 2.34.7
 
 - Ripristinato nella dashboard Movimento il controllo per attivare e

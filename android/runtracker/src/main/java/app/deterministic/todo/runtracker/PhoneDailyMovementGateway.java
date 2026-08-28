@@ -28,6 +28,7 @@ public final class PhoneDailyMovementGateway {
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();
     private static final long TIMEOUT_MS = 4_000;
     private static final String PREFS = "phone_daily_steps";
+    private static final int ACCOUNTING_VERSION = 2;
 
     private PhoneDailyMovementGateway() {}
 
@@ -90,17 +91,17 @@ public final class PhoneDailyMovementGateway {
             int boot = Settings.Global.getInt(app.getContentResolver(), Settings.Global.BOOT_COUNT, -1);
             int lastBoot = prefs.getInt("last_boot", Integer.MIN_VALUE);
             float lastRaw = prefs.getFloat("last_raw", -1f);
+            String lastDay = prefs.getString("last_day", null);
             long phone = prefs.getLong("steps|" + dayKey, 0);
-            long delta = 0;
-            if (boot == lastBoot && lastRaw >= 0 && raw >= lastRaw) {
-                delta = (long) Math.floor(raw - lastRaw);
-            } else if (lastRaw < 0 && now - SystemClock.elapsedRealtime() >= start) {
-                // A boot that began today makes the cumulative reading today's exact baseline.
-                delta = (long) Math.floor(raw);
-            }
-            phone += Math.max(0, delta);
+            boolean baselineMigration = lastRaw >= 0
+                && prefs.getInt("accounting_version", 1) < ACCOUNTING_VERSION;
+            PhoneDailyStepPolicy.Update update = PhoneDailyStepPolicy.update(
+                phone, raw, lastRaw, boot == lastBoot, dayKey.equals(lastDay),
+                now - SystemClock.elapsedRealtime() >= start, baselineMigration);
+            phone = update.steps();
             prefs.edit().putInt("last_boot", boot).putFloat("last_raw", raw)
                 .putString("last_day", dayKey).putLong("steps|" + dayKey, phone)
+                .putInt("accounting_version", ACCOUNTING_VERSION)
                 .putLong("last_sample_ms", now).apply();
 
             RunDao dao = RunDatabase.get(app).runs();

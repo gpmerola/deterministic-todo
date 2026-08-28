@@ -564,6 +564,17 @@ La build 162 espone nuovamente nella dashboard Flutter il controllo del monitor
 passivo di sette giorni. L'azione usa lo scheduler del modulo Movimento,
 richiede Drive già configurato e non attiva la diagnostica intensiva.
 
+La build 163 corregge l'attribuzione del contatore hardware attraverso la
+mezzanotte. Se l'ultimo campione appartiene al giorno precedente, il primo
+campione del nuovo giorno stabilisce soltanto la baseline: il delta non
+attribuibile viene dichiaratamente scartato invece di essere assegnato tutto al
+nuovo giorno. Una migrazione una tantum rimuove il totale corrente eventualmente
+contaminato dalla regola precedente.
+Sul Galaxy, dopo l'installazione, il totale errato di 2.705 passi è tornato a
+zero, coerente con l'assenza di eventi sensore dopo mezzanotte e con Google Fit.
+Il monitor passivo è rimasto attivo e il tentativo Drive successivo ha concluso
+con `success/ok`, confermando che il precedente `IOException` era transitorio.
+
 Gadgetbridge su Codeberg è stato studiato al commit
 `c585908b1c38d949273e8d277208a1fd548d6271`. È AGPLv3: non copiarne o adattarne
 codice nel progetto MIT. La decisione attuale è un’implementazione indipendente
