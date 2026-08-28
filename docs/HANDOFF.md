@@ -526,7 +526,7 @@ sessione GPS e nessun polling BLE in background.
 
 ## Roadmap Amazfit Bip U
 
-La build 158 introduce il primo import automatico confinato: un tentativo ogni
+La build 159 introduce il primo import automatico confinato: un tentativo ogni
 15 minuti al massimo mentre l'app è visibile e un `PeriodicWorkRequest` ogni
 tre ore, differibile da Android. Il client riusa chiave Keystore, protocollo e
 inserimento idempotente esistenti, opera in sola lettura, termina entro 90

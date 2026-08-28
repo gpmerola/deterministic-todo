@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.4
+
+- Il provider Movimento protetto da `DUMP` espone `sync_bip_now`, un trigger
+  ADB senza parametri per collaudare immediatamente lo stesso client headless
+  usato dal job, senza modificare rate limit, dati o impostazioni Bluetooth.
+
 ## 2.34.3
 
 - Il buffer attività Bip U tollera la riconsegna identica dell'ultima notifica

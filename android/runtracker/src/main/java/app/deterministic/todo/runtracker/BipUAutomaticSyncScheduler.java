@@ -7,4 +7,8 @@ public final class BipUAutomaticSyncScheduler {
 
     public static void schedule(Context context) { BipUAutomaticSyncWorker.schedule(context); }
     public static void refreshIfDue(Context context) { BipUAutomaticSyncWorker.refreshIfDue(context); }
+    public static boolean debugSyncNow(Context context) {
+        new BipUAutomaticSyncClient(context, ignored -> {}).start();
+        return true;
+    }
 }

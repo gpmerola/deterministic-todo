@@ -12,12 +12,20 @@ import java.util.Map;
 /** DUMP-protected aggregate status plus an explicit shell-only export trigger. */
 public final class MovementDebugProvider extends ContentProvider {
     @Override public Bundle call(String method, String arg, Bundle extras) {
-        if (!"export_now".equals(method)) return super.call(method, arg, extras);
         Bundle result = new Bundle();
-        result.putString("work_id", ManualDiagnosticExportScheduler.enqueue(
-            java.util.Objects.requireNonNull(getContext())).toString());
-        result.putString("status", "scheduled");
-        return result;
+        if ("export_now".equals(method)) {
+            result.putString("work_id", ManualDiagnosticExportScheduler.enqueue(
+                java.util.Objects.requireNonNull(getContext())).toString());
+            result.putString("status", "scheduled");
+            return result;
+        }
+        if ("sync_bip_now".equals(method)) {
+            BipUAutomaticSyncScheduler.debugSyncNow(
+                java.util.Objects.requireNonNull(getContext()));
+            result.putString("status", "started_or_already_running");
+            return result;
+        }
+        return super.call(method, arg, extras);
     }
     @Override public boolean onCreate() { return true; }
 

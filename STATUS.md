@@ -12,7 +12,7 @@ l'anello né la card giornaliera e resta esclusivamente gold di confronto. Il
 primo avvio dopo l'aggiornamento stabilisce una baseline e non inventa il
 pregresso della giornata non ricostruibile localmente.
 
-## Build 158 — importazione Bip U automatica e limitata
+## Build 159 — importazione Bip U automatica e limitata
 
 Il client BLE di importazione storico è utilizzabile senza Activity: viene
 richiamato al massimo ogni 15 minuti mentre l'app è visibile e da un worker
@@ -24,6 +24,8 @@ correttamente Bluetooth spento; la 157 distingue questo esito come `skipped`.
 Il collaudo reale della 157 ha raggiunto autenticazione e richiesta delle 168
 ore ma rilevato una riconsegna di notifica; la 158 accetta soltanto duplicati
 byte-identici e continua a rifiutare gap o contenuti discordanti.
+La 159 aggiunge esclusivamente il trigger ADB `sync_bip_now`, protetto dal
+permesso di sistema `DUMP`, per riprodurre subito lo stesso percorso headless.
 
 ## Distribuzione
 
