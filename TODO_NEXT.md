@@ -8,6 +8,12 @@ non duplicare qui i dettagli tecnici.
 
 ## Prossimi collaudi build 159
 
+- [x] Importazione Bip U headless reale: 4.263 campioni minuto, finestra 168
+  ore, esito `activity_sync_success`, GATT chiuso dopo circa 18 secondi.
+- [ ] Verificare il primo avvio naturale del worker dopo circa tre ore, senza
+  trigger ADB, e confermare che una seconda importazione sovrapposta inserisca
+  soltanto campioni nuovi.
+
 - [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload
   manuali. Verificare almeno due aggiornamenti automatici alternati di

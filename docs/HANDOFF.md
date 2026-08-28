@@ -532,6 +532,9 @@ tre ore, differibile da Android. Il client riusa chiave Keystore, protocollo e
 inserimento idempotente esistenti, opera in sola lettura, termina entro 90
 secondi e chiude GATT. Non mantiene BLE attivo fra i tentativi e non applica
 retry ravvicinati se orologio, permessi, chiave o Bluetooth non sono disponibili.
+Sul Galaxy la build 159 ha completato il percorso headless reale in circa 18
+secondi: 4.263 campioni minuto importati su una richiesta di 168 ore, quindi
+chiusura GATT e deregistrazione del client confermate da Android.
 
 Gadgetbridge su Codeberg è stato studiato al commit
 `c585908b1c38d949273e8d277208a1fd548d6271`. È AGPLv3: non copiarne o adattarne

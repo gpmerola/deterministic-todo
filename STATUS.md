@@ -26,6 +26,10 @@ ore ma rilevato una riconsegna di notifica; la 158 accetta soltanto duplicati
 byte-identici e continua a rifiutare gap o contenuti discordanti.
 La 159 aggiunge esclusivamente il trigger ADB `sync_bip_now`, protetto dal
 permesso di sistema `DUMP`, per riprodurre subito lo stesso percorso headless.
+Il collaudo reale della 159 è riuscito: autenticazione, richiesta di 168 ore,
+4.263 campioni minuto inseriti idempotentemente e 32.912 passi grezzi nella
+finestra completa. Il trasferimento è durato circa 18 secondi; GATT è stato
+chiuso e il client BLE deregistrato subito dopo.
 
 ## Distribuzione
 
