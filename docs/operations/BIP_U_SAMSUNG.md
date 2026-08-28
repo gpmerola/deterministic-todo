@@ -70,7 +70,12 @@ per firmware, reset o scritture sperimentali.
 2. Attendere la conferma con minuti, passi, campioni battito e record nuovi.
 3. Un retry è sicuro: la chiave timestamp+sorgente impedisce duplicati. La
    richiesta riparte dall'ultimo minuto meno un'ora e recupera fino a sette
-   giorni disponibili; disconnessioni più lunghe sono dichiarate come limitate.
+   giorni disponibili. Dalla build 161, se l'ultimo campione salvato è più
+   vecchio di 12 ore, la richiesta dà priorità alle 12 ore recenti: evita che
+   una risposta storica parziale mantenga il cursore bloccato sulla stessa ora.
+   Un eventuale intervallo storico precedente resta separato e non viene
+   presentato come recuperato; disconnessioni più lunghe sono dichiarate come
+   limitate.
 4. Il telefono continua a funzionare senza orologio. I dati Bip U restano una
    sorgente locale separata e non vengono ancora sommati a Health Connect.
 

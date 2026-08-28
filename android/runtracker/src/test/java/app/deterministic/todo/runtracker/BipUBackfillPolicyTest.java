@@ -25,7 +25,15 @@ public class BipUBackfillPolicyTest {
     @Test public void veryOldHistoryIsBoundedAndDeclared() {
         long now = 30 * 24 * HOUR;
         BipUBackfillPolicy.Request request = BipUBackfillPolicy.request(now, HOUR);
-        assertEquals(7 * 24, request.requestedHours());
-        assertTrue(request.historyCapApplied());
+        assertEquals(12, request.requestedHours());
+        assertEquals(now - 12 * HOUR, request.sinceMillis());
+        assertFalse(request.historyCapApplied());
+    }
+
+    @Test public void stalePartialBackfillEscapesOldOverlap() {
+        long now = 200 * HOUR;
+        BipUBackfillPolicy.Request request = BipUBackfillPolicy.request(now, 100 * HOUR);
+        assertEquals(12, request.requestedHours());
+        assertEquals(188 * HOUR, request.sinceMillis());
     }
 }

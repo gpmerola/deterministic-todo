@@ -549,6 +549,17 @@ il percorso duplicato invariato è quindi verificato anche su hardware. Il ramo
 di aggiornamento con conteggio maggiore è verificato automaticamente; resta da
 osservarlo con nuovi passi ripubblicati dall'orologio.
 
+La build 161 evita inoltre lo stallo osservato quando una risposta iniziale
+molto ampia lascia il campione più recente oltre 12 ore nel passato: invece di
+richiedere indefinitamente la stessa ora sovrapposta, il tentativo successivo
+recupera prioritariamente le 12 ore recenti. L'eventuale intervallo storico
+saltato resta una lacuna dichiarata, non viene sintetizzato né marcato come
+recuperato.
+Sul Galaxy il primo tentativo reale della build 161 ha richiesto 12 ore e ha
+completato in circa 11 secondi, inserendo 720 campioni minuto nuovi con 3.303
+passi. Il precedente blocco ripetuto da 61 campioni è quindi superato sul
+dispositivo reale.
+
 Gadgetbridge su Codeberg è stato studiato al commit
 `c585908b1c38d949273e8d277208a1fd548d6271`. È AGPLv3: non copiarne o adattarne
 codice nel progetto MIT. La decisione attuale è un’implementazione indipendente

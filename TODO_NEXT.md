@@ -6,7 +6,7 @@ Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimi collaudi build 159
+## Prossimi collaudi build 161
 
 - [x] Importazione Bip U headless reale: 4.263 campioni minuto, finestra 168
   ore, esito `activity_sync_success`, GATT chiuso dopo circa 18 secondi.
@@ -16,6 +16,9 @@ non duplicare qui i dettagli tecnici.
 - [x] Build 160: import incrementale dei minuti recenti Bip U con upsert
   monotono. Una ripubblicazione aggiorna il record soltanto se contiene più
   passi; duplicati e valori regressivi non vengono sommati.
+- [x] Build 161: un cursore più vecchio di 12 ore abbandona la vecchia ora di
+  sovrapposizione e recupera prioritariamente la finestra recente di 12 ore.
+  Collaudo Galaxy superato: 720 minuti nuovi e 3.303 passi in circa 11 secondi.
 
 - [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload
@@ -34,7 +37,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.34.5 build 160. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.34.6 build 161. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente

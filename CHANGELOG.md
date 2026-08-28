@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.6
+
+- Impedito che l'import automatico Bip U resti bloccato su una vecchia ora di
+  sovrapposizione: quando l'ultimo campione è più vecchio di 12 ore, la
+  sincronizzazione recupera prioritariamente una finestra recente e limitata.
+
 ## 2.34.5
 
 - Corretto l'import incrementale Amazfit: quando il Bip U ripubblica lo stesso
