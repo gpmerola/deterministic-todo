@@ -13,6 +13,12 @@ non duplicare qui i dettagli tecnici.
 - [ ] Verificare il primo avvio naturale del worker dopo circa tre ore, senza
   trigger ADB, e confermare che una seconda importazione sovrapposta inserisca
   soltanto campioni nuovi.
+- [ ] Correggere l'import incrementale dei minuti recenti Bip U: oggi
+  `insertBipUActivitySamples` usa `OnConflictStrategy.IGNORE`, quindi una
+  ripubblicazione dello stesso `timestampMillis + source` con più passi non
+  aggiorna il campione parziale. Implementare e testare un upsert monotono che
+  non sommi le versioni dello stesso minuto. Limitazione e diagnosi sono
+  documentate in `docs/operations/BIP_U_SAMSUNG.md`.
 
 - [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload
