@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /** Independent, bounded decoder for the Bip U one-minute activity stream. */
@@ -76,10 +77,18 @@ final class BipUActivityProtocol {
     static final class PacketBuffer {
         private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         private int nextCounter;
+        private byte[] lastPacket;
 
         boolean append(byte[] packet) {
-            if (packet == null || packet.length < 1 || (packet[0] & 0xff) != nextCounter) return false;
+            if (packet == null || packet.length < 1) return false;
+            int counter = packet[0] & 0xff;
+            int previousCounter = (nextCounter - 1) & 0xff;
+            // Android may redeliver the last notification. Accept only an identical
+            // duplicate; never conceal a missing or conflicting packet.
+            if (counter == previousCounter && Arrays.equals(packet, lastPacket)) return true;
+            if (counter != nextCounter) return false;
             bytes.write(packet, 1, packet.length - 1);
+            lastPacket = packet.clone();
             nextCounter = (nextCounter + 1) & 0xff;
             return true;
         }

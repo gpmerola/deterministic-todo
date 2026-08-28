@@ -42,6 +42,20 @@ public class BipUActivityProtocolTest {
         assertArrayEquals(new byte[] {1, 2, 3}, buffer.bytes());
     }
 
+    @Test public void packetBufferIgnoresIdenticalRedelivery() {
+        BipUActivityProtocol.PacketBuffer buffer = new BipUActivityProtocol.PacketBuffer();
+        assertTrue(buffer.append(new byte[] {0, 10, 11}));
+        assertTrue(buffer.append(new byte[] {0, 10, 11}));
+        assertTrue(buffer.append(new byte[] {1, 12, 13}));
+        assertArrayEquals(new byte[] {10, 11, 12, 13}, buffer.bytes());
+    }
+
+    @Test public void packetBufferRejectsConflictingDuplicate() {
+        BipUActivityProtocol.PacketBuffer buffer = new BipUActivityProtocol.PacketBuffer();
+        assertTrue(buffer.append(new byte[] {0, 10, 11}));
+        assertFalse(buffer.append(new byte[] {0, 10, 12}));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void rejectsUnalignedPayload() {
         BipUActivityProtocol.decode(new byte[] {1, 2, 3}, 0, 0);

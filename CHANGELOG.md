@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.3
+
+- Il buffer attività Bip U tollera la riconsegna identica dell'ultima notifica
+  BLE osservata sul Galaxy, senza duplicarne i byte. Pacchetti mancanti,
+  riordinati o duplicati con contenuto discordante restano errori bloccanti.
+
 ## 2.34.2
 
 - Sincronizza automaticamente lo storico Bip U quando l'app visibile aggiorna
