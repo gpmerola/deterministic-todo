@@ -81,6 +81,13 @@ public final class MovementDashboardBridge {
         };
     }
 
+    public static String setPassiveMonitoring(Context context, boolean enabled) {
+        if (enabled && !DriveTestExportManager.isConfigured(context))
+            return "drive_not_configured";
+        PassiveMovementAuditScheduler.setEnabled(context, enabled);
+        return enabled ? "enabled" : "disabled";
+    }
+
     static void recordLiveState(Context context, long sessionId, double distanceMeters,
                                 long sessionSteps, float accuracyMeters, String gpsStatus) {
         context.getSharedPreferences(LIVE_PREFS, Context.MODE_PRIVATE).edit()

@@ -9,4 +9,9 @@ public final class PassiveMovementAuditScheduler {
     public static void refreshIfEnabled(Context context) {
         PassiveMovementAuditWorker.refreshScheduleIfEnabled(context);
     }
+
+    public static void setEnabled(Context context, boolean enabled) {
+        if (enabled) PassiveMovementAuditWorker.enable(context);
+        else PassiveMovementAuditWorker.disable(context);
+    }
 }

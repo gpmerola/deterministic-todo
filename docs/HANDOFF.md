@@ -560,6 +560,10 @@ completato in circa 11 secondi, inserendo 720 campioni minuto nuovi con 3.303
 passi. Il precedente blocco ripetuto da 61 campioni è quindi superato sul
 dispositivo reale.
 
+La build 162 espone nuovamente nella dashboard Flutter il controllo del monitor
+passivo di sette giorni. L'azione usa lo scheduler del modulo Movimento,
+richiede Drive già configurato e non attiva la diagnostica intensiva.
+
 Gadgetbridge su Codeberg è stato studiato al commit
 `c585908b1c38d949273e8d277208a1fd548d6271`. È AGPLv3: non copiarne o adattarne
 codice nel progetto MIT. La decisione attuale è un’implementazione indipendente

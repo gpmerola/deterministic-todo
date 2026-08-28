@@ -106,6 +106,22 @@ class _MovementViewState extends State<MovementView>
     });
   }
 
+  Future<void> _setPassiveMonitoring(bool enabled) async {
+    if (busy) return;
+    setState(() => busy = true);
+    final outcome = await RunTrackerService.setPassiveMonitoring(enabled);
+    await _refresh();
+    if (!mounted) return;
+    setState(() => busy = false);
+    _message(switch (outcome) {
+      'enabled' => 'Monitor passivo attivato per sette giorni.',
+      'disabled' => 'Monitor passivo disattivato.',
+      'drive_not_configured' =>
+        'Collega prima la cartella Drive dagli strumenti avanzati.',
+      _ => 'Impossibile cambiare lo stato del monitor passivo.',
+    });
+  }
+
   void _message(String text) => ScaffoldMessenger.of(
     context,
   ).showSnackBar(SnackBar(content: Text(text), showCloseIcon: true));
@@ -285,6 +301,22 @@ class _MovementViewState extends State<MovementView>
                   title: const Text('Raccolta automatica'),
                   subtitle: Text(session?.automaticStatus ?? 'Controllo…'),
                 ),
+                OutlinedButton.icon(
+                  onPressed: busy || session == null
+                      ? null
+                      : () => _setPassiveMonitoring(!session!.passiveActive),
+                  icon: Icon(
+                    session?.passiveActive == true
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
+                  ),
+                  label: Text(
+                    session?.passiveActive == true
+                        ? 'Disattiva monitor passivo'
+                        : 'Attiva monitor passivo',
+                  ),
+                ),
+                const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: busy ? null : _upload,
                   icon: const Icon(Icons.cloud_upload_outlined),

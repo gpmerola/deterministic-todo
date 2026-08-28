@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.7
+
+- Ripristinato nella dashboard Movimento il controllo per attivare e
+  disattivare il monitor passivo di sette giorni, senza avviare la diagnostica
+  intensiva.
+
 ## 2.34.6
 
 - Impedito che l'import automatico Bip U resti bloccato su una vecchia ora di

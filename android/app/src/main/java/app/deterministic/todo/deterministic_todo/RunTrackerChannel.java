@@ -96,6 +96,15 @@ public final class RunTrackerChannel {
                             activity.getApplicationContext());
                         activity.runOnUiThread(() -> result.success(value));
                     });
+                    case "setPassiveMonitoring" -> {
+                        Boolean enabled = call.argument("enabled");
+                        if (enabled == null) {
+                            result.error("invalid_state", "Missing enabled state", null);
+                            return;
+                        }
+                        result.success(MovementDashboardBridge.setPassiveMonitoring(
+                            activity.getApplicationContext(), enabled));
+                    }
                     default -> result.notImplemented();
                 }
             });

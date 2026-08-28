@@ -73,4 +73,49 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('attiva il monitor passivo dalla dashboard integrata', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call.method);
+          if (call.method == 'movementState') {
+            return <String, Object?>{
+              'recording': false,
+              'session_id': 0,
+              'activity_type': '',
+              'started_at_ms': 0,
+              'distance_m': 0.0,
+              'session_steps': 0,
+              'accuracy_m': 0.0,
+              'gps_status': 'GPS spento',
+              'passive_active': false,
+              'drive_configured': true,
+              'automatic_status': 'Monitor passivo spento',
+              'drive_status': 'Pronto',
+            };
+          }
+          if (call.method == 'setPassiveMonitoring') return 'enabled';
+          return null;
+        });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MovementView(
+            dailyMovement: null,
+            stepGoal: 10000,
+            refreshDailyMovement: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('Attiva monitor passivo'), 300);
+    await tester.tap(find.text('Attiva monitor passivo'));
+    await tester.pump();
+    expect(calls, contains('setPassiveMonitoring'));
+    await tester.pumpWidget(const SizedBox());
+  });
 }

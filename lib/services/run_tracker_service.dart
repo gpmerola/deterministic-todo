@@ -151,4 +151,10 @@ final class RunTrackerService {
 
   static Future<String> uploadMovementData() async =>
       await _channel.invokeMethod<String>('uploadMovementData') ?? 'error';
+
+  static Future<String> setPassiveMonitoring(bool enabled) async =>
+      await _channel.invokeMethod<String>('setPassiveMonitoring', {
+        'enabled': enabled,
+      }) ??
+      'error';
 }
