@@ -1,6 +1,16 @@
 # Stato corrente
 
-Aggiornato il 23 agosto 2026.
+Aggiornato il 28 agosto 2026.
+
+## Build 155 — Movimento autonomo dal riferimento Fit
+
+Il totale visibile usa `TYPE_STEP_COUNTER` e persiste la baseline cumulativa per
+boot e giorno civile. I passi Bip U già importati entrano con la regola
+conservativa `max(telefono, Amazfit)`, senza sommare sorgenti sovrapposte; i due
+valori sono esposti separatamente. Health Connect/Google Fit non alimenta più
+l'anello né la card giornaliera e resta esclusivamente gold di confronto. Il
+primo avvio dopo l'aggiornamento stabilisce una baseline e non inventa il
+pregresso della giornata non ricostruibile localmente.
 
 ## Distribuzione
 

@@ -10,7 +10,7 @@ import app.deterministic.todo.runtracker.PassiveMovementAuditScheduler;
 import app.deterministic.todo.runtracker.IntensiveDiagnosticScheduler;
 import app.deterministic.todo.runtracker.DailyMovement;
 import app.deterministic.todo.runtracker.DailyStepGoalPolicy;
-import app.deterministic.todo.runtracker.HealthConnectGateway;
+import app.deterministic.todo.runtracker.PhoneDailyMovementGateway;
 import app.deterministic.todo.runtracker.MovementDashboardBridge;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
@@ -34,25 +34,29 @@ public final class RunTrackerChannel {
                         activity.startActivity(new Intent(activity, RunTrackerActivity.class));
                         result.success(null);
                     }
-                    case "dailyMovement" -> HealthConnectGateway.refreshToday(activity,
-                        new HealthConnectGateway.Callback() {
-                            @Override public void onSuccess(DailyMovement movement) {
+                    case "dailyMovement" -> PhoneDailyMovementGateway.refreshToday(activity,
+                        new PhoneDailyMovementGateway.Callback() {
+                            @Override public void onSuccess(DailyMovement movement, long phoneSteps,
+                                                            long bipSteps, String fusionSource) {
                                 java.util.Map<String, Object> value = new java.util.HashMap<>();
                                 value.put("day", movement.day);
                                 value.put("steps", movement.steps);
                                 value.put("distance_m", movement.estimatedDistanceMeters);
                                 value.put("calories", movement.estimatedActiveCalories);
                                 value.put("updated_at_ms", movement.updatedAtMillis);
+                                value.put("phone_steps", phoneSteps);
+                                value.put("bip_steps", bipSteps);
+                                value.put("source", fusionSource);
                                 result.success(value);
                             }
                             @Override public void onPermissionRequired() {
-                                result.error("permission_required", "Health Connect permission required", null);
+                                result.error("permission_required", "Activity recognition permission required", null);
                             }
                             @Override public void onUnavailable() {
-                                result.error("unavailable", "Health Connect unavailable", null);
+                                result.error("unavailable", "Step counter unavailable", null);
                             }
                             @Override public void onError() {
-                                result.error("health_error", "Health Connect read failed", null);
+                                result.error("sensor_error", "Step counter read failed", null);
                             }
                         });
                     case "getStepGoal" -> result.success(activity.getSharedPreferences(

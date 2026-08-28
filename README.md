@@ -57,17 +57,16 @@ dati del sito se vuoi conservare la copia offline.
 - import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
 - export/import JSON e CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
-- modulo Android isolato **Movimento** con passi del telefono tramite Health
-  Connect, distanza e calorie attive stimate, sessioni GPS, archivio Room
+- modulo Android isolato **Movimento** con passi del telefono tramite il
+  contatore hardware Android, distanza e calorie attive stimate, sessioni GPS, archivio Room
   separato ed export GPX.
 
 ## Movimento e corsa (Android)
 
-La sezione principale **Movimento**, accanto a **Progetti**, richiede una
-volta l'accesso ai passi in Health Connect. Il conteggio di sistema può quindi
-continuare anche quando l'app non è aperta; alla riapertura l'app importa in
-modo idempotente il totale aggregato della giornata, evitando la somma diretta
-di record sovrapposti. Riepilogo, avvio/stop e upload vivono in una pagina
+La sezione principale **Movimento**, accanto a **Progetti**, usa il contatore
+hardware Android con il permesso attività fisica. Alla riapertura riconcilia il
+delta cumulativo senza dipendere da Google Fit o Health Connect. Riepilogo,
+avvio/stop e upload vivono in una pagina
 integrata nella stessa navigazione, senza aprire una schermata Android
 intermedia. La logica salute resta nel modulo nativo separato.
 
@@ -150,8 +149,10 @@ diagnostica applicativa e report unificato senza fermare il monitor.
 
 Su Android l'AppBar mostra in tutte le schermate un anello compatto con i passi
 del giorno e il progresso verso l'obiettivo. Il target predefinito di 10.000
-passi è modificabile nelle Impostazioni; il giorno e il reset derivano da
-Health Connect e dal fuso locale, non da un contatore parallelo dell'app.
+passi è modificabile nelle Impostazioni; giorno e reset derivano dal contatore
+hardware persistito e dal fuso locale. I campioni Bip U importati sono usati
+con la regola conservativa `max(telefono, Amazfit)`, mai sommati; Google Fit
+resta una sorgente indipendente di confronto.
 
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo

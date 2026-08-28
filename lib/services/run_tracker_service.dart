@@ -7,6 +7,9 @@ final class DailyMovementProgress {
     required this.distanceMeters,
     required this.calories,
     required this.updatedAt,
+    required this.phoneSteps,
+    required this.bipSteps,
+    required this.source,
   });
 
   final String day;
@@ -14,6 +17,9 @@ final class DailyMovementProgress {
   final double distanceMeters;
   final double calories;
   final DateTime updatedAt;
+  final int phoneSteps;
+  final int bipSteps;
+  final String source;
 }
 
 final class MovementSessionState {
@@ -49,7 +55,7 @@ final class MovementSessionState {
 final class RunTrackerService {
   const RunTrackerService._();
 
-  /// Health Connect aggregation while the UI is visible; no background polling.
+  /// One hardware-counter reading while the UI is visible; no background polling.
   static const foregroundRefreshInterval = Duration(seconds: 30);
 
   static const _channel = MethodChannel('app.deterministic.todo/run_tracker');
@@ -70,6 +76,9 @@ final class RunTrackerService {
         updatedAt: DateTime.fromMillisecondsSinceEpoch(
           (value['updated_at_ms'] as num?)?.toInt() ?? 0,
         ),
+        phoneSteps: (value['phone_steps'] as num?)?.toInt() ?? 0,
+        bipSteps: (value['bip_steps'] as num?)?.toInt() ?? 0,
+        source: value['source'] as String? ?? 'phone_step_counter',
       );
     } on MissingPluginException {
       return null;

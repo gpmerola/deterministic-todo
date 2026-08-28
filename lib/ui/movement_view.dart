@@ -174,6 +174,15 @@ class _MovementViewState extends State<MovementView>
                         '${_distance(daily?.distanceMeters ?? 0)} · ${(daily?.calories ?? 0).round()} kcal stimate',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
+                      if (daily != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          daily.bipSteps > daily.phoneSteps
+                              ? 'Amazfit ${_integer(daily.bipSteps)} · telefono ${_integer(daily.phoneSteps)}'
+                              : 'Telefono ${_integer(daily.phoneSteps)}${daily.bipSteps > 0 ? ' · Amazfit ${_integer(daily.bipSteps)}' : ''}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                     ],
                   ),
                 ),

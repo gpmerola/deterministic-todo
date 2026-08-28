@@ -25,6 +25,9 @@ public interface RunDao {
     @Query("SELECT MAX(timestampMillis) FROM bip_u_activity_samples")
     Long latestBipUSampleTimestamp();
 
+    @Query("SELECT COALESCE(SUM(steps), 0) FROM (SELECT MAX(steps) AS steps FROM bip_u_activity_samples WHERE timestampMillis >= :startMillis AND timestampMillis < :endMillis GROUP BY timestampMillis)")
+    long bipUSteps(long startMillis, long endMillis);
+
     @Query("SELECT * FROM daily_movement WHERE day = :day AND zoneId = :zoneId ORDER BY updatedAtMillis DESC LIMIT 1")
     DailyMovement dailyMovement(String day, String zoneId);
 

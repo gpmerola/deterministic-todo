@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.0
+
+- Il totale quotidiano di Movimento usa direttamente il contatore hardware
+  Android e non dipende più da Google Fit o Health Connect. Google Fit resta
+  soltanto nei confronti e nei report diagnostici indipendenti.
+- I campioni Bip U già importati concorrono con una fusione conservativa
+  `max(telefono, Amazfit)`: le sorgenti non vengono mai sommate e la schermata
+  espone separatamente i due valori.
+- Il primo campione crea una baseline persistente per boot, giorno civile e
+  fuso. Il pregresso antecedente alla prima lettura non ricostruibile localmente
+  non viene inventato.
+
 ## 2.33.5
 
 - Ogni ciclo Todo registra una fase tecnica, un identificatore locale, stato
