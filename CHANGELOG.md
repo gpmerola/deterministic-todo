@@ -2,6 +2,24 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.2
+
+- Sincronizza automaticamente lo storico Bip U quando l'app visibile aggiorna
+  Movimento, con un limite di un tentativo ogni 15 minuti.
+- Pianifica inoltre un'importazione BLE in sola lettura ogni tre ore tramite
+  WorkManager. Ogni tentativo dura al massimo 90 secondi, richiede batteria non
+  bassa, chiude sempre GATT e non attiva polling o connessioni persistenti.
+- Permessi mancanti, chiave assente, Bluetooth spento e orologio non
+  raggiungibile terminano il singolo tentativo senza retry ravvicinati; i
+  campioni restano idempotenti e non vengono cancellati dall'orologio.
+- La diagnostica distingue importazioni riuscite, tentativi saltati per
+  prerequisiti assenti ed errori reali del protocollo BLE.
+
+## 2.34.1
+
+- Build di collaudo intermedia dell'importazione automatica Bip U, non
+  pubblicata sul canale rolling.
+
 ## 2.34.0
 
 - Il totale quotidiano di Movimento usa direttamente il contatore hardware

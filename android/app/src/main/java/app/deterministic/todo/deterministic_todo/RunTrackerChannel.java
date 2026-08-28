@@ -11,6 +11,7 @@ import app.deterministic.todo.runtracker.IntensiveDiagnosticScheduler;
 import app.deterministic.todo.runtracker.DailyMovement;
 import app.deterministic.todo.runtracker.DailyStepGoalPolicy;
 import app.deterministic.todo.runtracker.PhoneDailyMovementGateway;
+import app.deterministic.todo.runtracker.BipUAutomaticSyncScheduler;
 import app.deterministic.todo.runtracker.MovementDashboardBridge;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
@@ -27,6 +28,7 @@ public final class RunTrackerChannel {
         ActivityClassifier.register(activity.getApplicationContext());
         PassiveMovementAuditScheduler.refreshIfEnabled(activity.getApplicationContext());
         IntensiveDiagnosticScheduler.refreshIfEnabled(activity.getApplicationContext());
+        BipUAutomaticSyncScheduler.schedule(activity.getApplicationContext());
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/run_tracker")
             .setMethodCallHandler((call, result) -> {
                 switch (call.method) {
@@ -34,7 +36,9 @@ public final class RunTrackerChannel {
                         activity.startActivity(new Intent(activity, RunTrackerActivity.class));
                         result.success(null);
                     }
-                    case "dailyMovement" -> PhoneDailyMovementGateway.refreshToday(activity,
+                    case "dailyMovement" -> {
+                        BipUAutomaticSyncScheduler.refreshIfDue(activity.getApplicationContext());
+                        PhoneDailyMovementGateway.refreshToday(activity,
                         new PhoneDailyMovementGateway.Callback() {
                             @Override public void onSuccess(DailyMovement movement, long phoneSteps,
                                                             long bipSteps, String fusionSource) {
@@ -59,6 +63,7 @@ public final class RunTrackerChannel {
                                 result.error("sensor_error", "Step counter read failed", null);
                             }
                         });
+                    }
                     case "getStepGoal" -> result.success(activity.getSharedPreferences(
                         "movement_profile", Activity.MODE_PRIVATE).getInt(
                         "daily_step_goal", DailyStepGoalPolicy.DEFAULT_GOAL));

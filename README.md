@@ -154,6 +154,12 @@ hardware persistito e dal fuso locale. I campioni Bip U importati sono usati
 con la regola conservativa `max(telefono, Amazfit)`, mai sommati; Google Fit
 resta una sorgente indipendente di confronto.
 
+Quando l'app è visibile tenta l'importazione Bip U al massimo ogni 15 minuti.
+Un job Android prova inoltre ogni tre ore, in modo differibile e con batteria
+non bassa: la cadenza non è un orario esatto perché Android può posticiparla.
+Ogni collegamento è limitato a 90 secondi e viene chiuso dopo il trasferimento;
+non esistono connessioni BLE o notifiche persistenti tra un tentativo e l'altro.
+
 Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
 validi alimentano la distanza, quelli esclusi conservano il motivo
 (`poor_accuracy`, `implausible_speed_jump`, `gps_zigzag`, rumore da fermo o

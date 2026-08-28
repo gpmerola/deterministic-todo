@@ -526,6 +526,13 @@ sessione GPS e nessun polling BLE in background.
 
 ## Roadmap Amazfit Bip U
 
+La build 157 introduce il primo import automatico confinato: un tentativo ogni
+15 minuti al massimo mentre l'app è visibile e un `PeriodicWorkRequest` ogni
+tre ore, differibile da Android. Il client riusa chiave Keystore, protocollo e
+inserimento idempotente esistenti, opera in sola lettura, termina entro 90
+secondi e chiude GATT. Non mantiene BLE attivo fra i tentativi e non applica
+retry ravvicinati se orologio, permessi, chiave o Bluetooth non sono disponibili.
+
 Gadgetbridge su Codeberg è stato studiato al commit
 `c585908b1c38d949273e8d277208a1fd548d6271`. È AGPLv3: non copiarne o adattarne
 codice nel progetto MIT. La decisione attuale è un’implementazione indipendente

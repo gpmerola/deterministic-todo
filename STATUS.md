@@ -12,6 +12,16 @@ l'anello né la card giornaliera e resta esclusivamente gold di confronto. Il
 primo avvio dopo l'aggiornamento stabilisce una baseline e non inventa il
 pregresso della giornata non ricostruibile localmente.
 
+## Build 157 — importazione Bip U automatica e limitata
+
+Il client BLE di importazione storico è utilizzabile senza Activity: viene
+richiamato al massimo ogni 15 minuti mentre l'app è visibile e da un worker
+periodico ogni tre ore. Il tentativo è in sola lettura, dura al massimo 90
+secondi, richiede batteria non bassa e non usa retry aggressivi. Android può
+ritardare il worker; la cadenza è quindi minima e non un allarme esatto.
+La build locale intermedia 156 ha verificato sul Galaxy lo scheduling, rilevando
+correttamente Bluetooth spento; la 157 distingue questo esito come `skipped`.
+
 ## Distribuzione
 
 - Canali supportati: Android nativo e browser Chrome/Edge.

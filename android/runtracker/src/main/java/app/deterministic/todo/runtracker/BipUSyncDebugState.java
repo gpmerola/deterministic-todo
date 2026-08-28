@@ -36,6 +36,26 @@ final class BipUSyncDebugState {
             .putLong("drive_finished_at_ms", System.currentTimeMillis()).apply();
     }
 
+    static void automaticFinished(Context context, String outcome, long samples, long inserted,
+                                  long steps, int requestedHours) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("phase", automaticPhase(outcome)).putString("outcome", safe(outcome))
+            .putLong("finished_at_ms", System.currentTimeMillis())
+            .putLong("sample_count", samples).putLong("inserted_count", inserted)
+            .putLong("reported_steps", steps).putLong("heart_rate_sample_count", 0)
+            .putInt("requested_window_hours", requestedHours)
+            .putString("drive_result", "not_requested").apply();
+    }
+
+    static String automaticPhase(String outcome) {
+        if ("activity_sync_success".equals(outcome) || "activity_empty".equals(outcome))
+            return "success";
+        if ("permission_required".equals(outcome) || "key_missing".equals(outcome)
+            || "bluetooth_disabled".equals(outcome) || "not_found".equals(outcome)
+            || "already_running".equals(outcome)) return "skipped";
+        return "error";
+    }
+
     static Map<String, Object> values(Context context) {
         SharedPreferences p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();

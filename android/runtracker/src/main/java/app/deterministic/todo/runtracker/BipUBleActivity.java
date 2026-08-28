@@ -131,6 +131,10 @@ public final class BipUBleActivity extends ComponentActivity {
     }
 
     private void begin(Mode requestedMode) {
+        if (requestedMode == Mode.ACTIVITY_SYNC && !BipUSyncCoordinator.tryAcquire()) {
+            setStatus("Sincronizzazione Bip U già in corso");
+            return;
+        }
         mode = requestedMode;
         stage = Stage.IDLE;
         heartRateSamples.clear();
@@ -151,10 +155,12 @@ public final class BipUBleActivity extends ComponentActivity {
             try {
                 authKey = new SecureAuthKeyStore(this).read();
                 if (authKey == null || authKey.length != 16) {
+                    if (mode == Mode.ACTIVITY_SYNC) BipUSyncCoordinator.release();
                     setStatus("Salva prima una chiave Huami valida");
                     return;
                 }
             } catch (Exception error) {
+                if (mode == Mode.ACTIVITY_SYNC) BipUSyncCoordinator.release();
                 setStatus("Chiave Huami non leggibile; salvala nuovamente");
                 return;
             }
@@ -540,6 +546,7 @@ public final class BipUBleActivity extends ComponentActivity {
 
     private void finishActivitySyncSuccess(long samples, long added, long steps, long heartSamples) {
         if (!reportWritten.compareAndSet(false, true)) return;
+        BipUSyncCoordinator.release();
         handler.removeCallbacksAndMessages(null);
         closeGatt();
         String text = "Bip U importato · " + samples + " minuti · " + steps
@@ -559,6 +566,7 @@ public final class BipUBleActivity extends ComponentActivity {
 
     private void finishActivitySync(String text, String outcome) {
         if (!reportWritten.compareAndSet(false, true)) return;
+        BipUSyncCoordinator.release();
         handler.removeCallbacksAndMessages(null);
         closeGatt();
         setStatus(text);
@@ -728,5 +736,8 @@ public final class BipUBleActivity extends ComponentActivity {
     private void setBusyStatus(String text) { runOnUiThread(() -> { status.setText(text); probe.setEnabled(false); heartRateProbe.setEnabled(false); activitySyncProbe.setEnabled(false); }); }
     private void setStatus(String text) { runOnUiThread(() -> { status.setText(text); probe.setEnabled(true); boolean key = new SecureAuthKeyStore(this).hasKey(); heartRateProbe.setEnabled(key); activitySyncProbe.setEnabled(key); }); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-    @Override protected void onDestroy() { stopScan(null); closeGatt(); super.onDestroy(); }
+    @Override protected void onDestroy() {
+        if (mode == Mode.ACTIVITY_SYNC && !reportWritten.get()) BipUSyncCoordinator.release();
+        stopScan(null); closeGatt(); super.onDestroy();
+    }
 }
