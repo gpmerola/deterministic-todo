@@ -536,6 +536,19 @@ Sul Galaxy la build 159 ha completato il percorso headless reale in circa 18
 secondi: 4.263 campioni minuto importati su una richiesta di 168 ore, quindi
 chiusura GATT e deregistrazione del client confermate da Android.
 
+La build 160 corregge la sovrapposizione sul minuto più recente: se il Bip U
+ripubblica la stessa chiave `timestampMillis + source`, il record viene
+aggiornato soltanto quando il nuovo conteggio passi è maggiore. Il valore non
+viene mai sommato a quello precedente; duplicati identici e regressioni sono
+ignorati. `bip_sync_inserted_count` include ora sia inserimenti sia aggiornamenti
+monotoni.
+
+Sul Galaxy la prima sincronizzazione reale della build 160 ha ricevuto gli
+stessi 61 campioni e 389 passi già presenti, con esito success e zero modifiche:
+il percorso duplicato invariato è quindi verificato anche su hardware. Il ramo
+di aggiornamento con conteggio maggiore è verificato automaticamente; resta da
+osservarlo con nuovi passi ripubblicati dall'orologio.
+
 Gadgetbridge su Codeberg è stato studiato al commit
 `c585908b1c38d949273e8d277208a1fd548d6271`. È AGPLv3: non copiarne o adattarne
 codice nel progetto MIT. La decisione attuale è un’implementazione indipendente

@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.5
+
+- Corretto l'import incrementale Amazfit: quando il Bip U ripubblica lo stesso
+  minuto con più passi, Todo Test aggiorna il campione in modo monotono invece
+  di ignorarlo. Duplicati identici e valori regressivi restano ignorati, senza
+  sommare due versioni dello stesso minuto.
+
 ## 2.34.4
 
 - Il provider Movimento protetto da `DUMP` espone `sync_bip_now`, un trigger

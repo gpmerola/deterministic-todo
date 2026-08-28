@@ -74,19 +74,15 @@ per firmware, reset o scritture sperimentali.
 4. Il telefono continua a funzionare senza orologio. I dati Bip U restano una
    sorgente locale separata e non vengono ancora sommati a Health Connect.
 
-### Limitazione nota: minuto recente ripubblicato
+### Minuto recente ripubblicato
 
-L'import corrente usa `timestampMillis + source` come chiave e ignora un record
-che esiste già. Questo impedisce il doppio conteggio, ma può conservare un
-campione parziale se il Bip U pubblica nuovamente lo stesso minuto con un numero
-di passi maggiore: il record successivo non aggiorna quello già memorizzato.
-Pertanto `activity_sync_success` con campioni ricevuti ma `inserted_count=0`
-dimostra che trasporto BLE e decodifica hanno funzionato, non che gli ultimissimi
-passi dell'orologio siano entrati nel database. Fino alla correzione, verificare
-gli incrementi Amazfit dopo la chiusura del minuto e non usare il dato appena
-sincronizzato come prova definitiva di completezza. La correzione dovrà fare un
-upsert monotono del campione (mai sommare due versioni dello stesso minuto),
-preservando idempotenza e provenienza.
+Dalla build 160 l'import usa `timestampMillis + source` come chiave e aggiorna
+un record esistente soltanto quando il Bip U ripubblica quel minuto con un
+numero di passi maggiore. Non somma mai due versioni dello stesso minuto:
+duplicati identici e valori regressivi vengono ignorati. `inserted_count` conta
+sia i minuti nuovi sia quelli aggiornati monotonamente; un valore zero dimostra
+quindi che trasporto BLE e decodifica hanno funzionato, ma che la finestra
+ricevuta non conteneva alcun incremento rispetto al database.
 
 Dalla build 135 l’esito non dipende dallo screenshot. Con ADB:
 

@@ -13,12 +13,9 @@ non duplicare qui i dettagli tecnici.
 - [ ] Verificare il primo avvio naturale del worker dopo circa tre ore, senza
   trigger ADB, e confermare che una seconda importazione sovrapposta inserisca
   soltanto campioni nuovi.
-- [ ] Correggere l'import incrementale dei minuti recenti Bip U: oggi
-  `insertBipUActivitySamples` usa `OnConflictStrategy.IGNORE`, quindi una
-  ripubblicazione dello stesso `timestampMillis + source` con più passi non
-  aggiorna il campione parziale. Implementare e testare un upsert monotono che
-  non sommi le versioni dello stesso minuto. Limitazione e diagnosi sono
-  documentate in `docs/operations/BIP_U_SAMSUNG.md`.
+- [x] Build 160: import incrementale dei minuti recenti Bip U con upsert
+  monotono. Una ripubblicazione aggiorna il record soltanto se contiene più
+  passi; duplicati e valori regressivi non vengono sommati.
 
 - [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload
@@ -37,7 +34,7 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test preparata: 2.34.4 build 159. **Todo Test** (`.dev`) è il
+- Release Todo Test preparata: 2.34.5 build 160. **Todo Test** (`.dev`) è il
   solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
   sono attivi. La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente

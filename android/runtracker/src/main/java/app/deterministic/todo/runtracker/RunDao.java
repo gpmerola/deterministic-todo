@@ -5,7 +5,9 @@ import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
+import androidx.room.Update;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Dao
@@ -17,7 +19,33 @@ public interface RunDao {
     void upsertDailyMovement(DailyMovement movement);
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    List<Long> insertBipUActivitySamples(List<BipUActivitySample> samples);
+    long insertBipUActivitySampleIgnoringConflict(BipUActivitySample sample);
+
+    @Query("SELECT steps FROM bip_u_activity_samples WHERE timestampMillis = :timestampMillis AND source = :source")
+    Integer bipUStoredSteps(long timestampMillis, String source);
+
+    @Update
+    int updateBipUActivitySample(BipUActivitySample sample);
+
+    @Transaction
+    default List<Long> insertBipUActivitySamples(List<BipUActivitySample> samples) {
+        List<Long> changedRows = new ArrayList<>(samples.size());
+        for (BipUActivitySample sample : samples) {
+            long insertedId = insertBipUActivitySampleIgnoringConflict(sample);
+            if (insertedId != -1L) {
+                changedRows.add(insertedId);
+                continue;
+            }
+            Integer storedSteps = bipUStoredSteps(sample.timestampMillis, sample.source);
+            if (storedSteps != null && BipUSampleMergePolicy.shouldReplace(storedSteps, sample.steps)
+                    && updateBipUActivitySample(sample) == 1) {
+                changedRows.add(0L);
+            } else {
+                changedRows.add(-1L);
+            }
+        }
+        return changedRows;
+    }
 
     @Query("SELECT * FROM bip_u_activity_samples WHERE timestampMillis >= :startMillis AND timestampMillis < :endMillis ORDER BY timestampMillis")
     List<BipUActivitySample> bipUSamples(long startMillis, long endMillis);
