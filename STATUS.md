@@ -2,7 +2,23 @@
 
 Aggiornato il 31 agosto 2026.
 
-## Build 166 — Inbox storica e Web corrente
+## Build 167 — Inbox filtrata e cancellazione definitiva
+
+La versione **2.35.2 build 167** mostra in Impostazioni soltanto le attività
+senza data che non appartengono ad alcun progetto e aggiunge **Svuota cestino**.
+Con la sincronizzazione configurata, la cancellazione definitiva viene eseguita
+prima su Supabase tramite la RPC `purge_trash` e solo dopo in SQLite; un errore
+remoto conserva quindi la copia locale. La migrazione Supabase è stata applicata
+il 31 agosto 2026 senza cancellare dati durante l'installazione. Il commit release
+`0f3562f` è pubblicato sul Web, negli APK diretti e nel test interno Google Play;
+le identità pubbliche Web/Android e la pipeline coordinata risultano coerenti.
+Todo Test 167 è installata sul Galaxy S21 con dati preservati.
+
+Prima di svuotare definitivamente il cestino occorre sincronizzare eventuali
+altri dispositivi rimasti offline, che altrimenti potrebbero riproporre modifiche
+obsolete al successivo collegamento.
+
+## Build 166 — Inbox storica
 
 La versione **2.35.1 build 166** espone in Impostazioni le attività attive senza
 data, con rimozione singola o collettiva tramite tombstone sincronizzata e
