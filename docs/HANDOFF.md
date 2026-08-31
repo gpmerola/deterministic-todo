@@ -26,6 +26,13 @@ di cambiare architettura.
 
 ## Stato distribuibile
 
+- La build **2.35.2+167** limita la gestione Inbox agli elementi senza data e
+  senza progetto. Il Cestino può essere svuotato definitivamente: con account
+  collegato la RPC autenticata elimina prima i record cloud dell’utente, poi
+  la transazione locale rimuove tombstone, progetti/sezioni archiviati e outbox
+  obsolete. Gli altri dispositivi devono essere sincronizzati prima dello
+  spurgo, per evitare che una vecchia modifica offline ricrei un elemento.
+
 - La build **2.35.1+166** rende accessibile da Impostazioni il backlog storico
   senza data. La vista filtra gli elementi attivi con `show_date` nullo e offre
   rimozione singola o collettiva. La rimozione mantiene la tombstone necessaria

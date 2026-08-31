@@ -45,6 +45,7 @@ class TaskRepository {
               (task) =>
                   task.deletedAt.isNull() &
                   task.showDate.isNull() &
+                  task.projectId.isNull() &
                   task.status.equals(TaskStatus.completed.name).not(),
             )
             ..orderBy([
@@ -53,6 +54,27 @@ class TaskRepository {
               (task) => OrderingTerm(expression: task.id),
             ]))
           .watch();
+
+  Future<void> purgeLocalTrash() => db.transaction(() async {
+    final deletedTaskIds =
+        await (db.selectOnly(db.tasks)
+              ..addColumns([db.tasks.id])
+              ..where(db.tasks.deletedAt.isNotNull()))
+            .map((row) => row.read(db.tasks.id)!)
+            .get();
+    if (deletedTaskIds.isNotEmpty) {
+      await (db.delete(
+        db.outboxEntries,
+      )..where((row) => row.entityId.isIn(deletedTaskIds))).go();
+    }
+    await (db.delete(db.tasks)..where((row) => row.deletedAt.isNotNull())).go();
+    await (db.delete(
+      db.projectSections,
+    )..where((row) => row.isArchived.equals(true))).go();
+    await (db.delete(
+      db.projects,
+    )..where((row) => row.isArchived.equals(true))).go();
+  });
 
   Stream<List<Task>> watchCompleted({int limit = 200}) =>
       (db.select(db.tasks)

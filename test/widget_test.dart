@@ -441,6 +441,36 @@ void main() {
     await db.close();
   });
 
+  testWidgets('il Cestino può essere svuotato definitivamente', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final id = await repository.create('Da svuotare');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await repository.softDelete(task);
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Impostazioni'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cestino'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Svuota'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Svuota cestino'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cestino vuoto'), findsOneWidget);
+    expect(await db.select(db.tasks).get(), isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('Impostazioni permette di ripulire le attività senza data', (
     tester,
   ) async {

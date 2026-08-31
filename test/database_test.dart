@@ -91,6 +91,8 @@ void main() {
     'la vista senza data esclude pianificate, completate e cestino',
     () async {
       final undatedId = await repository.create('Inbox storica');
+      final projectId = await repository.createProject('Progetto');
+      await repository.create('Backlog nel progetto', projectId: projectId);
       await repository.create(
         'Pianificata',
         status: TaskStatus.available,
@@ -112,6 +114,30 @@ void main() {
       expect(tasks.map((task) => task.id), [undatedId]);
     },
   );
+
+  test('svuota cestino elimina elementi locali e relativo outbox', () async {
+    final taskId = await repository.create('Da eliminare definitivamente');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(taskId))).getSingle();
+    await repository.softDelete(task);
+    final projectId = await repository.createProject('Progetto archiviato');
+    final project = await (db.select(
+      db.projects,
+    )..where((row) => row.id.equals(projectId))).getSingle();
+    await repository.updateProject(project, isArchived: true);
+
+    await repository.purgeLocalTrash();
+
+    expect(await db.select(db.tasks).get(), isEmpty);
+    expect(await db.select(db.projects).get(), isEmpty);
+    expect(
+      await (db.select(
+        db.outboxEntries,
+      )..where((row) => row.entityId.equals(taskId))).get(),
+      isEmpty,
+    );
+  });
 
   test('la generazione calendario ripetuta non duplica occorrenze', () async {
     final id = await repository.create('Controllo mensile');

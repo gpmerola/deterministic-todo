@@ -11,14 +11,7 @@ import '../local/database.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
 
-enum SyncStage {
-  idle,
-  projects,
-  taskUpload,
-  receipt,
-  taskPull,
-  taskMerge,
-}
+enum SyncStage { idle, projects, taskUpload, receipt, taskPull, taskMerge }
 
 final class SyncWriteVerificationException implements Exception {
   const SyncWriteVerificationException();
@@ -337,6 +330,11 @@ class SyncService {
     return operation.whenComplete(() {
       if (identical(_inFlight, operation)) _inFlight = null;
     });
+  }
+
+  Future<void> purgeRemoteTrash() async {
+    await sync();
+    await client.rpc('purge_trash');
   }
 
   Future<void> _syncUntilQuiet() async {
@@ -1053,7 +1051,9 @@ Duration syncRetryDelay(int failureIndex) {
 
 int? syncOutboxOldestAgeMs(Iterable<int> createdAtMicros, DateTime now) {
   if (createdAtMicros.isEmpty) return null;
-  final oldest = createdAtMicros.reduce((left, right) => left < right ? left : right);
+  final oldest = createdAtMicros.reduce(
+    (left, right) => left < right ? left : right,
+  );
   final age = now.microsecondsSinceEpoch - oldest;
   return age <= 0 ? 0 : age ~/ Duration.microsecondsPerMillisecond;
 }
@@ -1062,7 +1062,8 @@ String syncAuthState(Session? session, {DateTime? now}) {
   if (session == null) return 'missing';
   final expiresAt = session.expiresAt;
   if (expiresAt == null) return 'active_unknown_expiry';
-  final seconds = (now ?? DateTime.now().toUtc()).millisecondsSinceEpoch ~/ 1000;
+  final seconds =
+      (now ?? DateTime.now().toUtc()).millisecondsSinceEpoch ~/ 1000;
   if (expiresAt <= seconds) return 'expired';
   if (expiresAt - seconds <= 60) return 'near_expiry';
   return 'active';

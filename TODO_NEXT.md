@@ -6,7 +6,7 @@ Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimi collaudi build 164–166
+## Prossimi collaudi build 164–167
 
 - [x] Importazione Bip U headless reale: 4.263 campioni minuto, finestra 168
   ore, esito `activity_sync_success`, GATT chiuso dopo circa 18 secondi.
@@ -29,6 +29,9 @@ non duplicare qui i dettagli tecnici.
 - [ ] Build 166: verificare su Web e Todo Test che **Impostazioni → Attività
   senza data** elenchi soltanto elementi attivi con data nulla e che rimozione
   singola/collettiva converga sugli altri dispositivi senza ricomparire.
+- [ ] Build 167: verificare che Inbox escluda i backlog assegnati ai progetti e
+  che **Svuota cestino** rimuova definitivamente task, progetti e sezioni dopo
+  aver sincronizzato tutti i dispositivi.
 
 - [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload

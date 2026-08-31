@@ -6,6 +6,53 @@ class TrashView extends StatelessWidget {
   final TaskRepository repository;
   final SyncService? syncService;
 
+  Future<void> _emptyTrash(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Svuotare il Cestino?'),
+        content: Text(
+          syncService == null
+              ? 'Tutti gli elementi nel Cestino saranno eliminati '
+                    'definitivamente da questo dispositivo. Questa azione '
+                    'non può essere annullata.'
+              : 'Tutti gli elementi nel Cestino saranno eliminati '
+                    'definitivamente dal cloud e da questo dispositivo. '
+                    'Prima sincronizza eventuali altri dispositivi offline. '
+                    'Questa azione non può essere annullata.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Svuota cestino'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await syncService?.purgeRemoteTrash();
+      await repository.purgeLocalTrash();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Cestino svuotato'), showCloseIcon: true),
+      );
+    } on Object {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossibile svuotare il Cestino: nessun elemento locale è stato eliminato.',
+          ),
+          showCloseIcon: true,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) => SizedBox(
     height: MediaQuery.sizeOf(context).height * 0.82,
@@ -20,6 +67,10 @@ class TrashView extends StatelessWidget {
                   'Cestino',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
+              ),
+              TextButton(
+                onPressed: () => _emptyTrash(context),
+                child: const Text('Svuota'),
               ),
               IconButton(
                 tooltip: 'Chiudi',

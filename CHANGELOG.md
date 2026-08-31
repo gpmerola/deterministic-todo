@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.35.2 (build 167)
+
+- Il Cestino può essere svuotato definitivamente, con conferma e rimozione
+  coordinata dal cloud prima della copia locale.
+- La vista Inbox nelle Impostazioni mostra soltanto attività senza data che non
+  appartengono ad alcun progetto.
+
 ## 2.35.1 (build 166)
 
 - Impostazioni espone tutte le attività attive senza data, comprese quelle
