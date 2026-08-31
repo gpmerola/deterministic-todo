@@ -87,6 +87,32 @@ void main() {
     expect(await repository.watchAll().first, hasLength(1));
   });
 
+  test(
+    'la vista senza data esclude pianificate, completate e cestino',
+    () async {
+      final undatedId = await repository.create('Inbox storica');
+      await repository.create(
+        'Pianificata',
+        status: TaskStatus.available,
+        showDate: '2026-08-31',
+      );
+      final completedId = await repository.create('Completata senza data');
+      final completed = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(completedId))).getSingle();
+      await repository.setCompleted(completed, true);
+      final deletedId = await repository.create('Cestinata senza data');
+      final deleted = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(deletedId))).getSingle();
+      await repository.softDelete(deleted);
+
+      final tasks = await repository.watchUndatedActive().first;
+
+      expect(tasks.map((task) => task.id), [undatedId]);
+    },
+  );
+
   test('la generazione calendario ripetuta non duplica occorrenze', () async {
     final id = await repository.create('Controllo mensile');
     var task = await (db.select(

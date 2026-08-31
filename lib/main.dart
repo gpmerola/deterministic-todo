@@ -47,6 +47,7 @@ part 'ui/settings_view.dart';
 part 'ui/data_health_view.dart';
 part 'ui/sync_account_card.dart';
 part 'ui/trash_view.dart';
+part 'ui/undated_tasks_view.dart';
 part 'ui/task_widgets.dart';
 part 'ui/task_editor.dart';
 part 'ui/app_undo.dart';

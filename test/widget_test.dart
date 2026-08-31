@@ -441,6 +441,46 @@ void main() {
     await db.close();
   });
 
+  testWidgets('Impostazioni permette di ripulire le attività senza data', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final undatedId = await repository.create('Inbox da ripulire');
+    await repository.create(
+      'Attività pianificata',
+      status: TaskStatus.available,
+      showDate: CivilDate.fromDateTime(DateTime.now()).toString(),
+    );
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Impostazioni'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Attività senza data'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Inbox da ripulire'), findsOneWidget);
+    expect(find.text('Attività pianificata'), findsNothing);
+    await tester.tap(find.byTooltip('Rimuovi attività senza data'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Rimuovi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nessuna attività senza data'), findsOneWidget);
+    expect(
+      (await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(undatedId))).getSingle()).deletedAt,
+      isNotNull,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('la descrizione Todoist appare sotto il titolo con link puliti', (
     tester,
   ) async {

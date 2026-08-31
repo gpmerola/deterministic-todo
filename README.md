@@ -22,6 +22,10 @@ URL web previsto:
 
 `https://gpmerola.github.io/deterministic-todo/`
 
+Le attività storiche rimaste senza data sono gestibili da **Impostazioni →
+Attività senza data**. Possono essere rimosse singolarmente o tutte insieme;
+la cancellazione viene sincronizzata e resta recuperabile dal Cestino.
+
 Informativa privacy:
 
 `https://gpmerola.github.io/deterministic-todo/privacy.html`

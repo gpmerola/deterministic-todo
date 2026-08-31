@@ -39,6 +39,21 @@ class TaskRepository {
             ]))
           .watch();
 
+  Stream<List<Task>> watchUndatedActive() =>
+      (db.select(db.tasks)
+            ..where(
+              (task) =>
+                  task.deletedAt.isNull() &
+                  task.showDate.isNull() &
+                  task.status.equals(TaskStatus.completed.name).not(),
+            )
+            ..orderBy([
+              (task) => OrderingTerm(expression: task.position),
+              (task) => OrderingTerm(expression: task.createdAt),
+              (task) => OrderingTerm(expression: task.id),
+            ]))
+          .watch();
+
   Stream<List<Task>> watchCompleted({int limit = 200}) =>
       (db.select(db.tasks)
             ..where(

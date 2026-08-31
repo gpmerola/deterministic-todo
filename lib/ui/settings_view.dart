@@ -437,6 +437,22 @@ class SettingsView extends StatelessWidget {
         onTap: showCompleted,
       ),
       ListTile(
+        leading: const Icon(Icons.inbox_outlined),
+        title: const Text('Attività senza data'),
+        subtitle: const Text('Visualizza e rimuovi gli elementi Inbox'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          showDragHandle: true,
+          builder: (_) => UndatedTasksView(
+            repository: repository,
+            syncService: syncService,
+          ),
+        ),
+      ),
+      ListTile(
         leading: const Icon(Icons.delete_outline),
         title: const Text('Cestino'),
         trailing: const Icon(Icons.chevron_right),

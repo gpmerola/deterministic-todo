@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.35.1 (build 166)
+
+- Impostazioni espone tutte le attività attive senza data, comprese quelle
+  Inbox storiche, con rimozione singola o collettiva e conferma esplicita.
+- La rimozione usa tombstone sincronizzate e conserva il recupero dal Cestino,
+  evitando che un altro dispositivo reintroduca attività eliminate localmente.
+
 ## 2.35.0
 
 - Web e Android assegnano implicitamente la data civile odierna alle nuove

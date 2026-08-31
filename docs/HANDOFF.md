@@ -26,6 +26,12 @@ di cambiare architettura.
 
 ## Stato distribuibile
 
+- La build **2.35.1+166** rende accessibile da Impostazioni il backlog storico
+  senza data. La vista filtra gli elementi attivi con `show_date` nullo e offre
+  rimozione singola o collettiva. La rimozione mantiene la tombstone necessaria
+  alla convergenza offline-first e resta recuperabile dal Cestino; uno spurgo
+  fisico cloud richiede ancora la RPC transazionale indicata nella roadmap.
+
 - Build corrente: **2.33.5+154**. Il comportamento Movimento della 153 resta
   invariato. La 154 aggiunge un giornale diagnostico Todo privo di contenuti:
   ogni ciclo conserva fase, classe errore, rete/sessione, età outbox, retry,
