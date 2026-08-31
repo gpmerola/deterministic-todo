@@ -1,6 +1,15 @@
 # Stato corrente
 
-Aggiornato il 28 agosto 2026.
+Aggiornato il 31 agosto 2026.
+
+## Build 166 — Inbox storica e Web corrente
+
+La versione **2.35.1 build 166** espone in Impostazioni le attività attive senza
+data, con rimozione singola o collettiva tramite tombstone sincronizzata e
+recupero dal Cestino. Il commit release `a0c5e58` è pubblicato sul Web, negli
+APK diretti e nel test interno Google Play; la pipeline coordinata e il
+controllo pubblico di parità sono verdi. Todo Test 166 è installata sul Galaxy
+S21 con dati preservati.
 
 ## Build 155 — Movimento autonomo dal riferimento Fit
 
