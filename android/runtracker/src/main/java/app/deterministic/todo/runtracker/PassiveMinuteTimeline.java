@@ -79,6 +79,17 @@ public final class PassiveMinuteTimeline {
             return List.copyOf(result);
         }
 
+        List<Minute> buildReferenceOnly() {
+            List<MutableMinute> ordered = new ArrayList<>(minutes.values());
+            ordered.sort(Comparator.comparingLong(value -> value.start));
+            List<Minute> result = new ArrayList<>();
+            for (MutableMinute value : ordered) {
+                result.add(new Minute(value.start, value.start + MINUTE_MILLIS,
+                    0, value.fitSteps, value.fitDistance, 0, 0, 0, 0, 0, 0));
+            }
+            return List.copyOf(result);
+        }
+
         private MutableMinute minute(long start) {
             return minutes.computeIfAbsent(start, MutableMinute::new);
         }

@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 27 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 31 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
@@ -22,6 +22,10 @@ non duplicare qui i dettagli tecnici.
 - [x] Build 163: il cambio giorno non attribuisce più al nuovo giorno il delta
   dall'ultimo campione precedente. Collaudo Galaxy: 2.705 passi errati corretti
   a zero; monitor passivo attivo e successivo snapshot Drive `success/ok`.
+- [ ] Build 164: verificare almeno una giornata completa del confronto davvero
+  indipendente. Nel report schema 9 `todo.source` deve essere locale,
+  `google_fit.role` deve essere `independent_reference_only` e i due totali non
+  devono essere derivati dagli stessi record Health Connect.
 
 - [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload
@@ -181,7 +185,7 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
   principali, che il target cambi dalle Impostazioni e che Movimento integrato
   consenta avvio/stop/upload senza redirect o scorrimento anomalo;
 - verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
-  `daily_audit_*.json` schema 8: timeline Todo/Fit/Bip al minuto, episodi e
+  `daily_audit_*.json` schema 9: sorgenti Todo/Fit/Bip separate, episodi e
   pause automatici, copertura/ritardi, delta tra snapshot, scarto distanza, quote
   cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
   veicolo/bicicletta, conflitti `STILL + passi` e flag di qualità;
@@ -225,9 +229,9 @@ ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
 ## P0 — Passi e distanza quotidiana
 
-- il recupero passi Health Connect e il contatore diretto di sessione sono
-  verificati sul Galaxy S21; resta da verificare un cambio giorno reale con
-  app chiusa e riconciliazione alla riapertura;
+- il contatore hardware quotidiano e quello diretto di sessione sono verificati
+  sul Galaxy S21; la build 164 elimina Health Connect dalla sorgente Todo e lo
+  conserva soltanto per il riferimento Google Fit;
 - aggiungere UI del profilo locale per peso e visibilità delle due falcate; la
   calibrazione automatica GPS è presente dalla build 108 e i fallback restano
   provvisori;

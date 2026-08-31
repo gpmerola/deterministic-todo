@@ -1166,7 +1166,12 @@ void main() {
 
     final saved = await db.select(db.tasks).getSingle();
     expect(saved.showDate, CivilDate.fromDateTime(target).toString());
-    expect(saved.status, TaskStatus.scheduled.name);
+    expect(
+      saved.status,
+      target.isAfter(DateTime(now.year, now.month, now.day))
+          ? TaskStatus.scheduled.name
+          : TaskStatus.available.name,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

@@ -42,4 +42,20 @@ public final class PassiveMinuteTimelineTest {
         assertEquals(50, result.get(1).runningSteps());
         assertEquals(101, result.stream().mapToLong(PassiveMinuteTimeline.Minute::fitStepsRaw).sum());
     }
+
+    @Test public void referenceOnlyTimelineNeverCopiesFitIntoTodo() {
+        long minute = 7_200_000L;
+        PassiveMinuteTimeline.Builder builder = new PassiveMinuteTimeline.Builder();
+        builder.addSteps(minute, minute + 60_000, 80, true,
+            List.of(new ActivityTimeline.Event(minute, ActivityTimeline.WALKING)));
+        builder.addFitDistance(minute, minute + 60_000, 64.0);
+
+        List<PassiveMinuteTimeline.Minute> result = builder.buildReferenceOnly();
+
+        assertEquals(0, result.stream().mapToLong(PassiveMinuteTimeline.Minute::todoSteps).sum());
+        assertEquals(0, result.stream().mapToLong(PassiveMinuteTimeline.Minute::walkingSteps).sum());
+        assertEquals(80, result.stream().mapToLong(PassiveMinuteTimeline.Minute::fitStepsRaw).sum());
+        assertEquals(64.0, result.stream().mapToDouble(
+            PassiveMinuteTimeline.Minute::fitDistanceMeters).sum(), 0.0001);
+    }
 }

@@ -215,8 +215,12 @@ final class DriveTestExportManager {
         e.putInt(id + ".battery", battery(context));
         e.remove(id + ".direct_step_timeline");
         e.apply();
-        HealthConnectGateway.refreshToday(context, new HealthConnectGateway.Callback() {
-            public void onSuccess(DailyMovement m) { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(id + ".steps", m.steps).apply(); }
+        PhoneDailyMovementGateway.refreshToday(context, new PhoneDailyMovementGateway.Callback() {
+            public void onSuccess(DailyMovement m, long phoneSteps, long bipSteps,
+                                  String fusionSource) {
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                    .putLong(id + ".steps", m.steps).apply();
+            }
             public void onPermissionRequired() {} public void onUnavailable() {} public void onError() {}
         });
     }
@@ -363,8 +367,9 @@ final class DriveTestExportManager {
         new Handler(Looper.getMainLooper()).postDelayed(
             () -> starter.start(null, "timeout"), HEALTH_TIMEOUT_MILLIS
         );
-        HealthConnectGateway.refreshToday(context, new HealthConnectGateway.Callback() {
-            public void onSuccess(DailyMovement m) { starter.start(m.steps, "fresh"); }
+        PhoneDailyMovementGateway.refreshToday(context, new PhoneDailyMovementGateway.Callback() {
+            public void onSuccess(DailyMovement m, long phoneSteps, long bipSteps,
+                                  String fusionSource) { starter.start(m.steps, "fresh_local"); }
             public void onPermissionRequired() { starter.start(null, "permission_required"); }
             public void onUnavailable() { starter.start(null, "unavailable"); }
             public void onError() { starter.start(null, "error"); }
@@ -515,7 +520,7 @@ final class DriveTestExportManager {
             List<PassiveEpisodeAnalyzer.Episode> episodes =
                 PassiveEpisodeAnalyzer.episodes(evidence);
             JSONObject json = new JSONObject()
-                .put("schema_version", 8)
+                .put("schema_version", 9)
                 .put("kind", kind)
                 .put("day", audit.getDay())
                 .put("zone_id", audit.getZoneId())
@@ -527,7 +532,7 @@ final class DriveTestExportManager {
                     .put("observation_delay_ms", Math.max(0,
                         observedAtMillis - audit.getIntervalEndMillis())))
                 .put("collection_performance", new JSONObject()
-                    .put("all_sources_aggregate_ms", audit.getAllSourcesAggregateDurationMillis())
+                    .put("local_counter_read_ms", audit.getAllSourcesAggregateDurationMillis())
                     .put("google_fit_aggregate_ms", audit.getGoogleFitAggregateDurationMillis())
                     .put("step_record_read_and_classification_ms", audit.getClassificationDurationMillis())
                     .put("health_connect_total_ms", audit.getTotalReadDurationMillis()))
@@ -539,11 +544,11 @@ final class DriveTestExportManager {
                     .put("exclusion_threshold", 0.80)
                     .put("records_meeting_exclusion_threshold",
                         audit.getExclusionThresholdRecordCount()))
-                .put("step_records", new JSONObject()
+                .put("google_fit_reference_step_records", new JSONObject()
                     .put("record_count", audit.getRawStepRecordCount())
                     .put("record_steps_before_aggregate_reconciliation",
                         audit.getRawStepRecordSteps())
-                    .put("classified_steps_before_aggregate_reconciliation",
+                    .put("classified_reference_steps_before_aggregate_reconciliation",
                         audit.getObservedStepsBeforeReconciliation())
                     .put("classification_before_reconciliation", new JSONObject()
                         .put("walking", audit.getWalkingStepsBeforeReconciliation())
@@ -552,9 +557,10 @@ final class DriveTestExportManager {
                         .put("vehicle", audit.getVehicleStepsBeforeReconciliation())
                         .put("bicycle", audit.getBicycleStepsBeforeReconciliation())
                         .put("still_with_steps", audit.getStillConflictStepsBeforeReconciliation()))
-                    .put("aggregate_steps", audit.getAllSteps())
-                    .put("aggregate_minus_record_steps",
-                        audit.getAllSteps() - audit.getRawStepRecordSteps())
+                    .put("aggregate_steps", audit.getFitSteps() == null
+                        ? JSONObject.NULL : audit.getFitSteps())
+                    .put("aggregate_minus_record_steps", audit.getFitSteps() == null
+                        ? JSONObject.NULL : audit.getFitSteps() - audit.getRawStepRecordSteps())
                     .put("reconciliation_scale_factor", audit.getReconciliationScaleFactor())
                     .put("invalid_or_zero_duration_records",
                         audit.getInvalidStepIntervalRecords())
@@ -575,6 +581,11 @@ final class DriveTestExportManager {
                     .put("still_with_steps", audit.getStillRecordDurationMillis()))
                 .put("todo", new JSONObject()
                     .put("steps", audit.getAllSteps())
+                    .put("source", "local_phone_and_bip_conservative_fusion")
+                    .put("fusion_source", audit.getFusionSource())
+                    .put("phone_steps", audit.getPhoneSteps())
+                    .put("phone_observed", audit.getPhoneObserved())
+                    .put("bip_steps", audit.getBipSteps())
                     .put("estimated_distance_m", estimate.distanceMeters())
                     .put("all_steps_walking_baseline_distance_m", audit.getAllSteps() * stride)
                     .put("estimated_active_calories", estimate.activeCalories())
@@ -588,10 +599,8 @@ final class DriveTestExportManager {
                     .put("walking_stride_m", stride)
                     .put("running_stride_m", runningStride)
                     .put("weight_kg", weight))
-                .put("health_connect_all_sources", new JSONObject()
-                    .put("distance_m", audit.getAllDistanceMeters() == null ? JSONObject.NULL : audit.getAllDistanceMeters())
-                    .put("active_calories", audit.getAllActiveCalories() == null ? JSONObject.NULL : audit.getAllActiveCalories()))
                 .put("google_fit", new JSONObject()
+                    .put("role", "independent_reference_only")
                     .put("steps", audit.getFitSteps() == null ? JSONObject.NULL : audit.getFitSteps())
                     .put("distance_m", audit.getFitDistanceMeters() == null ? JSONObject.NULL : audit.getFitDistanceMeters())
                     .put("active_calories", audit.getFitActiveCalories() == null ? JSONObject.NULL : audit.getFitActiveCalories()))
@@ -842,7 +851,7 @@ final class DriveTestExportManager {
 
     private static JSONObject passiveModelProvenance(Context context, double walkingStride,
         double runningStride, double weight) throws Exception {
-        String config = "schema=8|app=" + appVersion(context) + "|code="
+        String config = "schema=9|app=" + appVersion(context) + "|code="
             + appVersionCode(context) + "|walk=" + walkingStride
             + "|run=" + runningStride + "|weight=" + weight
             + "|exclude=0.8|episode_steps=" + PassiveEpisodeAnalyzer.ACTIVE_STEP_THRESHOLD
@@ -853,7 +862,7 @@ final class DriveTestExportManager {
         for (byte b : hash) hex.append(String.format(java.util.Locale.ROOT, "%02x", b));
         return new JSONObject().put("app_version", appVersion(context))
             .put("android_version_code", appVersionCode(context))
-            .put("report_schema", 8).put("configuration_sha256", hex.toString())
+            .put("report_schema", 9).put("configuration_sha256", hex.toString())
             .put("walking_stride_m", walkingStride).put("running_stride_m", runningStride)
             .put("weight_kg", weight).put("transport_exclusion_threshold", 0.80)
             .put("episode_active_step_threshold", PassiveEpisodeAnalyzer.ACTIVE_STEP_THRESHOLD)
@@ -958,11 +967,11 @@ final class DriveTestExportManager {
         JSONArray flags = new JSONArray();
         if (audit.getFitSteps() == null) flags.put("fit_steps_missing");
         if (audit.getFitDistanceMeters() == null) flags.put("fit_distance_missing");
-        if (audit.getRawStepRecordCount() == 0 && audit.getAllSteps() > 0)
-            flags.put("aggregate_without_raw_step_records");
+        if (!audit.getPhoneObserved()) flags.put("local_phone_counter_not_observed_for_day");
         if (audit.getInvalidStepIntervalRecords() > 0) flags.put("invalid_step_intervals");
-        if (audit.getRawStepRecordSteps() != audit.getAllSteps())
-            flags.put("raw_records_reconciled_to_aggregate");
+        if (audit.getFitSteps() != null
+            && audit.getRawStepRecordSteps() != audit.getFitSteps())
+            flags.put("fit_raw_records_reconciled_to_fit_aggregate");
         if (audit.getAllSteps() > 0 && estimate.unknownSteps() / (double) audit.getAllSteps() >= 0.50)
             flags.put("majority_steps_unknown");
         if (audit.getAllSteps() > 0 && audit.getStillConflictSteps() / (double) audit.getAllSteps() >= 0.20)

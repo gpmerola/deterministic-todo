@@ -39,6 +39,23 @@ public final class PhoneDailyMovementGateway {
         void onError();
     }
 
+    /** Local daily totals. Health Connect and Google Fit are deliberately excluded. */
+    public record DailyTotals(long phoneSteps, long bipSteps, long fusedSteps,
+                              String fusionSource, boolean phoneObserved) {}
+
+    public static DailyTotals totalsForDay(Context context, LocalDate day, ZoneId zone) {
+        Context app = context.getApplicationContext();
+        String dayKey = day + "|" + zone.getId();
+        SharedPreferences prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean observed = prefs.contains("steps|" + dayKey);
+        long phone = Math.max(0, prefs.getLong("steps|" + dayKey, 0));
+        long start = day.atStartOfDay(zone).toInstant().toEpochMilli();
+        long end = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli();
+        long bip = Math.max(0, RunDatabase.get(app).runs().bipUSteps(start, end));
+        DailyMovementFusion.Result fused = DailyMovementFusion.combine(phone, bip);
+        return new DailyTotals(phone, bip, fused.steps(), fused.source(), observed);
+    }
+
     public static void refreshToday(Context context, Callback callback) {
         Context app = context.getApplicationContext();
         if (Build.VERSION.SDK_INT >= 29 && ContextCompat.checkSelfPermission(app,

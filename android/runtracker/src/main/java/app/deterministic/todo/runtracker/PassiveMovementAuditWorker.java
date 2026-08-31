@@ -140,6 +140,7 @@ public final class PassiveMovementAuditWorker extends Worker {
     private record AuditRead(HealthConnectGateway.PassiveAudit audit, String error) {}
 
     private static AuditRead readAudit(Context context, LocalDate day) {
+        if (day.equals(LocalDate.now(ZoneId.systemDefault()))) refreshLocalCounter(context);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<HealthConnectGateway.PassiveAudit> audit = new AtomicReference<>();
         AtomicReference<String> error = new AtomicReference<>();
@@ -156,6 +157,24 @@ public final class PassiveMovementAuditWorker extends Worker {
             return new AuditRead(null, "interrupted");
         }
         return new AuditRead(audit.get(), error.get());
+    }
+
+    private static void refreshLocalCounter(Context context) {
+        CountDownLatch latch = new CountDownLatch(1);
+        PhoneDailyMovementGateway.refreshToday(context, new PhoneDailyMovementGateway.Callback() {
+            @Override public void onSuccess(DailyMovement movement, long phoneSteps,
+                                            long bipSteps, String fusionSource) {
+                latch.countDown();
+            }
+            @Override public void onPermissionRequired() { latch.countDown(); }
+            @Override public void onUnavailable() { latch.countDown(); }
+            @Override public void onError() { latch.countDown(); }
+        });
+        try {
+            latch.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static Result resultFor(String error) {

@@ -128,6 +128,12 @@ Il numero Android di Todo Test è sempre `2000 + build` (per esempio build 130
 → `versionCode 2130`). Non costruire né pubblicare il flavor dev senza questo
 offset: Android lo rifiuterebbe come downgrade rispetto ai Todo Test esistenti.
 
+La compilazione può lasciare un daemon Gradle residente per accelerare build
+successive. Sulla macchina di sviluppo, quando il ciclo di build/test è
+terminato e la RAM è più importante della cache calda, arrestarlo esplicitamente
+con `cd android && ./gradlew --stop`; non è necessario né utile mentre una build
+è ancora in corso.
+
 ## Passaggio e rollback
 
 - Prima di attivare il monitor passivo o intensivo in Todo Test, fermarlo nella

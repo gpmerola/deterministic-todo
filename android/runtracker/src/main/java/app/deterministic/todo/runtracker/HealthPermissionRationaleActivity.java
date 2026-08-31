@@ -18,7 +18,7 @@ public final class HealthPermissionRationaleActivity extends ComponentActivity {
         root.setPadding(pad, pad, pad, pad);
         TextView text = new TextView(this);
         text.setTextSize(17);
-        text.setText("L’app legge da Health Connect passi, distanza e calorie attive autorizzati. I passi servono al totale giornaliero e alle stime locali; distanza e calorie consentono il confronto esplicito dell’ultima sessione con Google Fit. I dati restano sul dispositivo: non vengono inviati a Supabase, analytics o servizi pubblicitari. Puoi revocare l’accesso in qualsiasi momento dalle impostazioni di Health Connect.");
+        text.setText("L’app legge da Health Connect i dati attribuiti a Google Fit esclusivamente come riferimento di confronto. Il totale Movimento e le stime locali usano invece il contatore hardware del telefono e, quando disponibile, Amazfit con fusione conservativa. I dati restano sul dispositivo: non vengono inviati a Supabase, analytics o servizi pubblicitari. Puoi revocare l’accesso in qualsiasi momento dalle impostazioni di Health Connect.");
         root.addView(text);
         setContentView(root);
     }

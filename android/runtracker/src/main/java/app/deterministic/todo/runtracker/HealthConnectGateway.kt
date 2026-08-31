@@ -54,58 +54,6 @@ object HealthConnectGateway {
         PermissionController.createRequestPermissionResultContract(PROVIDER_PACKAGE)
 
     @JvmStatic
-    fun refreshToday(context: Context, callback: Callback) {
-        if (sdkStatus(context) != AVAILABLE) {
-            callback.onUnavailable()
-            return
-        }
-        val appContext = context.applicationContext
-        scope.launch {
-            try {
-                val client = HealthConnectClient.getOrCreate(appContext, PROVIDER_PACKAGE)
-                if (!client.permissionController.getGrantedPermissions().containsAll(permissions(appContext))) {
-                    withContext(Dispatchers.Main) { callback.onPermissionRequired() }
-                    return@launch
-                }
-                val zone = ZoneId.systemDefault()
-                val day = LocalDate.now(zone)
-                val start = day.atStartOfDay(zone).toInstant()
-                val end = minOf(Instant.now(), day.plusDays(1).atStartOfDay(zone).toInstant())
-                val result = client.aggregate(
-                    AggregateRequest(
-                        metrics = setOf(StepsRecord.COUNT_TOTAL),
-                        timeRangeFilter = TimeRangeFilter.between(start, end)
-                    )
-                )
-                val steps = result[StepsRecord.COUNT_TOTAL] ?: 0L
-                val preferences = appContext.getSharedPreferences("movement_profile", Context.MODE_PRIVATE)
-                val stride = preferences.getFloat("walking_stride_meters", MovementEstimate.DEFAULT_STRIDE_METERS.toFloat()).toDouble()
-                val runningStride = preferences.getFloat("running_stride_meters", MixedMovementEstimate.DEFAULT_RUNNING_STRIDE_METERS.toFloat()).toDouble()
-                val weight = preferences.getFloat("weight_kg", MovementEstimate.DEFAULT_WEIGHT_KG.toFloat()).toDouble()
-                val classified = classifySteps(appContext, client, start, end, steps)
-                val estimate = MixedMovementEstimate.calculate(classified.walkingSteps,
-                    classified.runningSteps, classified.unknownSteps, classified.excludedSteps,
-                    stride, runningStride, weight)
-                val row = DailyMovement().apply {
-                    this.day = day.toString()
-                    zoneId = zone.id
-                    source = "health_connect_activity_classified"
-                    this.steps = steps
-                    estimatedDistanceMeters = estimate.distanceMeters()
-                    estimatedActiveCalories = estimate.activeCalories()
-                    updatedAtMillis = System.currentTimeMillis()
-                }
-                RunDatabase.get(appContext).runs().upsertDailyMovement(row)
-                withContext(Dispatchers.Main) { callback.onSuccess(row) }
-            } catch (_: SecurityException) {
-                withContext(Dispatchers.Main) { callback.onPermissionRequired() }
-            } catch (_: Exception) {
-                withContext(Dispatchers.Main) { callback.onError() }
-            }
-        }
-    }
-
-    @JvmStatic
     fun compareGoogleFit(context: Context, session: RunSession, callback: ComparisonCallback) {
         if (sdkStatus(context) != AVAILABLE) {
             callback.onUnavailable()
@@ -179,12 +127,7 @@ object HealthConnectGateway {
                     DistanceRecord.DISTANCE_TOTAL,
                     ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
                 )
-                val allStarted = SystemClock.elapsedRealtime()
-                val all = client.aggregate(AggregateRequest(
-                    metrics = metrics,
-                    timeRangeFilter = TimeRangeFilter.between(start, end)
-                ))
-                val allAggregateDuration = SystemClock.elapsedRealtime() - allStarted
+                val local = PhoneDailyMovementGateway.totalsForDay(appContext, day, zone)
                 val fitStarted = SystemClock.elapsedRealtime()
                 val fit = client.aggregate(AggregateRequest(
                     metrics = metrics,
@@ -193,21 +136,19 @@ object HealthConnectGateway {
                 ))
                 val fitAggregateDuration = SystemClock.elapsedRealtime() - fitStarted
                 val classificationStarted = SystemClock.elapsedRealtime()
+                val fitSteps = fit[StepsRecord.COUNT_TOTAL]
                 val classified = classifySteps(appContext, client, start, end,
-                    all[StepsRecord.COUNT_TOTAL] ?: 0L)
+                    fitSteps ?: 0L)
                 val classificationDuration = SystemClock.elapsedRealtime() - classificationStarted
                 val value = PassiveAudit(
                     day.toString(), zone.id, start.toEpochMilli(), end.toEpochMilli(),
-                    all[StepsRecord.COUNT_TOTAL] ?: 0L,
-                    all[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
-                    all[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
-                    fit[StepsRecord.COUNT_TOTAL],
+                    local.fusedSteps,
+                    null,
+                    null,
+                    fitSteps,
                     fit[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
                     fit[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,
-                    classified.walkingSteps, classified.runningSteps,
-                    classified.unknownSteps, classified.excludedSteps,
-                    classified.vehicleSteps, classified.bicycleSteps,
-                    classified.stillConflictSteps,
+                    0, 0, local.fusedSteps, 0, 0, 0, 0,
                     classified.rawRecordCount, classified.rawRecordSteps,
                     classified.invalidIntervalRecords, classified.googleFitRecordCount,
                     classified.googleFitRawSteps, classified.otherRecordCount,
@@ -225,7 +166,9 @@ object HealthConnectGateway {
                     classified.stillConflictStepsBeforeReconciliation,
                     classified.reconciliationScaleFactor,
                     classified.minuteTimeline,
-                    allAggregateDuration, fitAggregateDuration, classificationDuration,
+                    0, fitAggregateDuration, classificationDuration,
+                    local.phoneSteps, local.bipSteps, local.fusionSource,
+                    local.phoneObserved,
                     SystemClock.elapsedRealtime() - auditStarted
                 )
                 withContext(Dispatchers.Main) { callback.onSuccess(value) }
@@ -269,6 +212,7 @@ object HealthConnectGateway {
             val response = client.readRecords(ReadRecordsRequest(
                 recordType = StepsRecord::class,
                 timeRangeFilter = TimeRangeFilter.between(start, end),
+                dataOriginFilter = setOf(DataOrigin("com.google.android.apps.fitness")),
                 pageToken = token
             ))
             for (record in response.records) {
@@ -310,6 +254,7 @@ object HealthConnectGateway {
             val response = client.readRecords(ReadRecordsRequest(
                 recordType = DistanceRecord::class,
                 timeRangeFilter = TimeRangeFilter.between(start, end),
+                dataOriginFilter = setOf(DataOrigin("com.google.android.apps.fitness")),
                 pageToken = distanceToken
             ))
             for (record in response.records) {
@@ -330,7 +275,7 @@ object HealthConnectGateway {
             bicycleDuration, stillDuration, exclusionThresholdRecordCount,
             observed, walking, running, unknown, vehicle, bicycle, stillConflict,
             if (observed > 0) aggregateSteps.toDouble() / observed else 0.0,
-            minuteTimeline.build(aggregateSteps))
+            minuteTimeline.buildReferenceOnly())
         fun scaled(value: Long) = (value.toDouble() * aggregateSteps / observed).toLong()
         val scaledWalking = scaled(walking)
         val scaledRunning = scaled(running)
@@ -349,7 +294,7 @@ object HealthConnectGateway {
             walkingDuration, runningDuration, unknownDuration, vehicleDuration,
             bicycleDuration, stillDuration, exclusionThresholdRecordCount,
             observed, walking, running, unknown, vehicle, bicycle, stillConflict,
-            aggregateSteps.toDouble() / observed, minuteTimeline.build(aggregateSteps))
+            aggregateSteps.toDouble() / observed, minuteTimeline.buildReferenceOnly())
     }
 
     private data class ClassifiedSteps(val walkingSteps: Long, val runningSteps: Long,
@@ -427,6 +372,10 @@ object HealthConnectGateway {
         val allSourcesAggregateDurationMillis: Long,
         val googleFitAggregateDurationMillis: Long,
         val classificationDurationMillis: Long,
+        val phoneSteps: Long,
+        val bipSteps: Long,
+        val fusionSource: String,
+        val phoneObserved: Boolean,
         val totalReadDurationMillis: Long
     )
 
@@ -442,10 +391,4 @@ object HealthConnectGateway {
         fun onError(code: String)
     }
 
-    interface Callback {
-        fun onSuccess(movement: DailyMovement)
-        fun onPermissionRequired()
-        fun onUnavailable()
-        fun onError()
-    }
 }

@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.34.9
+
+- Corretto il confronto passivo: i valori Todo provengono ora esclusivamente
+  dal contatore hardware locale e dalla fusione conservativa con Amazfit;
+  Health Connect legge soltanto i record attribuiti a Google Fit come gold
+  standard indipendente.
+- Lo schema diagnostico 9 espone separatamente passi telefono, passi Bip U,
+  sorgente scelta e disponibilità del campione locale. La timeline Fit non
+  viene più copiata nella timeline Todo quando manca una timeline locale.
+- Anche la schermata Movimento nativa e gli snapshot di inizio/fine sessione
+  usano il contatore locale, eliminando l’ultimo percorso quotidiano basato su
+  Health Connect.
+
 ## 2.34.8
 
 - Corretto il cambio di giorno del contatore hardware: il primo campione dopo

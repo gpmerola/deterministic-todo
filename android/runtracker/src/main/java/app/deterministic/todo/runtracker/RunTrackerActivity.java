@@ -399,25 +399,26 @@ public final class RunTrackerActivity extends ComponentActivity {
     }
 
     private void refreshDailyMovement() {
-        HealthConnectGateway.refreshToday(this, new HealthConnectGateway.Callback() {
-            @Override public void onSuccess(DailyMovement movement) {
+        PhoneDailyMovementGateway.refreshToday(this, new PhoneDailyMovementGateway.Callback() {
+            @Override public void onSuccess(DailyMovement movement, long phoneSteps,
+                                            long bipSteps, String fusionSource) {
                 dailyStepsView.setText(String.format(Locale.ITALY, "%,d", movement.steps));
                 dailyDistanceView.setText(String.format(Locale.ITALY, "%.2f km", movement.estimatedDistanceMeters / 1000));
                 dailyCaloriesView.setText(String.format(Locale.ITALY, "%.0f kcal", movement.estimatedActiveCalories));
                 int goal = getSharedPreferences("movement_profile", MODE_PRIVATE).getInt(
                     "daily_step_goal", DailyStepGoalPolicy.DEFAULT_GOAL);
                 dailyGoalView.setProgress(movement.steps, goal);
-                movementStatusView.setText("Aggiornato ora");
+                movementStatusView.setText("Aggiornato ora · telefono/Amazfit");
                 healthPermissionButton.setVisibility(View.GONE);
             }
 
             @Override public void onPermissionRequired() {
-                movementStatusView.setText("Autorizza Health Connect: continuerà a raccogliere i passi anche quando l’app è chiusa");
+                movementStatusView.setText("Autorizza il riconoscimento attività per leggere il contatore del telefono");
                 healthPermissionButton.setVisibility(View.VISIBLE);
             }
 
             @Override public void onUnavailable() {
-                movementStatusView.setText("Health Connect non disponibile o da aggiornare su questo dispositivo");
+                movementStatusView.setText("Contatore passi hardware non disponibile su questo dispositivo");
                 healthPermissionButton.setVisibility(View.GONE);
             }
 

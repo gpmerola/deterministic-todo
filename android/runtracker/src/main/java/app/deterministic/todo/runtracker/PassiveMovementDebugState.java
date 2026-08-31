@@ -9,7 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 final class PassiveMovementDebugState {
-    static final int SCHEMA_VERSION = 1;
+    static final int SCHEMA_VERSION = 2;
     private static final String PREFS = "movement_passive_debug";
     private static final long EXPECTED_INTERVAL_MILLIS = 60 * 60 * 1000L;
 
@@ -56,6 +56,11 @@ final class PassiveMovementDebugState {
             .putString("zone_id", audit.getZoneId())
             .putString("file_name", fileName)
             .putLong("todo_steps", audit.getAllSteps())
+            .putString("todo_source", "local_phone_and_bip_conservative_fusion")
+            .putString("fusion_source", audit.getFusionSource())
+            .putLong("phone_steps", audit.getPhoneSteps())
+            .putBoolean("phone_observed", audit.getPhoneObserved())
+            .putLong("bip_steps", audit.getBipSteps())
             .putLong("walking_steps", estimate.walkingSteps())
             .putLong("running_steps", estimate.runningSteps())
             .putLong("unknown_steps", estimate.unknownSteps())
@@ -64,6 +69,7 @@ final class PassiveMovementDebugState {
             .putLong("excluded_bicycle_steps", audit.getBicycleSteps())
             .putLong("still_conflict_steps", audit.getStillConflictSteps())
             .putLong("raw_step_record_count", audit.getRawStepRecordCount())
+            .putString("reference_step_record_source", "google_fit")
             .putLong("raw_step_record_steps", audit.getRawStepRecordSteps())
             .putLong("invalid_step_interval_records", audit.getInvalidStepIntervalRecords())
             .putLong("observed_steps_before_reconciliation",
@@ -101,6 +107,12 @@ final class PassiveMovementDebugState {
         values.put("zone_id", p.getString("zone_id", null));
         values.put("file_name", p.getString("file_name", null));
         addLong(values, p, "todo_steps");
+        values.put("todo_source", p.getString("todo_source", null));
+        values.put("fusion_source", p.getString("fusion_source", null));
+        addLong(values, p, "phone_steps");
+        values.put("phone_observed", p.contains("phone_observed")
+            ? (p.getBoolean("phone_observed", false) ? 1 : 0) : null);
+        addLong(values, p, "bip_steps");
         addFloat(values, p, "todo_distance_m");
         addFloat(values, p, "todo_active_calories");
         addLong(values, p, "walking_steps");
@@ -111,6 +123,8 @@ final class PassiveMovementDebugState {
         addLong(values, p, "excluded_bicycle_steps");
         addLong(values, p, "still_conflict_steps");
         addLong(values, p, "raw_step_record_count");
+        values.put("reference_step_record_source",
+            p.getString("reference_step_record_source", null));
         addLong(values, p, "raw_step_record_steps");
         addLong(values, p, "invalid_step_interval_records");
         addLong(values, p, "observed_steps_before_reconciliation");

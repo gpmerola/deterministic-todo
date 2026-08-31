@@ -1,6 +1,6 @@
 # Handoff tecnico e di prodotto
 
-Aggiornato il 27 agosto 2026. Questo documento è il punto di ingresso per una
+Aggiornato il 31 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e
 [`TODO_NEXT.md`](../TODO_NEXT.md).
@@ -138,9 +138,11 @@ di cambiare architettura.
   dello scheduler Android: un executor dedicato lo esegue immediatamente e un
   WorkRequest con lo stesso bucket lo ripete dopo un minuto soltanto come
   fallback persistente. I nomi idempotenti impediscono duplicati. Il totale
-  passi dell'anello viene riletto da Health Connect ogni 30 secondi con app
-  visibile; a schermo spento non esiste nuovo polling e il sistema continua a
-  contare autonomamente.
+  passi dell'anello viene riletto dal contatore hardware Android ogni 30
+  secondi con app visibile; a schermo spento non esiste nuovo polling e il
+  sensore di sistema continua a contare autonomamente. Dalla build 164 anche la
+  diagnostica passiva schema 9 usa esclusivamente telefono+Amazfit per Todo;
+  Health Connect è filtrato sull'origine Google Fit e resta solo riferimento.
   Drive crea cinque
   sottocartelle stabili (`01 Sessions`, `02 Passive`, `03 Intensive`,
   `04 App diagnostics`, `05 Bip U`). La prova BLE preferisce il dispositivo
