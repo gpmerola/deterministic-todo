@@ -1,0 +1,331 @@
+# Stato corrente
+
+Aggiornato il 31 agosto 2026.
+
+## Build 167 — Inbox filtrata e cancellazione definitiva
+
+La versione **2.35.2 build 167** mostra in Impostazioni soltanto le attività
+senza data che non appartengono ad alcun progetto e aggiunge **Svuota cestino**.
+Con la sincronizzazione configurata, la cancellazione definitiva viene eseguita
+prima su Supabase tramite la RPC `purge_trash` e solo dopo in SQLite; un errore
+remoto conserva quindi la copia locale. La migrazione Supabase è stata applicata
+il 31 agosto 2026 senza cancellare dati durante l'installazione. Il commit release
+`0f3562f` è pubblicato sul Web, negli APK diretti e nel test interno Google Play;
+le identità pubbliche Web/Android e la pipeline coordinata risultano coerenti.
+Todo Test 167 è installata sul Galaxy S21 con dati preservati.
+
+Prima di svuotare definitivamente il cestino occorre sincronizzare eventuali
+altri dispositivi rimasti offline, che altrimenti potrebbero riproporre modifiche
+obsolete al successivo collegamento.
+
+## Build 166 — Inbox storica
+
+La versione **2.35.1 build 166** espone in Impostazioni le attività attive senza
+data, con rimozione singola o collettiva tramite tombstone sincronizzata e
+recupero dal Cestino. Il commit release `a0c5e58` è pubblicato sul Web, negli
+APK diretti e nel test interno Google Play; la pipeline coordinata e il
+controllo pubblico di parità sono verdi. Todo Test 166 è installata sul Galaxy
+S21 con dati preservati.
+
+## Build 155 — Movimento autonomo dal riferimento Fit
+
+Il totale visibile usa `TYPE_STEP_COUNTER` e persiste la baseline cumulativa per
+boot e giorno civile. I passi Bip U già importati entrano con la regola
+conservativa `max(telefono, Amazfit)`, senza sommare sorgenti sovrapposte; i due
+valori sono esposti separatamente. Health Connect/Google Fit non alimenta più
+l'anello né la card giornaliera e resta esclusivamente gold di confronto. Il
+primo avvio dopo l'aggiornamento stabilisce una baseline e non inventa il
+pregresso della giornata non ricostruibile localmente.
+
+## Build 159 — importazione Bip U automatica e limitata
+
+Il client BLE di importazione storico è utilizzabile senza Activity: viene
+richiamato al massimo ogni 15 minuti mentre l'app è visibile e da un worker
+periodico ogni tre ore. Il tentativo è in sola lettura, dura al massimo 90
+secondi, richiede batteria non bassa e non usa retry aggressivi. Android può
+ritardare il worker; la cadenza è quindi minima e non un allarme esatto.
+La build locale intermedia 156 ha verificato sul Galaxy lo scheduling, rilevando
+correttamente Bluetooth spento; la 157 distingue questo esito come `skipped`.
+Il collaudo reale della 157 ha raggiunto autenticazione e richiesta delle 168
+ore ma rilevato una riconsegna di notifica; la 158 accetta soltanto duplicati
+byte-identici e continua a rifiutare gap o contenuti discordanti.
+La 159 aggiunge esclusivamente il trigger ADB `sync_bip_now`, protetto dal
+permesso di sistema `DUMP`, per riprodurre subito lo stesso percorso headless.
+Il collaudo reale della 159 è riuscito: autenticazione, richiesta di 168 ore,
+4.263 campioni minuto inseriti idempotentemente e 32.912 passi grezzi nella
+finestra completa. Il trasferimento è durato circa 18 secondi; GATT è stato
+chiuso e il client BLE deregistrato subito dopo.
+
+## Distribuzione
+
+- Canali supportati: Android nativo e browser Chrome/Edge.
+- Versione Todo Test preparata: **2.33.2 build 151**. Il flavor Android `dev`
+  produce **Todo Test**, installabile e aggiornabile via ADB accanto alla build
+  Play. Sul Galaxy S21 Todo Test è l'unico client attivo, con monitor passivo e
+  diagnostica intensiva avviati. La build Play 121 è installata ma
+  `disabled-user`: dati e baseline esistenti restano conservati. La build 147
+  serializza tutte le scritture Drive: il collaudo reale della 146 aveva
+  mostrato un diagnostico manuale `.partial` vuoto quando worker manuale,
+  periodico e intensivo si sovrapponevano. Il fallback viene cancellato dopo
+  un upload diretto verificato. La build 149 sostituisce definitivamente quel
+  flusso con un bundle rolling completo di 7 giorni, aggiornato ogni 3 ore o
+  manualmente in due slot alternati. Non elimina mai file su Drive.
+  La build 131 unifica il recupero manuale dell’ultima sessione: riesporta GPX
+  e diagnostica e riprogramma automaticamente il confronto Fit. I retry con
+  valori Fit invariati riusano lo stesso sidecar immutabile, mentre un
+  aggiornamento reale dei valori crea un nuovo snapshot.
+  La build 132 corregge inoltre il confronto OTA del suffisso `-dev`, verifica
+  anche la build logica e ricontrolla la versione installata prima di avviare
+  il download: il manifest rolling in ritardo non può più proporre downgrade.
+  La build 133 evita che il ritorno da un falso riaggancio GPS aggiunga il
+  percorso spurio: il primo fix coerente dopo il riaggancio stabilizza soltanto
+  il nuovo riferimento ed è registrato come `gps_discontinuity_settling`.
+  Inoltre una sessione calibra la falcata soltanto se almeno l'80% dei passi
+  osservati in finestre di 30 secondi appartiene alla cadenza attesa; i
+  campioni corsa precedenti a questa regola vengono azzerati una sola volta.
+  La build 134 aggiunge un report canonico per sessione confrontabile fra Todo
+  Test, Google Fit e Bip U, con finestre UTC di un minuto e campioni Bip nativi.
+  Si aggiorna dopo Fit, dopo il recupero Bip e ogni ora per le ultime 15
+  sessioni. Il recupero Bip usa un'ora di sovrapposizione e fino a sette giorni
+  di storico, senza cancellare dati dall'orologio. La diagnostica registra
+  anche la distribuzione reale degli intervalli GPS; la richiesta resta a 1 Hz.
+  La build 135 aggiunge ai report passivi una timeline Health Connect UTC al
+  minuto, rende persistente e remoto lo stato del recupero Bip e registra i
+  buchi della diagnostica intensiva anche fra riavvii/segmenti.
+  La build 136 aggiunge in Movimento un upload manuale completo e osservabile:
+  crea file univoci per snapshot passivo e diagnostica, carica i blocchi
+  intensivi pendenti, aggiorna il report unificato e i confronti recenti senza
+  avviare GPS o BLE.
+  La build 137 aggiunge l'obiettivo passi globale (10.000 predefiniti,
+  configurabile), con anello persistente e celebrazione una volta al giorno;
+  riduce Movimento a tre schede principali e sposta i controlli rari nei
+  dettagli. L'upload completo è richiamabile anche dalla shell ADB protetta.
+  La build 138 elimina il passaggio Flutter→Activity dalla navigazione:
+  Movimento è una pagina coerente con il resto dell'app e usa un bridge
+  sottile per stato live, avvio/stop e upload. Il refresh al secondo è
+  confinato alla pagina visibile e non modifica il monitor passivo.
+  La build 139 porta il report passivo allo schema 7: timeline Todo/Fit/Bip,
+  episodi diagnostici automatici con pause, copertura e ritardo delle sorgenti,
+  provenienza/hash del modello e checkpoint risorse. Algoritmo, GPS e cadenza
+  degli upload restano invariati, quindi il test in corso continua.
+  La build 140 rende crash-safe la scrittura dei report immutabili su Drive,
+  recupera i file da 0 byte e registra tentativo corrente/ultimo upload
+  concluso. Normalizza CPU e rete, aggiunge il delta PSS e rende esplicita
+  l'assenza o obsolescenza dei campioni Bip senza avviare BLE in background.
+  La build 141 rende diagnosticabile ogni singola fase del job Drive e tratta
+  il refresh dei confronti storici come opzionale, senza ritentare log e
+  riepilogo già riusciti. Lo snapshot passivo schema 8 distingue Fit corrente,
+  ritardato, obsoleto o mancante e registra avanzamento, delta e arrivi tardivi
+  fra osservazioni. Il contatore hardware indipendente continua a essere
+  registrato nei segmenti intensivi come `step_counter_delta`; nessun secondo
+  monitor permanente è stato aggiunto.
+  La build 146 aggiorna il contatore visibile ogni 30 secondi solo in foreground
+  e avvia l'export manuale essenziale su un executor dedicato, con fallback
+  WorkManager idempotente dopo un minuto. La build 145 confina il drenaggio
+  intensivo in un worker dedicato e ritardato
+  di due minuti nel percorso manuale: snapshot, log e report non attraversano
+  più quella coda e non possono essere bloccati da un chunk o dal provider SAF.
+  La build 144 rende idempotente ogni singolo comando manuale anche attraverso
+  i retry, espone separatamente la generazione del report unificato e garantisce
+  un report schema 6 minimo in caso di errore. Le metriche non finite diventano
+  `null` JSON invece di interrompere la serializzazione. La build 143 elimina la
+  dipendenza sequenziale del caricamento manuale:
+  snapshot passivo e diagnostica generale sono due lavori indipendenti, così
+  un retry parziale non blocca log e report unificato. La build 142 gestisce la
+  semantica asincrona del provider Drive: se
+  `renameDocument` non restituisce un URI o segnala un errore ambiguo, accetta il successo soltanto dopo
+  aver verificato nome e dimensione del file finale. Il report unificato schema
+  5 conserva le fasi come JSON annidato e registra lo smaltimento della coda
+  intensiva. Anche il worker diagnostico orario carica fino a otto chunk per
+  ciclo, indipendentemente dalla schermata e dalla scadenza del monitor passivo.
+  Drive separa sessioni,
+  confronti passivi, diagnostica intensiva, diagnostica app e prove Bip U in
+  cinque sottocartelle. Ogni prova Bip U esporta un report privo di MAC e
+  chiavi. La connessione usa prima l'orologio già associato ad Android e resta
+  in sola lettura. La build 124 è verificata sul Bip U reale: autenticazione,
+  7 campioni cardiaci (67–73 bpm, media 70), stop automatico, GATT 0 e report
+  Drive schema 2 completati. La build 126 ha inoltre importato dal dispositivo
+  reale 1.440 campioni di un minuto con 2.626 passi e 358 valori cardiaci; il
+  retry sovrapposto ha inserito soltanto due minuti nuovi. I dati restano
+  locali e separati dalla sorgente telefono. La build 127 aggiunge un
+  ore un report remoto unificato con stato telefono/Fit, aggregati Bip U a 3 e
+  24 ore, freschezza dei campioni, stato intensivo e metadati dei log. Conserva
+  gli ultimi 15 report e 15 snapshot JSONL. La diagnostica intensiva
+  opzionale osserva per sette giorni GPS e sensori in finestre di cinque
+  secondi e carica blocchi JSONL orari su Drive. ID e scadenza sopravvivono
+  alle build intermedie, che restano distinguibili per segmento. La build 118
+  rende crash-safe la rotazione e garantisce un tentativo finale di upload
+  anche quando test intensivo e passivo scadono insieme, senza cambiare
+  algoritmo o campionamento. Il test
+  passivo Movimento
+  crea snapshot cumulativi Todo/Google Fit della giornata corrente all'avvio e
+  ogni ora, mantenendo anche il report finale giornaliero. La 2.25.4 build 112
+  aggiorna durante il debugging la diagnostica Drive all'apertura; dalla 134 il
+  job periodico gira ogni ora invece che ogni tre
+  ore con rete disponibile. Dalla 127 usa snapshot immutabili per fascia
+  oraria invece di un file giornaliero non aggiornabile. La
+  2.25.3 build 111 verifica ogni
+  scrittura task sul server prima di riconoscere l'outbox e ribasa
+  automaticamente le versioni Lamport remote più alte. La 2.25.2 build 110
+  distribuisce ciascun record passi sull'intervallo temporale completo e
+  tratta come incerta l'esclusione di trasporto/sosta nei blocchi misti. La
+  2.25.1 build 109 estende a sette giorni la finestra del test passivo; la
+  2.25.0 build 108 introduce classificazione passiva
+  cammino/corsa/trasporto e calibrazione distinta delle falcate. La 2.24.2 build 107 aggiunge export diagnostico Drive
+  giornaliero con retention di 15 file. La 2.24.1 build 106 riduce la memoria
+  in background e telemetria PSS Android. La 2.24.0 build 105 introduce layout compatto di
+  Movimento e confronto Google Fit persistente con timeout/retry → JSON Drive. La base funzionale
+  **2.22.3 build 95** ha superato pubblicazione diretta, Google Play interno,
+  Web e controllo finale di parità.
+- Stato dispositivo distinto dalla release: la versione installata viene
+  verificata via ADB dopo ogni consegna Todo Test; la build Play 121 è soltanto
+  fallback disabilitato.
+- Non usare l'APK GitHub per sostituire la build Play e non disinstallare o
+  cancellare i dati di nessuno dei due package. Gli APK `dev` firmati con la
+  linea diretta sono invece il canale rapido previsto per Todo Test.
+- Il test interno Google Play è attivo. Dalla build 65 la pipeline pubblica automaticamente nel
+  test interno; la produzione resta manuale e subordinata al test chiuso.
+- Un solo workflow coordina web e Android e rifiuta versioni, build o commit
+  discordanti; l'AAB raggiunge il track Play interno appena supera test e build,
+  mentre APK diretti e Web continuano in parallelo.
+- La stessa pipeline produce APK per gli aggiornamenti diretti e AAB firmato
+  per Google Play.
+
+## Dati e sincronizzazione
+
+- Il 17 agosto è stato isolato un difetto delle build fino alla 110: una
+  modifica locale incrementava solo la propria versione e `merge_task` poteva
+  scartarla se Supabase aveva già un contatore maggiore; il client eliminava
+  comunque l'outbox e il pull ripristinava lo stato remoto. La build 111 usa il
+  massimo osservato, verifica la riga server e conserva l'outbox in caso di
+  mancata conferma. Le modifiche già sovrascritte richiedono recupero separato
+  o reinserimento manuale: il fix impedisce nuove perdite ma non inventa stati
+  non più presenti in SQLite o Supabase.
+
+- SQLite Drift è la fonte locale immediata; Supabase con RLS è la replica
+  personale facoltativa.
+- Le scritture locali entrano in una outbox persistente e vengono inviate
+  subito. Le ricevute remote sono immutabili e i retry usano inserimenti
+  idempotenti senza richiedere permessi di aggiornamento.
+- Supabase Realtime notifica Android e browser; dalla 2.16.0 vengono richiesti
+  soltanto gli ID cambiati. Il canale si riapre dopo errori o timeout; un
+  controllo completo ogni dieci minuti recupera eventi persi, riprese e periodi
+  offline mentre l'app è visibile. Quando l'app passa in background il canale
+  viene rimosso per liberare socket e memoria; al resume viene ricreato prima
+  del pull di recupero.
+- Task, progetti, sezioni, priorità, date civili, ricorrenze e tombstone sono
+  sincronizzati. Il tipo `reference` della 2.18.0 resta leggibile come normale
+  task per non perdere dati. Non si sincronizzano segreti o contenuti dei log.
+- Le occorrenze ricorrenti hanno ID deterministici condivisi tra dispositivi;
+  il client riconcilia anche le collisioni storiche `23505` scegliendo la
+  versione Lamport più recente.
+
+## Esperienza corrente
+
+- Oggi, Prossime, Progetti, ricerca e composer condividono lo stesso modello su
+  Android e web, con layout desktop adattivo. Progetti è l'unico sistema di
+  organizzazione persistente esposto nell'interfaccia.
+- `Ctrl/⌘ K` apre il comando universale: testo libero cerca, `+` crea, `>`
+  naviga e `#` limita la ricerca a un progetto. Sul desktop una task selezionata
+  si modifica direttamente nel pannello laterale opzionale.
+- Il composer riconosce linguaggio naturale, `#Progetto`, `p1`–`p4` e link;
+  ricorda il progetto recente, parte sempre senza priorità e resta fermo durante
+  gli assestamenti della tastiera Android.
+- Nel campo titolo Invio fisico conferma sia la creazione sia la modifica in
+  ogni sezione; la descrizione conserva il comportamento multilinea.
+- Le scorciatoie globali richiedono Ctrl/⌘: caratteri come `n` e `/` restano
+  testo normale quando un editor è attivo.
+- La spunta è separata dallo swipe: completamento e avanzamento della ricorrenza
+  non possono più avviare per errore il trascinamento verso il cestino. La riga
+  resta ferma durante la conferma e viene rimossa solo dopo la dissolvenza.
+- L'Undo usa un solo comportamento per task, progetti e sezioni e, sulle
+  ricorrenze, inverte atomicamente anche la nuova occorrenza.
+- L'import Todoist supporta aggiornamento e sostituzione idempotente di task,
+  progetti e sezioni e produce un rapporto prima del backup.
+- Impostazioni contiene Cestino, attività completate, diagnostica e Salute dati;
+  gli stati sani restano fuori dall'interfaccia principale.
+- Su Android, Movimento è una quarta destinazione principale accanto a
+  Progetti. Camminata è l'azione primaria; Drive, export manuali e BLE sono
+  raccolti negli strumenti avanzati.
+- Android contiene il modulo separato `runtracker`: registra corse usando il
+  GPS del telefono in foreground, salva campioni e scarti in Room ed esporta
+  GPX. La prima prova BLE è limitata a scansione, connessione e batteria.
+- Il modulo legge il totale passi aggregato da Health Connect e
+  conserva distanza e calorie attive stimate in Room. Activity Recognition
+  distingue cammino, corsa e trasporto senza GPS permanente; falcate separate
+  vengono calibrate dopo tre sessioni valide per tipo. Peso personale e
+  attribuzione precisa attraverso mezzanotte/reboot restano da completare. Le sessioni leggono inoltre il
+  contatore hardware Android e possono confrontare l'ultima attività con i
+  dati attribuiti a Google Fit in Health Connect. Camminata e corsa sono
+  sessioni distinte; la camminata applica un limite anti-salto GPS dedicato di
+  6 m/s e non accumula fix privi di nuovi passi quando il sensore è attivo.
+  I GPX reali verificati non contengono battito, cadenza o dati del Bip U;
+  l'integrazione Amazfit resta una fase successiva in sola lettura. Il quadro è in
+  [docs/HANDOFF.md](docs/HANDOFF.md).
+
+## Verifica
+
+- Le pull request eseguono il percorso canonico `make check-generated` e
+  `make check` tramite GitHub Actions; gli stessi comandi sono usati in locale.
+- I blocchi JSONL della diagnostica intensiva possono essere validati e
+  aggregati offline, senza ADB, con
+  `tools/analyze_movement_intensive.py`; il report separa integrità, copertura,
+  movimento, risorse e batteria e non modifica gli input Drive.
+- Analisi statica senza errori.
+- 126 test Flutter superati, incluso uno scenario di convergenza con due
+  database indipendenti che rappresentano Android e Web.
+- I test JVM coprono filtro GPS, gate passi, timeline, reset/duplicati del
+  contatore e stime. Build Android, firma, manifest pubblico e parità con Web
+  sono verificati dalla pipeline coordinata.
+- La build 98 ha confermato il gate durante due soste: 0 m nella prima e circa
+  1,5 m nella seconda. Ha inoltre isolato il blocco del confronto automatico:
+  Health Connect richiede il consenso separato per le letture in background.
+  La build 99 dichiara e richiede tale consenso, ma sul Galaxy S21 non ha
+  riprogrammato né riesportato la sessione 14. La build 100 ha aggiunto il
+  recupero in primo piano, ma lo stato persistito era `scheduled`, non
+  `permission_required`. La build 101 recupera qualunque stato non concluso. Il
+  controllo ADB ha poi confermato permessi corretti e due job conclusi senza
+  aggiornamento Drive: la build 102 conserva il codice di errore, riesporta
+  ogni tentativo e non lascia più il fallback riuscito su `scheduled`. Il test
+  reale della 102 non ha avviato il recupero perché il gate leggeva lo stato
+  globale di una sessione precedente; la 103 usa lo stato della sessione più recente
+  e ha completato il confronto della sessione 14. Il provider Drive ha però
+  conservato il vecchio file nonostante l'esito locale positivo; la 104 forza
+  troncamento e sincronizzazione e verifica la dimensione scritta. Anche la
+  104 non ha aggiornato il file remoto: la 105 usa quindi sidecar immutabili,
+  lo stesso modello create-only affidabile degli export iniziali.
+- La 105 introduce inoltre un audit passivo, esteso a sette giorni dalla build
+  109. Dalla build 113 WorkManager legge la giornata corrente ogni ora e crea
+  snapshot intragiornalieri, oltre al report definitivo del giorno precedente,
+  senza GPS o servizio permanente.
+- Gli audit reali del 13–15 agosto sulla build 109 hanno mostrato totali passi
+  coerenti con Health Connect ma il 61% classificato come escluso: distanza
+  Todo 9,51 km contro 21,26 km Google Fit (-55,3%). La causa era l'assegnazione
+  integrale dei record passi allo stato del loro punto centrale. La build 110
+  usa invece sovrapposizione temporale e un gate conservativo dell'80%.
+- La build 114 aggiunge un provider diagnostico aggregato, read-only e protetto
+  da `android.permission.DUMP`, così l'ultimo snapshot può essere verificato
+  via ADB anche con APK release e Drive non visibile al connettore Codex.
+- La build 115 fa prevalere i passi reali su uno stato `STILL` obsoleto,
+  mantenendoli come incerti; soltanto veicolo e bicicletta dominanti restano
+  esclusi. Lo schema 4 separa le tre cause e aggiunge la baseline all-steps.
+- Il Galaxy S21 usa attualmente la firma gestita da Google Play: l'APK diretto
+  GitHub, firmato con la chiave di upload/release del repository, viene
+  correttamente rifiutato come aggiornamento incompatibile. Non disinstallare
+  l'app per cambiare canale; su questo dispositivo usare Play interno.
+- ADB remoto è stato verificato con Wi-Fi del telefono disattivato tramite una
+  rete privata Tailscale e porta TCP 5555. Endpoint e identificatori runtime
+  restano configurazione locale e non sono salvati nel repository; dopo un
+  riavvio può servire riattivare `adb tcpip 5555`.
+- Restano da collaudare sulla build 118 la continuità dell'esperimento avviato
+  sulla 117, l'upload orario e quello finale della
+  diagnostica intensiva e almeno due giornate
+  principalmente di cammino/corsa, lo schema 7 dei report Drive e la
+  calibrazione dopo tre sessioni valide per tipo; resta inoltre il BLE reale
+  con Bip U. I test brevi hanno già validato passi, Drive e confronto Health
+  Connect.
+- Restano manuali il collaudo sul Galaxy S21, Google Calendar e il passaggio
+  definitivo dall'ultimo export Todoist; vedi [TODO_NEXT.md](TODO_NEXT.md).
+
+Architettura: [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md). Procedure:
+[docs/operations/](docs/operations/). Cronologia: [CHANGELOG.md](CHANGELOG.md).

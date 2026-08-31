@@ -1,191 +1,289 @@
 # TODO e handover
 
-Aggiornato il 4 agosto 2026. Questo file è il punto di partenza per una nuova sessione.
+Aggiornato il 31 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
-## Stato pronto al passaggio
+Handoff completo, architettura corrente e prossimo obiettivo movimento:
+[`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
+non duplicare qui i dettagli tecnici.
 
-- Repository sorgente privato: `gpmerola/deterministic-todo`.
-- Repository release pubblico: `gpmerola/deterministic-todo-releases`.
-- Branch di lavoro: `agent/android-apk-sync-pairing`.
-- Pull request draft: <https://github.com/gpmerola/deterministic-todo/pull/1>.
-- Release pubblica corrente verificata: `v1.2.0`, build Android `10`; `v1.3.0` build `11` è nella pipeline automatica al momento di questo aggiornamento.
-- Telefono principale: Samsung Galaxy S21, ABI `arm64-v8a`.
-- L’albero Git deve risultare pulito dopo il commit di handover; verificare con `git status -sb`.
-- Le ultime CI Android, macOS e Verify risultavano verdi. Riconfermare sempre dalla PR prima di un merge.
+## Prossimi collaudi build 164–167
 
-La PR rimane volutamente draft: non è stata autorizzata una fusione in `main`. Il nuovo agente deve leggere integralmente `AGENTS.md`, questo file, README e i due documenti in `docs/` prima di modificare codice.
+- [x] Importazione Bip U headless reale: 4.263 campioni minuto, finestra 168
+  ore, esito `activity_sync_success`, GATT chiuso dopo circa 18 secondi.
+- [ ] Verificare il primo avvio naturale del worker dopo circa tre ore, senza
+  trigger ADB, e confermare che una seconda importazione sovrapposta inserisca
+  soltanto campioni nuovi.
+- [x] Build 160: import incrementale dei minuti recenti Bip U con upsert
+  monotono. Una ripubblicazione aggiorna il record soltanto se contiene più
+  passi; duplicati e valori regressivi non vengono sommati.
+- [x] Build 161: un cursore più vecchio di 12 ore abbandona la vecchia ora di
+  sovrapposizione e recupera prioritariamente la finestra recente di 12 ore.
+  Collaudo Galaxy superato: 720 minuti nuovi e 3.303 passi in circa 11 secondi.
+- [x] Build 163: il cambio giorno non attribuisce più al nuovo giorno il delta
+  dall'ultimo campione precedente. Collaudo Galaxy: 2.705 passi errati corretti
+  a zero; monitor passivo attivo e successivo snapshot Drive `success/ok`.
+- [ ] Build 164: verificare almeno una giornata completa del confronto davvero
+  indipendente. Nel report schema 9 `todo.source` deve essere locale,
+  `google_fit.role` deve essere `independent_reference_only` e i due totali non
+  devono essere derivati dagli stessi record Health Connect.
+- [ ] Build 166: verificare su Web e Todo Test che **Impostazioni → Attività
+  senza data** elenchi soltanto elementi attivi con data nulla e che rimozione
+  singola/collettiva converga sugli altri dispositivi senza ricomparire.
+- [ ] Build 167: verificare che Inbox escluda i backlog assegnati ai progetti e
+  che **Svuota cestino** rimuova definitivamente task, progetti e sezioni dopo
+  aver sincronizzato tutti i dispositivi.
 
-## P0 — Completare e provare la sincronizzazione persistente
+- [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
+  proseguito sulla 154: aprire la nuova build una volta e non usare upload
+  manuali. Verificare almeno due aggiornamenti automatici alternati di
+  `diagnostics_last_7_days_{a,b}.json`; un errore SAF riconciliato deve
+  incrementare `provider_write_reconciled_count`, mentre un fallimento reale
+  non deve più portare il job periodico nel backoff WorkManager di cinque ore.
+- [ ] Al prossimo avviso Todo, non forzare retry ripetuti: attendere il recupero
+  ordinario e leggere lo stato sicuro con il provider ADB `todo_sync_debug`.
+  Verificare fase, classe errore, rete/sessione, outbox, retry e successivo
+  `sync_recovered` senza ispezionare il database personale.
 
-Il client ora offre collegamento account una tantum, rinnovo automatico e sessione nel secure storage. Database locale, outbox, versioni Lamport, tombstone, worker Supabase e migrazione RLS sono presenti, ma manca ancora la configurazione di un progetto reale e quindi la sincronizzazione end-to-end non è dichiarata completa.
+## Stato corrente
 
-Obiettivo concordato:
+- Repository sorgente pubblico: `gpmerola/deterministic-todo`.
+- Repository release Android: `gpmerola/deterministic-todo-releases`.
+- Branch operativo: `agent/verify-public-release-token`.
+- Android è il primo canale nativo; desktop usa la web app GitHub Pages.
+- Release Todo Test installata: 2.35.0 build 165. **Todo Test** (`.dev`) è il
+  solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
+  sono attivi. La build Play 121 resta installata con dati intatti ma è
+  `disabled-user`. Drive separa automaticamente
+  cinque categorie e la prova Bip U esporta un report JSON sicuro. La prova
+  preferisce il dispositivo già associato e usa la scansione BLE come fallback.
+  Gli ID SAF delle sottocartelle sono persistenti dalla 121, perché la cache
+  del provider Drive aveva causato directory omonime nella 120. Movimento include una
+  diagnostica intensiva temporanea di sette giorni, segmentata per build e con
+  upload JSONL orario e finale crash-safe, oltre agli snapshot
+  cumulativi Todo/Google Fit ogni ora; la diagnostica generale Android conserva
+  sette giorni locali e alterna due bundle Drive ogni tre ore o su comando. Il sync task conferma sul
+  server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
+  contatori Lamport più alti. Dalla build 154 ogni incidente Todo registra fase,
+  classe tecnica, rete/sessione, outbox, retry e recupero ed è leggibile in
+  sicurezza anche via provider ADB protetto. I record passi sono ripartiti
+  sull'intero intervallo e l'esclusione di veicolo/bicicletta richiede una quota
+  temporale almeno dell'80%; la finestra passiva resta di sette giorni. La base funzionale build 95 ha
+  superato Web, manifest Android, Google Play interno e controllo di parità;
+  la 96 consolida codice, test e documentazione senza cambiare l'algoritmo.
+- La build 133 stabilizza il primo fix coerente dopo un riaggancio GPS senza
+  aggiungerne il segmento e impedisce alle sessioni con oltre il 20% di passi
+  a cadenza diversa dall'etichetta di calibrare la falcata. Il prossimo test
+  utile è una corsa prevalentemente continua, lasciando attivi monitor passivo
+  e diagnostica.
+- La build 134 mantiene per le ultime 15 sessioni un unico export a tre fonti,
+  con timeline UTC Todo/Bip, aggregati Fit, confronti a coppie e campioni Bip
+  unici. Il backfill Bip recupera fino a sette giorni con sovrapposizione.
+- La build 135 rende analizzabili gli intervalli passivi brevi tramite timeline
+  al minuto e rende osservabili sync Bip incompleti e gap intensivi. Il prossimo
+  test utile è una camminata passiva con orari noti, senza sessione manuale.
+- Sul Galaxy S21 coesistono **Todo Test** attiva e la
+  **build Play 121** disabilitata. Non disinstallare la seconda e non usare
+  l'APK GitHub per aggiornarla. Runbook canonico:
+  [`docs/operations/ANDROID_DEV_CHANNEL.md`](docs/operations/ANDROID_DEV_CHANNEL.md).
+- Telefono principale: Samsung Galaxy S21, `arm64-v8a`.
+- Lo stato dell'ultimo snapshot operativo è leggibile in sicurezza con
+  `adb shell content query --uri content://app.deterministic.todo.deterministic_todo.dev.movement_debug/status`.
+- Supabase reale e convergenza Android↔cloud sono già stati provati.
 
-1. configurazione iniziale una sola volta (implementata lato client);
-2. collegamento permanente tramite lo stesso account personale (implementato); QR/codice monouso resta un miglioramento server;
-3. nessun login quotidiano (implementato con refresh automatico);
-4. sessione e token conservati nel secure storage (implementato);
-5. possibilità di revocare un dispositivo;
-6. SQLite sempre fonte della UI e rete mai bloccante;
-7. conflitti deterministici `(logical_version, device_id)` e operazioni idempotenti.
+## P0 — Ultimi collaudi browser
 
-Architettura raccomandata: vault personale, token dispositivo casuale memorizzato solo come hash sul server, codice pairing a scadenza breve e Supabase Edge Function che usa `service_role` soltanto lato server. Non trasferire refresh token Supabase dentro un QR e non includere `service_role` nel client.
+La procedura canonica e la fixture sintetica sono descritte in
+[`docs/operations/WEB.md`](docs/operations/WEB.md). I test automatici non
+sostituiscono la riapertura sul profilo Chrome reale.
 
-Il progetto Supabase personale, la configurazione client pubblica e la migrazione iniziale sono collegati e verificati. Accesso permanente e convergenza telefono → Supabase → Mac sono stati provati con un'attività sentinella. Il deployment di future Edge Functions richiede autorizzazione esplicita.
+1. confermare in Chrome reale che una task locale sopravviva a chiusura e
+   riapertura completa; lo startup deve fallire esplicitamente se Drift offre
+   soltanto storage in memoria;
+2. verificare import ed export JSON dal browser con una fixture sintetica;
+3. dopo la 2.16.0 esportare la diagnostica, ricaricare la pagina ed esportarla
+   di nuovo per confermare la persistenza IndexedDB sul profilo reale.
 
-## P0 — Test reale sul Galaxy S21
+Sito HTTPS, layout desktop, pagina di avvio Chrome e sincronizzazione
+Android↔browser sono già configurati. La pipeline coordinata ne verifica da
+2.16.0 versione, build, commit, APK e URL pubblici.
 
-La build e i test automatici sono verdi, ma questi flussi devono ancora essere verificati fisicamente:
+La web app non deve dipendere dalla rete per mostrare o modificare task già
+locali. Non usare navigazione in incognito come ambiente supportato.
 
-- aggiornamento in-app da una versione senza Impostazioni → 1.1.1, eventualmente tramite installazione manuale sopra l'app esistente;
-- installazione dell’APK ARM64 con conservazione di una task sentinella;
-- permesso “Installa app sconosciute” e prompt finale Android;
-- permessi calendario Samsung/Google;
-- “Salva + calendario” crea nel Google Calendar primario;
-- ripetere il comando aggiorna lo stesso evento senza duplicarlo;
-- nuova attività con ora salva un identificatore IANA;
-- cambio manuale del fuso del telefono e comportamento delle notifiche;
-- riavvio del telefono e ripristino notifiche.
+## P0 — Passaggio definitivo da Todoist
 
-La release pubblica `1.1.0` contiene l'APK ARM64 per Galaxy S21. Il launcher `SCARICA_APK_ANDROID.command` scarica l'asset ARM64 dalla release latest e lo rinomina nel nome stabile usato dall’installer.
+- esportare un ultimo JSON Todoist;
+- usare **Sostituisci** per ricostruire soltanto i dati Todoist;
+- verificare conteggi, progetti, sezioni, descrizioni, link, priorità, date e
+  ricorrenze;
+- attendere la sincronizzazione e confrontare Android e browser;
+- non committare mai l’export personale.
 
-## P1 — Calendario: confini e completamento
+L’ultimo export analizzato conteneva 5 progetti, 13 sezioni e 110 task attive,
+ma questi numeri sono storici e vanno ricalcolati sul nuovo file.
 
-L’integrazione corrente è intenzionalmente unidirezionale ed esplicita:
+## P1 — Blocchi pratici
 
-- SQLite è la fonte di verità;
-- “Salva + calendario” preferisce Google primario;
-- il mapping `calendar_event:<task_id>` è locale in `app_settings`;
-- ripetere il comando aggiorna l’evento esistente;
-- nessun pull dal calendario modifica task;
-- completamento ed eliminazione non modificano automaticamente l’evento.
+- provare per alcuni giorni creazione, modifica, completamento, ricorrenze,
+  swipe e Indietro sul Galaxy S21;
+- confermare Google Calendar su hardware Android reale;
+- aggiungere una RPC Supabase transazionale prima di offrire “cancella tutto”
+  contemporaneamente su cloud e dispositivo;
+- valutare commenti, allegati, etichette e sotto-attività Todoist solo se
+  compaiono nei prossimi export reali;
+- backup cifrato e revoca remota del singolo dispositivo restano futuri.
 
-Prossimi miglioramenti possibili, da autorizzare separatamente:
+## P1 — Canale Android rapido di collaudo
 
-- mostrare nell’editor quale calendario/evento è collegato;
-- comando esplicito “Rimuovi dal calendario”;
-- scelta manuale del calendario quando esistono più account;
-- sincronizzare il mapping evento tra dispositivi soltanto dopo il backend;
-- gestire in modo chiaro un evento eliminato esternamente, senza creare duplicati silenziosi.
+- dalla build 123 il flavor `dev` usa il package distinto `.dev` ed è
+  installabile come **Todo Test** accanto alla versione Play;
+- dalla 128 il manifest pubblico contiene APK `android-dev-*`; l'updater Todo
+  Test non può più selezionare gli APK della linea principale;
+- dalla 129 i push `agent/**` pubblicano soltanto Todo Test arm64 sul manifest
+  rolling `todo-test-latest`; Play/Web/direct multi-ABI usano la pipeline
+  stabile manuale e non bloccano più il collaudo;
+- dalla 130 la pipeline calcola sempre `versionCode = 2000 + build`; la 129 è
+  stata installata localmente come 2129 dopo che Android aveva rifiutato
+  prudentemente il primo APK CI con valore 129;
+- `make todo-test` è il comando canonico: ADB locale se disponibile, altrimenti
+  upload diretto del build Mac; Actions resta il fallback non interattivo;
+- dalla 131 il recupero manuale usa un solo pulsante per GPX, diagnostica e
+  riprogrammazione Fit; i retry Fit identici sono idempotenti su Drive;
+- dalla 132 l’updater normalizza `-dev`, confronta la build logica e ricontrolla
+  il package installato prima del download, impedendo downgrade da manifest
+  rolling in ritardo;
+- dalla 143 il caricamento manuale avvia snapshot passivo e diagnostica
+  generale come rami WorkManager indipendenti: un retry Health Connect/Drive
+  del primo non impedisce più log grezzi e report unificato;
+- dalla 144 lo stesso comando conserva nomi stabili durante i retry e il report
+  unificato schema 6 non può sparire silenziosamente: numeri non finiti sono
+  normalizzati e un errore di generazione produce un fallback tecnico sicuro;
+- dalla 145 il backlog intensivo è gestito esclusivamente da un worker dedicato:
+  nel comando manuale parte con due minuti di ritardo e non può più precedere o
+  bloccare snapshot, log generale e report unificato;
+- dalla 146 il report manuale parte subito fuori da WorkManager e mantiene un
+  fallback persistente dopo un minuto; il totale passi visibile si riconcilia
+  ogni 30 secondi soltanto mentre l'app è in foreground;
+- login Supabase, Health Connect, cartella Drive e aggiornamento ADB in-place
+  sono collaudati; mantenere invariata la firma diretta;
+- Movimento è attivo soltanto in Todo Test; Play resta `disabled-user`;
+- non implementare condivisione implicita di database, dati sanitari o chiavi
+  fra package. I segmenti storici Play restano su Drive.
 
-Non implementare sincronizzazione bidirezionale implicita: violerebbe la promessa deterministica e richiederebbe una regola di conflitto separata.
+## P0 — Collaudo movimento Todo Test build 123
 
-## P1 — Completare la configurazione dell'automazione release
+- lasciare attivi diagnostica intensiva e test passivo già avviati su Todo
+  Test; la notifica permanente conferma il servizio;
+- usare normalmente il telefono. Non servono soste annotate, screenshot o
+  sessioni manuali; dopo circa un'ora verificare su Drive un file
+  `intensive_<experiment>_<segment>_*.jsonl`;
+- gli aggiornamenti intermedi non azzerano i sette giorni: aprire una volta
+  l'app dopo ciascun update. Versione e segmento nei file separano i periodi;
+- terminare dal pulsante o dalla notifica soltanto se consumo/temperatura sono
+  problematici. Alla scadenza il servizio si arresta automaticamente;
 
-Il workflow protetto `Publish Android Release` ora ricompila, verifica, genera manifest/hash, pubblica nel repository release e ricontrolla il manifest pubblico. Per renderlo operativo su GitHub manca soltanto configurare l'environment `android-release` e il secret fine-grained `RELEASE_REPO_TOKEN`, limitato al repository pubblico.
+- lasciare attivo il test passivo già avviato e raccogliere almeno due giorni
+  normali, principalmente camminata e corsa, senza premere altri comandi;
+- quando serve anticipare un controllo remoto usare soltanto `Carica ora tutti
+  i dati di test`; non usare `Sincronizza ultima attività`, che resta limitato
+  alla sessione GPS esplicita più recente;
+- verificare sulla build 142 che l'anello passi sia leggibile nelle viste
+  principali, che il target cambi dalle Impostazioni e che Movimento integrato
+  consenta avvio/stop/upload senza redirect o scorrimento anomalo;
+- verificare via provider ADB e nei nuovi `movement_snapshot_*.json` /
+  `daily_audit_*.json` schema 9: sorgenti Todo/Fit/Bip separate, episodi e
+  pause automatici, copertura/ritardi, delta tra snapshot, scarto distanza, quote
+  cammino/corsa/incerte, record grezzi e riconciliazione, esclusi
+  veicolo/bicicletta, conflitti `STILL + passi` e flag di qualità;
+- verificare che nessun nuovo file Drive resti a 0 byte e che il report
+  unificato schema 5 mostri fasi JSON strutturate, ultimo upload concluso,
+  smaltimento della coda intensiva, CPU/rete normalizzate, delta PSS e stato
+  Bip esplicito;
+- per calibrare, registrare quando comodo tre camminate da almeno 1 km e tre
+  corse da almeno 3 km con i pulsanti dedicati. Non servono soste annotate né
+  screenshot: GPX, passi, confronto e report vengono esportati automaticamente;
+- confrontare dopo il terzo campione le falcate applicate e lo scarto rispetto
+  a Google Fit; non modificare manualmente le soglie durante la raccolta.
 
-Requisiti:
+## P1 — Collaudo corsa Bip U
 
-- build Android solo `--split-per-abi`;
-- firma stabile dai Secrets `ANDROID_KEYSTORE_*`;
-- asset ARM64, ARM32 e x86_64 con SHA-256;
-- manifest pubblico coerente;
-- fallback `android` verso l’universale 1.0.4 per client 1.0.3;
-- rendere `latest` soltanto dopo verifica;
-- mantenere symbol map private se si abilita offuscamento.
+- la build 124 ha superato il precedente GATT 6: prova reale completa con
+  autenticazione challenge-response, 7 campioni tra 67 e 73 bpm (media 70),
+  stop automatico, GATT 0 e report schema 2 in `05 Bip U`;
+- la build 134 usa un’importazione locale idempotente incrementale, con un'ora
+  di sovrapposizione, fino a sette giorni di backfill e senza ACK distruttivo;
+- il primo test reale ha ricevuto 1.440 campioni/11.520 byte senza errori GATT;
+  la 126 ha poi salvato 1.440 minuti, 2.626 passi e 358 campioni cardiaci. Il
+  retry ha deduplicato l’intersezione e inserito solo due minuti nuovi;
+- la 134 esporta ogni ora riepilogo unificato e report sessione canonico a tre
+  fonti con finestre UTC, dati Bip nativi e differenze a coppie. L'import
+  dell'orologio resta esplicito e non mantiene una connessione BLE permanente;
+- prossimo incremento: stimare offset/drift temporale e validare la qualità dei
+  campioni Bip prima di usarli nell'algoritmo mostrato all’utente;
+- prossimo passo: integrare una sessione cardiaca esplicita nell'attività e
+  verificarne continuità, consumo e timestamp, mantenendo la misura disattiva
+  fuori da una sessione richiesta dall'utente;
+- verificare che la notifica termini la sessione e che riaprire l'attività dopo
+  una sospensione conservi durata e distanza;
+- provare scansione e batteria con Zepp completamente chiusa. Se il servizio
+  batteria non è esposto prima dell'autenticazione, non aggirare la protezione;
+- implementare in modo indipendente autenticazione Huami e download attività
+  solo dopo capture BLE autorizzate sul dispositivo personale; aggiungere
+  fixture sintetiche prive di chiave/MAC e test di allineamento timestamp;
+- abilitare battito live soltanto dopo conferma sul Bip U reale. Firmware,
+  risorse e impostazioni dell'orologio restano fuori ambito.
 
-Soluzioni ammissibili: fine-grained token limitato al repository release oppure workflow nel repository pubblico attivato in modo controllato. Non usare token amministrativi generici.
+## P0 — Passi e distanza quotidiana
 
-## IN PAUSA — Import Todoist e dominio progetti
+- il contatore hardware quotidiano e quello diretto di sessione sono verificati
+  sul Galaxy S21; la build 164 elimina Health Connect dalla sorgente Todo e lo
+  conserva soltanto per il riferimento Google Fit;
+- aggiungere UI del profilo locale per peso e visibilità delle due falcate; la
+  calibrazione automatica GPS è presente dalla build 108 e i fallback restano
+  provvisori;
+- collaudare `TYPE_STEP_COUNTER` durante sessioni con schermo spento; la
+  gestione del totale quotidiano attraverso mezzanotte/reboot resta distinta;
+- misurare il costo reale del job WorkManager orario temporaneo prima di
+  scegliere la frequenza definitiva; il conteggio di sistema non richiede
+  polling dell'app;
+- mostrare separatamente distanza GPS di una sessione e distanza quotidiana
+  stimata dai passi, senza doppio conteggio;
+- calibrare separatamente i profili manuali `Camminata` e `Corsa` sul telefono;
+- non mantenere GPS, BLE o un foreground service permanente per il conteggio
+  quotidiano;
+- misurare batteria sul Galaxy S21 prima di ampliare il lavoro in background;
+- rimandare autenticazione e import Amazfit finché questo MVP non è collaudato.
 
-Un export personale Todoist è stato verificato localmente il 4 agosto 2026. Non copiarlo nel repository perché contiene dati personali. L'implementazione è intenzionalmente in pausa durante la preparazione del repository pubblico.
+## P2 — Performance
 
-Contenuto disponibile:
+Misurare prima di ottimizzare ulteriormente:
 
-- 5 progetti personali, incluso Inbox;
-- 13 sezioni, tutte collegabili ai rispettivi progetti;
-- 110 attività attive, delle quali 46 pianificate e 25 ricorrenti;
-- 13 descrizioni, nessun commento/nota separata, nessuna sotto-attività, nessun reminder e nessuna durata;
-- priorità Todoist: 75 p4/default, 8 p3, 6 p2, 21 p1 (nel JSON i valori sono invertiti rispetto alle etichette mostrate da Todoist: `4` è la priorità massima);
-- 2 etichette definite ma nessuna assegnata alle 110 attività;
-- 2 filtri personali;
-- `completed_info` contiene soltanto contatori aggregati per progetto, non titoli o record completati. La cronologia completata non è quindi importabile da questo file.
+- la build 106 limita la cache immagini a 16 MiB, rimuove Realtime in
+  background e registra PSS totale/Java/native/grafica oltre al RSS; esportare
+  una nuova diagnostica della build 106/107 dopo almeno un giorno per
+  confrontarla con la baseline RSS media 203 MiB e picco 284 MiB del 5–11
+  agosto; `diagnostics (5).jsonl` era byte-per-byte identico al file precedente
+  e terminava ancora alla build 105;
 
-Incremento critico da implementare prima degli altri:
+- baseline reale 5–8 agosto registrata in
+  `docs/diagnostics/2026-08-08-web-android.md`;
 
-1. ~~aggiungere tabelle/colonne locali per progetti, sezioni, priorità e `external_source`/`external_id`, con migrazione Drift e indici;~~ completato nello schema locale 3;
-2. estendere schema, funzione `merge_task` e RLS Supabase senza interrompere i client precedenti;
-3. parser Todoist dedicato con anteprima di progetti/sezioni/task, mapping date/fusi/descrizioni/ricorrenze/priorità e ID deterministici;
-4. import transazionale e idempotente: ripetere lo stesso file non crea duplicati;
-5. mostrare Progetti nell'interfaccia soltanto quando ne esiste almeno uno, preservando Inbox Todoist come progetto importato e non come destinazione mobile principale;
-6. test fixture anonima minima; mai committare l'export reale;
-7. dopo import sul telefono, verificare i conteggi attesi e la convergenza sul Mac prima di dichiararlo completo.
+- cold/warm start Android;
+- RAM e frame pacing con 100, 1.000 e 10.000 task;
+- CPU a riposo per cinque minuti;
+- dimensione e latenza del database browser;
+- tempo di primo sync e reimport Todoist.
 
-Le ricorrenze presenti includono giornaliere, settimanali, ogni N giorni/settimane/mesi, annuali e giorni fissi dell'anno. Le stringhe ambigue `ogni 1` e `ogni 26` vanno interpretate secondo il campo `due.date` e verificate in anteprima, non indovinate silenziosamente.
+Il browser usa SQLite Drift WebAssembly; Android usa SQLite nativo in background.
+Non introdurre polling, timer o dipendenze senza una misura che li giustifichi.
 
-## P1 — UX Android richiesta
+## Checklist di consegna
 
-- Spostare Completate dentro Impostazioni, lasciando nella barra primaria soltanto Oggi e Prossime.
-- Rendere Prossime una timeline verticale virtualizzata senza limite pratico, con separatori giornalieri e sezioni comprimibili; mostrare le task del giorno dall'SQLite dell'app. Google Calendar resta export esplicito e non diventa fonte di verità.
-- Estendere il linguaggio naturale evidenziato a ricorrenze: ogni giorno, ogni N giorni/settimane/mesi, ogni secondo martedì del mese, ogni giorno/mese annuale. La frase riconosciuta viene rimossa dal titolo.
-- Aggiungere bandierine priorità opzionali e pulite, coerenti con il mapping Todoist.
-- Aggiungere Undo per completamento, eliminazione, spostamento e ripianificazione.
-- Aggiungere swipe sperimentale con direzioni chiaramente colorate e sempre annullabile; se il test sul telefono non convince, rimuoverlo senza cambiare il dominio.
-- Non materializzare calendari infiniti: usare liste lazy e caricare finestre di date progressivamente.
-
-## P1 — Funzioni originali ancora incomplete
-
-- schermata cestino con ripristino tombstone;
-- selezione multipla per stato, mostra il e scadenza;
-- undo per completamento, eliminazione, spostamento e modifica recente (incluso nel piano UX Android sopra);
-- scheduler automatico dell’orizzonte delle ricorrenze calendario;
-- backup cifrato;
-- test end-to-end contro Supabase e due dispositivi;
-- test/installazione Windows su una macchina Windows reale.
-
-Non ampliare l’ambito con progetti, etichette, priorità, AI, collaborazione o calendario completo.
-
-## P2 — Performance misurata
-
-Il Galaxy S21 riceve l’APK ARM64 da circa 21 MB. Le ottimizzazioni strutturali sono documentate, ma RAM, CPU, startup time e frame pacing non sono ancora stati profilati su hardware reale.
-
-Procedura consigliata:
-
-```sh
-flutter run --profile -d <device-id>
-flutter devtools
-```
-
-Misurare prima di cambiare codice:
-
-- tempo cold start e warm start;
-- RAM con 100, 1.000 e 10.000 task;
-- CPU a riposo per almeno cinque minuti;
-- frame build/raster durante scroll e riordino a 120 Hz;
-- latenza ricerca e apertura Completate;
-- costo prima pianificazione notifica e primo accesso calendario.
-
-Ottimizzazioni candidate solo se giustificate dai dati: paginazione Completate, ricerca SQL/FTS5, `--split-debug-info`, riduzione dipendenze. Non sacrificare affidabilità o multipiattaforma per benchmark teorici.
-
-## Sicurezza e backup operativo
-
-- Non committare `private_release_keys/`.
-- Eseguire un backup cifrato esterno del keystore Android e della password; perdere la chiave impedisce aggiornamenti delle installazioni esistenti.
-- Non mostrare segreti nei log o nei comandi copiati nella documentazione.
-- La chiave pubblica Supabase è ammessa nel client; `service_role` non lo è.
-- Titoli e note non devono entrare nei log.
-
-## Checklist di ogni sessione
-
-1. Leggere `AGENTS.md` e `TODO_NEXT.md`.
-2. `git status -sb` e controllo delle modifiche dell’utente.
-3. Scegliere un solo incremento verificabile.
-4. Aggiornare test e documentazione insieme al codice.
-5. Eseguire `dart format lib test`, `flutter analyze`, `flutter test`.
-6. Commit intenzionale e push obbligatorio sul branch.
-7. Attendere la pipeline Android automatica; eseguire Verify/build separata e macOS manualmente soltanto ai checkpoint necessari.
-8. Per release Android, misurare asset, calcolare hash, pubblicare manifest e provare l’upgrade dalla versione precedente.
-
-## Comandi rapidi
-
-```sh
-flutter pub get
-dart run build_runner build
-flutter analyze
-flutter test
-git status -sb
-gh pr checks 1 --repo gpmerola/deterministic-todo
-gh release list --repo gpmerola/deterministic-todo-releases
-```
-
-La documentazione autorevole è: `AGENTS.md` per le regole, README per l’uso, `docs/ARCHITETTURA.md` per il dominio, `docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md` per distribuzione/performance e `COMPLETATO.md` per ciò che è stato verificato.
+1. controllare `git status -sb` e preservare dati personali/chiavi;
+2. aggiornare versione, test e documentazione;
+3. eseguire `make check-generated`, `make check`, le build release e i
+   controlli Android pertinenti;
+4. commit e push sul branch `agent/*`;
+5. attendere e verificare entrambe le pipeline automatiche;
+6. collaudare fisicamente Android e, per cambi web, refresh/persistenza in
+   Chrome sul sito pubblicato.

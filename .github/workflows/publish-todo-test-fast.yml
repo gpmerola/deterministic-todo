@@ -1,0 +1,145 @@
+name: Publish Todo Test Fast
+
+on:
+  push:
+    branches:
+      - 'agent/**'
+    paths:
+      - 'android/**'
+      - 'assets/**'
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'supabase/config.json'
+      - '.github/workflows/publish-todo-test-fast.yml'
+      - '.github/workflows/publish-android-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-todo-test-fast
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - name: Read and validate version
+        id: version
+        run: |
+          PACKAGE_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)
+          VERSION=${PACKAGE_VERSION%%+*}
+          BUILD=${PACKAGE_VERSION##*+}
+          test -n "$VERSION"
+          test "$BUILD" -gt 0
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "dev_build=$((2000 + BUILD))" >> "$GITHUB_OUTPUT"
+
+      - name: Fast channel checks
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test test/update_service_test.dart
+
+      - name: Prepare stable direct signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+
+      - name: Build Galaxy S21 Todo Test APK
+        run: |
+          flutter build apk --release --flavor dev \
+            --target-platform android-arm64 \
+            --build-number ${{ steps.version.outputs.dev_build }} \
+            --split-debug-info=build/private-symbols/dev-arm64 \
+            --dart-define=DISTRIBUTION_CHANNEL=dev \
+            --dart-define-from-file=supabase/config.json
+        env:
+          ANDROID_KEYSTORE_PATH: release-key.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: deterministic-todo
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Prepare rolling dev manifest
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD: ${{ steps.version.outputs.build }}
+        run: |
+          mkdir release-assets
+          ASSET="TodoTest-$VERSION-$BUILD-Android-arm64-v8a.apk"
+          cp build/app/outputs/flutter-apk/app-dev-release.apk "release-assets/$ASSET"
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          version, build = os.environ['VERSION'], int(os.environ['BUILD'])
+          asset = f"TodoTest-{version}-{build}-Android-arm64-v8a.apk"
+          apk = Path('release-assets') / asset
+          digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+          url = ("https://github.com/gpmerola/deterministic-todo-releases/"
+                 f"releases/download/todo-test-latest/{asset}")
+          manifest = {
+              'schema_version': 1,
+              'version': version,
+              'build': build,
+              'source_commit': os.environ['GITHUB_SHA'],
+              'channel': 'dev',
+              'platforms': {
+                  'android-dev': {'url': url, 'sha256': digest},
+                  'android-dev-arm64-v8a': {'url': url, 'sha256': digest},
+              },
+          }
+          Path('release-assets/manifest.json').write_text(
+              json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Publish rolling Todo Test release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD: ${{ steps.version.outputs.build }}
+          RELEASE_REPOSITORY: gpmerola/deterministic-todo-releases
+        run: |
+          if gh release view todo-test-latest --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload todo-test-latest release-assets/* \
+              --repo "$RELEASE_REPOSITORY" --clobber
+            gh release edit todo-test-latest --repo "$RELEASE_REPOSITORY" \
+              --title "Todo Test $VERSION build $BUILD" --prerelease
+          else
+            gh release create todo-test-latest release-assets/* \
+              --repo "$RELEASE_REPOSITORY" --title "Todo Test $VERSION build $BUILD" \
+              --notes "Rolling arm64 development channel. Not the Google Play build." \
+              --prerelease
+          fi
+
+      - name: Verify published dev manifest
+        run: |
+          curl --fail --location --retry 8 --retry-delay 3 \
+            -H 'Cache-Control: no-cache' \
+            "https://github.com/gpmerola/deterministic-todo-releases/releases/download/todo-test-latest/manifest.json?commit=$GITHUB_SHA" \
+            --output published-manifest.json
+          cmp release-assets/manifest.json published-manifest.json

@@ -9,6 +9,28 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures {
+        resValues = true
+    }
+
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("direct") {
+            dimension = "distribution"
+            resValue("string", "app_name", "Deterministic Todo")
+        }
+        create("play") {
+            dimension = "distribution"
+            resValue("string", "app_name", "Deterministic Todo")
+        }
+        create("dev") {
+            dimension = "distribution"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Todo Test")
+        }
+    }
+
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
@@ -20,7 +42,8 @@ android {
         applicationId = "app.deterministic.todo.deterministic_todo"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Health Connect 1.1.0 supports Android 8 (API 26) and later.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -43,7 +66,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":runtracker"))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    "playImplementation"("com.google.android.play:app-update:2.1.0")
 }
 
 kotlin {

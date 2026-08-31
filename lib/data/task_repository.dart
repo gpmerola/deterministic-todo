@@ -5,21 +5,15 @@ import 'package:uuid/uuid.dart';
 
 import '../domain/recurrence.dart';
 import '../domain/task.dart';
-import '../services/notification_service.dart';
 import 'local/database.dart';
 
 class TaskRepository {
-  TaskRepository(
-    this.db, {
-    required this.deviceId,
-    this._notifications,
-    Uuid? uuid,
-  }) : _uuid = uuid ?? const Uuid();
+  TaskRepository(this.db, {required this.deviceId, Uuid? uuid})
+    : _uuid = uuid ?? const Uuid();
 
   final AppDatabase db;
   final String deviceId;
   final Uuid _uuid;
-  final NotificationService? _notifications;
 
   Stream<List<Task>> watchAll() =>
       (db.select(db.tasks)
@@ -45,12 +39,14 @@ class TaskRepository {
             ]))
           .watch();
 
-  Stream<List<Task>> watchCompleted() =>
+  Stream<List<Task>> watchUndatedActive() =>
       (db.select(db.tasks)
             ..where(
               (task) =>
                   task.deletedAt.isNull() &
-                  task.status.equals(TaskStatus.completed.name),
+                  task.showDate.isNull() &
+                  task.projectId.isNull() &
+                  task.status.equals(TaskStatus.completed.name).not(),
             )
             ..orderBy([
               (task) => OrderingTerm(expression: task.position),
@@ -59,12 +55,94 @@ class TaskRepository {
             ]))
           .watch();
 
+  Future<void> purgeLocalTrash() => db.transaction(() async {
+    final deletedTaskIds =
+        await (db.selectOnly(db.tasks)
+              ..addColumns([db.tasks.id])
+              ..where(db.tasks.deletedAt.isNotNull()))
+            .map((row) => row.read(db.tasks.id)!)
+            .get();
+    if (deletedTaskIds.isNotEmpty) {
+      await (db.delete(
+        db.outboxEntries,
+      )..where((row) => row.entityId.isIn(deletedTaskIds))).go();
+    }
+    await (db.delete(db.tasks)..where((row) => row.deletedAt.isNotNull())).go();
+    await (db.delete(
+      db.projectSections,
+    )..where((row) => row.isArchived.equals(true))).go();
+    await (db.delete(
+      db.projects,
+    )..where((row) => row.isArchived.equals(true))).go();
+  });
+
+  Stream<List<Task>> watchCompleted({int limit = 200}) =>
+      (db.select(db.tasks)
+            ..where(
+              (task) =>
+                  task.deletedAt.isNull() &
+                  task.status.equals(TaskStatus.completed.name),
+            )
+            ..orderBy([
+              (task) => OrderingTerm(
+                expression: task.completedAt,
+                mode: OrderingMode.desc,
+              ),
+              (task) => OrderingTerm(expression: task.id),
+            ])
+            ..limit(limit))
+          .watch();
+
+  Stream<List<Task>> watchTrash({int limit = 200}) =>
+      (db.select(db.tasks)
+            ..where((task) => task.deletedAt.isNotNull())
+            ..orderBy([
+              (task) => OrderingTerm(
+                expression: task.deletedAt,
+                mode: OrderingMode.desc,
+              ),
+              (task) => OrderingTerm(expression: task.id),
+            ])
+            ..limit(limit))
+          .watch();
+
+  Future<int> archiveCompletedOlderThan(DateTime cutoff) async {
+    final cutoffMicros = cutoff.toUtc().microsecondsSinceEpoch;
+    final old =
+        await (db.select(db.tasks)..where(
+              (task) =>
+                  task.deletedAt.isNull() &
+                  task.status.equals(TaskStatus.completed.name) &
+                  task.completedAt.isNotNull() &
+                  task.completedAt.isSmallerThanValue(cutoffMicros),
+            ))
+            .get();
+    for (final task in old) {
+      await softDelete(task);
+    }
+    return old.length;
+  }
+
+  Future<void> resetAllLocalData() => db.transaction(() async {
+    await db.delete(db.outboxEntries).go();
+    await db.delete(db.tasks).go();
+    await db.delete(db.projectSections).go();
+    await db.delete(db.projects).go();
+    await (db.delete(
+      db.appSettings,
+    )..where((row) => row.key.equals('device_id').not())).go();
+  });
+
   Future<String> create(
     String rawTitle, {
     TaskStatus status = TaskStatus.inbox,
+    String? notes,
     String? showDate,
-    int? timeMinutes,
-    String? timeZone,
+    String? recurrence,
+    String? projectId,
+    String? sectionId,
+    int priority = 1,
+    String itemKind = 'task',
   }) async {
     final title = rawTitle.trim();
     if (title.isEmpty) throw const FormatException('Il titolo è obbligatorio');
@@ -77,10 +155,16 @@ class TaskRepository {
     final row = TasksCompanion.insert(
       id: id,
       title: title,
+      itemKind: Value(itemKind),
       status: status.name,
+      notes: Value(notes),
       showDate: Value(showDate),
-      timeMinutes: Value(timeMinutes),
-      timeZone: Value(timeZone),
+      recurrence: Value(recurrence),
+      projectId: Value(projectId),
+      sectionId: Value(sectionId),
+      priority: Value(priority),
+      seriesId: Value(recurrence == null ? null : id),
+      occurrenceKey: Value(recurrence == null ? null : showDate),
       position: (maxPosition ?? 0) + 1024,
       createdAt: now,
       updatedAt: now,
@@ -90,16 +174,142 @@ class TaskRepository {
       await db.into(db.tasks).insert(row);
       await _enqueue(id, 'upsert', _payloadFromCompanion(row));
     });
-    if (showDate != null && timeMinutes != null) {
-      final created = await (db.select(
-        db.tasks,
-      )..where((task) => task.id.equals(id))).getSingle();
-      await _notifications?.schedule(created);
-    }
     return id;
   }
 
-  Future<void> setCompleted(Task task, bool completed) async {
+  Future<String> createProject(String rawName, {String? color}) async {
+    final name = rawName.trim();
+    if (name.isEmpty) throw const FormatException('Il nome è obbligatorio');
+    final id = _uuid.v4();
+    final rows = await db.select(db.projects).get();
+    final position =
+        rows.fold<int>(
+          0,
+          (max, row) => row.position > max ? row.position : max,
+        ) +
+        1024;
+    await db
+        .into(db.projects)
+        .insert(
+          ProjectsCompanion.insert(
+            id: id,
+            name: name,
+            color: Value(color),
+            position: position,
+            deviceId: deviceId,
+          ),
+        );
+    return id;
+  }
+
+  Future<String> createProjectSection(String projectId, String rawName) async {
+    final name = rawName.trim();
+    if (name.isEmpty) throw const FormatException('Il nome è obbligatorio');
+    final id = _uuid.v4();
+    final rows = await (db.select(
+      db.projectSections,
+    )..where((row) => row.projectId.equals(projectId))).get();
+    final position =
+        rows.fold<int>(
+          0,
+          (max, row) => row.position > max ? row.position : max,
+        ) +
+        1024;
+    await db
+        .into(db.projectSections)
+        .insert(
+          ProjectSectionsCompanion.insert(
+            id: id,
+            projectId: projectId,
+            name: name,
+            position: position,
+            deviceId: deviceId,
+          ),
+        );
+    return id;
+  }
+
+  Future<void> updateProject(
+    Project project, {
+    String? name,
+    int? position,
+    bool? isArchived,
+  }) async {
+    final normalizedName = name?.trim();
+    if (normalizedName != null && normalizedName.isEmpty) {
+      throw const FormatException('Il nome è obbligatorio');
+    }
+    await (db.update(
+      db.projects,
+    )..where((row) => row.id.equals(project.id))).write(
+      ProjectsCompanion(
+        name: normalizedName == null
+            ? const Value.absent()
+            : Value(normalizedName),
+        position: position == null ? const Value.absent() : Value(position),
+        isArchived: isArchived == null
+            ? const Value.absent()
+            : Value(isArchived),
+        logicalVersion: Value(project.logicalVersion + 1),
+        deviceId: Value(deviceId),
+      ),
+    );
+  }
+
+  Future<void> updateProjectSection(
+    ProjectSection section, {
+    String? name,
+    int? position,
+    bool? isArchived,
+  }) async {
+    final normalizedName = name?.trim();
+    if (normalizedName != null && normalizedName.isEmpty) {
+      throw const FormatException('Il nome è obbligatorio');
+    }
+    await (db.update(
+      db.projectSections,
+    )..where((row) => row.id.equals(section.id))).write(
+      ProjectSectionsCompanion(
+        name: normalizedName == null
+            ? const Value.absent()
+            : Value(normalizedName),
+        position: position == null ? const Value.absent() : Value(position),
+        isArchived: isArchived == null
+            ? const Value.absent()
+            : Value(isArchived),
+        logicalVersion: Value(section.logicalVersion + 1),
+        deviceId: Value(deviceId),
+      ),
+    );
+  }
+
+  Future<void> swapProjects(Project first, Project second) =>
+      db.transaction(() async {
+        await updateProject(first, position: second.position);
+        await updateProject(second, position: first.position);
+      });
+
+  Future<void> swapProjectSections(
+    ProjectSection first,
+    ProjectSection second,
+  ) => db.transaction(() async {
+    if (first.projectId != second.projectId) {
+      throw const FormatException('Le sezioni appartengono a progetti diversi');
+    }
+    await updateProjectSection(first, position: second.position);
+    await updateProjectSection(second, position: first.position);
+  });
+
+  Future<void> setProjectView(String projectId, String view) => db
+      .into(db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(
+          key: 'project_view:$projectId',
+          value: view,
+        ),
+      );
+
+  Future<CivilDate?> setCompleted(Task task, bool completed) async {
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     await _update(
       task,
@@ -111,15 +321,58 @@ class TaskRepository {
       ),
     );
     final rule = RecurrenceRule.decode(task.recurrence);
-    if (completed && rule?.type == RecurrenceType.afterCompletion) {
-      final completedOn = CivilDate.fromDateTime(DateTime.now());
-      final next = afterCompletionOccurrence(
-        completedOn: completedOn,
-        rule: rule!,
-      );
-      await _insertOccurrence(task, next);
+    if (completed && rule != null) {
+      final today = CivilDate.fromDateTime(DateTime.now());
+      if (rule.type == RecurrenceType.afterCompletion) {
+        final next = afterCompletionOccurrence(completedOn: today, rule: rule);
+        await _insertOccurrence(task, next);
+        return next;
+      } else if (task.showDate != null) {
+        final anchor = await _seriesAnchor(task);
+        var next = nextOccurrence(
+          anchor,
+          CivilDate.parse(task.showDate!),
+          rule,
+        );
+        while (next.compareTo(today) < 0) {
+          next = nextOccurrence(anchor, next, rule);
+        }
+        await _insertOccurrence(task, next);
+        return next;
+      }
     }
-    if (completed) await _notifications?.cancel(task.id);
+    return null;
+  }
+
+  Future<void> undoCompletion(Task task) async {
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(task.id))).getSingleOrNull();
+    if (current == null || current.status != TaskStatus.completed.name) return;
+    await db.transaction(() async {
+      final completedAt = current.completedAt;
+      final seriesId = current.seriesId;
+      if (completedAt != null && seriesId != null) {
+        final generated =
+            await (db.select(db.tasks)
+                  ..where(
+                    (row) =>
+                        row.id.equals(current.id).not() &
+                        row.seriesId.equals(seriesId) &
+                        row.createdAt.isBiggerOrEqualValue(completedAt),
+                  )
+                  ..orderBy([
+                    (row) => OrderingTerm(
+                      expression: row.createdAt,
+                      mode: OrderingMode.desc,
+                    ),
+                  ])
+                  ..limit(1))
+                .getSingleOrNull();
+        if (generated != null) await softDelete(generated);
+      }
+      await setCompleted(current, false);
+    });
   }
 
   Future<void> softDelete(Task task) async {
@@ -129,10 +382,17 @@ class TaskRepository {
       TasksCompanion(deletedAt: Value(now)),
       operation: 'delete',
     );
-    final refreshed = await (db.select(
+  }
+
+  Future<void> restore(Task task) async {
+    final deleted = await (db.select(
       db.tasks,
     )..where((row) => row.id.equals(task.id))).getSingle();
-    await _notifications?.cancel(refreshed.id);
+    await _update(
+      deleted,
+      const TasksCompanion(deletedAt: Value(null)),
+      operation: 'upsert',
+    );
   }
 
   Future<void> move(Task task, TaskStatus status) async =>
@@ -143,10 +403,11 @@ class TaskRepository {
     required String title,
     String? notes,
     String? showDate,
-    String? dueDate,
-    int? timeMinutes,
-    String? timeZone,
     String? recurrence,
+    String? projectId,
+    String? sectionId,
+    int? priority,
+    bool updateProject = false,
   }) async {
     if (title.trim().isEmpty) {
       throw const FormatException('Il titolo è obbligatorio');
@@ -160,23 +421,19 @@ class TaskRepository {
         title: Value(title.trim()),
         notes: Value(notes),
         showDate: Value(showDate),
-        dueDate: Value(dueDate),
-        timeMinutes: Value(timeMinutes),
-        timeZone: Value(timeZone),
+        dueDate: const Value(null),
+        timeMinutes: const Value(null),
+        timeZone: const Value(null),
         recurrence: Value(recurrence),
+        priority: priority == null ? const Value.absent() : Value(priority),
+        projectId: updateProject ? Value(projectId) : const Value.absent(),
+        sectionId: updateProject ? Value(sectionId) : const Value.absent(),
         seriesId: Value(seriesId),
         occurrenceKey: Value(
           recurrence == null ? null : task.occurrenceKey ?? showDate,
         ),
       ),
     );
-    await _notifications?.cancel(task.id);
-    final refreshed = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(task.id))).getSingle();
-    if (refreshed.showDate != null && refreshed.timeMinutes != null) {
-      await _notifications?.schedule(refreshed);
-    }
   }
 
   Future<int> generateCalendarOccurrences(Task task, CivilDate through) async {
@@ -200,17 +457,22 @@ class TaskRepository {
 
   Future<int> _insertOccurrence(Task source, CivilDate date) async {
     final seriesId = source.seriesId ?? source.id;
-    final id = _uuid.v4();
+    final id = recurringOccurrenceId(seriesId, date.toString());
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     final companion = TasksCompanion.insert(
       id: id,
       title: source.title,
-      status: TaskStatus.scheduled.name,
+      status: date.compareTo(CivilDate.fromDateTime(DateTime.now())) <= 0
+          ? TaskStatus.available.name
+          : TaskStatus.scheduled.name,
       showDate: Value(date.toString()),
-      dueDate: Value(source.dueDate == null ? null : date.toString()),
-      timeMinutes: Value(source.timeMinutes),
-      timeZone: Value(source.timeZone),
+      dueDate: const Value(null),
+      timeMinutes: const Value(null),
+      timeZone: const Value(null),
       notes: Value(source.notes),
+      priority: Value(source.priority),
+      projectId: Value(source.projectId),
+      sectionId: Value(source.sectionId),
       position: source.position,
       recurrence: Value(source.recurrence),
       seriesId: Value(seriesId),
@@ -228,6 +490,23 @@ class TaskRepository {
       }
       return inserted == null ? 0 : 1;
     });
+  }
+
+  Future<CivilDate> _seriesAnchor(Task task) async {
+    final seriesId = task.seriesId;
+    if (seriesId == null) return CivilDate.parse(task.showDate!);
+    final rows =
+        await (db.select(db.tasks)
+              ..where(
+                (row) =>
+                    row.seriesId.equals(seriesId) & row.showDate.isNotNull(),
+              )
+              ..orderBy([(row) => OrderingTerm(expression: row.showDate)])
+              ..limit(1))
+            .get();
+    return CivilDate.parse(
+      rows.isEmpty ? task.showDate! : rows.first.showDate!,
+    );
   }
 
   Future<void> reorder(List<Task> ordered) async {
@@ -264,7 +543,15 @@ class TaskRepository {
     TasksCompanion changes, {
     String operation = 'upsert',
   }) async {
-    final nextVersion = task.logicalVersion + 1;
+    final observedSetting =
+        await (db.select(db.appSettings)
+              ..where((row) => row.key.equals('sync_lamport_counter')))
+            .getSingleOrNull();
+    final observedCounter = int.tryParse(observedSetting?.value ?? '') ?? 0;
+    final nextVersion = nextLogicalCounter(
+      task.logicalVersion,
+      observedCounter,
+    );
     final stamped = changes.copyWith(
       updatedAt: Value(DateTime.now().toUtc().microsecondsSinceEpoch),
       logicalVersion: Value(nextVersion),
@@ -304,3 +591,9 @@ class TaskRepository {
     'device_id': row.deviceId.value,
   });
 }
+
+String recurringOccurrenceId(String seriesId, String occurrenceKey) =>
+    const Uuid().v5(
+      Namespace.url.value,
+      'deterministic-todo:recurrence:$seriesId:$occurrenceKey',
+    );

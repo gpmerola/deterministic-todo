@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,7 +11,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,16 +20,51 @@ import 'data/local/database.dart';
 import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
+import 'domain/link_syntax.dart';
+import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
+import 'domain/task_planning.dart';
 import 'services/calendar_service.dart';
-import 'services/device_time_zone_service.dart';
+import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
-import 'services/notification_service.dart';
+import 'services/performance_monitor.dart';
+import 'services/picked_file_reader_native.dart'
+    if (dart.library.js_interop) 'services/picked_file_reader_web.dart';
+import 'services/platform_runtime_native.dart'
+    if (dart.library.js_interop) 'services/platform_runtime_web.dart';
+import 'services/play_update_service.dart';
+import 'services/run_tracker_service.dart';
+import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
+import 'ui/daily_step_goal_indicator.dart';
+import 'ui/link_text_editing_controller.dart';
+import 'ui/movement_view.dart';
+import 'ui/smart_date_text_controller.dart';
+import 'ui/todoist_link_text.dart';
+
+part 'ui/settings_view.dart';
+part 'ui/data_health_view.dart';
+part 'ui/sync_account_card.dart';
+part 'ui/trash_view.dart';
+part 'ui/undated_tasks_view.dart';
+part 'ui/task_widgets.dart';
+part 'ui/task_editor.dart';
+part 'ui/app_undo.dart';
+
+const isPlayDistribution =
+    String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
+
+const _pageMotion = Duration(milliseconds: 140);
+const _pageMotionOut = Duration(milliseconds: 90);
+const _microMotion = Duration(milliseconds: 110);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache
+    ..maximumSize = 100
+    ..maximumSizeBytes = 16 * 1024 * 1024;
   runApp(const BootstrapApp());
 }
 
@@ -43,6 +79,12 @@ class _BootstrapAppState extends State<BootstrapApp> {
   late final Future<_AppRuntime> initialization = _initialize();
 
   Future<_AppRuntime> _initialize() async {
+    final startup = Stopwatch()..start();
+    final diagnosticInitialization = DiagnosticLogService.instance
+        .initialize()
+        .catchError((Object _) {
+          // La diagnostica non deve mai impedire l'avvio offline.
+        });
     final database = AppDatabase();
     final storedDevice = await (database.select(
       database.appSettings,
@@ -64,37 +106,50 @@ class _BootstrapAppState extends State<BootstrapApp> {
           );
     }
 
-    NotificationService? notifications;
-    try {
-      notifications = NotificationService();
-      await notifications.initialize();
-    } on Object {
-      notifications = null;
-    }
-
-    final repository = TaskRepository(
-      database,
-      deviceId: deviceId,
-      notifications: notifications,
-    );
+    final repository = TaskRepository(database, deviceId: deviceId);
     const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
     const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+    final supabaseInitialization = _initializeSupabase(
+      url: supabaseUrl,
+      key: supabaseKey,
+    );
+    await Future.wait<void>([
+      diagnosticInitialization,
+      repository
+          .activateScheduled(CivilDate.fromDateTime(DateTime.now()))
+          .then((_) {}),
+    ]);
+    final syncClient = await supabaseInitialization;
     SyncService? syncService;
-    SupabaseClient? syncClient;
-    if (supabaseUrl.isNotEmpty && supabaseKey.isNotEmpty) {
-      await Supabase.initialize(
-        url: supabaseUrl,
-        publishableKey: supabaseKey,
-        authOptions: const FlutterAuthClientOptions(
-          localStorage: SecureSupabaseStorage(),
-          autoRefreshToken: true,
-        ),
-      );
-      syncClient = Supabase.instance.client;
+    if (syncClient != null) {
       syncService = SyncService(database, syncClient)..start();
     }
-    await repository.activateScheduled(CivilDate.fromDateTime(DateTime.now()));
+    PerformanceMonitor.instance.start();
+    startup.stop();
+    unawaited(
+      PerformanceMonitor.instance.snapshot(
+        'startup',
+        database,
+        durationMs: startup.elapsedMilliseconds,
+      ),
+    );
     return _AppRuntime(repository, syncClient, syncService);
+  }
+
+  Future<SupabaseClient?> _initializeSupabase({
+    required String url,
+    required String key,
+  }) async {
+    if (url.isEmpty || key.isEmpty) return null;
+    await Supabase.initialize(
+      url: url,
+      publishableKey: key,
+      authOptions: const FlutterAuthClientOptions(
+        localStorage: SecureSupabaseStorage(),
+        autoRefreshToken: true,
+      ),
+    );
+    return Supabase.instance.client;
   }
 
   @override
@@ -147,6 +202,8 @@ class _AppRuntime {
 }
 
 class TodoApp extends StatelessWidget {
+  static const brandRed = Color(0xffdb4035);
+
   const TodoApp({
     required this.repository,
     this.syncClient,
@@ -168,6 +225,8 @@ class TodoApp extends StatelessWidget {
     themeMode: ThemeMode.system,
     theme: _theme(Brightness.light),
     darkTheme: _theme(Brightness.dark),
+    highContrastTheme: _theme(Brightness.light, highContrast: true),
+    highContrastDarkTheme: _theme(Brightness.dark, highContrast: true),
     home: TaskShell(
       repository: repository,
       syncClient: syncClient,
@@ -175,17 +234,79 @@ class TodoApp extends StatelessWidget {
     ),
   );
 
-  ThemeData _theme(Brightness brightness) => ThemeData(
-    brightness: brightness,
-    colorSchemeSeed: const Color(0xff356859),
-    useMaterial3: true,
-    inputDecorationTheme: const InputDecorationTheme(
-      border: OutlineInputBorder(),
-    ),
-  );
+  ThemeData _theme(Brightness brightness, {bool highContrast = false}) {
+    final dark = brightness == Brightness.dark;
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: brandRed,
+          brightness: brightness,
+        ).copyWith(
+          primary: brandRed,
+          onPrimary: Colors.white,
+          outline: highContrast ? (dark ? Colors.white : Colors.black) : null,
+          surface: dark ? const Color(0xff1f1f1f) : const Color(0xfffafafa),
+          surfaceContainerLow: dark
+              ? const Color(0xff242424)
+              : const Color(0xfff5f5f5),
+          surfaceContainer: dark
+              ? const Color(0xff292929)
+              : const Color(0xfff0f0f0),
+          surfaceContainerHigh: dark
+              ? const Color(0xff303030)
+              : const Color(0xffe9e9e9),
+        );
+    return ThemeData(
+      brightness: brightness,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: scheme.surface,
+      useMaterial3: true,
+      visualDensity: VisualDensity.standard,
+      textTheme: ThemeData(brightness: brightness).textTheme.copyWith(
+        headlineSmall: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w500,
+          height: 1.15,
+        ),
+        titleLarge: const TextStyle(
+          fontSize: 21,
+          fontWeight: FontWeight.w600,
+          height: 1.2,
+        ),
+        titleSmall: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          height: 1.25,
+        ),
+        bodyMedium: const TextStyle(fontSize: 15, height: 1.3),
+        bodySmall: const TextStyle(fontSize: 12, height: 1.25),
+      ),
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(Size.square(48)),
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+      ),
+      checkboxTheme: const CheckboxThemeData(
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      focusColor: scheme.primary.withValues(alpha: highContrast ? 0.28 : 0.16),
+      inputDecorationTheme: const InputDecorationTheme(
+        border: OutlineInputBorder(),
+      ),
+    );
+  }
 }
 
-enum AppSection { inbox, today, upcoming, waiting, completed, settings }
+enum AppSection {
+  inbox,
+  today,
+  upcoming,
+  waiting,
+  projects,
+  movement,
+  completed,
+  settings,
+}
 
 extension on AppSection {
   String get label => switch (this) {
@@ -193,6 +314,8 @@ extension on AppSection {
     AppSection.today => 'Oggi',
     AppSection.upcoming => 'Prossime',
     AppSection.waiting => 'In attesa',
+    AppSection.projects => 'Progetti',
+    AppSection.movement => 'Movimento',
     AppSection.completed => 'Completate',
     AppSection.settings => 'Impostazioni',
   };
@@ -202,6 +325,8 @@ extension on AppSection {
     AppSection.today => Icons.today_outlined,
     AppSection.upcoming => Icons.event_outlined,
     AppSection.waiting => Icons.hourglass_empty,
+    AppSection.projects => Icons.folder_outlined,
+    AppSection.movement => Icons.directions_walk_outlined,
     AppSection.completed => Icons.check_circle_outline,
     AppSection.settings => Icons.settings_outlined,
   };
@@ -223,27 +348,299 @@ class TaskShell extends StatefulWidget {
   State<TaskShell> createState() => _TaskShellState();
 }
 
-class _TaskShellState extends State<TaskShell> {
+class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   AppSection section = AppSection.today;
+  final List<AppSection> sectionHistory = [];
+  final Set<String> inboxProjectIds = {};
   String? selectedUpcomingDate;
-  final quickAdd = SmartDateTextController();
+  String? selectedProjectId;
+  String? selectedDesktopTaskId;
   final search = TextEditingController();
-  final quickFocus = FocusNode();
   late final Stream<List<Task>> activeTasks;
   late final Stream<List<Task>> completedTasks;
+  bool backgroundSnapshotTaken = false;
+  Timer? updateTimer;
+  Timer? movementRefreshTimer;
+  DateTime? lastUpdateCheck;
+  bool checkingForUpdates = false;
+  bool appIsForeground = true;
+  final Set<String> recentlySyncedTaskIds = {};
+  StreamSubscription<Set<String>>? remoteTaskSubscription;
+  Timer? remoteHighlightTimer;
+  List<Project> quickAddProjects = const [];
+  String? lastQuickProjectId;
+  DailyMovementProgress? dailyMovement;
+  int dailyStepGoal = 10000;
+  String? celebratedGoalDay;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
+    unawaited(_initializeProjectCaches());
     activeTasks = widget.repository.watchActive();
-    completedTasks = widget.repository.watchCompleted();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdates());
+    completedTasks = widget.repository.watchCompleted(limit: 200);
+    remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
+      ids,
+    ) {
+      if (!mounted) return;
+      setState(() {
+        recentlySyncedTaskIds
+          ..clear()
+          ..addAll(ids);
+      });
+      remoteHighlightTimer?.cancel();
+      remoteHighlightTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) setState(recentlySyncedTaskIds.clear);
+      });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _refreshDailyMovement();
+      await _checkForUpdates(automatic: true);
+      await _runDailyMaintenance();
+      await _showDailyPerformanceReminder();
+    });
+    if (!isPlayDistribution) {
+      updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
+        if (appIsForeground) unawaited(_checkForUpdates(automatic: true));
+      });
+    }
+    if (isAndroidPlatform) {
+      movementRefreshTimer = Timer.periodic(
+        RunTrackerService.foregroundRefreshInterval,
+        (_) {
+          if (appIsForeground) unawaited(_refreshDailyMovement());
+        },
+      );
+    }
   }
 
-  Future<void> _checkForUpdates() async {
+  Future<void> _refreshDailyMovement() async {
+    if (!isAndroidPlatform) return;
+    final results = await Future.wait<Object?>([
+      RunTrackerService.dailyMovement(),
+      RunTrackerService.getStepGoal(),
+      (widget.repository.db.select(widget.repository.db.appSettings)
+            ..where((row) => row.key.equals('step_goal_celebrated_day')))
+          .getSingleOrNull(),
+    ]);
+    if (!mounted) return;
+    final movement = results[0] as DailyMovementProgress?;
+    final goal = results[1] as int;
+    final savedCelebration = results[2] as AppSetting?;
+    celebratedGoalDay ??= savedCelebration?.value;
+    final reachedNow = movement != null && movement.steps >= goal;
+    final shouldCelebrate = reachedNow && celebratedGoalDay != movement.day;
+    setState(() {
+      dailyMovement = movement;
+      dailyStepGoal = goal;
+      if (shouldCelebrate) celebratedGoalDay = movement.day;
+    });
+    if (shouldCelebrate) {
+      await _savePreference('step_goal_celebrated_day', movement.day);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Obiettivo passi raggiunto! Ottimo lavoro ★'),
+          duration: Duration(seconds: 4),
+          showCloseIcon: true,
+        ),
+      );
+    }
+  }
+
+  Future<void> _setDailyStepGoal(int value) async {
+    final goal = await RunTrackerService.setStepGoal(value);
+    if (!mounted) return;
+    setState(() {
+      dailyStepGoal = goal;
+      if ((dailyMovement?.steps ?? 0) < goal) celebratedGoalDay = null;
+    });
+  }
+
+  Future<void> _initializeProjectCaches() async {
+    final projects = await widget.repository.db
+        .select(widget.repository.db.projects)
+        .get();
+    inboxProjectIds
+      ..clear()
+      ..addAll(
+        projects
+            .where((project) => project.name.trim().toLowerCase() == 'inbox')
+            .map((project) => project.id),
+      );
+    await _refreshQuickAddCache(projects: projects);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshQuickAddCache({List<Project>? projects}) async {
+    projects ??= await widget.repository.db
+        .select(widget.repository.db.projects)
+        .get();
+    final settings = await (widget.repository.db.select(
+      widget.repository.db.appSettings,
+    )..where((row) => row.key.equals('last_quick_project'))).get();
+    final values = {for (final setting in settings) setting.key: setting.value};
+    quickAddProjects = projects
+        .where(
+          (item) =>
+              !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
+        )
+        .toList();
+    lastQuickProjectId = values['last_quick_project'];
+  }
+
+  Future<void> _runDailyMaintenance() async {
+    final today = CivilDate.fromDateTime(DateTime.now()).toString();
+    final setting = await (widget.repository.db.select(
+      widget.repository.db.appSettings,
+    )..where((row) => row.key.equals('maintenance_date'))).getSingleOrNull();
+    if (setting?.value == today) return;
+    await widget.repository.archiveCompletedOlderThan(
+      DateTime.now().subtract(const Duration(days: 365)),
+    );
+    await _savePreference('maintenance_date', today);
+  }
+
+  Future<void> _showDailyPerformanceReminder() async {
+    if (!DiagnosticLogService.instance.isInitialized) return;
+    final today = CivilDate.fromDateTime(DateTime.now()).toString();
+    final setting =
+        await (widget.repository.db.select(widget.repository.db.appSettings)
+              ..where((row) => row.key.equals('performance_reminder_date')))
+            .getSingleOrNull();
+    if (setting?.value == today || !mounted) return;
+    await widget.repository.db
+        .into(widget.repository.db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: 'performance_reminder_date',
+            value: today,
+          ),
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        persist: false,
+        showCloseIcon: true,
+        content: const Text('Diagnostica prestazioni disponibile'),
+        action: SnackBarAction(
+          label: 'Apri',
+          onPressed: _showPerformanceDialog,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPerformanceDialog() => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Controllare le prestazioni?'),
+      content: const Text(
+        'Se hai usato abbastanza l’app, puoi esportare i log e inviarli a '
+        'Codex con questo prompt:\n\n“Analizza questi log prestazionali, '
+        'individua colli di bottiglia di RAM, CPU, storage, frame e sync e '
+        'implementa le ottimizzazioni sicure.”',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Non oggi'),
+        ),
+        TextButton(
+          onPressed: () async {
+            await Clipboard.setData(
+              const ClipboardData(
+                text:
+                    'Analizza questi log prestazionali, individua colli di '
+                    'bottiglia di RAM, CPU, storage, frame e sync e '
+                    'implementa le ottimizzazioni sicure.',
+              ),
+            );
+            if (dialogContext.mounted) Navigator.pop(dialogContext);
+          },
+          child: const Text('Copia prompt'),
+        ),
+        FilledButton(
+          onPressed: () async {
+            final data = await DiagnosticLogService.instance.exportData();
+            if (data != null) {
+              await SharePlus.instance.share(
+                ShareParams(
+                  files: [
+                    XFile.fromData(
+                      data.bytes,
+                      name: data.name,
+                      mimeType: 'application/x-ndjson',
+                    ),
+                  ],
+                  fileNameOverrides: [data.name],
+                  title: 'Diagnostica Deterministic Todo',
+                ),
+              );
+            }
+            if (dialogContext.mounted) Navigator.pop(dialogContext);
+          },
+          child: const Text('Esporta log'),
+        ),
+      ],
+    ),
+  );
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      appIsForeground = true;
+      backgroundSnapshotTaken = false;
+      widget.syncService?.resume();
+      unawaited(_refreshDailyMovement());
+      unawaited(
+        PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
+      );
+      if (lastUpdateCheck == null ||
+          DateTime.now().difference(lastUpdateCheck!) >=
+              const Duration(hours: 6)) {
+        unawaited(_checkForUpdates(automatic: true));
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      widget.syncService?.pause();
+      appIsForeground = false;
+      if (!backgroundSnapshotTaken) {
+        backgroundSnapshotTaken = true;
+        unawaited(PerformanceMonitor.instance.flushFrames());
+        final imageCache = PaintingBinding.instance.imageCache;
+        imageCache
+          ..clear()
+          ..clearLiveImages();
+        unawaited(
+          PerformanceMonitor.instance.snapshot(
+            'background',
+            widget.repository.db,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _checkForUpdates({bool automatic = false}) async {
+    if (isPlayDistribution) {
+      await _checkPlayUpdate(automatic: automatic);
+      return;
+    }
+    if (checkingForUpdates) return;
+    checkingForUpdates = true;
+    lastUpdateCheck = DateTime.now();
+    final elapsed = Stopwatch()..start();
+    var result = 'current';
     try {
       final update = await UpdateService().check();
       if (update == null || !mounted) return;
+      result = 'available';
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
@@ -267,20 +664,129 @@ class _TaskShellState extends State<TaskShell> {
           ],
         ),
       );
-    } on Object {
+    } on Object catch (error) {
+      result = 'error';
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'update_check',
+          level: 'warning',
+          fields: {
+            'channel': 'direct',
+            'result': result,
+            'automatic': automatic,
+            'error_type': error.runtimeType.toString(),
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       // Offline, timeout o manifest non valido: l'uso locale continua.
+    } finally {
+      elapsed.stop();
+      if (result != 'error') {
+        unawaited(
+          DiagnosticLogService.instance.event(
+            'update_check',
+            fields: {
+              'channel': 'direct',
+              'result': result,
+              'automatic': automatic,
+              'duration_ms': elapsed.elapsedMilliseconds,
+            },
+          ),
+        );
+      }
+      checkingForUpdates = false;
+    }
+  }
+
+  Future<void> _checkPlayUpdate({required bool automatic}) async {
+    if (checkingForUpdates) return;
+    checkingForUpdates = true;
+    lastUpdateCheck = DateTime.now();
+    final elapsed = Stopwatch()..start();
+    var status = PlayUpdateStatus.error;
+    try {
+      status = await PlayUpdateService().check(startIfAvailable: true);
+      if (!automatic && mounted) {
+        if (status == PlayUpdateStatus.unavailable) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('L’app è aggiornata'),
+              showCloseIcon: true,
+            ),
+          );
+        } else if (status == PlayUpdateStatus.available ||
+            status == PlayUpdateStatus.unsupported ||
+            status == PlayUpdateStatus.error) {
+          await _openPlayStoreListing();
+        }
+      }
+    } finally {
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'update_check',
+          level: status == PlayUpdateStatus.error ? 'warning' : 'info',
+          fields: {
+            'channel': 'play',
+            'result': status.name,
+            'automatic': automatic,
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
+      checkingForUpdates = false;
+    }
+  }
+
+  Future<void> _openPlayStoreListing() async {
+    const packageName = 'app.deterministic.todo.deterministic_todo';
+    final marketUri = Uri.parse('market://details?id=$packageName');
+    final webUri = Uri.https('play.google.com', '/store/apps/details', {
+      'id': packageName,
+    });
+    try {
+      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } on Object {
+      // Alcuni dispositivi non espongono lo schema market://.
+    }
+    final opened = await launchUrl(
+      webUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossibile aprire Google Play'),
+          showCloseIcon: true,
+        ),
+      );
     }
   }
 
   Future<void> _installUpdate(AvailableUpdate update) async {
-    if (!Platform.isAndroid) {
+    if (!isAndroidPlatform) {
       await launchUrl(update.url, mode: LaunchMode.externalApplication);
+      return;
+    }
+    if (!await UpdateService.stillApplies(update)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('L’app è già aggiornata'),
+            showCloseIcon: true,
+          ),
+        );
+      }
       return;
     }
     final ota = OtaUpdate();
     final events = ota.execute(
       update.url.toString(),
-      destinationFilename: 'deterministic-todo-${update.version}.apk',
+      destinationFilename:
+          'deterministic-todo-${update.version}-${update.build}.apk',
       sha256checksum: update.sha256,
     );
     if (!mounted) return;
@@ -350,50 +856,107 @@ class _TaskShellState extends State<TaskShell> {
 
   @override
   void dispose() {
-    quickAdd.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
+    updateTimer?.cancel();
+    movementRefreshTimer?.cancel();
+    remoteHighlightTimer?.cancel();
+    remoteTaskSubscription?.cancel();
     search.dispose();
-    quickFocus.dispose();
     super.dispose();
   }
 
-  Future<bool> _createFrom(TextEditingController controller) async {
+  bool _handleDesktopEscape(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape ||
+        selectedDesktopTaskId == null) {
+      return false;
+    }
+    setState(() => selectedDesktopTaskId = null);
+    return true;
+  }
+
+  Future<bool> _createFrom(
+    TextEditingController controller, {
+    required List<Project> projects,
+    TextEditingController? notesController,
+    int priority = 1,
+    String? projectId,
+    String? sectionId,
+  }) async {
     if (controller.text.trim().isEmpty) return false;
+    final elapsed = Stopwatch()..start();
     try {
-      final parsed = const QuickAddParser().parse(controller.text);
+      final metadata = parseQuickAddMetadata(
+        controller.text,
+        defaultPriority: priority,
+        defaultProjectId: projectId,
+        projectsByName: {
+          for (final project in projects.where((item) => !item.isArchived))
+            project.name: project.id,
+        },
+      );
+      final parsed = parsePlannedQuickTask(metadata.text);
       final today = CivilDate.fromDateTime(DateTime.now());
-      final timeZone = parsed.timeMinutes == null
-          ? null
-          : await DeviceTimeZoneService.currentIana();
+      final notesText = notesController?.text.trim();
       await widget.repository.create(
-        parsed.title,
-        status: parsed.showDate == null
-            ? TaskStatus.inbox
-            : parsed.showDate!.compareTo(today) <= 0
+        linkifyPlainUrls(parsed.title),
+        status: parsed.showDate!.compareTo(today) <= 0
             ? TaskStatus.available
             : TaskStatus.scheduled,
-        showDate: parsed.showDate?.toString(),
-        timeMinutes: parsed.timeMinutes,
-        timeZone: timeZone,
+        showDate: parsed.showDate!.toString(),
+        notes: notesText == null || notesText.isEmpty
+            ? null
+            : linkifyPlainUrls(notesText),
+        recurrence: parsed.recurrence,
+        priority: metadata.priority,
+        projectId: metadata.projectId,
+        sectionId: metadata.projectId == projectId ? sectionId : null,
       );
+      await _savePreference('last_quick_project', metadata.projectId ?? '');
+      lastQuickProjectId = metadata.projectId;
       controller.clear();
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'interaction_latency',
+          fields: {
+            'interaction': 'task_submit',
+            'outcome': 'success',
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       return true;
     } on FormatException catch (error) {
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'interaction_latency',
+          level: 'warning',
+          fields: {
+            'interaction': 'task_submit',
+            'outcome': 'invalid',
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
       if (!mounted) return false;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message.toString()), showCloseIcon: true),
+      );
       return false;
     }
   }
 
-  Future<void> _create() async {
-    await _createFrom(quickAdd);
-  }
+  Future<void> _savePreference(String key, String value) => widget.repository.db
+      .into(widget.repository.db.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(key: key, value: value),
+      );
 
-  String _quickAddHelper(String value) {
-    if (value.trim().isEmpty) {
-      return 'Es. “Dentista domani alle 9”';
-    }
+  String? _quickAddHelper(String value) {
+    if (value.trim().isEmpty) return null;
     try {
       final draft = const QuickAddParser().parse(value);
       final parts = <String>[];
@@ -402,216 +965,544 @@ class _TaskShellState extends State<TaskShell> {
           DateFormat('EEE d MMM', 'it').format(draft.showDate!.asLocalDate),
         );
       }
-      if (draft.timeMinutes != null) {
-        final hour = draft.timeMinutes! ~/ 60;
-        final minute = draft.timeMinutes! % 60;
+      if (draft.recurrence != null) {
         parts.add(
-          '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
+          recurrenceSmartLabel(draft.recurrence, draft.showDate?.toString()),
         );
       }
-      return parts.isEmpty
-          ? 'Invio per salvare senza data'
-          : 'Pianificata: ${parts.join(' · ')}';
+      return parts.isEmpty ? null : parts.join(' · ');
     } on FormatException {
-      return 'Completa o correggi la data';
+      return null;
     }
   }
 
-  Future<void> _showQuickAddSheet() async {
+  Future<void> _showQuickAddSheet({
+    String? projectId,
+    String? sectionId,
+  }) async {
+    final openElapsed = Stopwatch()..start();
+    var openLogged = false;
+    final availableProjects = List<Project>.of(quickAddProjects);
+    projectId ??= availableProjects.any((item) => item.id == lastQuickProjectId)
+        ? lastQuickProjectId
+        : null;
     final controller = SmartDateTextController();
+    final notesController = TextEditingController();
+    final titleFocusNode = FocusNode(debugLabel: 'quick-add-title');
+    var keyboardWasVisible = false;
+    var stableKeyboardInset = 0.0;
+    var closing = false;
+    var showNotes = false;
+    // Ogni nuova attività parte senza priorità, indipendentemente dalla scelta
+    // usata nel composer precedente.
+    var priority = 1;
+    if (!mounted) return;
+    // Refresh in background for the next opening. The current sheet must be
+    // mounted immediately, without waiting for SQLite or preferences.
+    unawaited(_refreshQuickAddCache());
+    // Let Android begin opening the IME in the same frame as the composer.
+    titleFocusNode.requestFocus();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      requestFocus: true,
+      sheetAnimationStyle: const AnimationStyle(
+        duration: Duration.zero,
+        reverseDuration: Duration.zero,
+      ),
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => AnimatedPadding(
-          duration: const Duration(milliseconds: 160),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            0,
-            16,
-            MediaQuery.viewInsetsOf(context).bottom + 16,
-          ),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
+        builder: (context, setSheetState) {
+          if (!openLogged) {
+            openLogged = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              openElapsed.stop();
+              unawaited(
+                DiagnosticLogService.instance.event(
+                  'interaction_latency',
+                  fields: {
+                    'interaction': 'composer_open',
+                    'outcome': 'visible',
+                    'duration_ms': openElapsed.elapsedMilliseconds,
+                  },
+                ),
+              );
+            });
+          }
+          final currentKeyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+          if (currentKeyboardInset > 0) {
+            keyboardWasVisible = true;
+            if (currentKeyboardInset > stableKeyboardInset) {
+              stableKeyboardInset = currentKeyboardInset;
+            }
+          } else if (keyboardWasVisible && !closing) {
+            closing = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (sheetContext.mounted) Navigator.pop(sheetContext);
+            });
+          }
+          final composerInset = keyboardWasVisible
+              ? stableKeyboardInset
+              : currentKeyboardInset;
+          final desktopComposer = MediaQuery.sizeOf(context).width >= 900;
+          Future<void> submit() async {
+            if (await _createFrom(
+                  controller,
+                  projects: availableProjects,
+                  notesController: notesController,
+                  priority: priority,
+                  projectId: projectId,
+                  sectionId: sectionId,
+                ) &&
+                sheetContext.mounted) {
+              Navigator.pop(sheetContext);
+            }
+          }
+
+          return Padding(
+            key: const ValueKey('mobile-quick-add-keyboard-padding'),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, composerInset + 12),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
                     key: const ValueKey('mobile-quick-add-field'),
                     controller: controller,
-                    autofocus: true,
+                    focusNode: titleFocusNode,
                     minLines: 1,
-                    maxLines: 3,
+                    maxLines: desktopComposer ? 1 : 3,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.done,
                     onChanged: (_) => setSheetState(() {}),
-                    onSubmitted: (_) async {
-                      if (await _createFrom(controller) &&
-                          sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                    },
+                    onSubmitted: (_) => submit(),
                     decoration: InputDecoration(
-                      labelText: 'Nuova attività',
                       hintText: 'Cosa devi fare?',
                       helperText: _quickAddHelper(controller.text),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: IconButton.filled(
-                    key: const ValueKey('mobile-quick-add-submit'),
-                    tooltip: 'Aggiungi attività',
-                    onPressed: () async {
-                      if (await _createFrom(controller) &&
-                          sheetContext.mounted) {
-                        Navigator.pop(sheetContext);
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_upward),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        key: const ValueKey('mobile-quick-add-notes'),
+                        tooltip: 'Aggiungi descrizione',
+                        onPressed: () => setSheetState(() {
+                          showNotes = !showNotes;
+                        }),
+                        icon: Icon(
+                          Icons.notes_outlined,
+                          color: showNotes
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                      ),
+                      PopupMenuButton<int>(
+                        key: const ValueKey('mobile-quick-add-priority'),
+                        tooltip: priority == 1
+                            ? 'Nessuna priorità'
+                            : 'Priorità P${5 - priority}',
+                        icon: Icon(
+                          Icons.circle,
+                          size: 20,
+                          color: _priorityColor(priority),
+                        ),
+                        onSelected: (value) =>
+                            setSheetState(() => priority = value),
+                        itemBuilder: (_) => [
+                          for (var raw = 4; raw >= 1; raw--)
+                            PopupMenuItem(
+                              value: raw,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.circle,
+                                    size: 18,
+                                    color: _priorityColor(raw),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    raw == 1
+                                        ? 'Nessuna priorità'
+                                        : 'P${5 - raw}',
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (availableProjects.isNotEmpty)
+                        PopupMenuButton<String>(
+                          tooltip: 'Progetto',
+                          icon: Icon(
+                            projectId == null
+                                ? Icons.folder_outlined
+                                : Icons.folder,
+                            color: projectId == null
+                                ? null
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          onSelected: (value) => setSheetState(
+                            () => projectId = value.isEmpty ? null : value,
+                          ),
+                          itemBuilder: (_) => [
+                            const PopupMenuItem<String>(
+                              value: '',
+                              child: Text('Nessun progetto'),
+                            ),
+                            for (final project in availableProjects)
+                              PopupMenuItem<String>(
+                                value: project.id,
+                                child: Text(project.name),
+                              ),
+                          ],
+                        ),
+                      const Spacer(),
+                      IconButton.filled(
+                        key: const ValueKey('mobile-quick-add-submit'),
+                        tooltip: 'Aggiungi attività',
+                        onPressed: submit,
+                        icon: const Icon(Icons.arrow_upward),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  if (showNotes)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: TextField(
+                        key: const ValueKey('mobile-quick-add-notes-field'),
+                        controller: notesController,
+                        autofocus: true,
+                        minLines: 1,
+                        maxLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Descrizione',
+                          prefixIcon: Icon(Icons.notes_outlined),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
     // The route completes while its exit animation can still own the field for
     // one frame. Dispose after that frame to avoid a controller-after-dispose
     // race on fast submissions.
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+      notesController.dispose();
+      titleFocusNode.dispose();
+    });
+  }
+
+  bool get _canExitFromBack =>
+      section == AppSection.today && sectionHistory.isEmpty;
+
+  void _navigateTo(AppSection destination) {
+    if (destination == section) return;
+    final elapsed = Stopwatch()..start();
+    setState(() {
+      sectionHistory.add(section);
+      if (sectionHistory.length > 20) sectionHistory.removeAt(0);
+      section = destination;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      elapsed.stop();
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'interaction_latency',
+          fields: {
+            'interaction': 'screen_change',
+            'outcome': 'visible',
+            'duration_ms': elapsed.elapsedMilliseconds,
+          },
+        ),
+      );
+    });
+  }
+
+  void _handleBack() {
+    setState(() {
+      if (selectedDesktopTaskId != null) {
+        selectedDesktopTaskId = null;
+      } else if (section == AppSection.projects && selectedProjectId != null) {
+        selectedProjectId = null;
+      } else if (sectionHistory.isNotEmpty) {
+        section = sectionHistory.removeLast();
+      } else {
+        section = AppSection.today;
+      }
+    });
   }
 
   @override
-  Widget build(BuildContext context) => Shortcuts(
-    shortcuts: const {
-      SingleActivator(LogicalKeyboardKey.keyN, meta: true): _NewIntent(),
-      SingleActivator(LogicalKeyboardKey.keyN, control: true): _NewIntent(),
-      SingleActivator(LogicalKeyboardKey.keyF, meta: true): _SearchIntent(),
-      SingleActivator(LogicalKeyboardKey.keyF, control: true): _SearchIntent(),
+  Widget build(BuildContext context) => PopScope(
+    canPop: _canExitFromBack,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) _handleBack();
     },
-    child: Actions(
-      actions: {
-        _NewIntent: CallbackAction<_NewIntent>(
-          onInvoke: (_) => quickFocus.requestFocus(),
-        ),
-        _SearchIntent: CallbackAction<_SearchIntent>(
-          onInvoke: (_) => showSearch<void>(
-            context: context,
-            delegate: TaskSearchDelegate(widget.repository),
-          ),
-        ),
+    child: Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.escape): _BackIntent(),
       },
-      child: StreamBuilder<List<Task>>(
-        stream: section == AppSection.completed ? completedTasks : activeTasks,
-        builder: (context, snapshot) {
-          final tasks = snapshot.data ?? const [];
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final desktop = constraints.maxWidth >= 720;
-              final content = _content(tasks);
-              return Scaffold(
-                appBar: desktop
-                    ? null
-                    : AppBar(
-                        leading: section == AppSection.settings
-                            ? IconButton(
-                                tooltip: 'Indietro',
-                                onPressed: () =>
-                                    setState(() => section = AppSection.today),
-                                icon: const Icon(Icons.arrow_back),
-                              )
-                            : null,
-                        title: Text(section.label),
-                        actions: [
-                          if (section != AppSection.settings) ...[
-                            IconButton(
-                              tooltip: 'Cerca',
-                              onPressed: () => showSearch<void>(
-                                context: context,
-                                delegate: TaskSearchDelegate(widget.repository),
-                              ),
-                              icon: const Icon(Icons.search),
-                            ),
-                            IconButton(
-                              tooltip: 'Impostazioni',
-                              onPressed: () =>
-                                  setState(() => section = AppSection.settings),
-                              icon: const Icon(Icons.settings_outlined),
-                            ),
-                          ],
-                        ],
-                      ),
-                body: desktop
-                    ? Row(
-                        children: [
-                          NavigationRail(
-                            extended: constraints.maxWidth >= 1000,
-                            selectedIndex: section.index,
-                            onDestinationSelected: (index) => setState(
-                              () => section = AppSection.values[index],
-                            ),
-                            leading: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Icon(Icons.check_box_outlined, size: 32),
-                            ),
-                            destinations: [
-                              for (final item in AppSection.values)
-                                NavigationRailDestination(
-                                  icon: Icon(item.icon),
-                                  label: Text(item.label),
-                                ),
-                            ],
-                          ),
-                          const VerticalDivider(width: 1),
-                          Expanded(child: content),
-                        ],
-                      )
-                    : content,
-                floatingActionButton: !desktop && section != AppSection.settings
-                    ? FloatingActionButton(
-                        tooltip: 'Nuova attività',
-                        onPressed: _showQuickAddSheet,
-                        child: const Icon(Icons.add),
-                      )
-                    : null,
-                bottomNavigationBar: desktop
-                    ? null
-                    : section == AppSection.settings
-                    ? null
-                    : Builder(
-                        builder: (context) {
-                          const mobileSections = [
-                            AppSection.today,
-                            AppSection.upcoming,
-                            AppSection.completed,
-                          ];
-                          return NavigationBar(
-                            selectedIndex: mobileSections
-                                .indexOf(section)
-                                .clamp(0, mobileSections.length - 1),
-                            onDestinationSelected: (index) =>
-                                setState(() => section = mobileSections[index]),
-                            destinations: [
-                              for (final item in mobileSections)
-                                NavigationDestination(
-                                  icon: Icon(item.icon),
-                                  label: item.label,
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-              );
+      child: Actions(
+        actions: {
+          _BackIntent: CallbackAction<_BackIntent>(
+            onInvoke: (_) {
+              _handleBack();
+              return null;
             },
-          );
+          ),
         },
+        child: StreamBuilder<List<Task>>(
+          stream: section == AppSection.completed
+              ? completedTasks
+              : activeTasks,
+          builder: (context, snapshot) {
+            final tasks = snapshot.data ?? const [];
+            final primarySections = [
+              AppSection.today,
+              AppSection.upcoming,
+              AppSection.projects,
+              if (isAndroidPlatform) AppSection.movement,
+            ];
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final desktop = constraints.maxWidth >= 900;
+                final pageIdentity =
+                    '${section.name}:'
+                    '${section == AppSection.projects ? selectedProjectId ?? 'root' : ''}';
+                final selectedDesktopTask = desktop
+                    ? tasks
+                          .where((task) => task.id == selectedDesktopTaskId)
+                          .firstOrNull
+                    : null;
+                final content = Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: desktop ? 1180 : 720,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            key: const ValueKey('page-motion'),
+                            duration: _pageMotion,
+                            reverseDuration: _pageMotionOut,
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.012, 0),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                ),
+                            child: KeyedSubtree(
+                              key: ValueKey('page-$pageIdentity'),
+                              child: _content(tasks),
+                            ),
+                          ),
+                        ),
+                        AnimatedSize(
+                          duration: _pageMotion,
+                          reverseDuration: _pageMotionOut,
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.centerRight,
+                          child: selectedDesktopTask == null
+                              ? const SizedBox.shrink()
+                              : SizedBox(
+                                  width: 331,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      const VerticalDivider(width: 1),
+                                      Expanded(
+                                        child: ClipRect(
+                                          child: AnimatedSwitcher(
+                                            duration: _microMotion,
+                                            child: _desktopItemDetails(
+                                              selectedDesktopTask,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+                return Scaffold(
+                  appBar: AppBar(
+                    leadingWidth: desktop ? 80 : null,
+                    leading:
+                        desktop &&
+                            section != AppSection.settings &&
+                            section != AppSection.completed
+                        ? const SizedBox.shrink()
+                        : section == AppSection.settings ||
+                              section == AppSection.completed
+                        ? IconButton(
+                            tooltip: 'Indietro',
+                            onPressed: _handleBack,
+                            icon: const Icon(Icons.arrow_back),
+                          )
+                        : null,
+                    title: AnimatedSwitcher(
+                      key: const ValueKey('appbar-title-motion'),
+                      duration: _microMotion,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: Text(
+                        section.label,
+                        key: ValueKey('appbar-title-${section.name}'),
+                      ),
+                    ),
+                    actions: [
+                      if (isAndroidPlatform)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: DailyStepGoalIndicator(
+                            key: const ValueKey('daily-step-goal'),
+                            steps: dailyMovement?.steps ?? 0,
+                            goal: dailyStepGoal,
+                            onTap: () => _navigateTo(AppSection.movement),
+                          ),
+                        ),
+                      if (widget.syncService != null)
+                        SyncStatusAction(service: widget.syncService!),
+                      if (section != AppSection.settings) ...[
+                        IconButton(
+                          tooltip: 'Comando universale',
+                          onPressed: _showUniversalCommand,
+                          icon: const Icon(Icons.search_rounded),
+                        ),
+                        IconButton(
+                          tooltip: 'Impostazioni',
+                          onPressed: () => _navigateTo(AppSection.settings),
+                          icon: const Icon(Icons.settings_outlined),
+                        ),
+                      ],
+                    ],
+                  ),
+                  body: desktop
+                      ? Row(
+                          children: [
+                            NavigationRail(
+                              selectedIndex: primarySections.contains(section)
+                                  ? primarySections.indexOf(section)
+                                  : null,
+                              onDestinationSelected: (index) =>
+                                  _navigateTo(primarySections[index]),
+                              labelType: NavigationRailLabelType.all,
+                              leading: Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: IconButton.filled(
+                                  tooltip: 'Nuova attività',
+                                  onPressed: _showQuickAddSheet,
+                                  icon: const Icon(Icons.add),
+                                ),
+                              ),
+                              destinations: [
+                                for (final item in primarySections)
+                                  NavigationRailDestination(
+                                    icon: Icon(item.icon),
+                                    label: Text(item.label),
+                                  ),
+                              ],
+                            ),
+                            const VerticalDivider(width: 1),
+                            Expanded(child: content),
+                          ],
+                        )
+                      : content,
+                  floatingActionButton:
+                      !desktop &&
+                          section != AppSection.settings &&
+                          section != AppSection.projects &&
+                          section != AppSection.movement &&
+                          section != AppSection.completed
+                      ? FloatingActionButton(
+                          tooltip: 'Nuova attività',
+                          onPressed: _showQuickAddSheet,
+                          child: const Icon(Icons.add),
+                        )
+                      : null,
+                  bottomNavigationBar:
+                      desktop ||
+                          section == AppSection.settings ||
+                          section == AppSection.completed
+                      ? null
+                      : Center(
+                          heightFactor: 1,
+                          child: SizedBox(
+                            width: 720,
+                            child: NavigationBar(
+                              selectedIndex: primarySections
+                                  .indexOf(section)
+                                  .clamp(0, primarySections.length - 1),
+                              onDestinationSelected: (index) =>
+                                  _navigateTo(primarySections[index]),
+                              destinations: [
+                                for (final item in primarySections)
+                                  NavigationDestination(
+                                    icon: Icon(item.icon),
+                                    label: item.label,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                );
+              },
+            );
+          },
+        ),
       ),
+    ),
+  );
+
+  Future<void> _showUniversalCommand() => showSearch<void>(
+    context: context,
+    delegate: TaskSearchDelegate(
+      widget.repository,
+      onNavigate: (destination) {
+        _navigateTo(destination);
+      },
+      onCreate: (raw) async {
+        final metadata = parseQuickAddMetadata(
+          raw,
+          defaultPriority: 1,
+          projectsByName: const {},
+        );
+        final parsed = parsePlannedQuickTask(metadata.text);
+        await widget.repository.create(
+          parsed.title,
+          status:
+              parsed.showDate!.compareTo(
+                    CivilDate.fromDateTime(DateTime.now()),
+                  ) <=
+                  0
+              ? TaskStatus.available
+              : TaskStatus.scheduled,
+          showDate: parsed.showDate!.toString(),
+          recurrence: parsed.recurrence,
+          priority: metadata.priority,
+        );
+      },
     ),
   );
 
@@ -622,6 +1513,17 @@ class _TaskShellState extends State<TaskShell> {
         syncClient: widget.syncClient,
         syncService: widget.syncService,
         checkForUpdates: _checkForUpdates,
+        showCompleted: () => _navigateTo(AppSection.completed),
+        dailyStepGoal: dailyStepGoal,
+        onDailyStepGoalChanged: _setDailyStepGoal,
+      );
+    }
+    if (section == AppSection.projects) return _projectsView(all);
+    if (section == AppSection.movement) {
+      return MovementView(
+        dailyMovement: dailyMovement,
+        stepGoal: dailyStepGoal,
+        refreshDailyMovement: _refreshDailyMovement,
       );
     }
     final today = CivilDate.fromDateTime(DateTime.now()).toString();
@@ -629,173 +1531,663 @@ class _TaskShellState extends State<TaskShell> {
       return switch (section) {
         AppSection.inbox => task.status == TaskStatus.inbox.name,
         AppSection.today =>
-          task.status == TaskStatus.inbox.name ||
+          (task.status == TaskStatus.inbox.name &&
+                  (task.projectId == null ||
+                      inboxProjectIds.contains(task.projectId))) ||
               task.status == TaskStatus.available.name ||
-              task.showDate == today ||
-              (task.dueDate != null && task.dueDate!.compareTo(today) <= 0),
+              task.showDate == today,
         AppSection.upcoming =>
           task.status == TaskStatus.scheduled.name &&
               task.showDate != null &&
               task.showDate!.compareTo(today) > 0,
         AppSection.waiting => task.status == TaskStatus.waiting.name,
+        AppSection.projects => false,
+        AppSection.movement => false,
         AppSection.completed => task.status == TaskStatus.completed.name,
         AppSection.settings => false,
       };
     }).toList();
-    if (section == AppSection.upcoming && selectedUpcomingDate != null) {
-      visible.removeWhere((task) => task.showDate != selectedUpcomingDate);
-    }
     visible.sort((a, b) {
       if (section == AppSection.upcoming) {
         final byDate = a.showDate!.compareTo(b.showDate!);
         if (byDate != 0) return byDate;
       }
+      final byPriority = b.priority.compareTo(a.priority);
+      if (byPriority != 0) return byPriority;
       return _stableCompare(a, b, today);
     });
     return Column(
       children: [
-        if (MediaQuery.sizeOf(context).width >= 720)
-          ListTile(
-            title: Text(
-              section.label,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            trailing: IconButton(
-              tooltip: 'Cerca (Ctrl/⌘ F)',
-              onPressed: () => showSearch<void>(
-                context: context,
-                delegate: TaskSearchDelegate(widget.repository),
-              ),
-              icon: const Icon(Icons.search),
-            ),
-          ),
-        if (MediaQuery.sizeOf(context).width >= 720)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              controller: quickAdd,
-              focusNode: quickFocus,
-              textInputAction: TextInputAction.done,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _create(),
-              decoration: InputDecoration(
-                labelText: 'Nuova attività',
-                hintText: 'Titolo e Invio',
-                helperText: _quickAddHelper(quickAdd.text),
-                prefixIcon: const Icon(Icons.add),
-                suffixIcon: IconButton(
-                  tooltip: 'Aggiungi',
-                  onPressed: _create,
-                  icon: const Icon(Icons.arrow_forward),
-                ),
-              ),
-            ),
-          ),
-        if (section == AppSection.upcoming) _futureDateStrip(all),
+        if (section == AppSection.upcoming) _futureDateStrip(),
         Expanded(
           child: section == AppSection.upcoming
               ? _upcomingList(visible)
-              : visible.isEmpty
-              ? const Center(child: Text('Nessuna attività'))
-              : ReorderableListView.builder(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: visible.length,
-                  onReorderItem: (oldIndex, newIndex) {
-                    final item = visible.removeAt(oldIndex);
-                    visible.insert(newIndex, item);
-                    widget.repository.reorder(visible);
-                  },
-                  itemBuilder: (context, index) => TaskTile(
-                    key: ValueKey(visible[index].id),
-                    task: visible[index],
-                    repository: widget.repository,
-                  ),
+              : AnimatedSwitcher(
+                  key: ValueKey('task-state-motion-${section.name}'),
+                  duration: _microMotion,
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: visible.isEmpty
+                      ? _emptyState(
+                          key: ValueKey('empty-${section.name}'),
+                          label: section == AppSection.completed
+                              ? 'Nessuna attività completata'
+                              : 'Nessuna attività',
+                        )
+                      : section == AppSection.today
+                      ? _todayList(visible, today)
+                      : ListView.builder(
+                          key: PageStorageKey('task-list-${section.name}'),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          itemCount: visible.length,
+                          itemBuilder: (context, index) =>
+                              _taskTile(visible[index]),
+                        ),
                 ),
         ),
       ],
     );
   }
 
-  Widget _futureDateStrip(List<Task> all) {
-    final today = CivilDate.fromDateTime(DateTime.now());
-    final counts = <String, int>{};
-    for (final task in all) {
-      if (task.showDate != null &&
-          task.status == TaskStatus.scheduled.name &&
-          task.showDate!.compareTo(today.toString()) > 0) {
-        counts.update(task.showDate!, (value) => value + 1, ifAbsent: () => 1);
+  Widget _taskTile(Task task) => TaskTile(
+    key: ValueKey(task.id),
+    task: task,
+    repository: widget.repository,
+    highlightRemote: recentlySyncedTaskIds.contains(task.id),
+    dense: section == AppSection.completed,
+    showDateMetadata:
+        section != AppSection.today && section != AppSection.upcoming,
+    onSelected: MediaQuery.sizeOf(context).width >= 900
+        ? () => setState(() => selectedDesktopTaskId = task.id)
+        : null,
+  );
+
+  Widget _todayList(List<Task> tasks, String today) {
+    final overdue = <Task>[];
+    final current = <Task>[];
+    for (final task in tasks) {
+      if (task.showDate != null && task.showDate!.compareTo(today) < 0) {
+        overdue.add(task);
+      } else {
+        current.add(task);
       }
     }
-    final lastDate = CivilDate(today.year + 10, 12, 31);
-    final dayCount = lastDate.asLocalDate.difference(today.asLocalDate).inDays;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    if (overdue.isEmpty) {
+      return ListView.builder(
+        key: const PageStorageKey('task-list-today'),
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: current.length,
+        itemBuilder: (_, index) => _taskTile(current[index]),
+      );
+    }
+    final currentHeaderIndex = overdue.length + 1;
+    final itemCount =
+        currentHeaderIndex + (current.isEmpty ? 0 : 1) + current.length;
+    return ListView.builder(
+      key: const PageStorageKey('task-list-today'),
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: itemCount,
+      itemBuilder: (_, index) {
+        if (index == 0) {
+          return _todayGroupHeader(
+            key: const ValueKey('today-group-overdue'),
+            label: 'Arretrate',
+            overdue: true,
+          );
+        }
+        if (index <= overdue.length) return _taskTile(overdue[index - 1]);
+        if (current.isNotEmpty && index == currentHeaderIndex) {
+          return _todayGroupHeader(
+            key: const ValueKey('today-group-current'),
+            label: 'Oggi',
+          );
+        }
+        final currentIndex = index - currentHeaderIndex - 1;
+        return _taskTile(current[currentIndex]);
+      },
+    );
+  }
+
+  Widget _todayGroupHeader({
+    required Key key,
+    required String label,
+    bool overdue = false,
+  }) => Padding(
+    key: key,
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+    child: Row(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-          child: Row(
-            children: [
-              ChoiceChip(
-                label: const Text('Tutte'),
-                selected: selectedUpcomingDate == null,
-                onSelected: (_) => setState(() => selectedUpcomingDate = null),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                key: const ValueKey('jump-to-future-date'),
-                onPressed: _pickFutureDate,
-                icon: const Icon(Icons.calendar_month_outlined),
-                label: Text(
-                  selectedUpcomingDate == null
-                      ? 'Vai a data'
-                      : DateFormat('d MMM yyyy', 'it').format(
-                          CivilDate.parse(selectedUpcomingDate!).asLocalDate,
-                        ),
-                ),
-              ),
-            ],
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: overdue
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        SizedBox(
-          height: 76,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: dayCount + 1,
-            itemBuilder: (context, index) {
-              final date = today.addDays(index + 1);
-              final key = date.toString();
-              final count = counts[key] ?? 0;
-              final startsMonth = date.day == 1;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  selected: selectedUpcomingDate == key,
-                  onSelected: (_) => setState(() => selectedUpcomingDate = key),
-                  label: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        startsMonth
-                            ? DateFormat(
-                                'MMM yy',
-                                'it',
-                              ).format(date.asLocalDate)
-                            : DateFormat('EEE', 'it').format(date.asLocalDate),
-                      ),
-                      Text(
-                        '${date.day}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      if (count > 0) Text('$count'),
-                    ],
-                  ),
-                ),
-              );
-            },
+        const SizedBox(width: 12),
+        Expanded(
+          child: Divider(
+            color: overdue
+                ? Theme.of(context).colorScheme.error.withValues(alpha: 0.28)
+                : null,
           ),
         ),
       ],
+    ),
+  );
+
+  Widget _desktopItemDetails(Task task) => Padding(
+    key: ValueKey('desktop-detail-${task.id}'),
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Dettagli',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Chiudi dettagli',
+              onPressed: () => setState(() => selectedDesktopTaskId = null),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: Focus(
+            onKeyEvent: (_, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.escape) {
+                setState(() => selectedDesktopTaskId = null);
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TaskEditor(
+              key: ValueKey('desktop-inline-editor-${task.id}'),
+              task: task,
+              repository: widget.repository,
+              embedded: true,
+              onDeleted: () => setState(() => selectedDesktopTaskId = null),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(
+    stream:
+        (widget.repository.db.select(widget.repository.db.projects)..orderBy([
+              (row) => OrderingTerm(expression: row.position),
+              (row) => OrderingTerm(expression: row.name),
+            ]))
+            .watch(),
+    builder: (context, projectSnapshot) => StreamBuilder<List<ProjectSection>>(
+      stream: (widget.repository.db.select(
+        widget.repository.db.projectSections,
+      )..orderBy([(row) => OrderingTerm(expression: row.position)])).watch(),
+      builder: (context, sectionSnapshot) {
+        final projects = projectSnapshot.data ?? const <Project>[];
+        final sections = sectionSnapshot.data ?? const <ProjectSection>[];
+        inboxProjectIds
+          ..clear()
+          ..addAll(
+            projects
+                .where(
+                  (project) => project.name.trim().toLowerCase() == 'inbox',
+                )
+                .map((project) => project.id),
+          );
+        final activeProjects = projects
+            .where(
+              (item) =>
+                  !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
+            )
+            .toList();
+        final selected =
+            activeProjects.any((item) => item.id == selectedProjectId)
+            ? activeProjects.firstWhere((item) => item.id == selectedProjectId)
+            : null;
+        if (selected == null) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                child: Row(
+                  children: [
+                    Text(
+                      'I miei progetti',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const ValueKey('create-project'),
+                      tooltip: 'Nuovo progetto',
+                      onPressed: _addProject,
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: activeProjects.isEmpty
+                    ? _emptyState(
+                        key: const ValueKey('empty-projects'),
+                        label: 'Nessun progetto',
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        itemCount: activeProjects.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, indent: 48),
+                        itemBuilder: (context, index) {
+                          final project = activeProjects[index];
+                          return ListTile(
+                            key: ValueKey('project-row-${project.id}'),
+                            dense: true,
+                            leading: Icon(
+                              Icons.circle,
+                              size: 12,
+                              color: _projectColor(project.color),
+                            ),
+                            title: Text(project.name),
+                            trailing: _projectActions(project, activeProjects),
+                            onTap: () =>
+                                setState(() => selectedProjectId = project.id),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        }
+        final projectSections = sections
+            .where((item) => item.projectId == selected.id && !item.isArchived)
+            .toList();
+        final projectTasks = tasks
+            .where((item) => item.projectId == selected.id)
+            .toList();
+        projectTasks.sort((a, b) {
+          final byPriority = b.priority.compareTo(a.priority);
+          return byPriority != 0 ? byPriority : _stableCompare(a, b, '');
+        });
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    key: const ValueKey('back-to-projects'),
+                    tooltip: 'Tutti i progetti',
+                    onPressed: () => setState(() => selectedProjectId = null),
+                    icon: const Icon(Icons.arrow_back),
+                  ),
+                  Icon(
+                    Icons.circle,
+                    size: 12,
+                    color: _projectColor(selected.color),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      selected.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Aggiungi sezione',
+                    onPressed: () => _addSection(selected.id),
+                    icon: const Icon(Icons.add_box_outlined),
+                  ),
+                  _projectActions(selected, activeProjects),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: _projectList(selected.id, projectSections, projectTasks),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  Widget _projectList(
+    String projectId,
+    List<ProjectSection> sections,
+    List<Task> tasks,
+  ) => ListView(
+    key: PageStorageKey('project-list-$projectId'),
+    padding: const EdgeInsets.only(bottom: 24),
+    children: [
+      for (final section in sections)
+        ExpansionTile(
+          initiallyExpanded: true,
+          title: Text(section.name),
+          trailing: _sectionActions(section, sections),
+          children: [
+            for (final task in tasks.where(
+              (item) => item.sectionId == section.id,
+            ))
+              TaskTile(
+                key: ValueKey('project-${task.id}'),
+                task: task,
+                repository: widget.repository,
+                highlightRemote: recentlySyncedTaskIds.contains(task.id),
+              ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.add, size: 20),
+              title: const Text('Aggiungi'),
+              onTap: () => _addProjectTask(projectId, section.id),
+            ),
+          ],
+        ),
+      if (tasks.any((item) => item.sectionId == null))
+        ExpansionTile(
+          initiallyExpanded: true,
+          title: const Text('Senza sezione'),
+          children: [
+            for (final task in tasks.where((item) => item.sectionId == null))
+              TaskTile(
+                key: ValueKey('project-${task.id}'),
+                task: task,
+                repository: widget.repository,
+                highlightRemote: recentlySyncedTaskIds.contains(task.id),
+              ),
+          ],
+        ),
+      ListTile(
+        dense: true,
+        leading: const Icon(Icons.add, size: 20),
+        title: const Text('Aggiungi'),
+        onTap: () => _addProjectTask(projectId, null),
+      ),
+    ],
+  );
+
+  Future<String?> _askName(
+    String title,
+    String label, {
+    String? initialValue,
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: label),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Crea'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return value?.trim().isEmpty == true ? null : value?.trim();
+  }
+
+  Future<void> _addProject() async {
+    final controller = TextEditingController();
+    var color = 'green';
+    final result = await showDialog<(String, String)>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Nuovo progetto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Nome'),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final value in const [
+                    'red',
+                    'orange',
+                    'yellow',
+                    'green',
+                    'blue',
+                    'purple',
+                    'pink',
+                  ])
+                    ChoiceChip(
+                      avatar: CircleAvatar(
+                        backgroundColor: _projectColor(value),
+                      ),
+                      label: const SizedBox.shrink(),
+                      selected: color == value,
+                      onSelected: (_) => setDialogState(() => color = value),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, (controller.text, color)),
+              child: const Text('Crea'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (result == null || result.$1.trim().isEmpty) return;
+    final id = await widget.repository.createProject(
+      result.$1,
+      color: result.$2,
+    );
+    if (mounted) setState(() => selectedProjectId = id);
+    await widget.syncService?.sync();
+  }
+
+  Future<void> _addSection(String projectId) async {
+    final name = await _askName('Nuova sezione', 'Nome');
+    if (name == null) return;
+    await widget.repository.createProjectSection(projectId, name);
+    await widget.syncService?.sync();
+  }
+
+  Widget _projectActions(Project project, List<Project> projects) {
+    final index = projects.indexWhere((item) => item.id == project.id);
+    return PopupMenuButton<String>(
+      key: ValueKey('project-actions-${project.id}'),
+      tooltip: 'Azioni progetto',
+      onSelected: (action) =>
+          _handleProjectAction(action, project, projects, index),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'rename', child: Text('Rinomina')),
+        PopupMenuItem(
+          value: 'up',
+          enabled: index > 0,
+          child: const Text('Sposta su'),
+        ),
+        PopupMenuItem(
+          value: 'down',
+          enabled: index >= 0 && index < projects.length - 1,
+          child: const Text('Sposta giù'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'delete', child: Text('Elimina')),
+      ],
+    );
+  }
+
+  Future<void> _handleProjectAction(
+    String action,
+    Project project,
+    List<Project> projects,
+    int index,
+  ) async {
+    if (action == 'rename') {
+      final name = await _askName(
+        'Rinomina progetto',
+        'Nome',
+        initialValue: project.name,
+      );
+      if (name == null) return;
+      await widget.repository.updateProject(project, name: name);
+    } else if (action == 'up' && index > 0) {
+      await widget.repository.swapProjects(project, projects[index - 1]);
+    } else if (action == 'down' && index < projects.length - 1) {
+      await widget.repository.swapProjects(project, projects[index + 1]);
+    } else if (action == 'delete') {
+      await widget.repository.updateProject(project, isArchived: true);
+      if (mounted && selectedProjectId == project.id) {
+        setState(() => selectedProjectId = null);
+      }
+      if (!mounted) return;
+      AppUndo.show(
+        context,
+        message: 'Progetto “${project.name}” eliminato',
+        undo: () async {
+          final current = await (widget.repository.db.select(
+            widget.repository.db.projects,
+          )..where((row) => row.id.equals(project.id))).getSingle();
+          await widget.repository.updateProject(current, isArchived: false);
+          await widget.syncService?.sync();
+        },
+      );
+    }
+    await widget.syncService?.sync();
+  }
+
+  Widget _sectionActions(
+    ProjectSection section,
+    List<ProjectSection> sections,
+  ) {
+    final index = sections.indexWhere((item) => item.id == section.id);
+    return PopupMenuButton<String>(
+      key: ValueKey('section-actions-${section.id}'),
+      tooltip: 'Azioni sezione',
+      onSelected: (action) =>
+          _handleSectionAction(action, section, sections, index),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'rename', child: Text('Rinomina')),
+        PopupMenuItem(
+          value: 'up',
+          enabled: index > 0,
+          child: const Text('Sposta su'),
+        ),
+        PopupMenuItem(
+          value: 'down',
+          enabled: index >= 0 && index < sections.length - 1,
+          child: const Text('Sposta giù'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'delete', child: Text('Elimina')),
+      ],
+    );
+  }
+
+  Future<void> _handleSectionAction(
+    String action,
+    ProjectSection section,
+    List<ProjectSection> sections,
+    int index,
+  ) async {
+    if (action == 'rename') {
+      final name = await _askName(
+        'Rinomina sezione',
+        'Nome',
+        initialValue: section.name,
+      );
+      if (name == null) return;
+      await widget.repository.updateProjectSection(section, name: name);
+    } else if (action == 'up' && index > 0) {
+      await widget.repository.swapProjectSections(section, sections[index - 1]);
+    } else if (action == 'down' && index < sections.length - 1) {
+      await widget.repository.swapProjectSections(section, sections[index + 1]);
+    } else if (action == 'delete') {
+      await widget.repository.updateProjectSection(section, isArchived: true);
+      if (!mounted) return;
+      AppUndo.show(
+        context,
+        message: 'Sezione “${section.name}” eliminata',
+        undo: () async {
+          final current = await (widget.repository.db.select(
+            widget.repository.db.projectSections,
+          )..where((row) => row.id.equals(section.id))).getSingle();
+          await widget.repository.updateProjectSection(
+            current,
+            isArchived: false,
+          );
+          await widget.syncService?.sync();
+        },
+      );
+    }
+    await widget.syncService?.sync();
+  }
+
+  Future<void> _addProjectTask(String projectId, String? sectionId) async {
+    await _showQuickAddSheet(projectId: projectId, sectionId: sectionId);
+  }
+
+  Color _projectColor(String? value) => switch (value) {
+    'red' || 'berry_red' => Colors.red,
+    'orange' => Colors.orange,
+    'yellow' => Colors.amber,
+    'blue' || 'sky_blue' => Colors.blue,
+    'purple' || 'violet' => Colors.purple,
+    'pink' || 'magenta' => Colors.pink,
+    'green' || 'lime_green' => Colors.green,
+    _ => Colors.grey,
+  };
+
+  Widget _futureDateStrip() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 8, 2),
+        child: TextButton.icon(
+          key: const ValueKey('jump-to-future-date'),
+          onPressed: _pickFutureDate,
+          icon: const Icon(Icons.calendar_month_outlined, size: 18),
+          label: AnimatedSwitcher(
+            duration: _microMotion,
+            child: Text(
+              selectedUpcomingDate == null
+                  ? 'Vai a data'
+                  : DateFormat('d MMM yyyy', 'it').format(
+                      CivilDate.parse(selectedUpcomingDate!).asLocalDate,
+                    ),
+              key: ValueKey(selectedUpcomingDate ?? 'jump-to-date'),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -819,30 +2211,56 @@ class _TaskShellState extends State<TaskShell> {
   }
 
   Widget _upcomingList(List<Task> tasks) {
-    if (tasks.isEmpty) return const Center(child: Text('Nessuna attività'));
     final grouped = <String, List<Task>>{};
     for (final task in tasks) {
       grouped.putIfAbsent(task.showDate!, () => []).add(task);
     }
-    return ListView(
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final start = selectedUpcomingDate == null
+        ? today.addDays(1)
+        : CivilDate.parse(selectedUpcomingDate!);
+    final lastDate = CivilDate(today.year + 10, 12, 31);
+    final dayCount = lastDate.asLocalDate.difference(start.asLocalDate).inDays;
+    return ListView.builder(
+      key: PageStorageKey('upcoming-$selectedUpcomingDate'),
       padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        for (final entry in grouped.entries) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
-            child: Text(
-              _friendlyDate(entry.key),
-              style: Theme.of(context).textTheme.titleMedium,
+      itemCount: dayCount + 1,
+      itemBuilder: (context, index) {
+        final date = start.addDays(index);
+        final dateTasks = grouped[date.toString()] ?? const <Task>[];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 5),
+              child: Text(
+                _friendlyDate(date.toString()),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
             ),
-          ),
-          for (final task in entry.value)
-            TaskTile(
-              key: ValueKey(task.id),
-              task: task,
-              repository: widget.repository,
-            ),
-        ],
-      ],
+            if (dateTasks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Text(
+                  'Nessuna attività',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            else
+              for (final task in dateTasks)
+                TaskTile(
+                  key: ValueKey(task.id),
+                  task: task,
+                  repository: widget.repository,
+                  showDateMetadata: false,
+                  highlightRemote: recentlySyncedTaskIds.contains(task.id),
+                ),
+            const Divider(height: 1),
+          ],
+        );
+      },
     );
   }
 
@@ -851,14 +2269,26 @@ class _TaskShellState extends State<TaskShell> {
     final label = DateFormat('EEEE d MMMM', 'it').format(date);
     return label[0].toUpperCase() + label.substring(1);
   }
+
+  Widget _emptyState({required Key key, required String label}) => Align(
+    key: key,
+    alignment: Alignment.topCenter,
+    child: Padding(
+      padding: const EdgeInsets.only(top: 32),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ),
+  );
 }
 
 int _stableCompare(Task a, Task b, String today) {
   int group(Task task) {
-    if (task.dueDate == today) return 0;
-    if (task.dueDate != null && task.dueDate!.compareTo(today) < 0) return 1;
-    if (task.showDate == today) return 2;
-    return 3;
+    if (task.showDate == today) return 0;
+    return 1;
   }
 
   final byGroup = group(a).compareTo(group(b));
@@ -869,616 +2299,20 @@ int _stableCompare(Task a, Task b, String today) {
   return byCreation != 0 ? byCreation : a.id.compareTo(b.id);
 }
 
-class TaskTile extends StatefulWidget {
-  const TaskTile({required this.task, required this.repository, super.key});
-
-  final Task task;
-  final TaskRepository repository;
-
-  @override
-  State<TaskTile> createState() => _TaskTileState();
-}
-
-class _TaskTileState extends State<TaskTile> {
-  Future<void> _addToCalendar() async {
-    try {
-      final result = await CalendarService(
-        widget.repository.db,
-      ).exportTask(widget.task);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Aggiunta a ${result.calendarName}')),
-      );
-    } on Object {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossibile aggiungere al calendario.')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Dismissible(
-    key: ValueKey('dismiss-${widget.task.id}'),
-    background: Container(color: Theme.of(context).colorScheme.errorContainer),
-    onDismissed: (_) {
-      widget.repository.softDelete(widget.task);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Spostata nel cestino')));
-    },
-    child: ListTile(
-      leading: Checkbox(
-        value: widget.task.status == TaskStatus.completed.name,
-        onChanged: (value) =>
-            widget.repository.setCompleted(widget.task, value ?? false),
-      ),
-      title: Text(widget.task.title),
-      subtitle: _subtitle(widget.task),
-      trailing: Platform.isAndroid && widget.task.showDate != null
-          ? IconButton(
-              tooltip: 'Mostra in Google Calendar',
-              onPressed: _addToCalendar,
-              icon: const Icon(Icons.event_available_outlined),
-            )
-          : const Icon(Icons.drag_handle),
-      onTap: () => showDialog<void>(
-        context: context,
-        builder: (_) =>
-            TaskEditor(task: widget.task, repository: widget.repository),
-      ),
-    ),
-  );
-
-  Widget? _subtitle(Task task) {
-    final values = [
-      if (task.showDate != null) 'Mostra ${task.showDate}',
-      if (task.dueDate != null) 'Scade ${task.dueDate}',
-    ];
-    return values.isEmpty ? null : Text(values.join(' · '));
-  }
-}
-
-class TaskEditor extends StatefulWidget {
-  const TaskEditor({required this.task, required this.repository, super.key});
-
-  final Task task;
-  final TaskRepository repository;
-
-  @override
-  State<TaskEditor> createState() => _TaskEditorState();
-}
-
-class _TaskEditorState extends State<TaskEditor> {
-  late final TextEditingController title = TextEditingController(
-    text: widget.task.title,
-  );
-  late final TextEditingController notes = TextEditingController(
-    text: widget.task.notes,
-  );
-  late final TextEditingController showDate = TextEditingController(
-    text: widget.task.showDate,
-  );
-  late final TextEditingController dueDate = TextEditingController(
-    text: widget.task.dueDate,
-  );
-  late final TextEditingController time = TextEditingController(
-    text: widget.task.timeMinutes == null
-        ? ''
-        : '${(widget.task.timeMinutes! ~/ 60).toString().padLeft(2, '0')}:${(widget.task.timeMinutes! % 60).toString().padLeft(2, '0')}',
-  );
-  late TaskStatus status = TaskStatus.values.byName(widget.task.status);
-  late String recurrence = widget.task.recurrence ?? 'none';
-
-  Future<Task> _save() async {
-    final parsedTime = _parseTime(time.text);
-    await widget.repository.updateDetails(
-      widget.task,
-      title: title.text,
-      notes: notes.text.trim().isEmpty ? null : notes.text.trim(),
-      showDate: showDate.text.trim().isEmpty
-          ? null
-          : CivilDate.parse(showDate.text.trim()).toString(),
-      dueDate: dueDate.text.trim().isEmpty
-          ? null
-          : CivilDate.parse(dueDate.text.trim()).toString(),
-      timeMinutes: parsedTime,
-      timeZone: parsedTime == null
-          ? null
-          : await DeviceTimeZoneService.currentIana(),
-      recurrence: recurrence == 'none' ? null : recurrence,
-    );
-    var refreshed = await (widget.repository.db.select(
-      widget.repository.db.tasks,
-    )..where((row) => row.id.equals(widget.task.id))).getSingle();
-    if (status.name != refreshed.status) {
-      await widget.repository.move(refreshed, status);
-      refreshed = await (widget.repository.db.select(
-        widget.repository.db.tasks,
-      )..where((row) => row.id.equals(widget.task.id))).getSingle();
-    }
-    return refreshed;
-  }
-
-  Future<void> _saveAndExportToCalendar() async {
-    try {
-      final saved = await _save();
-      final result = await CalendarService(
-        widget.repository.db,
-      ).exportTask(saved);
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      Navigator.pop(context);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Aggiunta a ${result.calendarName}')),
-      );
-    } on Object catch (error) {
-      if (!mounted) return;
-      final message = error is FormatException
-          ? error.message.toString()
-          : 'Impossibile aggiungere al calendario.';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Modifica attività'),
-    content: SizedBox(
-      width: 480,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: title,
-              decoration: const InputDecoration(labelText: 'Titolo'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: notes,
-              maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Note'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: showDate,
-              decoration: const InputDecoration(
-                labelText: 'Mostra il (AAAA-MM-GG)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: dueDate,
-              decoration: const InputDecoration(
-                labelText: 'Scade il (AAAA-MM-GG)',
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<TaskStatus>(
-              initialValue: status,
-              decoration: const InputDecoration(labelText: 'Stato'),
-              items: [
-                for (final value in TaskStatus.values)
-                  DropdownMenuItem(
-                    value: value,
-                    child: Text(_statusLabel(value)),
-                  ),
-              ],
-              onChanged: (value) => setState(() => status = value ?? status),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: time,
-              keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(labelText: 'Ora (HH:MM)'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: recurrence,
-              decoration: const InputDecoration(labelText: 'Ricorrenza'),
-              items: const [
-                DropdownMenuItem(value: 'none', child: Text('Nessuna')),
-                DropdownMenuItem(
-                  value: 'calendar:day:1',
-                  child: Text('Da calendario · ogni giorno'),
-                ),
-                DropdownMenuItem(
-                  value: 'calendar:week:1',
-                  child: Text('Da calendario · ogni settimana'),
-                ),
-                DropdownMenuItem(
-                  value: 'calendar:month:1',
-                  child: Text('Da calendario · ogni mese'),
-                ),
-                DropdownMenuItem(
-                  value: 'afterCompletion:day:1',
-                  child: Text('Dal completamento · dopo 1 giorno'),
-                ),
-                DropdownMenuItem(
-                  value: 'afterCompletion:week:1',
-                  child: Text('Dal completamento · dopo 1 settimana'),
-                ),
-                DropdownMenuItem(
-                  value: 'afterCompletion:month:1',
-                  child: Text('Dal completamento · dopo 1 mese'),
-                ),
-              ],
-              onChanged: (value) =>
-                  setState(() => recurrence = value ?? 'none'),
-            ),
-          ],
-        ),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Annulla'),
-      ),
-      if (Platform.isAndroid)
-        TextButton.icon(
-          onPressed: _saveAndExportToCalendar,
-          icon: const Icon(Icons.event_available_outlined),
-          label: const Text('Salva + calendario'),
-        ),
-      FilledButton(
-        onPressed: () async {
-          await _save();
-          if (context.mounted) Navigator.pop(context);
-        },
-        child: const Text('Salva'),
-      ),
-    ],
-  );
-}
-
-String _statusLabel(TaskStatus status) => switch (status) {
-  TaskStatus.inbox => 'Inbox',
-  TaskStatus.available => 'Disponibile',
-  TaskStatus.scheduled => 'Pianificata',
-  TaskStatus.waiting => 'In attesa',
-  TaskStatus.completed => 'Completata',
-};
-
-int? _parseTime(String value) {
-  if (value.trim().isEmpty) return null;
-  final parts = value.trim().split(':');
-  if (parts.length != 2) throw const FormatException('Ora non valida');
-  final hour = int.parse(parts[0]);
-  final minute = int.parse(parts[1]);
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-    throw const FormatException('Ora non valida');
-  }
-  return hour * 60 + minute;
-}
-
-class SettingsView extends StatelessWidget {
-  const SettingsView({
-    required this.repository,
-    required this.checkForUpdates,
-    this.syncClient,
-    this.syncService,
-    super.key,
-  });
-
-  final TaskRepository repository;
-  final Future<void> Function() checkForUpdates;
-  final SupabaseClient? syncClient;
-  final SyncService? syncService;
-
-  Future<void> _export(BuildContext context, bool json) async {
-    final service = ExportService(repository.db);
-    final content = json
-        ? await service.exportJson()
-        : await service.exportCsv();
-    final directory = await getTemporaryDirectory();
-    final file = File('${directory.path}/attivita.${json ? 'json' : 'csv'}');
-    await file.writeAsString(content, flush: true);
-    if (context.mounted) {
-      await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)], title: 'Esporta attività'),
-      );
-    }
-  }
-
-  Future<void> _import(BuildContext context) async {
-    final picked = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      withData: true,
-    );
-    if (picked == null || !context.mounted) return;
-    final bytes = picked.files.single.bytes;
-    final source = bytes == null
-        ? await File(picked.files.single.path!).readAsString()
-        : String.fromCharCodes(bytes);
-    final service = ExportService(repository.db);
-    final preview = await service.preview(source);
-    if (!context.mounted) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Anteprima importazione'),
-        content: Text(
-          'Da aggiungere: ${preview.added}\nDa aggiornare: ${preview.updated}\nInvariate: ${preview.unchanged}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Importa'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await service.importValidated(source);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Importazione completata')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      const Text('Impostazioni', style: TextStyle(fontSize: 28)),
-      const SizedBox(height: 24),
-      FutureBuilder<PackageInfo>(
-        future: PackageInfo.fromPlatform(),
-        builder: (context, snapshot) => ListTile(
-          leading: const Icon(Icons.system_update_outlined),
-          title: const Text('Controlla aggiornamenti'),
-          subtitle: Text(
-            snapshot.hasData
-                ? 'Versione installata: ${snapshot.requireData.version} '
-                      '(${snapshot.requireData.buildNumber})'
-                : 'Verifica la release pubblica più recente',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () async {
-            final messenger = ScaffoldMessenger.of(context);
-            await checkForUpdates();
-            if (context.mounted) {
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Controllo completato. Se non appare una finestra, '
-                    'questa è la versione più recente.',
-                  ),
-                ),
-              );
-            }
-          },
-        ),
-      ),
-      SyncAccountCard(client: syncClient, syncService: syncService),
-      const ListTile(
-        leading: Icon(Icons.lock_outline),
-        title: Text('Privacy'),
-        subtitle: Text(
-          'Nessun tracciamento. Titoli e note non vengono scritti nei log.',
-        ),
-      ),
-      const Divider(),
-      ListTile(
-        leading: const Icon(Icons.file_download_outlined),
-        title: const Text('Esporta backup JSON'),
-        onTap: () => _export(context, true),
-      ),
-      ListTile(
-        leading: const Icon(Icons.table_view_outlined),
-        title: const Text('Esporta attività CSV'),
-        onTap: () => _export(context, false),
-      ),
-      ListTile(
-        leading: const Icon(Icons.file_upload_outlined),
-        title: const Text('Importa backup JSON'),
-        subtitle: const Text(
-          'Mostra sempre un’anteprima prima di modificare i dati.',
-        ),
-        onTap: () => _import(context),
-      ),
-    ],
-  );
-}
-
-class SyncAccountCard extends StatefulWidget {
-  const SyncAccountCard({this.client, this.syncService, super.key});
-
-  final SupabaseClient? client;
-  final SyncService? syncService;
-
-  @override
-  State<SyncAccountCard> createState() => _SyncAccountCardState();
-}
-
-class _SyncAccountCardState extends State<SyncAccountCard> {
-  final email = TextEditingController();
-  final password = TextEditingController();
-  StreamSubscription<AuthState>? authSubscription;
-  bool busy = false;
-  String? message;
-
-  @override
-  void initState() {
-    super.initState();
-    authSubscription = widget.client?.auth.onAuthStateChange.listen((_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    authSubscription?.cancel();
-    email.dispose();
-    password.dispose();
-    super.dispose();
-  }
-
-  Future<void> _connect({required bool create}) async {
-    final client = widget.client;
-    if (client == null || busy) return;
-    setState(() {
-      busy = true;
-      message = null;
-    });
-    try {
-      if (create) {
-        final response = await client.auth.signUp(
-          email: email.text.trim(),
-          password: password.text,
-        );
-        message = response.session == null
-            ? 'Controlla l’email una sola volta, poi premi Collega.'
-            : 'Collegamento permanente attivo.';
-      } else {
-        await client.auth.signInWithPassword(
-          email: email.text.trim(),
-          password: password.text,
-        );
-        await widget.syncService?.sync();
-        message = 'Collegamento permanente attivo.';
-      }
-      password.clear();
-    } on AuthException catch (error) {
-      message = error.message;
-    } on Object {
-      message = 'Collegamento non riuscito. Controlla la connessione.';
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final client = widget.client;
-    if (client == null) {
-      return const ListTile(
-        leading: Icon(Icons.cloud_off_outlined),
-        title: Text('Sincronizzazione non configurata'),
-        subtitle: Text(
-          'Servono Project URL e chiave pubblica Supabase nella build.',
-        ),
-      );
-    }
-    final user = client.auth.currentUser;
-    if (user != null) {
-      final service = widget.syncService;
-      return StreamBuilder<SyncSnapshot>(
-        stream: service?.snapshots,
-        initialData: service?.latest,
-        builder: (context, snapshot) {
-          final sync = snapshot.data;
-          return ListTile(
-            leading: Icon(
-              sync?.phase == SyncPhase.error
-                  ? Icons.sync_problem_outlined
-                  : Icons.cloud_done_outlined,
-            ),
-            title: const Text('Collegamento permanente attivo'),
-            subtitle: Text(
-              '${user.email ?? 'Account personale'}\n${_syncLabel(sync)}',
-            ),
-            isThreeLine: true,
-            trailing: PopupMenuButton<String>(
-              tooltip: 'Gestisci collegamento',
-              onSelected: (value) async {
-                if (value == 'sync') await service?.sync();
-                if (value == 'disconnect') await client.auth.signOut();
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'sync', child: Text('Sincronizza ora')),
-                PopupMenuItem(
-                  value: 'disconnect',
-                  child: Text('Scollega questo dispositivo'),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    }
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Collega i dispositivi una sola volta',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Usa lo stesso account personale su ogni dispositivo. '
-              'Non sarà richiesto un accesso quotidiano.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: password,
-              obscureText: true,
-              autofillHints: const [AutofillHints.password],
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            if (message != null) ...[const SizedBox(height: 8), Text(message!)],
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: busy ? null : () => _connect(create: true),
-                  child: const Text('Crea account'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: busy ? null : () => _connect(create: false),
-                  child: Text(busy ? 'Collego…' : 'Collega'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _syncLabel(SyncSnapshot? snapshot) => switch (snapshot?.phase) {
-    SyncPhase.syncing =>
-      'Sincronizzazione in corso (${snapshot!.pending} in attesa)',
-    SyncPhase.current =>
-      snapshot!.lastSuccess == null
-          ? 'Sincronizzazione completata'
-          : 'Aggiornata alle ${DateFormat('HH:mm').format(snapshot.lastSuccess!.toLocal())}',
-    SyncPhase.error =>
-      'Errore di sincronizzazione; i dati locali sono al sicuro',
-    SyncPhase.offline => 'Offline; sincronizzerà alla riconnessione',
-    SyncPhase.disabled || null => 'Sessione permanente nel portachiavi',
-  };
-}
-
 class TaskSearchDelegate extends SearchDelegate<void> {
-  TaskSearchDelegate(this.repository);
+  TaskSearchDelegate(
+    this.repository, {
+    required this.onNavigate,
+    required this.onCreate,
+  }) : _projects = repository.db.select(repository.db.projects).get();
   final TaskRepository repository;
+  final ValueChanged<AppSection> onNavigate;
+  final Future<void> Function(String raw) onCreate;
+  final Future<List<Project>> _projects;
+  final Set<_TaskSearchFilter> _filters = {};
 
   @override
-  String get searchFieldLabel => 'Cerca titolo e note';
+  String get searchFieldLabel => 'Cerca, + crea, > apri, # progetto';
 
   @override
   List<Widget> buildActions(BuildContext context) => [
@@ -1492,79 +2326,152 @@ class TaskSearchDelegate extends SearchDelegate<void> {
   );
 
   @override
-  Widget buildResults(BuildContext context) => _results();
+  Widget buildResults(BuildContext context) => _results(context);
 
   @override
-  Widget buildSuggestions(BuildContext context) => _results();
+  Widget buildSuggestions(BuildContext context) => _results(context);
 
-  Widget _results() => StreamBuilder<List<Task>>(
-    stream: repository.watchAll(),
-    builder: (context, snapshot) {
-      final needle = query.trim().toLowerCase();
-      final results = (snapshot.data ?? const <Task>[])
-          .where(
-            (task) =>
-                task.title.toLowerCase().contains(needle) ||
-                (task.notes?.toLowerCase().contains(needle) ?? false),
-          )
-          .toList();
-      return ListView(
-        children: [
-          for (final task in results)
-            TaskTile(task: task, repository: repository),
-        ],
-      );
-    },
+  Widget _results(BuildContext context) => FutureBuilder<List<Project>>(
+    future: _projects,
+    builder: (context, projectSnapshot) => StreamBuilder<List<Task>>(
+      stream: repository.watchAll(),
+      builder: (context, snapshot) {
+        final rawQuery = query.trim();
+        final needle = rawQuery
+            .replaceFirst(RegExp(r'^[+#>]\s*'), '')
+            .toLowerCase();
+        final projectNames = {
+          for (final project in projectSnapshot.data ?? const <Project>[])
+            project.id: project.name.toLowerCase(),
+        };
+        final today = CivilDate.fromDateTime(DateTime.now()).toString();
+        final projectQuery = rawQuery.startsWith('#');
+        final results = (snapshot.data ?? const <Task>[]).where((task) {
+          final matchesText =
+              needle.isEmpty ||
+              task.title.toLowerCase().contains(needle) ||
+              (task.notes?.toLowerCase().contains(needle) ?? false) ||
+              (projectNames[task.projectId]?.contains(needle) ?? false);
+          if (!matchesText) return false;
+          if (projectQuery &&
+              !(projectNames[task.projectId]?.contains(needle) ?? false)) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.today) &&
+              task.showDate != today) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.undated) &&
+              task.showDate != null) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.recurring) &&
+              task.recurrence == null) {
+            return false;
+          }
+          if (_filters.contains(_TaskSearchFilter.highPriority) &&
+              task.priority < 3) {
+            return false;
+          }
+          return true;
+        }).toList();
+        if (rawQuery.startsWith('+')) {
+          final command = rawQuery.substring(1).trim();
+          final parsed = command.isEmpty
+              ? null
+              : const QuickAddParser().parse(command);
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              ListTile(
+                enabled: parsed != null && parsed.title.isNotEmpty,
+                leading: const Icon(Icons.add_circle_outline),
+                title: Text(parsed?.title ?? 'Scrivi una nuova attività'),
+                subtitle: parsed?.showDate == null
+                    ? null
+                    : Text(parsed!.showDate.toString()),
+                onTap: parsed == null
+                    ? null
+                    : () async {
+                        await onCreate(command);
+                        if (context.mounted) close(context, null);
+                      },
+              ),
+            ],
+          );
+        }
+        if (rawQuery.startsWith('>')) {
+          final destinations = <AppSection>[
+            AppSection.today,
+            AppSection.upcoming,
+            AppSection.projects,
+            AppSection.completed,
+            AppSection.settings,
+          ].where((item) => item.label.toLowerCase().contains(needle));
+          return ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              for (final destination in destinations)
+                ListTile(
+                  leading: Icon(destination.icon),
+                  title: Text(destination.label),
+                  onTap: () {
+                    close(context, null);
+                    onNavigate(destination);
+                  },
+                ),
+            ],
+          );
+        }
+        return Column(
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              child: Row(
+                children: [
+                  for (final filter in _TaskSearchFilter.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(filter.label),
+                        selected: _filters.contains(filter),
+                        onSelected: (selected) {
+                          selected
+                              ? _filters.add(filter)
+                              : _filters.remove(filter);
+                          showSuggestions(context);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final task in results)
+                    TaskTile(task: task, repository: repository),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    ),
   );
 }
 
-/// Evidenzia soltanto la sintassi che il parser sa rimuovere e trasformare in
-/// data/ora, così il feedback visivo e il comportamento restano coerenti.
-class SmartDateTextController extends TextEditingController {
-  SmartDateTextController({super.text});
+enum _TaskSearchFilter {
+  today('Oggi'),
+  undated('Senza data'),
+  recurring('Ricorrenti'),
+  highPriority('Priorità alta');
 
-  @override
-  TextSpan buildTextSpan({
-    required BuildContext context,
-    TextStyle? style,
-    required bool withComposing,
-  }) {
-    const parser = QuickAddParser();
-    try {
-      parser.parse(text);
-    } on FormatException {
-      return TextSpan(style: style, text: text);
-    }
-    final matches = parser.recognizedSyntax(text).toList();
-    if (matches.isEmpty) return TextSpan(style: style, text: text);
-    final highlighted = style?.copyWith(
-      color: Theme.of(context).colorScheme.onPrimaryContainer,
-      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      fontWeight: FontWeight.w600,
-    );
-    final spans = <InlineSpan>[];
-    var cursor = 0;
-    for (final match in matches) {
-      if (cursor < match.start) {
-        spans.add(TextSpan(text: text.substring(cursor, match.start)));
-      }
-      spans.add(
-        TextSpan(
-          text: text.substring(match.start, match.end),
-          style: highlighted,
-        ),
-      );
-      cursor = match.end;
-    }
-    if (cursor < text.length) spans.add(TextSpan(text: text.substring(cursor)));
-    return TextSpan(style: style, children: spans);
-  }
+  const _TaskSearchFilter(this.label);
+  final String label;
 }
 
-class _NewIntent extends Intent {
-  const _NewIntent();
-}
-
-class _SearchIntent extends Intent {
-  const _SearchIntent();
+class _BackIntent extends Intent {
+  const _BackIntent();
 }

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Privacy — Deterministic Todo</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+    body { margin: 0; line-height: 1.55; }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+    h1 { color: #db4035; line-height: 1.15; }
+    h2 { margin-top: 2rem; }
+    a { color: #db4035; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Privacy di Deterministic Todo</h1>
+    <p><strong>Ultimo aggiornamento: 5 agosto 2026.</strong></p>
+    <p>
+      Deterministic Todo è un gestore di attività offline-first. Le attività,
+      i progetti, le date, le priorità e le preferenze vengono conservati
+      innanzitutto sul dispositivo dell’utente.
+    </p>
+
+    <h2>Sincronizzazione facoltativa</h2>
+    <p>
+      Se viene attivato il collegamento personale, i dati dell’app vengono
+      sincronizzati con un progetto Supabase privato per renderli disponibili
+      sugli altri dispositivi collegati. Non vendiamo dati e non li usiamo per
+      pubblicità, profilazione o tracciamento.
+    </p>
+
+    <h2>Calendario e file</h2>
+    <p>
+      L’accesso al calendario avviene solo quando l’utente sceglie di esportare
+      un’attività. Import ed export leggono o scrivono esclusivamente i file
+      selezionati dall’utente. Deterministic Todo non accede a contatti, foto,
+      microfono o fotocamera.
+    </p>
+
+    <h2>Movimento e posizione</h2>
+    <p>
+      Su Android, dopo consenso esplicito, il modulo Movimento legge da Health
+      Connect i passi necessari al totale giornaliero e calcola sul dispositivo
+      stime di distanza e calorie attive. La posizione precisa viene usata solo
+      durante una sessione GPS avviata manualmente. Passi, stime, tracce GPS e
+      futuri dati dell’orologio restano nel database locale separato e non sono
+      sincronizzati con Supabase né inviati automaticamente ad altri servizi.
+      Una modalità di collaudo facoltativa può salvare GPX e diagnostica nella
+      cartella Drive scelta esplicitamente dall’utente; l’autorizzazione è
+      revocabile e nessuna credenziale Google è incorporata nell’app.
+      I permessi possono essere revocati dalle impostazioni Android.
+    </p>
+
+    <h2>Diagnostica e conservazione</h2>
+    <p>
+      I log diagnostici tecnici restano sul dispositivo e non contengono il
+      testo delle attività. Possono essere esportati soltanto su richiesta
+      esplicita dell’utente. I dati locali possono essere eliminati dalle
+      Impostazioni. I dati sincronizzati possono essere eliminati dal titolare
+      del progetto Supabase privato tramite gli strumenti di amministrazione
+      del progetto.
+    </p>
+
+    <h2>Sicurezza e servizi</h2>
+    <p>
+      La sincronizzazione usa connessioni HTTPS e regole di accesso Supabase.
+      Google Play e GitHub possono trattare i dati tecnici necessari alla
+      distribuzione secondo le rispettive informative sulla privacy.
+    </p>
+
+    <h2>Contatti</h2>
+    <p>
+      Per domande o richieste relative ai dati, apri una segnalazione nel
+      <a href="https://github.com/gpmerola/deterministic-todo/issues">repository pubblico del progetto</a>.
+    </p>
+  </main>
+</body>
+</html>
