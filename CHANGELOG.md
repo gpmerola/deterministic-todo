@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.35.0
+
+- Web e Android assegnano implicitamente la data civile odierna alle nuove
+  attività quando non viene riconosciuta una data valida. La task nasce quindi
+  in `Oggi`/`Disponibili`, non in Inbox.
+- Anche salvare dall’editor un campo data vuoto o non valido applica oggi. Le
+  date future valide restano pianificate e import/sync storici non vengono
+  modificati retroattivamente.
+
 ## 2.34.9
 
 - Corretto il confronto passivo: i valori Todo provengono ora esclusivamente

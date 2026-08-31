@@ -24,6 +24,7 @@ import 'domain/link_syntax.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
+import 'domain/task_planning.dart';
 import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
@@ -894,17 +895,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             project.name: project.id,
         },
       );
-      final parsed = const QuickAddParser().parse(metadata.text);
+      final parsed = parsePlannedQuickTask(metadata.text);
       final today = CivilDate.fromDateTime(DateTime.now());
       final notesText = notesController?.text.trim();
       await widget.repository.create(
         linkifyPlainUrls(parsed.title),
-        status: parsed.showDate == null
-            ? TaskStatus.inbox
-            : parsed.showDate!.compareTo(today) <= 0
+        status: parsed.showDate!.compareTo(today) <= 0
             ? TaskStatus.available
             : TaskStatus.scheduled,
-        showDate: parsed.showDate?.toString(),
+        showDate: parsed.showDate!.toString(),
         notes: notesText == null || notesText.isEmpty
             ? null
             : linkifyPlainUrls(notesText),
@@ -1488,18 +1487,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           defaultPriority: 1,
           projectsByName: const {},
         );
-        final parsed = const QuickAddParser().parse(metadata.text);
+        final parsed = parsePlannedQuickTask(metadata.text);
         await widget.repository.create(
           parsed.title,
-          status: parsed.showDate == null
-              ? TaskStatus.inbox
-              : parsed.showDate!.compareTo(
-                      CivilDate.fromDateTime(DateTime.now()),
-                    ) <=
-                    0
+          status:
+              parsed.showDate!.compareTo(
+                    CivilDate.fromDateTime(DateTime.now()),
+                  ) <=
+                  0
               ? TaskStatus.available
               : TaskStatus.scheduled,
-          showDate: parsed.showDate?.toString(),
+          showDate: parsed.showDate!.toString(),
           recurrence: parsed.recurrence,
           priority: metadata.priority,
         );

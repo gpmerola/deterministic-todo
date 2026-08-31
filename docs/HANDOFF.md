@@ -236,6 +236,11 @@ un terzo fallback (`make todo-test-ci`), non il percorso interattivo normale.
 
 ## Come funziona il Todo
 
+Dalla build 165, composer rapido, comando universale ed editor condividono la
+stessa regola Android/Web: se non viene fornita una data civile valida, la data
+implicita è oggi e la task è `available`. Importazioni e pull conservano invece
+fedelmente gli eventuali valori null storici.
+
 - Schema e query locali: `lib/data/local/` con Drift/SQLite.
 - Sincronizzazione: `lib/data/sync/`, outbox persistente, UUID, versioni
   Lamport, tombstone e operazioni idempotenti.

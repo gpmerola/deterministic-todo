@@ -50,6 +50,8 @@ dati del sito se vuoi conservare la copia offline.
 - date civili senza ora, stabili tra fusi e ora legale;
 - linguaggio naturale italiano evidenziato (`oggi`, `domani`, `ogni martedì`,
   `ogni 3 giorni`, `ogni terzo martedì`, date annuali e altre varianti);
+- data odierna implicita quando nel composer o nell’editor non è presente una
+  data civile valida, con comportamento identico su Android e Web;
 - ricorrenze che generano la prossima occorrenza al completamento;
 - priorità P1–P4 con ordinamento automatico;
 - Undo e Cestino per attività, progetti e sezioni;
@@ -73,7 +75,7 @@ intermedia. La logica salute resta nel modulo nativo separato.
 Durante una sessione i passi sono letti anche direttamente dal contatore
 hardware Android e mostrati come **Passi sessione · sensore telefono**. Il
 valore continua ad aggiornarsi a schermo spento insieme al servizio GPS e resta
-distinto dal totale giornaliero Health Connect.
+distinto dal totale giornaliero locale telefono+Amazfit.
 
 Nelle camminate, quando il contatore hardware è disponibile, gli intervalli
 GPS senza nuovi passi restano nella diagnostica ma non incrementano la
@@ -82,12 +84,13 @@ plausibile; corsa e dispositivi senza sensore conservano il filtro GPS come
 fallback.
 
 La distanza quotidiana e le calorie attive sono stime esplicite basate sui
-passi. Android classifica a basso consumo camminata, corsa, veicolo, bicicletta
-e immobilità: usa falcate e coefficienti calorici distinti per cammino e corsa,
-esclude gli spostamenti motorizzati e conserva separatamente i passi incerti.
-I blocchi Health Connect che attraversano più stati vengono ripartiti per il
-tempo effettivamente sovrapposto. Veicolo e bicicletta vengono esclusi solo
-quando dominano almeno l'80% del blocco; se il sensore registra passi mentre
+passi locali. Finché non esiste una timeline locale indipendente, i passi
+quotidiani sono prudentemente trattati come attività non classificata e usano
+la falcata di cammino; Activity Recognition resta evidenza diagnostica e non
+può far dipendere Todo dai record Google Fit. Nei soli report di riferimento,
+i blocchi Fit che attraversano più stati vengono ripartiti per il tempo
+effettivamente sovrapposto. Veicolo e bicicletta vengono marcati solo quando
+dominano almeno l'80% del blocco; se il sensore registra passi mentre
 Activity Recognition segnala `STILL`, i passi prevalgono e la quota resta
 visibile come incerta.
 Le falcate partono da fallback dichiarati e vengono calibrate con la mediana

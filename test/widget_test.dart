@@ -649,7 +649,10 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
 
-    expect((await db.select(db.tasks).getSingle()).title, 'Creata con invio');
+    final created = await db.select(db.tasks).getSingle();
+    expect(created.title, 'Creata con invio');
+    expect(created.showDate, CivilDate.fromDateTime(DateTime.now()).toString());
+    expect(created.status, TaskStatus.available.name);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

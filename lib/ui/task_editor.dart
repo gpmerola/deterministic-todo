@@ -78,7 +78,7 @@ class _TaskEditorState extends State<TaskEditor> {
         .recognizedSyntax(title.text)
         .isNotEmpty;
     if (hasSmartSyntax) {
-      final parsed = const QuickAddParser().parse(title.text);
+      final parsed = parsePlannedQuickTask(title.text);
       title.text = parsed.title;
       if (parsed.showDate != null) {
         showDate.text = parsed.showDate.toString();
@@ -89,9 +89,7 @@ class _TaskEditorState extends State<TaskEditor> {
       widget.task,
       title: title.toMarkdown(),
       notes: notes.text.trim().isEmpty ? null : notes.toMarkdown().trim(),
-      showDate: showDate.text.trim().isEmpty
-          ? null
-          : CivilDate.parse(showDate.text.trim()).toString(),
+      showDate: plannedDateOrToday(showDate.text).toString(),
       recurrence: recurrence == 'none' ? null : recurrence,
       priority: priority,
       projectId: projectId,
@@ -101,13 +99,9 @@ class _TaskEditorState extends State<TaskEditor> {
     var refreshed = await (widget.repository.db.select(
       widget.repository.db.tasks,
     )..where((row) => row.id.equals(widget.task.id))).getSingle();
-    final plannedDate = showDate.text.trim().isEmpty
-        ? null
-        : CivilDate.parse(showDate.text.trim());
+    final plannedDate = plannedDateOrToday(showDate.text);
     final today = CivilDate.fromDateTime(DateTime.now());
-    final derivedStatus = plannedDate == null
-        ? TaskStatus.inbox
-        : plannedDate.compareTo(today) <= 0
+    final derivedStatus = plannedDate.compareTo(today) <= 0
         ? TaskStatus.available
         : TaskStatus.scheduled;
     if (derivedStatus.name != refreshed.status) {
