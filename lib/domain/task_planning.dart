@@ -3,8 +3,8 @@ import 'task.dart';
 
 /// UI planning policy shared by Android and Web.
 ///
-/// A missing or invalid explicit date means today. Import and sync pipelines do
-/// not use this policy, so historical null dates remain untouched.
+/// Quick creation defaults to today. The editor can explicitly keep no date;
+/// import and sync pipelines preserve the stored dates unchanged.
 QuickTaskDraft parsePlannedQuickTask(String input, {DateTime? now}) {
   final reference = now ?? DateTime.now();
   final today = CivilDate.fromDateTime(reference);
@@ -20,10 +20,10 @@ QuickTaskDraft parsePlannedQuickTask(String input, {DateTime? now}) {
   }
 }
 
-CivilDate plannedDateOrToday(String input, {DateTime? now}) {
+CivilDate? plannedEditorDate(String input, {DateTime? now}) {
   final reference = now ?? DateTime.now();
   final value = input.trim();
-  if (value.isEmpty) return CivilDate.fromDateTime(reference);
+  if (value.isEmpty) return null;
   try {
     return CivilDate.parse(value);
   } on FormatException {

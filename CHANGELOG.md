@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.35.3 (build 168)
+
+- L’editor offre il pulsante **Senza data**. Anche la X rimuove definitivamente
+  la pianificazione al salvataggio, senza ripristinare oggi.
+- Le attività senza data conservano la scelta quando vengono riaperte e
+  modificate. Progetto, sezione e ricorrenza restano conservati; il backlog di
+  progetto resta fuori da Oggi e Prossime. Il composer continua a proporre oggi.
+- Data e stato vengono salvati insieme all’outbox in una sola transazione,
+  conservando la coerenza anche con un refresh immediato.
+
 ## 2.35.2 (build 167)
 
 - Il Cestino può essere svuotato definitivamente, con conferma e rimozione

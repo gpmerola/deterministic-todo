@@ -249,10 +249,16 @@ un terzo fallback (`make todo-test-ci`), non il percorso interattivo normale.
 
 ## Come funziona il Todo
 
-Dalla build 165, composer rapido, comando universale ed editor condividono la
-stessa regola Android/Web: se non viene fornita una data civile valida, la data
-implicita è oggi e la task è `available`. Importazioni e pull conservano invece
-fedelmente gli eventuali valori null storici.
+Dalla build 165, composer rapido e comando universale condividono la stessa
+regola Android/Web: senza una data civile valida, la data implicita è oggi e
+la task è `available`. Dalla build 168 l’editor conserva invece una data nulla:
+**Senza data** e la X impostano `show_date = null` e stato `inbox` al salvataggio,
+senza cambiare progetto/sezione. La scelta esplicita prevale anche sulla data
+riconosciuta nel titolo; selezionare una data nel calendario ripristina la
+pianificazione. Anche salvare altre modifiche a una task già senza data
+conserva il valore nullo. Importazioni e pull mantengono fedelmente le date.
+L’editor salva data, stato derivato e outbox nella stessa transazione SQLite:
+un refresh immediato non può conservare la data nulla con il vecchio stato.
 
 - Schema e query locali: `lib/data/local/` con Drift/SQLite.
 - Sincronizzazione: `lib/data/sync/`, outbox persistente, UUID, versioni

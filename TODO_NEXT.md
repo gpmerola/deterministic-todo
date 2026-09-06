@@ -1,12 +1,18 @@
 # TODO e handover
 
-Aggiornato il 31 agosto 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 6 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;
 non duplicare qui i dettagli tecnici.
 
-## Prossimi collaudi build 164–167
+## Prossimi collaudi build 164–168
+
+- [ ] Build 168: in Todo Test e Web, togliere la data a una fixture sintetica
+  di progetto con **Senza data** e con la X, salvare e riaprire. Verificare che
+  rimanga nel progetto, fuori da Oggi/Prossime, anche dopo un’altra modifica.
+  Il collaudo Chrome locale ha riletto valori precedenti al refresh; evidenza e
+  limiti in [STATUS.md](STATUS.md#build-168--scelta-esplicita-senza-data).
 
 - [x] Importazione Bip U headless reale: 4.263 campioni minuto, finestra 168
   ore, esito `activity_sync_success`, GATT chiuso dopo circa 18 secondi.

@@ -28,10 +28,18 @@ void main() {
     expect(draft.showDate.toString(), '2026-08-31');
   });
 
-  test('il campo data vuoto o invalido ricade su oggi', () {
-    expect(plannedDateOrToday('', now: reference).toString(), '2026-08-31');
+  test('l editor conserva la scelta senza data', () {
+    expect(plannedEditorDate('', now: reference), isNull);
+    expect(plannedEditorDate('  ', now: reference), isNull);
+  });
+
+  test('l editor conserva date valide e usa oggi per quelle non valide', () {
     expect(
-      plannedDateOrToday('non-una-data', now: reference).toString(),
+      plannedEditorDate('2026-09-15', now: reference).toString(),
+      '2026-09-15',
+    );
+    expect(
+      plannedEditorDate('non-una-data', now: reference).toString(),
       '2026-08-31',
     );
   });

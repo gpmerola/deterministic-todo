@@ -49,14 +49,19 @@ progetti, sezioni, ricorrenze e tombstone tra dispositivi senza bloccare l’uso
 offline. Non aprire la web app in navigazione in incognito e non cancellare i
 dati del sito se vuoi conservare la copia offline.
 
+Per togliere la pianificazione, apri l’attività, premi **Senza data** (oppure la
+**X** accanto alla data) e **Salva**. La scelta resta anche dopo la riapertura:
+un’attività di progetto rimane nel progetto e non compare più in Oggi o Prossime.
+Puoi assegnarle di nuovo una data dal pulsante **Data**.
+
 ## Funzioni principali
 
 - Oggi, Prossime e Progetti con UI minimale;
 - date civili senza ora, stabili tra fusi e ora legale;
 - linguaggio naturale italiano evidenziato (`oggi`, `domani`, `ogni martedì`,
   `ogni 3 giorni`, `ogni terzo martedì`, date annuali e altre varianti);
-- data odierna implicita quando nel composer o nell’editor non è presente una
-  data civile valida, con comportamento identico su Android e Web;
+- data odierna implicita nelle nuove attività del composer; nell’editor la
+  scelta **Senza data** resta salvata, con comportamento identico su Android e Web;
 - ricorrenze che generano la prossima occorrenza al completamento;
 - priorità P1–P4 con ordinamento automatico;
 - Undo e Cestino per attività, progetti e sezioni;

@@ -1,6 +1,25 @@
 # Stato corrente
 
-Aggiornato il 31 agosto 2026.
+Aggiornato il 6 settembre 2026.
+
+## Build 168 — Scelta esplicita senza data
+
+L’editor conserva la data nulla selezionata con **Senza data** o con la X e
+deriva lo stato `inbox`, mantenendo progetto e sezione. La riapertura e una
+modifica successiva non reintroducono oggi. La creazione rapida mantiene oggi
+come default. Data, stato e outbox sono scritti in una sola transazione.
+
+Analisi statica, test Flutter, controllo Drift e build release Web/Android
+superati. L’APK Todo Test ha package `.dev` e versionCode 2168 verificati.
+Consegna del manifest rolling ancora da eseguire; il Galaxy non risponde
+all’endpoint ADB domestico, quindi il collaudo hardware resta pendente.
+
+Il server HTTPS locale risponde correttamente con certificato verificato.
+Il collaudo UI Chrome è stato eseguito su localhost HTTP con fixture sintetiche:
+il pulsante e la X funzionano durante la sessione, ma dopo refresh sono stati
+riletti valori precedenti delle modifiche, anche su un’origine locale nuova.
+La persistenza Web dopo refresh **non è verificata** e la causa resta da
+isolare prima della promozione Web/Play. Nessuna release stabile pubblicata.
 
 ## Build 167 — Inbox filtrata e cancellazione definitiva
 

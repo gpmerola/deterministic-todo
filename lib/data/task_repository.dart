@@ -401,6 +401,7 @@ class TaskRepository {
   Future<void> updateDetails(
     Task task, {
     required String title,
+    TaskStatus? status,
     String? notes,
     String? showDate,
     String? recurrence,
@@ -419,6 +420,7 @@ class TaskRepository {
       task,
       TasksCompanion(
         title: Value(title.trim()),
+        status: status == null ? const Value.absent() : Value(status.name),
         notes: Value(notes),
         showDate: Value(showDate),
         dueDate: const Value(null),

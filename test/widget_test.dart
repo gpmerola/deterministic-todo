@@ -1220,6 +1220,8 @@ void main() {
 
     await tester.tap(find.text('Riprogramma attività'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('task-editor-no-date')));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ActionChip, 'Data'));
     await tester.pump(const Duration(milliseconds: 300));
 

@@ -35,9 +35,11 @@ class _TaskEditorState extends State<TaskEditor> {
   late String? projectId = widget.task.projectId;
   late String? projectSectionId = widget.task.sectionId;
   late int priority = widget.task.priority;
+  bool dateExplicitlyCleared = false;
   bool saving = false;
 
   bool _matchesTask(Task task) =>
+      !dateExplicitlyCleared &&
       title.toMarkdown() == task.title &&
       notes.toMarkdown().trim() == (task.notes ?? '').trim() &&
       showDate.text == (task.showDate ?? '') &&
@@ -80,36 +82,33 @@ class _TaskEditorState extends State<TaskEditor> {
     if (hasSmartSyntax) {
       final parsed = parsePlannedQuickTask(title.text);
       title.text = parsed.title;
-      if (parsed.showDate != null) {
+      if (!dateExplicitlyCleared && parsed.showDate != null) {
         showDate.text = parsed.showDate.toString();
       }
       if (parsed.recurrence != null) recurrence = parsed.recurrence!;
     }
+    final plannedDate = plannedEditorDate(showDate.text);
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final derivedStatus = plannedDate == null
+        ? TaskStatus.inbox
+        : plannedDate.compareTo(today) <= 0
+        ? TaskStatus.available
+        : TaskStatus.scheduled;
     await widget.repository.updateDetails(
       widget.task,
       title: title.toMarkdown(),
+      status: derivedStatus,
       notes: notes.text.trim().isEmpty ? null : notes.toMarkdown().trim(),
-      showDate: plannedDateOrToday(showDate.text).toString(),
+      showDate: plannedDate?.toString(),
       recurrence: recurrence == 'none' ? null : recurrence,
       priority: priority,
       projectId: projectId,
       sectionId: projectSectionId,
       updateProject: true,
     );
-    var refreshed = await (widget.repository.db.select(
+    final refreshed = await (widget.repository.db.select(
       widget.repository.db.tasks,
     )..where((row) => row.id.equals(widget.task.id))).getSingle();
-    final plannedDate = plannedDateOrToday(showDate.text);
-    final today = CivilDate.fromDateTime(DateTime.now());
-    final derivedStatus = plannedDate.compareTo(today) <= 0
-        ? TaskStatus.available
-        : TaskStatus.scheduled;
-    if (derivedStatus.name != refreshed.status) {
-      await widget.repository.move(refreshed, derivedStatus);
-      refreshed = await (widget.repository.db.select(
-        widget.repository.db.tasks,
-      )..where((row) => row.id.equals(widget.task.id))).getSingle();
-    }
     elapsed.stop();
     unawaited(
       DiagnosticLogService.instance.event(
@@ -380,9 +379,15 @@ class _TaskEditorState extends State<TaskEditor> {
             IconButton(
               tooltip: 'Rimuovi data',
               visualDensity: VisualDensity.compact,
-              onPressed: () => setState(showDate.clear),
+              onPressed: _clearShowDate,
               icon: const Icon(Icons.close, size: 18),
             ),
+          ChoiceChip(
+            key: const ValueKey('task-editor-no-date'),
+            label: const Text('Senza data'),
+            selected: showDate.text.isEmpty,
+            onSelected: (_) => _clearShowDate(),
+          ),
           PopupMenuButton<int>(
             tooltip: 'Priorità P${5 - priority}',
             icon: Icon(Icons.circle, color: _priorityColor(priority), size: 20),
@@ -464,6 +469,13 @@ class _TaskEditorState extends State<TaskEditor> {
     }
   }
 
+  void _clearShowDate() {
+    setState(() {
+      showDate.clear();
+      dateExplicitlyCleared = true;
+    });
+  }
+
   Future<void> _pickShowDate() async {
     final current = showDate.text.isEmpty
         ? DateTime.now()
@@ -475,7 +487,10 @@ class _TaskEditorState extends State<TaskEditor> {
       lastDate: DateTime(2100),
     );
     if (picked != null && mounted) {
-      setState(() => showDate.text = CivilDate.fromDateTime(picked).toString());
+      setState(() {
+        showDate.text = CivilDate.fromDateTime(picked).toString();
+        dateExplicitlyCleared = false;
+      });
     }
   }
 
