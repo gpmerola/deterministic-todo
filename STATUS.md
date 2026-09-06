@@ -9,10 +9,13 @@ deriva lo stato `inbox`, mantenendo progetto e sezione. La riapertura e una
 modifica successiva non reintroducono oggi. La creazione rapida mantiene oggi
 come default. Data, stato e outbox sono scritti in una sola transazione.
 
-Analisi statica, test Flutter, controllo Drift e build release Web/Android
-superati. L’APK Todo Test ha package `.dev` e versionCode 2168 verificati.
-Consegna del manifest rolling ancora da eseguire; il Galaxy non risponde
-all’endpoint ADB domestico, quindi il collaudo hardware resta pendente.
+Analisi statica, 152 test Flutter, 10 test degli strumenti, controllo Drift e
+build release Web/Android superati; anche la CI Verify del commit `8b463b5` è
+verde. `make todo-test` ha pubblicato l’APK arm64 `.dev` sul manifest rolling:
+versionCode 2168, versione/build, commit sorgente e SHA-256 dell’asset coincidono
+con la build locale verificata. Sul telefono è disponibile da **Controlla
+aggiornamenti**. Il Galaxy non risponde all’endpoint ADB domestico, quindi
+installazione e collaudo hardware della 168 restano pendenti.
 
 Il server HTTPS locale risponde correttamente con certificato verificato.
 Il collaudo UI Chrome è stato eseguito su localhost HTTP con fixture sintetiche:
