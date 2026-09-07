@@ -128,6 +128,7 @@ class TaskRepository {
     await db.delete(db.tasks).go();
     await db.delete(db.projectSections).go();
     await db.delete(db.projects).go();
+    await db.delete(db.activityRevisions).go();
     await (db.delete(
       db.appSettings,
     )..where((row) => row.key.equals('device_id').not())).go();
@@ -172,7 +173,7 @@ class TaskRepository {
     );
     await db.transaction(() async {
       await db.into(db.tasks).insert(row);
-      await _enqueue(id, 'upsert', _payloadFromCompanion(row));
+      await _enqueue(id, 'upsert', await _creationPayload(id));
     });
     return id;
   }
@@ -488,7 +489,7 @@ class TaskRepository {
           .into(db.tasks)
           .insertReturningOrNull(companion, mode: InsertMode.insertOrIgnore);
       if (inserted != null) {
-        await _enqueue(id, 'upsert', _payloadFromCompanion(companion));
+        await _enqueue(id, 'upsert', await _creationPayload(id));
       }
       return inserted == null ? 0 : 1;
     });
@@ -524,52 +525,86 @@ class TaskRepository {
     });
   }
 
-  Future<int> activateScheduled(CivilDate today) async {
-    final candidates =
-        await (db.select(db.tasks)..where(
-              (task) =>
-                  task.deletedAt.isNull() &
-                  task.status.equals(TaskStatus.scheduled.name) &
-                  task.showDate.isNotNull() &
-                  task.showDate.isSmallerOrEqualValue(today.toString()),
-            ))
-            .get();
-    for (final task in candidates) {
-      await move(task, TaskStatus.available);
-    }
-    return candidates.length;
-  }
-
   Future<void> _update(
     Task task,
     TasksCompanion changes, {
     String operation = 'upsert',
-  }) async {
+  }) => db.transaction(() async {
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(task.id))).getSingle();
+    // Only fields actually edited relative to the UI snapshot express intent.
+    // Re-reading the row prevents a stale editor from reverting unrelated fields.
+    final proposed = task.copyWithCompanion(changes).toJson();
+    final baseline = task.toJson();
+    final patch = <String, dynamic>{
+      for (final key in proposed.keys)
+        if (proposed[key] != baseline[key]) key: proposed[key],
+    };
+    if (patch.isEmpty) return;
     final observedSetting =
         await (db.select(db.appSettings)
               ..where((row) => row.key.equals('sync_lamport_counter')))
             .getSingleOrNull();
-    final observedCounter = int.tryParse(observedSetting?.value ?? '') ?? 0;
     final nextVersion = nextLogicalCounter(
-      task.logicalVersion,
-      observedCounter,
+      current.logicalVersion,
+      int.tryParse(observedSetting?.value ?? '') ?? 0,
     );
-    final stamped = changes.copyWith(
-      updatedAt: Value(DateTime.now().toUtc().microsecondsSinceEpoch),
-      logicalVersion: Value(nextVersion),
-      deviceId: Value(deviceId),
-    );
-    await db.transaction(() async {
-      await (db.update(
-        db.tasks,
-      )..where((row) => row.id.equals(task.id))).write(stamped);
-      await _enqueue(
-        task.id,
-        operation,
-        jsonEncode({'id': task.id, 'version': nextVersion}),
-      );
+    final updated = Task.fromJson({
+      ...current.toJson(),
+      ...patch,
+      'updatedAt': DateTime.now().toUtc().microsecondsSinceEpoch,
+      'logicalVersion': nextVersion,
+      'deviceId': deviceId,
     });
-  }
+    await db.into(db.tasks).insertOnConflictUpdate(updated.toCompanion(false));
+    await _enqueue(
+      task.id,
+      operation,
+      jsonEncode({
+        'schema': 2,
+        'kind': 'patch',
+        'id': task.id,
+        'version': nextVersion,
+        'changes': patch,
+      }),
+    );
+  });
+
+  /// Explicit recovery: all selected task fields become new user intent.
+  Future<void> restoreRevision(Task snapshot) =>
+      db.withRevisionSource('user_restore', () async {
+        final current = await (db.select(
+          db.tasks,
+        )..where((row) => row.id.equals(snapshot.id))).getSingleOrNull();
+        final observed =
+            await (db.select(db.appSettings)
+                  ..where((row) => row.key.equals('sync_lamport_counter')))
+                .getSingleOrNull();
+        final version = nextLogicalCounter(
+          current?.logicalVersion ?? snapshot.logicalVersion,
+          int.tryParse(observed?.value ?? '') ?? 0,
+        );
+        final restored = snapshot.copyWith(
+          logicalVersion: version,
+          deviceId: deviceId,
+          updatedAt: DateTime.now().toUtc().microsecondsSinceEpoch,
+        );
+        await db
+            .into(db.tasks)
+            .insertOnConflictUpdate(restored.toCompanion(false));
+        await _enqueue(
+          restored.id,
+          restored.deletedAt == null ? 'upsert' : 'delete',
+          jsonEncode({
+            'schema': 2,
+            'kind': 'replace',
+            'id': restored.id,
+            'version': version,
+            'snapshot': restored.toJson(),
+          }),
+        );
+      });
 
   Future<void> _enqueue(String id, String operation, String payload) => db
       .into(db.outboxEntries)
@@ -583,15 +618,18 @@ class TaskRepository {
         ),
       );
 
-  String _payloadFromCompanion(TasksCompanion row) => jsonEncode({
-    'id': row.id.value,
-    'title': row.title.value,
-    'status': row.status.value,
-    'logical_version': row.logicalVersion.present
-        ? row.logicalVersion.value
-        : 1,
-    'device_id': row.deviceId.value,
-  });
+  Future<String> _creationPayload(String id) async {
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    return jsonEncode({
+      'schema': 2,
+      'kind': 'create',
+      'id': id,
+      'version': task.logicalVersion,
+      'snapshot': task.toJson(),
+    });
+  }
 }
 
 String recurringOccurrenceId(String seriesId, String occurrenceKey) =>

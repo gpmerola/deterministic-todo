@@ -2,6 +2,37 @@
 
 Aggiornato il 7 settembre 2026.
 
+## Build 172 — Sincronizzazione per campo, storico e persistenza Web
+
+Rimosse le scritture automatiche di avvio e il rebase completo delle attività.
+Introdotti UPDATE condizionali, outbox con intenti e protezione delle risposte
+perse. SQLite 7 conserva revisioni locali per 90 giorni, incluse copie remote
+prima dell'invio, conferme e conflitti; consultazione, export e ripristino
+esplicito in UI. Contratto e incidente riprodotto:
+[sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+
+`make check` superato: analisi statica, 171 test Flutter, 10 test strumenti e
+collegamenti documentali. La prima 171 è stata installata e usata per riprodurre
+il difetto aggiuntivo Web: una modifica e relativa revisione sparivano al refresh,
+mentre la creazione restava. La 172 aggiunge la barriera di persistenza IndexedDB
+documentata nel contratto sopra; nessuna modifica a dipendenze o worker vendorizzati.
+
+`make todo-test` ha compilato, verificato e installato in-place la versione
+2.37.1-dev, versionCode 2172 sul Galaxy. Il provider Todo riporta un nuovo
+`sync_completed` alle 09:44:30 UTC del 7 settembre, stato `healthy`: avvio,
+migrazione e ciclo ordinario verificati. Non sono stati estratti contenuti Todo
+o sanitari; Play resta disabilitata. Un precedente timeout Realtime non è stato
+scambiato per successo e il controllo è stato ripetuto dopo l'avvio.
+
+Build Web release compilata e servita via HTTPS locale con certificato verificato
+tramite CA esplicita. La UI Chrome usa localhost HTTP (contesto sicuro del browser),
+con fixture sintetica e Supabase non configurato. La modifica resta dopo refresh
+e chiusura/riapertura completa della scheda; lo storico conserva sia la creazione
+sia la revisione con il titolo modificato. Il confronto prima/dopo è stato
+ispezionato visivamente. Lo schema Drift rigenerato ha hash identico al file
+generato incluso.
+La promozione Web/Play stabile resta separata dal collaudo Todo Test.
+
 ## Build 170 — Raccolta locale e modello quotidiano
 
 Implementati Recording API locale senza account/app Fit, import periodico

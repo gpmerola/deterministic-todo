@@ -30,3 +30,7 @@ CivilDate? plannedEditorDate(String input, {DateTime? now}) {
     return CivilDate.fromDateTime(reference);
   }
 }
+
+/// A civil-day transition changes visibility, never the persisted task version.
+bool isScheduledDue(String status, String? showDate, String today) =>
+    status == 'scheduled' && showDate != null && showDate.compareTo(today) <= 0;

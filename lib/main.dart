@@ -37,6 +37,7 @@ import 'services/play_update_service.dart';
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/update_service.dart';
+import 'ui/activity_history_view.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/link_text_editing_controller.dart';
 import 'ui/movement_view.dart';
@@ -113,12 +114,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
       url: supabaseUrl,
       key: supabaseKey,
     );
-    await Future.wait<void>([
-      diagnosticInitialization,
-      repository
-          .activateScheduled(CivilDate.fromDateTime(DateTime.now()))
-          .then((_) {}),
-    ]);
+    await diagnosticInitialization;
     final syncClient = await supabaseInitialization;
     SyncService? syncService;
     if (syncClient != null) {
@@ -1535,6 +1531,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   (task.projectId == null ||
                       inboxProjectIds.contains(task.projectId))) ||
               task.status == TaskStatus.available.name ||
+              isScheduledDue(task.status, task.showDate, today) ||
               task.showDate == today,
         AppSection.upcoming =>
           task.status == TaskStatus.scheduled.name &&

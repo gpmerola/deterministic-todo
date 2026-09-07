@@ -11,6 +11,12 @@ documenta raccolta passiva, distanza camminata/corsa e calorie. La build 170
 introduce raccolta locale in background, import idempotente, profilo personale
 e distanza quotidiana che integra i segmenti GPS senza duplicarli.
 
+Dalla build 172 la sincronizzazione applica solo i campi modificati e impedisce
+che il cambio di giorno ripubblichi copie vecchie. **Impostazioni → Dati e
+manutenzione → Storico attività** conserva 90 giorni di revisioni locali,
+consultabili, esportabili e ripristinabili per singola attività. Architettura,
+privacy e limiti: [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+
 ## Piattaforme
 
 - **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite
@@ -246,9 +252,10 @@ quindi l’interfaccia senza ricaricare la pagina. Il canale si riapre dopo
 errori o timeout; il controllo ogni dieci minuti mentre l'app è visibile rimane come
 recupero dopo assenza di rete o sospensione del processo.
 Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
-Il client conserva il massimo contatore Lamport osservato e, dopo ogni push di
-una task, rilegge la versione server. L'outbox viene riconosciuta soltanto dopo
-la conferma; una versione remota più alta causa rebase e retry automatico.
+Il client conserva il massimo contatore Lamport osservato e applica gli intenti
+per campo alla versione remota corrente con UPDATE condizionale. L'outbox viene
+riconosciuta soltanto dopo conferma; una modifica concorrente causa rilettura,
+mentre un esito incerto conserva le copie nello storico per una scelta esplicita.
 
 Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
 `p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende

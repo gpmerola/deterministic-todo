@@ -21,3 +21,9 @@ completamente la scheda, riaprire lo stesso URL e riesportare. Il collaudo è
 superato soltanto se task e diagnostica persistono dopo la riapertura; i test
 Flutter verificano la logica ma non sostituiscono questa prova sul profilo
 Chrome reale.
+
+Dalla build 172, ripetere il refresh anche dopo una **modifica** a un'attività
+già salvata, non solo dopo la creazione. Aprire lo storico della singola task e
+verificare che rimangano sia il nuovo valore sia la revisione prima/dopo; quindi
+chiudere la scheda e riaprire lo stesso URL. Il fix della barriera IndexedDB è
+documentato in [sincronizzazione e storico](../architecture/TODO_SYNC_AND_HISTORY.md#persistenza-web--build-172).

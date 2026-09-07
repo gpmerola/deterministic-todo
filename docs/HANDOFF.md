@@ -1,5 +1,11 @@
 # Handoff tecnico e di prodotto
 
+La build 171 sostituisce il rebase delle attività descritto nelle sezioni
+storiche sotto. Fonte canonica corrente: [sincronizzazione e storico](architecture/TODO_SYNC_AND_HISTORY.md).
+Il cambio giorno non scrive task; intenti per campo, UPDATE condizionali e
+revisioni locali proteggono le modifiche concorrenti. Stato del collaudo in
+[STATUS](../STATUS.md). Movimento resta invariato.
+
 ## Ripresa Movimento — 7 settembre 2026
 
 La build 170 implementa Recording API locale, import Room 5 periodico e
@@ -55,7 +61,7 @@ di cambiare architettura.
   alla convergenza offline-first e resta recuperabile dal Cestino; uno spurgo
   fisico cloud richiede ancora la RPC transazionale indicata nella roadmap.
 
-- Build corrente: **2.33.5+154**. Il comportamento Movimento della 153 resta
+- Incremento storico: **2.33.5+154**; build corrente in [STATUS](../STATUS.md). Il comportamento Movimento della 153 resta
   invariato. La 154 aggiunge un giornale diagnostico Todo privo di contenuti:
   ogni ciclo conserva fase, classe errore, rete/sessione, età outbox, retry,
   recupero e rebase Lamport. “Salute dati” mostra ultimo incidente e recupero;

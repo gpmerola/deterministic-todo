@@ -427,15 +427,29 @@ class _TaskEditorState extends State<TaskEditor> {
                 ),
             ],
           ),
-          if (isAndroidPlatform)
-            PopupMenuButton<String>(
-              tooltip: 'Altre azioni',
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) {
-                if (value == 'calendar') _saveAndExportToCalendar();
-              },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
+          PopupMenuButton<String>(
+            tooltip: 'Altre azioni',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'calendar') _saveAndExportToCalendar();
+              if (value == 'history') {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ActivityHistoryView(
+                      repository: widget.repository,
+                      entityId: widget.task.id,
+                    ),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'history',
+                child: Text('Storico attività'),
+              ),
+              if (isAndroidPlatform)
+                const PopupMenuItem(
                   value: 'calendar',
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -443,8 +457,8 @@ class _TaskEditorState extends State<TaskEditor> {
                     title: Text('Aggiungi a Google Calendar'),
                   ),
                 ),
-              ],
-            ),
+            ],
+          ),
           if (!widget.embedded)
             IconButton(
               tooltip: 'Chiudi',

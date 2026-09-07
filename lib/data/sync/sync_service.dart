@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
@@ -8,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/task.dart' as domain;
 import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
+import 'task_sync_writer.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
 
@@ -391,6 +391,7 @@ class SyncService {
       );
       var uploadedEntities = 0;
       var rebasedEntities = 0;
+      final acceptedRows = <Map<String, dynamic>>[];
       if (pendingIds.isNotEmpty) {
         stage = SyncStage.taskUpload;
         final pendingTasks = await (db.select(
@@ -398,7 +399,12 @@ class SyncService {
         )..where((row) => row.id.isIn(pendingIds))).get();
         for (final task in pendingTasks) {
           try {
-            rebasedEntities += await _uploadTaskVerified(task);
+            final result = await TaskSyncWriter(db, client).upload(
+              task,
+              entries.where((entry) => entry.entityId == task.id).toList(),
+            );
+            rebasedEntities += result.retries;
+            acceptedRows.add(result.row);
           } on PostgrestException catch (error) {
             if (!isRecurringOccurrenceConflict(error) ||
                 !await _reconcileRecurringOccurrence(task)) {
@@ -419,8 +425,7 @@ class SyncService {
                     'operation_id': entry.operationId,
                     'entity_id': entry.entityId,
                     'operation': entry.operation,
-                    'payload':
-                        jsonDecode(entry.payload) as Map<String, Object?>,
+                    'payload': syncReceipt(entry),
                   },
               ],
               onConflict: 'operation_id',
@@ -431,6 +436,9 @@ class SyncService {
             await (db.delete(
               db.outboxEntries,
             )..where((row) => row.operationId.equals(entry.operationId))).go();
+          }
+          for (final row in acceptedRows) {
+            await _mergeRemote(row, null);
           }
         });
       }
@@ -640,24 +648,27 @@ class SyncService {
               0) {
         continue;
       }
-      await db
-          .into(db.projects)
-          .insertOnConflictUpdate(
-            ProjectsCompanion(
-              id: Value(raw['id'] as String),
-              userId: Value(raw['user_id'] as String?),
-              name: Value(raw['name'] as String),
-              color: Value(raw['color'] as String?),
-              parentId: Value(raw['parent_id'] as String?),
-              position: Value(raw['position'] as int),
-              isFavorite: Value(raw['is_favorite'] as bool),
-              isArchived: Value(raw['is_archived'] as bool),
-              externalSource: Value(raw['external_source'] as String?),
-              externalId: Value(raw['external_id'] as String?),
-              logicalVersion: Value(raw['logical_version'] as int),
-              deviceId: Value(raw['device_id'] as String),
+      await db.withRevisionSource(
+        'sync_pull',
+        () => db
+            .into(db.projects)
+            .insertOnConflictUpdate(
+              ProjectsCompanion(
+                id: Value(raw['id'] as String),
+                userId: Value(raw['user_id'] as String?),
+                name: Value(raw['name'] as String),
+                color: Value(raw['color'] as String?),
+                parentId: Value(raw['parent_id'] as String?),
+                position: Value(raw['position'] as int),
+                isFavorite: Value(raw['is_favorite'] as bool),
+                isArchived: Value(raw['is_archived'] as bool),
+                externalSource: Value(raw['external_source'] as String?),
+                externalId: Value(raw['external_id'] as String?),
+                logicalVersion: Value(raw['logical_version'] as int),
+                deviceId: Value(raw['device_id'] as String),
+              ),
             ),
-          );
+      );
       await _saveSyncedFingerprint(
         'project',
         raw['id'] as String,
@@ -679,22 +690,25 @@ class SyncService {
               0) {
         continue;
       }
-      await db
-          .into(db.projectSections)
-          .insertOnConflictUpdate(
-            ProjectSectionsCompanion(
-              id: Value(raw['id'] as String),
-              userId: Value(raw['user_id'] as String?),
-              projectId: Value(raw['project_id'] as String),
-              name: Value(raw['name'] as String),
-              position: Value(raw['position'] as int),
-              isArchived: Value(raw['is_archived'] as bool),
-              externalSource: Value(raw['external_source'] as String?),
-              externalId: Value(raw['external_id'] as String?),
-              logicalVersion: Value(raw['logical_version'] as int),
-              deviceId: Value(raw['device_id'] as String),
+      await db.withRevisionSource(
+        'sync_pull',
+        () => db
+            .into(db.projectSections)
+            .insertOnConflictUpdate(
+              ProjectSectionsCompanion(
+                id: Value(raw['id'] as String),
+                userId: Value(raw['user_id'] as String?),
+                projectId: Value(raw['project_id'] as String),
+                name: Value(raw['name'] as String),
+                position: Value(raw['position'] as int),
+                isArchived: Value(raw['is_archived'] as bool),
+                externalSource: Value(raw['external_source'] as String?),
+                externalId: Value(raw['external_id'] as String?),
+                logicalVersion: Value(raw['logical_version'] as int),
+                deviceId: Value(raw['device_id'] as String),
+              ),
             ),
-          );
+      );
       await _saveSyncedFingerprint(
         'section',
         raw['id'] as String,
@@ -729,24 +743,27 @@ class SyncService {
                 0) {
           continue;
         }
-        await db
-            .into(db.projects)
-            .insertOnConflictUpdate(
-              ProjectsCompanion(
-                id: Value(raw['id'] as String),
-                userId: Value(raw['user_id'] as String?),
-                name: Value(raw['name'] as String),
-                color: Value(raw['color'] as String?),
-                parentId: Value(raw['parent_id'] as String?),
-                position: Value(raw['position'] as int),
-                isFavorite: Value(raw['is_favorite'] as bool),
-                isArchived: Value(raw['is_archived'] as bool),
-                externalSource: Value(raw['external_source'] as String?),
-                externalId: Value(raw['external_id'] as String?),
-                logicalVersion: Value(raw['logical_version'] as int),
-                deviceId: Value(raw['device_id'] as String),
+        await db.withRevisionSource(
+          'sync_pull',
+          () => db
+              .into(db.projects)
+              .insertOnConflictUpdate(
+                ProjectsCompanion(
+                  id: Value(raw['id'] as String),
+                  userId: Value(raw['user_id'] as String?),
+                  name: Value(raw['name'] as String),
+                  color: Value(raw['color'] as String?),
+                  parentId: Value(raw['parent_id'] as String?),
+                  position: Value(raw['position'] as int),
+                  isFavorite: Value(raw['is_favorite'] as bool),
+                  isArchived: Value(raw['is_archived'] as bool),
+                  externalSource: Value(raw['external_source'] as String?),
+                  externalId: Value(raw['external_id'] as String?),
+                  logicalVersion: Value(raw['logical_version'] as int),
+                  deviceId: Value(raw['device_id'] as String),
+                ),
               ),
-            );
+        );
       }
     }
     if (sectionIds.isNotEmpty) {
@@ -770,22 +787,25 @@ class SyncService {
                 0) {
           continue;
         }
-        await db
-            .into(db.projectSections)
-            .insertOnConflictUpdate(
-              ProjectSectionsCompanion(
-                id: Value(raw['id'] as String),
-                userId: Value(raw['user_id'] as String?),
-                projectId: Value(raw['project_id'] as String),
-                name: Value(raw['name'] as String),
-                position: Value(raw['position'] as int),
-                isArchived: Value(raw['is_archived'] as bool),
-                externalSource: Value(raw['external_source'] as String?),
-                externalId: Value(raw['external_id'] as String?),
-                logicalVersion: Value(raw['logical_version'] as int),
-                deviceId: Value(raw['device_id'] as String),
+        await db.withRevisionSource(
+          'sync_pull',
+          () => db
+              .into(db.projectSections)
+              .insertOnConflictUpdate(
+                ProjectSectionsCompanion(
+                  id: Value(raw['id'] as String),
+                  userId: Value(raw['user_id'] as String?),
+                  projectId: Value(raw['project_id'] as String),
+                  name: Value(raw['name'] as String),
+                  position: Value(raw['position'] as int),
+                  isArchived: Value(raw['is_archived'] as bool),
+                  externalSource: Value(raw['external_source'] as String?),
+                  externalId: Value(raw['external_id'] as String?),
+                  logicalVersion: Value(raw['logical_version'] as int),
+                  deviceId: Value(raw['device_id'] as String),
+                ),
               ),
-            );
+        );
       }
     }
   }
@@ -799,113 +819,38 @@ class SyncService {
             AppSettingsCompanion.insert(key: 'sync_$type:$id', value: value),
           );
 
-  Future<bool> _mergeRemote(Map<String, dynamic> raw, Task? local) async {
+  Future<bool> _mergeRemote(
+    Map<String, dynamic> raw,
+    Task? ignoredSnapshot,
+  ) => db.withRevisionSource('sync_pull', () async {
     final id = raw['id'] as String;
+    await _observeLogicalCounter(raw['logical_version'] as int);
+    final pending =
+        await (db.select(db.outboxEntries)
+              ..where((row) => row.entityId.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
+    if (pending != null) return false;
+    // Check and write inside the same transaction; never trust a pre-network snapshot.
+    final local = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingleOrNull();
     final remoteVersion = domain.LogicalVersion(
       raw['logical_version'] as int,
       raw['device_id'] as String,
     );
-    await _observeLogicalCounter(remoteVersion.counter);
-    if (local != null) {
-      final localVersion = domain.LogicalVersion(
-        local.logicalVersion,
-        local.deviceId,
-      );
-      if (remoteVersion.compareTo(localVersion) <= 0) return false;
+    if (local != null &&
+        remoteVersion.compareTo(
+              domain.LogicalVersion(local.logicalVersion, local.deviceId),
+            ) <=
+            0) {
+      return false;
     }
     await db
         .into(db.tasks)
-        .insertOnConflictUpdate(
-          TasksCompanion(
-            id: Value(id),
-            userId: Value(raw['user_id'] as String?),
-            title: Value(raw['title'] as String),
-            notes: Value(raw['notes'] as String?),
-            itemKind: Value(raw['item_kind'] as String? ?? 'task'),
-            status: Value(raw['status'] as String),
-            showDate: Value(raw['show_date'] as String?),
-            // Legacy column retained in the remote schema for compatibility.
-            // Planning now has a single canonical civil date: show_date.
-            dueDate: const Value(null),
-            timeMinutes: const Value(null),
-            timeZone: const Value(null),
-            priority: Value(raw['priority'] as int? ?? 1),
-            projectId: Value(raw['project_id'] as String?),
-            sectionId: Value(raw['section_id'] as String?),
-            externalSource: Value(raw['external_source'] as String?),
-            externalId: Value(raw['external_id'] as String?),
-            position: Value(raw['position'] as int),
-            recurrence: Value(raw['recurrence'] as String?),
-            seriesId: Value(raw['series_id'] as String?),
-            occurrenceKey: Value(raw['occurrence_key'] as String?),
-            createdAt: Value(raw['created_at'] as int),
-            updatedAt: Value(raw['updated_at'] as int),
-            completedAt: Value(raw['completed_at'] as int?),
-            deletedAt: Value(raw['deleted_at'] as int?),
-            logicalVersion: Value(raw['logical_version'] as int),
-            deviceId: Value(raw['device_id'] as String),
-          ),
-        );
+        .insertOnConflictUpdate(taskFromRemote(raw).toCompanion(false));
     return true;
-  }
-
-  Future<int> _uploadTaskVerified(Task initial) async {
-    var candidate = initial;
-    var rebases = 0;
-    for (var attempt = 0; attempt < 4; attempt++) {
-      await client.rpc(
-        'merge_task',
-        params: {'record': _remoteTask(candidate)},
-      );
-      final rows = await client
-          .from('tasks')
-          .select()
-          .eq('id', candidate.id)
-          .limit(1);
-      if (rows.isEmpty) {
-        throw const SyncWriteVerificationException();
-      }
-      final remote = Map<String, dynamic>.from(rows.first);
-      final remoteVersion = domain.LogicalVersion(
-        remote['logical_version'] as int,
-        remote['device_id'] as String,
-      );
-      final candidateVersion = domain.LogicalVersion(
-        candidate.logicalVersion,
-        candidate.deviceId,
-      );
-      await _observeLogicalCounter(remoteVersion.counter);
-      final comparison = remoteVersion.compareTo(candidateVersion);
-      if (comparison == 0) return rebases;
-      if (comparison < 0) {
-        throw const SyncWriteVerificationException();
-      }
-
-      candidate = await db.transaction(() async {
-        final current = await (db.select(
-          db.tasks,
-        )..where((row) => row.id.equals(candidate.id))).getSingle();
-        final nextCounter = domain.nextLogicalCounter(
-          current.logicalVersion,
-          remoteVersion.counter,
-        );
-        await (db.update(
-          db.tasks,
-        )..where((row) => row.id.equals(current.id))).write(
-          TasksCompanion(
-            updatedAt: Value(DateTime.now().toUtc().microsecondsSinceEpoch),
-            logicalVersion: Value(nextCounter),
-            deviceId: Value(initial.deviceId),
-          ),
-        );
-        return (db.select(
-          db.tasks,
-        )..where((row) => row.id.equals(current.id))).getSingle();
-      });
-      rebases++;
-    }
-    throw const SyncWriteVerificationException();
-  }
+  });
 
   Future<void> _observeLogicalCounter(int counter) => db.transaction(() async {
     final current =
@@ -940,59 +885,20 @@ class SyncService {
     final remoteId = remote['id'] as String;
     if (remoteId == local.id) return false;
 
-    final localVersion = domain.LogicalVersion(
-      local.logicalVersion,
-      local.deviceId,
+    await db.recordSyncRevision(
+      entityId: local.id,
+      source: 'sync_conflict',
+      before: remote,
+      after: taskToRemote(local, client.auth.currentUser!.id),
+      operationIds:
+          (await (db.select(
+                db.outboxEntries,
+              )..where((row) => row.entityId.equals(local.id))).get())
+              .map((row) => row.operationId)
+              .toList(),
     );
-    final remoteVersion = domain.LogicalVersion(
-      remote['logical_version'] as int,
-      remote['device_id'] as String,
-    );
-    Map<String, dynamic> canonical = remote;
-    if (localVersion.compareTo(remoteVersion) > 0) {
-      canonical = Map<String, dynamic>.from(_remoteTask(local))
-        ..['id'] = remoteId;
-      await client.rpc('merge_task', params: {'record': canonical});
-    }
-
-    await (db.delete(db.tasks)..where((row) => row.id.equals(local.id))).go();
-    await _mergeRemote(canonical, null);
-    unawaited(
-      DiagnosticLogService.instance.event(
-        'sync_recurrence_conflict_reconciled',
-        fields: {'local_won': identical(canonical, remote) ? 0 : 1},
-      ),
-    );
-    return true;
+    throw const SyncIntentConflictException();
   }
-
-  Map<String, Object?> _remoteTask(Task task) => {
-    'id': task.id,
-    'user_id': client.auth.currentUser!.id,
-    'title': task.title,
-    'notes': task.notes,
-    'item_kind': task.itemKind,
-    'status': task.status,
-    'show_date': task.showDate,
-    'due_date': null,
-    'time_minutes': null,
-    'time_zone': null,
-    'priority': task.priority,
-    'project_id': task.projectId,
-    'section_id': task.sectionId,
-    'external_source': task.externalSource,
-    'external_id': task.externalId,
-    'position': task.position,
-    'recurrence': task.recurrence,
-    'series_id': task.seriesId,
-    'occurrence_key': task.occurrenceKey,
-    'created_at': task.createdAt,
-    'updated_at': task.updatedAt,
-    'completed_at': task.completedAt,
-    'deleted_at': task.deletedAt,
-    'logical_version': task.logicalVersion,
-    'device_id': task.deviceId,
-  };
 
   Map<String, Object?> _remoteProject(Project project) => {
     'id': project.id,
@@ -1082,6 +988,8 @@ Future<String> safeSyncNetworkState() async {
 }
 
 String safeSyncErrorClass(Object error) {
+  if (error is SyncIntentConflictException) return 'intent_conflict';
+  if (error is SyncConcurrentWriteException) return 'concurrent_write';
   if (error is SyncWriteVerificationException) return 'write_verification';
   if (error is PostgrestException) return 'supabase';
   final type = error.runtimeType.toString().toLowerCase();
@@ -1119,6 +1027,7 @@ bool shouldSubscribeRealtime({
 }) => !paused && hasAuthenticatedUser && !hasChannel;
 
 bool isTransientSyncError(Object error) {
+  if (error is SyncConcurrentWriteException) return true;
   if (error is SyncWriteVerificationException) return true;
   final type = error.runtimeType.toString().toLowerCase();
   if (type.contains('socket') ||
@@ -1142,6 +1051,9 @@ bool isTransientSyncError(Object error) {
 }
 
 String safeSyncErrorCode(Object error) {
+  if (error is SyncIntentConflictException) {
+    return 'Conflitto: scegli la versione nello storico attività';
+  }
   if (error is PostgrestException) return 'Supabase ${error.code}';
   final type = error.runtimeType.toString();
   if (isTransientSyncError(error)) return 'Rete $type';

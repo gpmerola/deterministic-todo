@@ -103,7 +103,7 @@ class ExportService {
     final result = await preview(source);
     final root = jsonDecode(source) as Map<String, Object?>;
     final rawTasks = root['tasks']! as List<Object?>;
-    await db.transaction(() async {
+    await db.withRevisionSource('user_import', () async {
       for (final raw in rawTasks) {
         final normalized = (raw! as Map<String, Object?>)
             .cast<String, dynamic>();
@@ -116,7 +116,7 @@ class ExportService {
             existing.logicalVersion >= task.logicalVersion) {
           continue;
         }
-        await db.into(db.tasks).insertOnConflictUpdate(task);
+        await db.into(db.tasks).insertOnConflictUpdate(task.toCompanion(false));
         await db
             .into(db.outboxEntries)
             .insert(
@@ -127,6 +127,9 @@ class ExportService {
                 payload: jsonEncode({
                   'id': task.id,
                   'version': task.logicalVersion,
+                  'schema': 2,
+                  'kind': 'replace',
+                  'snapshot': task.toJson(),
                 }),
                 createdAt: DateTime.now().toUtc().microsecondsSinceEpoch,
               ),

@@ -494,6 +494,16 @@ class SettingsView extends StatelessWidget {
             onTap: () => _importTodoist(context),
           ),
           ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('Storico attività'),
+            subtitle: const Text('Versioni precedenti e sincronizzazione'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ActivityHistoryView(repository: repository),
+              ),
+            ),
+          ),
+          ListTile(
             leading: const Icon(Icons.bug_report_outlined),
             title: const Text('Esporta diagnostica'),
             onTap: () => _exportDiagnostics(context),

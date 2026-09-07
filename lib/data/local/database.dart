@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../services/platform_runtime_native.dart'
@@ -6,6 +8,7 @@ import 'database_connection_native.dart'
     if (dart.library.js_interop) 'database_connection_web.dart';
 
 part 'database.g.dart';
+part 'revision_schema.dart';
 
 class Tasks extends Table {
   TextColumn get id => text()();
@@ -90,6 +93,19 @@ class OutboxEntries extends Table {
   Set<Column<Object>> get primaryKey => {operationId};
 }
 
+class ActivityRevisions extends Table {
+  IntColumn get sequence => integer().autoIncrement()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  TextColumn get operation => text()();
+  TextColumn get source => text()();
+  IntColumn get recordedAt => integer()();
+  TextColumn get beforeJson => text().nullable()();
+  TextColumn get afterJson => text().nullable()();
+  TextColumn get operationIds => text().withDefault(const Constant('[]'))();
+  TextColumn get eventKey => text().nullable().unique()();
+}
+
 class AppSettings extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -99,7 +115,14 @@ class AppSettings extends Table {
 }
 
 @DriftDatabase(
-  tables: [Tasks, Projects, ProjectSections, OutboxEntries, AppSettings],
+  tables: [
+    Tasks,
+    Projects,
+    ProjectSections,
+    OutboxEntries,
+    AppSettings,
+    ActivityRevisions,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -107,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -115,6 +138,7 @@ class AppDatabase extends _$AppDatabase {
       await migrator.createAll();
       await _createPerformanceIndexes();
       await _createImportIndexes();
+      await _installRevisionTriggers(this);
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) await _createPerformanceIndexes();
@@ -122,13 +146,26 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5 && !await _columnExists('tasks', tasks.itemKind.$name)) {
         await migrator.addColumn(tasks, tasks.itemKind);
       }
+      if (from < 7 && !await _tableExists('activity_revisions')) {
+        await migrator.createTable(activityRevisions);
+      }
       if (from < 6) {
         await customStatement('DROP INDEX IF EXISTS tasks_kind_order_idx');
       }
+      if (from < 7) await _installRevisionTriggers(this);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (!isWebPlatform) await customStatement('PRAGMA journal_mode = WAL');
+      await (delete(activityRevisions)..where(
+            (row) => row.recordedAt.isSmallerThanValue(
+              DateTime.now()
+                  .toUtc()
+                  .subtract(const Duration(days: 90))
+                  .microsecondsSinceEpoch,
+            ),
+          ))
+          .go();
     },
   );
 

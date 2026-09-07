@@ -310,7 +310,7 @@ class TodoistImportService {
     required AppDatabase db,
     required String deviceId,
     TodoistImportMode mode = TodoistImportMode.incremental,
-  }) => db.transaction(() async {
+  }) => db.withRevisionSource('user_import', () async {
     var addedProjects = 0;
     var addedSections = 0;
     var addedTasks = 0;
@@ -613,17 +613,28 @@ class TodoistImportService {
     String operation,
     int version,
     int timestamp,
-  ) => db
-      .into(db.outboxEntries)
-      .insert(
-        OutboxEntriesCompanion.insert(
-          operationId: _uuid.v4(),
-          entityId: id,
-          operation: operation,
-          payload: jsonEncode({'id': id, 'version': version}),
-          createdAt: timestamp,
-        ),
-      );
+  ) async {
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await db
+        .into(db.outboxEntries)
+        .insert(
+          OutboxEntriesCompanion.insert(
+            operationId: _uuid.v4(),
+            entityId: id,
+            operation: operation,
+            payload: jsonEncode({
+              'schema': 2,
+              'kind': 'replace',
+              'id': id,
+              'version': version,
+              'snapshot': task.toJson(),
+            }),
+            createdAt: timestamp,
+          ),
+        );
+  }
 
   String _dateOnly(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'

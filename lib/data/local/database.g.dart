@@ -3394,6 +3394,621 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
+class $ActivityRevisionsTable extends ActivityRevisions
+    with TableInfo<$ActivityRevisionsTable, ActivityRevision> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ActivityRevisionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sequenceMeta = const VerificationMeta(
+    'sequence',
+  );
+  @override
+  late final GeneratedColumn<int> sequence = GeneratedColumn<int>(
+    'sequence',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _operationMeta = const VerificationMeta(
+    'operation',
+  );
+  @override
+  late final GeneratedColumn<String> operation = GeneratedColumn<String>(
+    'operation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordedAtMeta = const VerificationMeta(
+    'recordedAt',
+  );
+  @override
+  late final GeneratedColumn<int> recordedAt = GeneratedColumn<int>(
+    'recorded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _beforeJsonMeta = const VerificationMeta(
+    'beforeJson',
+  );
+  @override
+  late final GeneratedColumn<String> beforeJson = GeneratedColumn<String>(
+    'before_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _afterJsonMeta = const VerificationMeta(
+    'afterJson',
+  );
+  @override
+  late final GeneratedColumn<String> afterJson = GeneratedColumn<String>(
+    'after_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _operationIdsMeta = const VerificationMeta(
+    'operationIds',
+  );
+  @override
+  late final GeneratedColumn<String> operationIds = GeneratedColumn<String>(
+    'operation_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _eventKeyMeta = const VerificationMeta(
+    'eventKey',
+  );
+  @override
+  late final GeneratedColumn<String> eventKey = GeneratedColumn<String>(
+    'event_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    sequence,
+    entityType,
+    entityId,
+    operation,
+    source,
+    recordedAt,
+    beforeJson,
+    afterJson,
+    operationIds,
+    eventKey,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'activity_revisions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ActivityRevision> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sequence')) {
+      context.handle(
+        _sequenceMeta,
+        sequence.isAcceptableOrUnknown(data['sequence']!, _sequenceMeta),
+      );
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('operation')) {
+      context.handle(
+        _operationMeta,
+        operation.isAcceptableOrUnknown(data['operation']!, _operationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_operationMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('recorded_at')) {
+      context.handle(
+        _recordedAtMeta,
+        recordedAt.isAcceptableOrUnknown(data['recorded_at']!, _recordedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtMeta);
+    }
+    if (data.containsKey('before_json')) {
+      context.handle(
+        _beforeJsonMeta,
+        beforeJson.isAcceptableOrUnknown(data['before_json']!, _beforeJsonMeta),
+      );
+    }
+    if (data.containsKey('after_json')) {
+      context.handle(
+        _afterJsonMeta,
+        afterJson.isAcceptableOrUnknown(data['after_json']!, _afterJsonMeta),
+      );
+    }
+    if (data.containsKey('operation_ids')) {
+      context.handle(
+        _operationIdsMeta,
+        operationIds.isAcceptableOrUnknown(
+          data['operation_ids']!,
+          _operationIdsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('event_key')) {
+      context.handle(
+        _eventKeyMeta,
+        eventKey.isAcceptableOrUnknown(data['event_key']!, _eventKeyMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sequence};
+  @override
+  ActivityRevision map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ActivityRevision(
+      sequence: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sequence'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      operation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      recordedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at'],
+      )!,
+      beforeJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}before_json'],
+      ),
+      afterJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}after_json'],
+      ),
+      operationIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}operation_ids'],
+      )!,
+      eventKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_key'],
+      ),
+    );
+  }
+
+  @override
+  $ActivityRevisionsTable createAlias(String alias) {
+    return $ActivityRevisionsTable(attachedDatabase, alias);
+  }
+}
+
+class ActivityRevision extends DataClass
+    implements Insertable<ActivityRevision> {
+  final int sequence;
+  final String entityType;
+  final String entityId;
+  final String operation;
+  final String source;
+  final int recordedAt;
+  final String? beforeJson;
+  final String? afterJson;
+  final String operationIds;
+  final String? eventKey;
+  const ActivityRevision({
+    required this.sequence,
+    required this.entityType,
+    required this.entityId,
+    required this.operation,
+    required this.source,
+    required this.recordedAt,
+    this.beforeJson,
+    this.afterJson,
+    required this.operationIds,
+    this.eventKey,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['sequence'] = Variable<int>(sequence);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<String>(entityId);
+    map['operation'] = Variable<String>(operation);
+    map['source'] = Variable<String>(source);
+    map['recorded_at'] = Variable<int>(recordedAt);
+    if (!nullToAbsent || beforeJson != null) {
+      map['before_json'] = Variable<String>(beforeJson);
+    }
+    if (!nullToAbsent || afterJson != null) {
+      map['after_json'] = Variable<String>(afterJson);
+    }
+    map['operation_ids'] = Variable<String>(operationIds);
+    if (!nullToAbsent || eventKey != null) {
+      map['event_key'] = Variable<String>(eventKey);
+    }
+    return map;
+  }
+
+  ActivityRevisionsCompanion toCompanion(bool nullToAbsent) {
+    return ActivityRevisionsCompanion(
+      sequence: Value(sequence),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
+      operation: Value(operation),
+      source: Value(source),
+      recordedAt: Value(recordedAt),
+      beforeJson: beforeJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(beforeJson),
+      afterJson: afterJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(afterJson),
+      operationIds: Value(operationIds),
+      eventKey: eventKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventKey),
+    );
+  }
+
+  factory ActivityRevision.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ActivityRevision(
+      sequence: serializer.fromJson<int>(json['sequence']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      operation: serializer.fromJson<String>(json['operation']),
+      source: serializer.fromJson<String>(json['source']),
+      recordedAt: serializer.fromJson<int>(json['recordedAt']),
+      beforeJson: serializer.fromJson<String?>(json['beforeJson']),
+      afterJson: serializer.fromJson<String?>(json['afterJson']),
+      operationIds: serializer.fromJson<String>(json['operationIds']),
+      eventKey: serializer.fromJson<String?>(json['eventKey']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sequence': serializer.toJson<int>(sequence),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<String>(entityId),
+      'operation': serializer.toJson<String>(operation),
+      'source': serializer.toJson<String>(source),
+      'recordedAt': serializer.toJson<int>(recordedAt),
+      'beforeJson': serializer.toJson<String?>(beforeJson),
+      'afterJson': serializer.toJson<String?>(afterJson),
+      'operationIds': serializer.toJson<String>(operationIds),
+      'eventKey': serializer.toJson<String?>(eventKey),
+    };
+  }
+
+  ActivityRevision copyWith({
+    int? sequence,
+    String? entityType,
+    String? entityId,
+    String? operation,
+    String? source,
+    int? recordedAt,
+    Value<String?> beforeJson = const Value.absent(),
+    Value<String?> afterJson = const Value.absent(),
+    String? operationIds,
+    Value<String?> eventKey = const Value.absent(),
+  }) => ActivityRevision(
+    sequence: sequence ?? this.sequence,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    operation: operation ?? this.operation,
+    source: source ?? this.source,
+    recordedAt: recordedAt ?? this.recordedAt,
+    beforeJson: beforeJson.present ? beforeJson.value : this.beforeJson,
+    afterJson: afterJson.present ? afterJson.value : this.afterJson,
+    operationIds: operationIds ?? this.operationIds,
+    eventKey: eventKey.present ? eventKey.value : this.eventKey,
+  );
+  ActivityRevision copyWithCompanion(ActivityRevisionsCompanion data) {
+    return ActivityRevision(
+      sequence: data.sequence.present ? data.sequence.value : this.sequence,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      operation: data.operation.present ? data.operation.value : this.operation,
+      source: data.source.present ? data.source.value : this.source,
+      recordedAt: data.recordedAt.present
+          ? data.recordedAt.value
+          : this.recordedAt,
+      beforeJson: data.beforeJson.present
+          ? data.beforeJson.value
+          : this.beforeJson,
+      afterJson: data.afterJson.present ? data.afterJson.value : this.afterJson,
+      operationIds: data.operationIds.present
+          ? data.operationIds.value
+          : this.operationIds,
+      eventKey: data.eventKey.present ? data.eventKey.value : this.eventKey,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityRevision(')
+          ..write('sequence: $sequence, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('operation: $operation, ')
+          ..write('source: $source, ')
+          ..write('recordedAt: $recordedAt, ')
+          ..write('beforeJson: $beforeJson, ')
+          ..write('afterJson: $afterJson, ')
+          ..write('operationIds: $operationIds, ')
+          ..write('eventKey: $eventKey')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    sequence,
+    entityType,
+    entityId,
+    operation,
+    source,
+    recordedAt,
+    beforeJson,
+    afterJson,
+    operationIds,
+    eventKey,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ActivityRevision &&
+          other.sequence == this.sequence &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
+          other.operation == this.operation &&
+          other.source == this.source &&
+          other.recordedAt == this.recordedAt &&
+          other.beforeJson == this.beforeJson &&
+          other.afterJson == this.afterJson &&
+          other.operationIds == this.operationIds &&
+          other.eventKey == this.eventKey);
+}
+
+class ActivityRevisionsCompanion extends UpdateCompanion<ActivityRevision> {
+  final Value<int> sequence;
+  final Value<String> entityType;
+  final Value<String> entityId;
+  final Value<String> operation;
+  final Value<String> source;
+  final Value<int> recordedAt;
+  final Value<String?> beforeJson;
+  final Value<String?> afterJson;
+  final Value<String> operationIds;
+  final Value<String?> eventKey;
+  const ActivityRevisionsCompanion({
+    this.sequence = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.operation = const Value.absent(),
+    this.source = const Value.absent(),
+    this.recordedAt = const Value.absent(),
+    this.beforeJson = const Value.absent(),
+    this.afterJson = const Value.absent(),
+    this.operationIds = const Value.absent(),
+    this.eventKey = const Value.absent(),
+  });
+  ActivityRevisionsCompanion.insert({
+    this.sequence = const Value.absent(),
+    required String entityType,
+    required String entityId,
+    required String operation,
+    required String source,
+    required int recordedAt,
+    this.beforeJson = const Value.absent(),
+    this.afterJson = const Value.absent(),
+    this.operationIds = const Value.absent(),
+    this.eventKey = const Value.absent(),
+  }) : entityType = Value(entityType),
+       entityId = Value(entityId),
+       operation = Value(operation),
+       source = Value(source),
+       recordedAt = Value(recordedAt);
+  static Insertable<ActivityRevision> custom({
+    Expression<int>? sequence,
+    Expression<String>? entityType,
+    Expression<String>? entityId,
+    Expression<String>? operation,
+    Expression<String>? source,
+    Expression<int>? recordedAt,
+    Expression<String>? beforeJson,
+    Expression<String>? afterJson,
+    Expression<String>? operationIds,
+    Expression<String>? eventKey,
+  }) {
+    return RawValuesInsertable({
+      if (sequence != null) 'sequence': sequence,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
+      if (operation != null) 'operation': operation,
+      if (source != null) 'source': source,
+      if (recordedAt != null) 'recorded_at': recordedAt,
+      if (beforeJson != null) 'before_json': beforeJson,
+      if (afterJson != null) 'after_json': afterJson,
+      if (operationIds != null) 'operation_ids': operationIds,
+      if (eventKey != null) 'event_key': eventKey,
+    });
+  }
+
+  ActivityRevisionsCompanion copyWith({
+    Value<int>? sequence,
+    Value<String>? entityType,
+    Value<String>? entityId,
+    Value<String>? operation,
+    Value<String>? source,
+    Value<int>? recordedAt,
+    Value<String?>? beforeJson,
+    Value<String?>? afterJson,
+    Value<String>? operationIds,
+    Value<String?>? eventKey,
+  }) {
+    return ActivityRevisionsCompanion(
+      sequence: sequence ?? this.sequence,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
+      operation: operation ?? this.operation,
+      source: source ?? this.source,
+      recordedAt: recordedAt ?? this.recordedAt,
+      beforeJson: beforeJson ?? this.beforeJson,
+      afterJson: afterJson ?? this.afterJson,
+      operationIds: operationIds ?? this.operationIds,
+      eventKey: eventKey ?? this.eventKey,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sequence.present) {
+      map['sequence'] = Variable<int>(sequence.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (operation.present) {
+      map['operation'] = Variable<String>(operation.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (recordedAt.present) {
+      map['recorded_at'] = Variable<int>(recordedAt.value);
+    }
+    if (beforeJson.present) {
+      map['before_json'] = Variable<String>(beforeJson.value);
+    }
+    if (afterJson.present) {
+      map['after_json'] = Variable<String>(afterJson.value);
+    }
+    if (operationIds.present) {
+      map['operation_ids'] = Variable<String>(operationIds.value);
+    }
+    if (eventKey.present) {
+      map['event_key'] = Variable<String>(eventKey.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityRevisionsCompanion(')
+          ..write('sequence: $sequence, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
+          ..write('operation: $operation, ')
+          ..write('source: $source, ')
+          ..write('recordedAt: $recordedAt, ')
+          ..write('beforeJson: $beforeJson, ')
+          ..write('afterJson: $afterJson, ')
+          ..write('operationIds: $operationIds, ')
+          ..write('eventKey: $eventKey')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3404,6 +4019,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $ActivityRevisionsTable activityRevisions =
+      $ActivityRevisionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3414,6 +4031,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     projectSections,
     outboxEntries,
     appSettings,
+    activityRevisions,
   ];
 }
 
@@ -5029,6 +5647,316 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
+typedef $$ActivityRevisionsTableCreateCompanionBuilder =
+    ActivityRevisionsCompanion Function({
+      Value<int> sequence,
+      required String entityType,
+      required String entityId,
+      required String operation,
+      required String source,
+      required int recordedAt,
+      Value<String?> beforeJson,
+      Value<String?> afterJson,
+      Value<String> operationIds,
+      Value<String?> eventKey,
+    });
+typedef $$ActivityRevisionsTableUpdateCompanionBuilder =
+    ActivityRevisionsCompanion Function({
+      Value<int> sequence,
+      Value<String> entityType,
+      Value<String> entityId,
+      Value<String> operation,
+      Value<String> source,
+      Value<int> recordedAt,
+      Value<String?> beforeJson,
+      Value<String?> afterJson,
+      Value<String> operationIds,
+      Value<String?> eventKey,
+    });
+
+class $$ActivityRevisionsTableFilterComposer
+    extends Composer<_$AppDatabase, $ActivityRevisionsTable> {
+  $$ActivityRevisionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get sequence => $composableBuilder(
+    column: $table.sequence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordedAt => $composableBuilder(
+    column: $table.recordedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get beforeJson => $composableBuilder(
+    column: $table.beforeJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get afterJson => $composableBuilder(
+    column: $table.afterJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get operationIds => $composableBuilder(
+    column: $table.operationIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventKey => $composableBuilder(
+    column: $table.eventKey,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ActivityRevisionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ActivityRevisionsTable> {
+  $$ActivityRevisionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get sequence => $composableBuilder(
+    column: $table.sequence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operation => $composableBuilder(
+    column: $table.operation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAt => $composableBuilder(
+    column: $table.recordedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get beforeJson => $composableBuilder(
+    column: $table.beforeJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get afterJson => $composableBuilder(
+    column: $table.afterJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get operationIds => $composableBuilder(
+    column: $table.operationIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventKey => $composableBuilder(
+    column: $table.eventKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ActivityRevisionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ActivityRevisionsTable> {
+  $$ActivityRevisionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get sequence =>
+      $composableBuilder(column: $table.sequence, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get operation =>
+      $composableBuilder(column: $table.operation, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get recordedAt => $composableBuilder(
+    column: $table.recordedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get beforeJson => $composableBuilder(
+    column: $table.beforeJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get afterJson =>
+      $composableBuilder(column: $table.afterJson, builder: (column) => column);
+
+  GeneratedColumn<String> get operationIds => $composableBuilder(
+    column: $table.operationIds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get eventKey =>
+      $composableBuilder(column: $table.eventKey, builder: (column) => column);
+}
+
+class $$ActivityRevisionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ActivityRevisionsTable,
+          ActivityRevision,
+          $$ActivityRevisionsTableFilterComposer,
+          $$ActivityRevisionsTableOrderingComposer,
+          $$ActivityRevisionsTableAnnotationComposer,
+          $$ActivityRevisionsTableCreateCompanionBuilder,
+          $$ActivityRevisionsTableUpdateCompanionBuilder,
+          (
+            ActivityRevision,
+            BaseReferences<
+              _$AppDatabase,
+              $ActivityRevisionsTable,
+              ActivityRevision
+            >,
+          ),
+          ActivityRevision,
+          PrefetchHooks Function()
+        > {
+  $$ActivityRevisionsTableTableManager(
+    _$AppDatabase db,
+    $ActivityRevisionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ActivityRevisionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ActivityRevisionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ActivityRevisionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> sequence = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> entityId = const Value.absent(),
+                Value<String> operation = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> recordedAt = const Value.absent(),
+                Value<String?> beforeJson = const Value.absent(),
+                Value<String?> afterJson = const Value.absent(),
+                Value<String> operationIds = const Value.absent(),
+                Value<String?> eventKey = const Value.absent(),
+              }) => ActivityRevisionsCompanion(
+                sequence: sequence,
+                entityType: entityType,
+                entityId: entityId,
+                operation: operation,
+                source: source,
+                recordedAt: recordedAt,
+                beforeJson: beforeJson,
+                afterJson: afterJson,
+                operationIds: operationIds,
+                eventKey: eventKey,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> sequence = const Value.absent(),
+                required String entityType,
+                required String entityId,
+                required String operation,
+                required String source,
+                required int recordedAt,
+                Value<String?> beforeJson = const Value.absent(),
+                Value<String?> afterJson = const Value.absent(),
+                Value<String> operationIds = const Value.absent(),
+                Value<String?> eventKey = const Value.absent(),
+              }) => ActivityRevisionsCompanion.insert(
+                sequence: sequence,
+                entityType: entityType,
+                entityId: entityId,
+                operation: operation,
+                source: source,
+                recordedAt: recordedAt,
+                beforeJson: beforeJson,
+                afterJson: afterJson,
+                operationIds: operationIds,
+                eventKey: eventKey,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ActivityRevisionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ActivityRevisionsTable,
+      ActivityRevision,
+      $$ActivityRevisionsTableFilterComposer,
+      $$ActivityRevisionsTableOrderingComposer,
+      $$ActivityRevisionsTableAnnotationComposer,
+      $$ActivityRevisionsTableCreateCompanionBuilder,
+      $$ActivityRevisionsTableUpdateCompanionBuilder,
+      (
+        ActivityRevision,
+        BaseReferences<
+          _$AppDatabase,
+          $ActivityRevisionsTable,
+          ActivityRevision
+        >,
+      ),
+      ActivityRevision,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5043,4 +5971,6 @@ class $AppDatabaseManager {
       $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$ActivityRevisionsTableTableManager get activityRevisions =>
+      $$ActivityRevisionsTableTableManager(_db, _db.activityRevisions);
 }

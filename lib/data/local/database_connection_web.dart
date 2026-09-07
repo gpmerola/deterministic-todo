@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift/wasm.dart';
 
+import 'web_transaction_flush.dart';
+
 QueryExecutor openDatabaseConnection() => DatabaseConnection.delayed(
   Future(() async {
     final result = await WasmDatabase.open(
@@ -14,6 +16,6 @@ QueryExecutor openDatabaseConnection() => DatabaseConnection.delayed(
         'Apri l’app in una versione recente di Chrome o Edge.',
       );
     }
-    return result.resolvedExecutor;
+    return result.resolvedExecutor.interceptWith(WebTransactionFlush());
   }),
 );

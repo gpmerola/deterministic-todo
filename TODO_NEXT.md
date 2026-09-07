@@ -2,6 +2,16 @@
 
 Aggiornato il 7 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
+## P0 — Sincronizzazione e storico, build 172
+
+- [x] Eliminare le scritture di cambio giorno e il rebase dell'intera attività.
+- [x] Introdurre revisioni locali, protezione dei retry e ripristino esplicito.
+- [ ] Distribuire e collaudare la stessa build Web prima di considerare protetti
+  anche i client browser ancora sulla 168.
+- [ ] Osservare una mattina reale e una sequenza Android↔Web, conservando le
+  nuove revisioni. Stato delle verifiche in [STATUS](STATUS.md), contratto in
+  [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+
 ## P0 — Movimento autonomo, solo telefono
 
 Riscontri e piano canonico: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
@@ -25,8 +35,8 @@ non duplicare qui i dettagli tecnici.
 - [ ] Build 168: in Todo Test e Web, togliere la data a una fixture sintetica
   di progetto con **Senza data** e con la X, salvare e riaprire. Verificare che
   rimanga nel progetto, fuori da Oggi/Prossime, anche dopo un’altra modifica.
-  Il collaudo Chrome locale ha riletto valori precedenti al refresh; evidenza e
-  limiti in [STATUS.md](STATUS.md#build-168--scelta-esplicita-senza-data).
+  Il difetto di persistenza Chrome osservato nella 168 è stato riprodotto e
+  corretto nella 172; stato corrente in [STATUS.md](STATUS.md).
   La release Web 2.35.3+168 è pubblicata e verificata dalla pipeline; resta
   soltanto il collaudo manuale della persistenza sul profilo Chrome reale.
 
@@ -72,9 +82,9 @@ non duplicare qui i dettagli tecnici.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
 - Branch operativo: `agent/verify-public-release-token`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
-- Release Todo Test installata: 2.35.0 build 165. **Todo Test** (`.dev`) è il
-  solo client operativo sul Galaxy S21; monitor passivo e diagnostica intensiva
-  sono attivi. La build Play 121 resta installata con dati intatti ma è
+- Release Todo Test installata e stato dei monitor: fonte corrente [STATUS](STATUS.md).
+  **Todo Test** (`.dev`) è il solo client operativo sul Galaxy S21.
+  La build Play 121 resta installata con dati intatti ma è
   `disabled-user`. Drive separa automaticamente
   cinque categorie e la prova Bip U esporta un report JSON sicuro. La prova
   preferisce il dispositivo già associato e usa la scansione BLE come fallback.
@@ -83,9 +93,8 @@ non duplicare qui i dettagli tecnici.
   diagnostica intensiva temporanea di sette giorni, segmentata per build e con
   upload JSONL orario e finale crash-safe, oltre agli snapshot
   cumulativi Todo/Google Fit ogni ora; la diagnostica generale Android conserva
-  sette giorni locali e alterna due bundle Drive ogni tre ore o su comando. Il sync task conferma sul
-  server ogni versione prima di svuotare l'outbox e ribasa automaticamente i
-  contatori Lamport più alti. Dalla build 154 ogni incidente Todo registra fase,
+  sette giorni locali e alterna due bundle Drive ogni tre ore o su comando. Il sync task usa intenti per campo, scritture
+  condizionali e conferma prima dell'ack; il rebase completo è stato eliminato. Dalla build 154 ogni incidente Todo registra fase,
   classe tecnica, rete/sessione, outbox, retry e recupero ed è leggibile in
   sicurezza anche via provider ADB protetto. I record passi sono ripartiti
   sull'intero intervallo e l'esclusione di veicolo/bicicletta richiede una quota

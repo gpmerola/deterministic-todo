@@ -2,6 +2,24 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.37.1 (build 172)
+
+- Web: attende la persistenza IndexedDB dopo il commit esterno; le modifiche e
+  lo storico non dipendono più da una scrittura successiva per durare al refresh.
+- Aggiunti test per commit, transazioni annidate, rollback ed errori di storage.
+
+## 2.37.0 (build 171)
+
+- Eliminata l'attivazione scrivente delle attività all'avvio: Oggi include le
+  programmate scadute senza produrre versioni locali da sovrapporre al cloud.
+- Invio dei soli campi modificati, controllo atomico della versione remota e
+  protezione di modifiche locali durante pull, invio e retry.
+- Storico locale di 90 giorni per attività, progetti e sezioni; valori
+  prima/dopo, provenienza e fasi sync. Export esplicito e ripristino confermato
+  delle attività; nessun contenuto nei log diagnostici automatici.
+- Esiti incerti e vecchie code senza intenti non causano più rebase ciechi:
+  entrambe le copie restano disponibili per una scelta esplicita.
+
 ## 2.36.0 (build 170)
 
 - Passi passivi tramite Recording API locale di Play Services, senza account

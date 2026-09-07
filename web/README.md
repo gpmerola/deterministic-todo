@@ -12,3 +12,7 @@ SHA-256 verificati il 5 agosto 2026:
 
 Il database usa OPFS quando disponibile e ricade su IndexedDB. La modalità in
 sola memoria non è accettata dal client.
+
+Dalla build 172 il client aggiunge una barriera di persistenza dopo le
+transazioni tramite `QueryInterceptor`, senza modificare questi asset.
+Motivazione e test: [sincronizzazione e storico](../docs/architecture/TODO_SYNC_AND_HISTORY.md#persistenza-web--build-172).
