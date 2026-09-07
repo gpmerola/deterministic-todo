@@ -21,8 +21,10 @@ Il server HTTPS locale risponde correttamente con certificato verificato.
 Il collaudo UI Chrome è stato eseguito su localhost HTTP con fixture sintetiche:
 il pulsante e la X funzionano durante la sessione, ma dopo refresh sono stati
 riletti valori precedenti delle modifiche, anche su un’origine locale nuova.
-La persistenza Web dopo refresh **non è verificata** e la causa resta da
-isolare prima della promozione Web/Play. Nessuna release stabile pubblicata.
+La persistenza Web dopo refresh resta da isolare sul profilo Chrome locale; la
+pipeline release ha comunque superato build Web, deploy Pages, verifica di
+`release-info.json` e parità pubblica. La release coordinata **2.35.3+168** è
+stata pubblicata su Web, APK diretti e track interno Play il 7 settembre 2026.
 
 ## Build 167 — Inbox filtrata e cancellazione definitiva
 

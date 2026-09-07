@@ -13,6 +13,8 @@ non duplicare qui i dettagli tecnici.
   rimanga nel progetto, fuori da Oggi/Prossime, anche dopo un’altra modifica.
   Il collaudo Chrome locale ha riletto valori precedenti al refresh; evidenza e
   limiti in [STATUS.md](STATUS.md#build-168--scelta-esplicita-senza-data).
+  La release Web 2.35.3+168 è pubblicata e verificata dalla pipeline; resta
+  soltanto il collaudo manuale della persistenza sul profilo Chrome reale.
 
 - [x] Importazione Bip U headless reale: 4.263 campioni minuto, finestra 168
   ore, esito `activity_sync_success`, GATT chiuso dopo circa 18 secondi.
