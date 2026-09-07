@@ -10,6 +10,9 @@ final class DailyMovementProgress {
     required this.phoneSteps,
     required this.bipSteps,
     required this.source,
+    this.collectionStatus = 'not_started',
+    this.coverage = 'not_established',
+    this.lastImport,
   });
 
   final String day;
@@ -20,6 +23,9 @@ final class DailyMovementProgress {
   final int phoneSteps;
   final int bipSteps;
   final String source;
+  final String collectionStatus;
+  final String coverage;
+  final DateTime? lastImport;
 }
 
 final class MovementSessionState {
@@ -55,7 +61,7 @@ final class MovementSessionState {
 final class RunTrackerService {
   const RunTrackerService._();
 
-  /// One hardware-counter reading while the UI is visible; no background polling.
+  /// Refresh local totals while visible; passive recording is managed by Android.
   static const foregroundRefreshInterval = Duration(seconds: 30);
 
   static const _channel = MethodChannel('app.deterministic.todo/run_tracker');
@@ -79,6 +85,14 @@ final class RunTrackerService {
         phoneSteps: (value['phone_steps'] as num?)?.toInt() ?? 0,
         bipSteps: (value['bip_steps'] as num?)?.toInt() ?? 0,
         source: value['source'] as String? ?? 'phone_step_counter',
+        collectionStatus:
+            value['phone_accounting_reason'] as String? ?? 'not_started',
+        coverage: value['phone_coverage'] as String? ?? 'not_established',
+        lastImport: (value['phone_last_import_ms'] as num? ?? 0) > 0
+            ? DateTime.fromMillisecondsSinceEpoch(
+                (value['phone_last_import_ms'] as num).toInt(),
+              )
+            : null,
       );
     } on MissingPluginException {
       return null;
@@ -96,6 +110,15 @@ final class RunTrackerService {
       return 10000;
     }
   }
+
+  static Future<Map<String, Object?>> movementProfile() async =>
+      await _channel.invokeMapMethod<String, Object?>('movementProfile') ?? {};
+
+  static Future<void> saveMovementProfile(Map<String, double> values) =>
+      _channel.invokeMethod<void>('saveMovementProfile', values);
+
+  static Future<void> requestStepPermission() =>
+      _channel.invokeMethod<void>('requestStepPermission');
 
   static Future<int> setStepGoal(int goal) async {
     final normalized = goal.clamp(1000, 100000).toInt();

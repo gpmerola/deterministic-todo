@@ -128,6 +128,7 @@ object HealthConnectGateway {
                     ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
                 )
                 val local = PhoneDailyMovementGateway.totalsForDay(appContext, day, zone)
+                val localEstimate = PhoneDailyMovementGateway.readDay(appContext, day, zone)
                 val fitStarted = SystemClock.elapsedRealtime()
                 val fit = client.aggregate(AggregateRequest(
                     metrics = metrics,
@@ -143,8 +144,8 @@ object HealthConnectGateway {
                 val value = PassiveAudit(
                     day.toString(), zone.id, start.toEpochMilli(), end.toEpochMilli(),
                     local.fusedSteps,
-                    null,
-                    null,
+                    localEstimate.estimatedDistanceMeters,
+                    localEstimate.estimatedActiveCalories,
                     fitSteps,
                     fit[DistanceRecord.DISTANCE_TOTAL]?.inMeters,
                     fit[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories,

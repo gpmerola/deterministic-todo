@@ -74,7 +74,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('attiva il monitor passivo dalla dashboard integrata', (
+  testWidgets('attiva il confronto diagnostico separato dal conteggio locale', (
     tester,
   ) async {
     final calls = <String>[];
@@ -112,8 +112,13 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.scrollUntilVisible(find.text('Attiva monitor passivo'), 300);
-    await tester.tap(find.text('Attiva monitor passivo'));
+    await tester.scrollUntilVisible(
+      find.text('Attiva confronto diagnostico'),
+      300,
+    );
+    await tester.drag(find.byType(ListView), const Offset(0, -150));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Attiva confronto diagnostico'));
     await tester.pump();
     expect(calls, contains('setPassiveMonitoring'));
     await tester.pumpWidget(const SizedBox());

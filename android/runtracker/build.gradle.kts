@@ -32,6 +32,7 @@ dependencies {
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("androidx.work:work-runtime:2.10.2")
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.android.gms:play-services-fitness:21.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     annotationProcessor("androidx.room:room-compiler:2.7.2")
 

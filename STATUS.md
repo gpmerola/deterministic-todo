@@ -2,6 +2,41 @@
 
 Aggiornato il 7 settembre 2026.
 
+## Build 170 — Raccolta locale e modello quotidiano
+
+Implementati Recording API locale senza account/app Fit, import periodico
+Room 5, classificazione camminata/corsa, integrazione GPS senza somma doppia e
+profilo personale peso/passo. Algoritmo, limiti e procedura:
+[MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+
+Verifiche: `make check` superato (analisi Flutter, 153 test app, 10 test
+strumenti, link documentali), 155 test JVM, quattro test strumentali sul Galaxy
+con database sintetici nel package di test. Coperti migrazione 4→5 preservando
+sessioni/subtotali, replay idempotente, rollback, riapertura e ancore GPS al
+confine del giorno. Lint Android: persistono i 38 errori preesistenti, nessuno
+nei file nuovi/modificati; nessuna baseline aggiunta per nasconderli.
+
+`make todo-test` ha verificato e installato in-place la release arm64
+2.36.0-dev/versionCode 2170. APK locale 24.190.020 byte. Sul Galaxy la
+sottoscrizione è riuscita e `refresh_steps` ha completato un import reale:
+`local_recording_api`, `subscribed`, timestamp import aggiornato. Lettura
+soltanto di metadati tecnici; nessun passo personale, GPS, peso o battito
+estratto. Amazfit resta spento secondo l'utente; Play resta disabilitata e il
+confronto diagnostico non è stato avviato.
+
+Un secondo import richiesto via provider ha aggiornato il timestamp anche
+con l'interfaccia non aperta. Il tentativo `am kill` non ha terminato il
+processo (PID invariato): non è dichiarata superata una prova di ricreazione
+del processo. Non è stato eseguito un arresto forzato sul client personale.
+
+Restano da misurare accuratezza, batteria, copertura dopo reboot/revoca permessi
+e una prova con Fit disattivato. La raccolta tramite servizio non è una prova
+di precisione del sensore. Import al minuto completo e scheduling Android
+possono ritardare il totale visibile; nessuna ricostruzione prima dell'attivazione.
+Calorie ancora stimate con coefficienti distanza/peso, senza MET per intensità,
+pendenza o metabolismo a riposo. La calibrazione per cadenza e la fusione
+temporale Amazfit restano successive alla validazione del solo telefono.
+
 ## Build 169 — Basi del conteggio Movimento autonomo
 
 Implementazione e riscontri: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).

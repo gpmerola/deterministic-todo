@@ -90,13 +90,12 @@ esplicita evita che salti GPS incompatibili con una camminata vengano sommati.
 
 ## Passi e stime quotidiane
 
-Dallo schema Room 3 `daily_movement` conserva giorno civile, fuso IANA,
-provenienza, passi e stime di distanza e calorie attive. La sorgente primaria è
-l'aggregazione `StepsRecord.COUNT_TOTAL` di Health Connect: l'aggregatore di
-sistema riduce il rischio di doppio conteggio tra sorgenti sovrapposte e può
-continuare ad acquisire passi anche quando il processo dell'app non è attivo.
-L'app riconcilia con un upsert idempotente quando la schermata Movimento viene
-aperta.
+Dalla build 170 la sorgente primaria è la Recording API locale di Play
+Services, senza account/app Fit. Room 5 conserva minuti UTC, confine di
+attivazione, subtotali storici e parametri delle stime. UI e import in
+background restano indipendenti. Il riferimento aggiornato è
+[MOVEMENT_AUTONOMY](MOVEMENT_AUTONOMY.md); Health Connect serve soltanto al
+confronto diagnostico opzionale con Fit.
 
 La Transition API di Activity Recognition conserva localmente una timeline di
 14 giorni con `walking`, `running`, `vehicle`, `bicycle`, `still` e `unknown`.

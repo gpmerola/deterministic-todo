@@ -8,8 +8,10 @@ Riscontri e piano canonico: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTON
 
 - [x] Primo incremento 169: regressioni automatiche e installazione ADB;
   verificata l'esposizione dello stato tecnico sul Galaxy.
-- [ ] Proseguire con raccolta passiva autonoma, import locale idempotente e
-  copertura esplicita. Il collaudo reale dei passi della 169 resta pendente.
+- [x] Build 170: raccolta Recording API, import Room idempotente, classificazione
+  locale, integrazione distanza GPS e profilo peso/passo; verifiche automatiche.
+- [ ] Collaudare la 170 su giornate reali e misurare consumo a riposo; affinare
+  cadenza e calorie soltanto dopo la validazione del modello iniziale.
 - [ ] Confrontare camminata/corsa con passi contati e distanza nota, in una
   prova dedicata senza Fit e senza diagnostica intensiva. Non assumere che gli
   esperimenti storici sotto siano ancora attivi: stato corrente in STATUS.

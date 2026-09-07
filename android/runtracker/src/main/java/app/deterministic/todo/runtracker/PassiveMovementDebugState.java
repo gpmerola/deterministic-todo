@@ -44,6 +44,7 @@ final class PassiveMovementDebugState {
         MixedMovementEstimate estimate = MixedMovementEstimate.calculate(
             audit.getWalkingSteps(), audit.getRunningSteps(), audit.getUnknownSteps(),
             audit.getExcludedSteps(), walkingStride, runningStride, weight);
+        estimate = estimate.withLocalTotals(audit.getAllDistanceMeters(), audit.getAllActiveCalories());
         String fileName = snapshotFileName(observedAt);
         long now = System.currentTimeMillis();
         SharedPreferences.Editor editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()

@@ -13,6 +13,11 @@ import java.util.Map;
 public final class MovementDebugProvider extends ContentProvider {
     @Override public Bundle call(String method, String arg, Bundle extras) {
         Bundle result = new Bundle();
+        if ("refresh_steps".equals(method)) {
+            LocalStepRecording.refreshIfDue(java.util.Objects.requireNonNull(getContext()));
+            result.putString("status", "requested");
+            return result;
+        }
         if ("export_now".equals(method)) {
             result.putString("work_id", ManualDiagnosticExportScheduler.enqueue(
                 java.util.Objects.requireNonNull(getContext())).toString());

@@ -12,6 +12,30 @@ import java.util.List;
 
 @Dao
 public interface RunDao {
+    @Query("SELECT * FROM local_step_state WHERE id = 1")
+    LocalStepState localStepState();
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    void insertLocalStepState(LocalStepState state);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void replaceLocalStepMinutes(List<LocalStepMinute> minutes);
+
+    @Query("UPDATE local_step_state SET importedThroughMillis = MAX(importedThroughMillis, :end) WHERE id = 1")
+    void markLocalStepsImported(long end);
+
+    @Transaction
+    default void importLocalStepMinutes(List<LocalStepMinute> minutes, long end) {
+        replaceLocalStepMinutes(minutes);
+        markLocalStepsImported(end);
+    }
+
+    @Query("SELECT COALESCE(SUM(steps), 0) FROM local_step_minutes WHERE startMillis >= :start AND startMillis < :end")
+    long localSteps(long start, long end);
+
+    @Query("SELECT * FROM local_step_minutes WHERE startMillis >= :start AND startMillis < :end ORDER BY startMillis")
+    List<LocalStepMinute> localStepMinutes(long start, long end);
+
     @Insert long insertSession(RunSession session);
     @Insert long insertPoint(TrackPoint point);
 
@@ -61,6 +85,12 @@ public interface RunDao {
 
     @Query("SELECT * FROM run_sessions ORDER BY startedAtMillis DESC")
     List<RunSession> sessions();
+
+    @Query("SELECT * FROM run_sessions WHERE startedAtMillis < :end AND (endedAtMillis >= :start OR status = 'recording') ORDER BY startedAtMillis")
+    List<RunSession> sessionsForDay(long start, long end);
+
+    @Query("SELECT * FROM track_points WHERE sessionId = :sessionId AND accepted = 1 AND ((timestampMillis >= :start AND timestampMillis < :end) OR id = (SELECT id FROM track_points WHERE sessionId = :sessionId AND accepted = 1 AND timestampMillis < :start ORDER BY timestampMillis DESC, id DESC LIMIT 1) OR id = (SELECT id FROM track_points WHERE sessionId = :sessionId AND accepted = 1 AND timestampMillis >= :end ORDER BY timestampMillis, id LIMIT 1)) ORDER BY timestampMillis, id")
+    List<TrackPoint> acceptedPointsForDay(long sessionId, long start, long end);
 
     @Query("SELECT * FROM run_sessions WHERE status = 'recording' ORDER BY startedAtMillis DESC LIMIT 1")
     RunSession activeSession();

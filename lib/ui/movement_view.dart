@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/run_tracker_service.dart';
+import 'movement_profile_dialog.dart';
 
 class MovementView extends StatefulWidget {
   const MovementView({
@@ -60,6 +61,63 @@ class _MovementViewState extends State<MovementView>
     setState(() => session = next);
   }
 
+  Future<void> _editProfile() async {
+    try {
+      final profile = await RunTrackerService.movementProfile();
+      if (!mounted) return;
+      final values = await showDialog<Map<String, double>>(
+        context: context,
+        builder: (_) => MovementProfileDialog(values: profile),
+      );
+      if (values == null) return;
+      await RunTrackerService.saveMovementProfile(values);
+      await widget.refreshDailyMovement();
+    } catch (_) {
+      if (mounted) _message('Impossibile salvare il profilo movimento.');
+    }
+  }
+
+  Future<void> _enableSteps() async {
+    try {
+      await RunTrackerService.requestStepPermission();
+      await widget.refreshDailyMovement();
+    } catch (_) {
+      if (mounted) {
+        _message('Controlla il permesso Attività fisica nelle impostazioni.');
+      }
+    }
+  }
+
+  String _collectionLabel(DailyMovementProgress? daily) {
+    final status = daily?.collectionStatus ?? 'not_started';
+    if (status == 'subscribed_no_samples') {
+      return 'Raccolta attiva · dati non ancora disponibili.';
+    }
+    if (status == 'permission_required') {
+      return 'Consenti Attività fisica per contare i passi.';
+    }
+    if (status == 'subscribed') {
+      if (daily?.coverage == 'retention_gap') {
+        return 'Conteggio attivo · alcuni intervalli non recuperabili.';
+      }
+      if (daily?.lastImport != null &&
+          DateTime.now().difference(daily!.lastImport!) >
+              const Duration(hours: 6)) {
+        return 'Ultimo aggiornamento dei passi in ritardo.';
+      }
+      return 'Passi in background · aggiornati al minuto completo.';
+    }
+    if (status == 'awaiting_complete_minute') {
+      return 'Conteggio attivato · in attesa del primo minuto.';
+    }
+    if (status == 'subscribing' ||
+        status == 'reading' ||
+        status == 'not_started') {
+      return 'Aggiornamento dei passi…';
+    }
+    return 'Conteggio non disponibile · dati salvati conservati. Controlla permessi e Play Services.';
+  }
+
   Future<void> _start(String type) async {
     if (busy) return;
     setState(() => busy = true);
@@ -114,11 +172,12 @@ class _MovementViewState extends State<MovementView>
     if (!mounted) return;
     setState(() => busy = false);
     _message(switch (outcome) {
-      'enabled' => 'Monitor passivo attivato per sette giorni.',
-      'disabled' => 'Monitor passivo disattivato.',
+      'enabled' => 'Confronto diagnostico attivato per sette giorni.',
+      'disabled' =>
+        'Confronto diagnostico disattivato. I passi continuano a essere raccolti.',
       'drive_not_configured' =>
         'Collega prima la cartella Drive dagli strumenti avanzati.',
-      _ => 'Impossibile cambiare lo stato del monitor passivo.',
+      _ => 'Impossibile cambiare lo stato del confronto diagnostico.',
     });
   }
 
@@ -206,6 +265,23 @@ class _MovementViewState extends State<MovementView>
             ),
           ),
           const SizedBox(height: 12),
+          Text(
+            _collectionLabel(daily),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (daily?.collectionStatus == 'permission_required')
+            TextButton(
+              onPressed: _enableSteps,
+              child: const Text('Abilita conteggio passi'),
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _editProfile,
+              icon: const Icon(Icons.tune),
+              label: const Text('Peso e lunghezza del passo'),
+            ),
+          ),
           _card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -298,8 +374,10 @@ class _MovementViewState extends State<MovementView>
                         ? Icons.cloud_done_outlined
                         : Icons.cloud_off_outlined,
                   ),
-                  title: const Text('Raccolta automatica'),
-                  subtitle: Text(session?.automaticStatus ?? 'Controllo…'),
+                  title: const Text('Confronto diagnostico Fit / Drive'),
+                  subtitle: Text(
+                    '${session?.automaticStatus ?? 'Controllo…'}\nIl conteggio locale continua anche con il confronto spento.',
+                  ),
                 ),
                 OutlinedButton.icon(
                   onPressed: busy || session == null
@@ -312,8 +390,8 @@ class _MovementViewState extends State<MovementView>
                   ),
                   label: Text(
                     session?.passiveActive == true
-                        ? 'Disattiva monitor passivo'
-                        : 'Attiva monitor passivo',
+                        ? 'Disattiva confronto diagnostico'
+                        : 'Attiva confronto diagnostico',
                   ),
                 ),
                 const SizedBox(height: 8),

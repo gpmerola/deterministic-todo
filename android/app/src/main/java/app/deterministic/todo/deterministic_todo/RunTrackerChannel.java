@@ -11,6 +11,8 @@ import app.deterministic.todo.runtracker.IntensiveDiagnosticScheduler;
 import app.deterministic.todo.runtracker.DailyMovement;
 import app.deterministic.todo.runtracker.DailyStepGoalPolicy;
 import app.deterministic.todo.runtracker.PhoneDailyMovementGateway;
+import app.deterministic.todo.runtracker.LocalStepRecording;
+import app.deterministic.todo.runtracker.MovementProfile;
 import app.deterministic.todo.runtracker.BipUAutomaticSyncScheduler;
 import app.deterministic.todo.runtracker.MovementDashboardBridge;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -24,6 +26,7 @@ public final class RunTrackerChannel {
     private RunTrackerChannel() {}
 
     public static void register(Activity activity, FlutterEngine engine) {
+        LocalStepRecording.schedule(activity.getApplicationContext());
         DiagnosticDriveScheduler.schedule(activity.getApplicationContext());
         ActivityClassifier.register(activity.getApplicationContext());
         PassiveMovementAuditScheduler.refreshIfEnabled(activity.getApplicationContext());
@@ -51,6 +54,7 @@ public final class RunTrackerChannel {
                                 value.put("phone_steps", phoneSteps);
                                 value.put("bip_steps", bipSteps);
                                 value.put("source", fusionSource);
+                                value.putAll(LocalStepRecording.statusValues(activity));
                                 result.success(value);
                             }
                             @Override public void onPermissionRequired() {
@@ -63,6 +67,27 @@ public final class RunTrackerChannel {
                                 result.error("sensor_error", "Step counter read failed", null);
                             }
                         });
+                    }
+                    case "movementProfile" -> result.success(MovementProfile.read(activity).values());
+                    case "saveMovementProfile" -> {
+                        try {
+                            Number weight = call.argument("weight_kg");
+                            Number walking = call.argument("walking_stride_meters");
+                            Number running = call.argument("running_stride_meters");
+                            if (weight == null || walking == null || running == null)
+                                throw new IllegalArgumentException("missing_profile");
+                            new MovementProfile(weight.doubleValue(), walking.doubleValue(), running.doubleValue()).save(activity);
+                            result.success(null);
+                        } catch (IllegalArgumentException error) {
+                            result.error("invalid_profile", "Controlla peso e lunghezza del passo", null);
+                        }
+                    }
+                    case "requestStepPermission" -> {
+                        if (android.os.Build.VERSION.SDK_INT >= 29)
+                            androidx.core.app.ActivityCompat.requestPermissions(activity,
+                                new String[]{android.Manifest.permission.ACTIVITY_RECOGNITION}, 8040);
+                        LocalStepRecording.refreshIfDue(activity);
+                        result.success(null);
                     }
                     case "getStepGoal" -> result.success(activity.getSharedPreferences(
                         "movement_profile", Activity.MODE_PRIVATE).getInt(

@@ -2,6 +2,12 @@
 
 ## Ripresa Movimento — 7 settembre 2026
 
+La build 170 implementa Recording API locale, import Room 5 periodico e
+idempotente, distanza per camminata/corsa con sostituzione dei segmenti GPS e
+profilo personale peso/passo. Il prossimo lavoro è la validazione sul campo
+di precisione/copertura e batteria; non confonderla con la sottoscrizione API
+o i test sintetici già riusciti. Stato della consegna in STATUS.
+
 Il riferimento per riscontri, decisioni e incrementi verso l'autonomia da Fit
 è [MOVEMENT_AUTONOMY](architecture/MOVEMENT_AUTONOMY.md). Prevale sulle proposte
 storiche sottostanti per questo percorso. La build 169 corregge la perdita

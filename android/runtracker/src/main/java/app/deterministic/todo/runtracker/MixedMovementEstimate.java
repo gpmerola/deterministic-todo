@@ -5,6 +5,11 @@ public record MixedMovementEstimate(long walkingSteps, long runningSteps,
     public static final double DEFAULT_RUNNING_STRIDE_METERS = 1.05;
     public static final double RUNNING_KCAL_PER_KG_KM = 1.0;
 
+    MixedMovementEstimate withLocalTotals(Double meters, Double calories) {
+        return new MixedMovementEstimate(walkingSteps, runningSteps, unknownSteps, excludedSteps,
+            meters == null ? distanceMeters : meters, calories == null ? activeCalories : calories);
+    }
+
     public static MixedMovementEstimate calculate(long walking, long running, long unknown,
                                             long excluded, double walkingStride,
                                             double runningStride, double weightKg) {

@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.36.0 (build 170)
+
+- Passi passivi tramite Recording API locale di Play Services, senza account
+  o app Fit: import periodico indipendente da Drive e dalla diagnostica.
+- Room 5 conserva minuti UTC con import atomico idempotente e preserva il
+  subtotale precedente all'attivazione. Letture vuote, errori e lacune non
+  vengono presentati come conteggio completo.
+- Distanza quotidiana distinta per camminata/corsa; il GPS sostituisce la
+  quota stimata sovrapposta senza sommare nuovamente i passi della sessione.
+- Profilo locale per peso e lunghezza del passo; calorie attive stimate con
+  parametri personali. Confronto diagnostico Fit/Drive etichettato separatamente.
+
 ## 2.35.4 (build 169)
 
 - Movimento conserva i passi già salvati quando si ritorna a un giorno/fuso

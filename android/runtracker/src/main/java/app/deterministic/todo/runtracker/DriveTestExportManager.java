@@ -504,7 +504,8 @@ final class DriveTestExportManager {
                 "movement_activity_timeline", Context.MODE_PRIVATE);
             MixedMovementEstimate estimate = MixedMovementEstimate.calculate(
                 audit.getWalkingSteps(), audit.getRunningSteps(), audit.getUnknownSteps(),
-                audit.getExcludedSteps(), stride, runningStride, weight);
+                audit.getExcludedSteps(), stride, runningStride, weight)
+                .withLocalTotals(audit.getAllDistanceMeters(), audit.getAllActiveCalories());
             PassiveSnapshotDelta.Sample currentSample = new PassiveSnapshotDelta.Sample(
                 audit.getDay(), observedAtMillis, audit.getAllSteps(), estimate.distanceMeters(),
                 audit.getFitSteps(), audit.getFitDistanceMeters(), estimate.walkingSteps(),

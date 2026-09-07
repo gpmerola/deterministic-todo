@@ -7,9 +7,9 @@ usano la stessa interfaccia dal browser.
 Distribuito con licenza [MIT](LICENSE).
 
 Movimento: il [piano di autonomia da Google Fit](docs/architecture/MOVEMENT_AUTONOMY.md)
-documenta raccolta passiva, distanza camminata/corsa e calorie. La build 169
-conserva i subtotali dei giorni/fusi già osservati ed espone lo stato tecnico
-del contatore; la copertura passiva continua resta da implementare e validare.
+documenta raccolta passiva, distanza camminata/corsa e calorie. La build 170
+introduce raccolta locale in background, import idempotente, profilo personale
+e distanza quotidiana che integra i segmenti GPS senza duplicarli.
 
 ## Piattaforme
 
@@ -74,15 +74,19 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
 - export/import JSON e CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
-- modulo Android isolato **Movimento** con passi del telefono tramite il
-  contatore hardware Android, distanza e calorie attive stimate, sessioni GPS, archivio Room
+- modulo Android isolato **Movimento** con passi del telefono tramite la
+  Recording API locale, distanza e calorie attive stimate, sessioni GPS, archivio Room
   separato ed export GPX.
 
 ## Movimento e corsa (Android)
 
-La sezione principale **Movimento**, accanto a **Progetti**, usa il contatore
-hardware Android con il permesso attività fisica. Alla riapertura riconcilia il
-delta cumulativo senza dipendere da Google Fit o Health Connect. Riepilogo,
+La sezione principale **Movimento**, accanto a **Progetti**, usa la Recording
+API locale di Play Services con il permesso attività fisica. Raccoglie i passi
+anche fuori dal processo Todo e importa in Room i minuti completi, senza
+account/app Google Fit o Health Connect. Import ogni tre ore, differibile da
+Android, e al massimo ogni minuto mentre l'app è visibile; la UI legge subito
+il database locale. Prima dell'attivazione non viene ricostruita una cronologia
+inesistente e gli intervalli mancanti restano dichiarati. Riepilogo,
 avvio/stop e upload vivono in una pagina
 integrata nella stessa navigazione, senza aprire una schermata Android
 intermedia. La logica salute resta nel modulo nativo separato.
@@ -98,11 +102,14 @@ distanza. Alla ripartenza il primo passo riabilita il collegamento GPS
 plausibile; corsa e dispositivi senza sensore conservano il filtro GPS come
 fallback.
 
-La distanza quotidiana e le calorie attive sono stime esplicite basate sui
-passi locali. Finché non esiste una timeline locale indipendente, i passi
-quotidiani sono prudentemente trattati come attività non classificata e usano
-la falcata di cammino; Activity Recognition resta evidenza diagnostica e non
-può far dipendere Todo dai record Google Fit. Nei soli report di riferimento,
+La distanza quotidiana classifica i minuti locali tramite Activity Recognition
+e usa passi distinti per camminata/corsa. I segmenti GPS accettati sostituiscono
+la stima dello stesso intervallo; non vengono aggiunti due volte. **Peso e
+lunghezza del passo** permette di personalizzare i parametri, solo sul
+dispositivo. Le calorie restano stime attive basate su peso, distanza e tipo di
+movimento, senza metabolismo a riposo o correzione per pendenza. Il confronto
+diagnostico Fit/Drive è opzionale e separato dal conteggio locale.
+Nei soli report di riferimento,
 i blocchi Fit che attraversano più stati vengono ripartiti per il tempo
 effettivamente sovrapposto. Veicolo e bicicletta vengono marcati solo quando
 dominano almeno l'80% del blocco; se il sensore registra passi mentre
