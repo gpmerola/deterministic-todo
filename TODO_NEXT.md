@@ -6,10 +6,10 @@ Aggiornato il 7 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modifica
 
 - [x] Eliminare le scritture di cambio giorno e il rebase dell'intera attività.
 - [x] Introdurre revisioni locali, protezione dei retry e ripristino esplicito.
-- [ ] Distribuire e collaudare la stessa build Web prima di considerare protetti
-  anche i client browser ancora sulla 168.
-- [ ] Osservare una mattina reale e una sequenza Android↔Web, conservando le
-  nuove revisioni. Stato delle verifiche in [STATUS](STATUS.md), contratto in
+- [x] Distribuire la build Web 172: pipeline coordinata e identità pubblica
+  verificate. I browser devono ricaricare per usare il nuovo client.
+- [ ] Collaudare la sincronizzazione Android↔Web con la 172 su entrambi i client.
+- [ ] Osservare una mattina reale conservando le nuove revisioni. Stato delle verifiche in [STATUS](STATUS.md), contratto in
   [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
 ## P0 — Movimento autonomo, solo telefono

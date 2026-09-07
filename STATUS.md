@@ -31,7 +31,16 @@ e chiusura/riapertura completa della scheda; lo storico conserva sia la creazion
 sia la revisione con il titolo modificato. Il confronto prima/dopo è stato
 ispezionato visivamente. Lo schema Drift rigenerato ha hash identico al file
 generato incluso.
-La promozione Web/Play stabile resta separata dal collaudo Todo Test.
+Pubblicazione coordinata **2.37.1+172** completata il 7 settembre 2026:
+[workflow 34130960443](https://github.com/gpmerola/deterministic-todo/actions/runs/34130960443)
+interamente verde. Web pubblico e manifest APK `latest` riportano versione,
+build e commit `ed3f80a3b507d90a377ff3f5c6b3b446ca58fdef` identici; verificati
+i quattro SHA-256 del manifest contro i digest degli asset GitHub (tre ABI e
+fallback universale). Google Play ha accettato l'AAB nel track interno; la
+propagazione al singolo tester non è verificata. Sul Galaxy resta installata
+Todo Test 2172 e Play resta disabilitata. Da completare la convergenza con due
+client reali e l'osservazione del prossimo cambio giorno; il collaudo Chrome
+sintetico sopra non prova la sincronizzazione con un account cloud.
 
 ## Build 170 — Raccolta locale e modello quotidiano
 

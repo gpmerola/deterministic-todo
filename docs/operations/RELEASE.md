@@ -40,13 +40,15 @@ dispositivo installato da Play deve continuare ad aggiornarsi da Play; uno
 installato dall'APK diretto deve continuare con APK firmati dalla stessa chiave
 del repository. `INSTALL_FAILED_UPDATE_INCOMPATIBLE` non va aggirato
 disinstallando: la disinstallazione rimuove i dati locali. Il Galaxy S21 di test
-segue il canale Play interno.
+usa Todo Test `.dev`; il package Play resta disabilitato.
+Procedura e vincoli in [ANDROID_DEV_CHANNEL](ANDROID_DEV_CHANNEL.md).
 
 ## Fallimento e recovery
 
-- Prima del deploy: nessun canale viene pubblicato; correggere e usare una nuova
-  versione/build.
-- Web fallisce: Android non viene pubblicato.
+- Prima di ripetere una pipeline fallita, controllare separatamente Play, Web
+  e APK diretti: il track Play può essere già aggiornato prima del deploy Web.
+- Web fallisce: gli APK diretti non vengono pubblicati; Play potrebbe essere
+  già stato aggiornato. Non riutilizzare una versione/build accettata da Play.
 - Android fallisce dopo il web: incrementare versione/build e ripetere la
   pipeline senza riscrivere release già pubblicate.
 - Non cancellare una release usata da dispositivi installati e non fare
