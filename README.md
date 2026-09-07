@@ -6,6 +6,11 @@ usano la stessa interfaccia dal browser.
 
 Distribuito con licenza [MIT](LICENSE).
 
+Movimento: il [piano di autonomia da Google Fit](docs/architecture/MOVEMENT_AUTONOMY.md)
+documenta raccolta passiva, distanza camminata/corsa e calorie. La build 169
+conserva i subtotali dei giorni/fusi già osservati ed espone lo stato tecnico
+del contatore; la copertura passiva continua resta da implementare e validare.
+
 ## Piattaforme
 
 - **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite

@@ -1,5 +1,15 @@
 # Handoff tecnico e di prodotto
 
+## Ripresa Movimento — 7 settembre 2026
+
+Il riferimento per riscontri, decisioni e incrementi verso l'autonomia da Fit
+è [MOVEMENT_AUTONOMY](architecture/MOVEMENT_AUTONOMY.md). Prevale sulle proposte
+storiche sottostanti per questo percorso. La build 169 corregge la perdita
+del subtotale al ritorno a giorno/fuso già osservato e rende esplicito lo stato
+di attribuzione del contatore. Raccolta continua, classificazione locale e
+calorie personalizzate restano da realizzare. Stato hardware in
+[STATUS](../STATUS.md); non assumere ancora attivi gli esperimenti storici.
+
 Aggiornato il 31 agosto 2026. Questo documento è il punto di ingresso per una
 nuova chat o un nuovo agente. Va letto integralmente insieme ad
 [`AGENTS.md`](../AGENTS.md), [`STATUS.md`](../STATUS.md) e

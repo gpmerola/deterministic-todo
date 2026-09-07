@@ -1,6 +1,18 @@
 # TODO e handover
 
-Aggiornato il 6 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 7 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+
+## P0 — Movimento autonomo, solo telefono
+
+Riscontri e piano canonico: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+
+- [x] Primo incremento 169: regressioni automatiche e installazione ADB;
+  verificata l'esposizione dello stato tecnico sul Galaxy.
+- [ ] Proseguire con raccolta passiva autonoma, import locale idempotente e
+  copertura esplicita. Il collaudo reale dei passi della 169 resta pendente.
+- [ ] Confrontare camminata/corsa con passi contati e distanza nota, in una
+  prova dedicata senza Fit e senza diagnostica intensiva. Non assumere che gli
+  esperimenti storici sotto siano ancora attivi: stato corrente in STATUS.
 
 Handoff completo, architettura corrente e prossimo obiettivo movimento:
 [`docs/HANDOFF.md`](docs/HANDOFF.md). Questo file resta la checklist sintetica;

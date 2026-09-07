@@ -1,6 +1,34 @@
 # Stato corrente
 
-Aggiornato il 6 settembre 2026.
+Aggiornato il 7 settembre 2026.
+
+## Build 169 — Basi del conteggio Movimento autonomo
+
+Implementazione e riscontri: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+Correzione conservativa dei subtotali giorno/fuso e della prima lettura dal
+boot odierno; stato tecnico ADB esplicito. `make check` superato: analisi
+Flutter, 152 test app, 10 test strumenti e collegamenti documentali. Superati
+144 test JVM Movimento, inclusi i nuovi casi di regressione.
+
+`make todo-test` ha compilato, verificato e installato in-place la release
+arm64 2.35.4-dev, versionCode 2169, aprendo Todo Test con dati preservati.
+Il provider sul Galaxy restituisce `one_shot_counter`, `not_established` e
+inizialmente `not_observed`: verificata l'esposizione dei campi, non ancora un
+nuovo campione sensore o una camminata reale. Il monitor passivo resta spento.
+La correzione di cambio fuso/reboot è verificata con fixture automatiche;
+non sono stati alterati ora, fuso o stato di Fit sul telefono personale.
+
+Lint Android completo: 38 errori, 61 warning e 2 hint. Gli errori sono in
+otto file non modificati rispetto a HEAD, soprattutto permessi BLE/location,
+API minime e Fragment; nessun errore nei file modificati. Non introdotta una
+baseline che li nasconda. Il lint completo resta un debito da affrontare.
+
+Controllo ADB precedente all'update: Todo Test 168 installata, Play 121 ancora
+disabilitata; monitor passivo `enabled=0`, nessun servizio Movimento attivo
+nel controllo, ultimo audit `drive_error/drive_audit_failed_IOException`.
+L'errore descrive l'ultimo tentativo, non una diagnosi della disponibilità
+attuale di Drive. Amazfit spento secondo l'utente. Collegamento riuscito usando
+l'endpoint annunciato da mDNS; non sono stati estratti dati sanitari o GPS.
 
 ## Build 168 — Scelta esplicita senza data
 

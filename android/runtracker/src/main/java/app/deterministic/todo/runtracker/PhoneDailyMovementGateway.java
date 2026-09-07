@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,6 +43,15 @@ public final class PhoneDailyMovementGateway {
     /** Local daily totals. Health Connect and Google Fit are deliberately excluded. */
     public record DailyTotals(long phoneSteps, long bipSteps, long fusedSteps,
                               String fusionSource, boolean phoneObserved) {}
+
+    /** Technical status only: never presents intermittent observations as full-day coverage. */
+    static Map<String, Object> diagnosticValues(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return Map.of(
+            "phone_collection_mode", "one_shot_counter",
+            "phone_coverage", "not_established",
+            "phone_accounting_reason", prefs.getString("last_accounting_reason", "not_observed"));
+    }
 
     public static DailyTotals totalsForDay(Context context, LocalDate day, ZoneId zone) {
         Context app = context.getApplicationContext();
@@ -119,6 +129,7 @@ public final class PhoneDailyMovementGateway {
             prefs.edit().putInt("last_boot", boot).putFloat("last_raw", raw)
                 .putString("last_day", dayKey).putLong("steps|" + dayKey, phone)
                 .putInt("accounting_version", ACCOUNTING_VERSION)
+                .putString("last_accounting_reason", update.reason())
                 .putLong("last_sample_ms", now).apply();
 
             RunDao dao = RunDatabase.get(app).runs();

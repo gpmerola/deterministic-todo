@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.35.4 (build 169)
+
+- Movimento conserva i passi già salvati quando si ritorna a un giorno/fuso
+  osservato in precedenza. Gli intervalli non attribuibili restano esclusi.
+- Corretta la prima lettura del contatore quando il boot è iniziato oggi;
+  reboot, reset e duplicati conservano il subtotale senza sommare lacune.
+- La diagnostica ADB espone modalità di raccolta, copertura non dimostrata e
+  motivo dell'ultima attribuzione, anche senza Fit/Drive. Documentato il piano
+  per passi passivi autonomi, distanze camminata/corsa e calorie personali.
+
 ## 2.35.3 (build 168)
 
 - L’editor offre il pulsante **Senza data**. Anche la X rimuove definitivamente
