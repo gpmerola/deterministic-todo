@@ -1,17 +1,21 @@
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
+import '../../services/platform_runtime_native.dart'
+    if (dart.library.js_interop) '../../services/platform_runtime_web.dart';
+import 'database_connection_native.dart'
+    if (dart.library.js_interop) 'database_connection_web.dart';
 
 part 'database.g.dart';
+part 'revision_schema.dart';
 
 class Tasks extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().nullable()();
   TextColumn get title => text().withLength(min: 1)();
   TextColumn get notes => text().nullable()();
+  TextColumn get itemKind => text().withDefault(const Constant('task'))();
   TextColumn get status => text()();
   TextColumn get showDate => text().nullable()();
   TextColumn get dueDate => text().nullable()();
@@ -89,6 +93,19 @@ class OutboxEntries extends Table {
   Set<Column<Object>> get primaryKey => {operationId};
 }
 
+class ActivityRevisions extends Table {
+  IntColumn get sequence => integer().autoIncrement()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  TextColumn get operation => text()();
+  TextColumn get source => text()();
+  IntColumn get recordedAt => integer()();
+  TextColumn get beforeJson => text().nullable()();
+  TextColumn get afterJson => text().nullable()();
+  TextColumn get operationIds => text().withDefault(const Constant('[]'))();
+  TextColumn get eventKey => text().nullable().unique()();
+}
+
 class AppSettings extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -98,7 +115,14 @@ class AppSettings extends Table {
 }
 
 @DriftDatabase(
-  tables: [Tasks, Projects, ProjectSections, OutboxEntries, AppSettings],
+  tables: [
+    Tasks,
+    Projects,
+    ProjectSections,
+    OutboxEntries,
+    AppSettings,
+    ActivityRevisions,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -106,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -114,25 +138,69 @@ class AppDatabase extends _$AppDatabase {
       await migrator.createAll();
       await _createPerformanceIndexes();
       await _createImportIndexes();
+      await _installRevisionTriggers(this);
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) await _createPerformanceIndexes();
-      if (from < 3) {
-        await migrator.addColumn(tasks, tasks.priority);
-        await migrator.addColumn(tasks, tasks.projectId);
-        await migrator.addColumn(tasks, tasks.sectionId);
-        await migrator.addColumn(tasks, tasks.externalSource);
-        await migrator.addColumn(tasks, tasks.externalId);
-        await migrator.createTable(projects);
-        await migrator.createTable(projectSections);
-        await _createImportIndexes();
+      if (from < 4) await _ensureImportSchema(migrator);
+      if (from < 5 && !await _columnExists('tasks', tasks.itemKind.$name)) {
+        await migrator.addColumn(tasks, tasks.itemKind);
       }
+      if (from < 7 && !await _tableExists('activity_revisions')) {
+        await migrator.createTable(activityRevisions);
+      }
+      if (from < 6) {
+        await customStatement('DROP INDEX IF EXISTS tasks_kind_order_idx');
+      }
+      if (from < 7) await _installRevisionTriggers(this);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement('PRAGMA journal_mode = WAL');
+      if (!isWebPlatform) await customStatement('PRAGMA journal_mode = WAL');
+      await (delete(activityRevisions)..where(
+            (row) => row.recordedAt.isSmallerThanValue(
+              DateTime.now()
+                  .toUtc()
+                  .subtract(const Duration(days: 90))
+                  .microsecondsSinceEpoch,
+            ),
+          ))
+          .go();
     },
   );
+
+  Future<void> _ensureImportSchema(Migrator migrator) async {
+    for (final column in [
+      tasks.priority,
+      tasks.itemKind,
+      tasks.projectId,
+      tasks.sectionId,
+      tasks.externalSource,
+      tasks.externalId,
+    ]) {
+      if (!await _columnExists('tasks', column.$name)) {
+        await migrator.addColumn(tasks, column);
+      }
+    }
+    if (!await _tableExists('projects')) await migrator.createTable(projects);
+    if (!await _tableExists('project_sections')) {
+      await migrator.createTable(projectSections);
+    }
+    await _createImportIndexes();
+  }
+
+  Future<bool> _columnExists(String table, String column) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return rows.any((row) => row.read<String>('name') == column);
+  }
+
+  Future<bool> _tableExists(String table) async {
+    final row = await customSelect(
+      'SELECT 1 FROM sqlite_master WHERE type = ? AND name = ? LIMIT 1',
+      variables: [Variable.withString('table'), Variable.withString(table)],
+    ).getSingleOrNull();
+    return row != null;
+  }
 
   Future<void> _createPerformanceIndexes() async {
     await customStatement(
@@ -161,8 +229,4 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-LazyDatabase _openConnection() => LazyDatabase(() async {
-  final directory = await getApplicationSupportDirectory();
-  final file = File(p.join(directory.path, 'deterministic_todo.sqlite'));
-  return NativeDatabase.createInBackground(file);
-});
+QueryExecutor _openConnection() => openDatabaseConnection();

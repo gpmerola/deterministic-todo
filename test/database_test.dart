@@ -1,7 +1,7 @@
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart';
-import 'package:deterministic_todo/services/notification_service.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,13 +30,31 @@ void main() {
     expect(outbox.single.entityId, id);
   });
 
-  test('creazione rapida può pianificare data e ora atomicamente', () async {
+  test('una modifica usa il massimo Lamport remoto osservato', () async {
+    final id = await repository.create('Versione protetta');
+    await db
+        .into(db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(key: 'sync_lamport_counter', value: '20'),
+        );
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(task, true);
+
+    final completed = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    expect(completed.status, TaskStatus.completed.name);
+    expect(completed.logicalVersion, 21);
+  });
+
+  test('creazione rapida può pianificare una data civile', () async {
     final id = await repository.create(
       'Dentista',
       status: TaskStatus.scheduled,
       showDate: '2026-08-05',
-      timeMinutes: 570,
-      timeZone: 'Europe/London',
     );
     final task = await (db.select(
       db.tasks,
@@ -44,8 +62,8 @@ void main() {
 
     expect(task.status, TaskStatus.scheduled.name);
     expect(task.showDate, '2026-08-05');
-    expect(task.timeMinutes, 570);
-    expect(task.timeZone, 'Europe/London');
+    expect(task.timeMinutes, isNull);
+    expect(task.timeZone, isNull);
   });
 
   test('tombstone resta nel database ma sparisce dalla vista attiva', () async {
@@ -59,6 +77,66 @@ void main() {
     )..where((row) => row.id.equals(id))).getSingle();
     expect(persisted.deletedAt, isNotNull);
     expect(await repository.watchAll().first, isEmpty);
+
+    await repository.restore(persisted);
+    final restored = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    expect(restored.deletedAt, isNull);
+    expect(restored.logicalVersion, persisted.logicalVersion + 1);
+    expect(await repository.watchAll().first, hasLength(1));
+  });
+
+  test(
+    'la vista senza data esclude pianificate, completate e cestino',
+    () async {
+      final undatedId = await repository.create('Inbox storica');
+      final projectId = await repository.createProject('Progetto');
+      await repository.create('Backlog nel progetto', projectId: projectId);
+      await repository.create(
+        'Pianificata',
+        status: TaskStatus.available,
+        showDate: '2026-08-31',
+      );
+      final completedId = await repository.create('Completata senza data');
+      final completed = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(completedId))).getSingle();
+      await repository.setCompleted(completed, true);
+      final deletedId = await repository.create('Cestinata senza data');
+      final deleted = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(deletedId))).getSingle();
+      await repository.softDelete(deleted);
+
+      final tasks = await repository.watchUndatedActive().first;
+
+      expect(tasks.map((task) => task.id), [undatedId]);
+    },
+  );
+
+  test('svuota cestino elimina elementi locali e relativo outbox', () async {
+    final taskId = await repository.create('Da eliminare definitivamente');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(taskId))).getSingle();
+    await repository.softDelete(task);
+    final projectId = await repository.createProject('Progetto archiviato');
+    final project = await (db.select(
+      db.projects,
+    )..where((row) => row.id.equals(projectId))).getSingle();
+    await repository.updateProject(project, isArchived: true);
+
+    await repository.purgeLocalTrash();
+
+    expect(await db.select(db.tasks).get(), isEmpty);
+    expect(await db.select(db.projects).get(), isEmpty);
+    expect(
+      await (db.select(
+        db.outboxEntries,
+      )..where((row) => row.entityId.equals(taskId))).get(),
+      isEmpty,
+    );
   });
 
   test('la generazione calendario ripetuta non duplica occorrenze', () async {
@@ -101,6 +179,69 @@ void main() {
     expect(dates, ['2024-01-31', '2024-02-29', '2024-03-31']);
   });
 
+  test('la stessa occorrenza ha un id uguale su dispositivi diversi', () {
+    expect(
+      recurringOccurrenceId('series-a', '2026-08-08'),
+      recurringOccurrenceId('series-a', '2026-08-08'),
+    );
+    expect(
+      recurringOccurrenceId('series-a', '2026-08-08'),
+      isNot(recurringOccurrenceId('series-a', '2026-08-09')),
+    );
+  });
+
+  test('completare una ricorrenza giornaliera crea il giorno dopo', () async {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final id = await repository.create(
+      'Vitamine',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    final nextDate = await repository.setCompleted(current, true);
+
+    final tasks = await db.select(db.tasks).get();
+    expect(tasks, hasLength(2));
+    expect(nextDate, today.addDays(1));
+    expect(
+      tasks
+          .singleWhere((task) => task.status != TaskStatus.completed.name)
+          .showDate,
+      today.addDays(1).toString(),
+    );
+  });
+
+  test('Undo della ricorrenza ripristina la task senza duplicati', () async {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final id = await repository.create(
+      'Vitamine',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    final current = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(current, true);
+    await repository.undoCompletion(current);
+
+    final active = await repository.watchActive().first;
+    expect(active, hasLength(1));
+    expect(active.single.id, id);
+    expect(active.single.status, TaskStatus.available.name);
+  });
+
   test('le viste attive e completate non caricano record inutili', () async {
     final activeId = await repository.create('Attiva');
     final completedId = await repository.create('Completata');
@@ -139,65 +280,153 @@ void main() {
     );
   });
 
-  test('eliminare annulla la notifica senza ripianificarla', () async {
-    final notifications = RecordingNotificationService();
-    final notifiedRepository = TaskRepository(
-      db,
-      deviceId: '00000000-0000-4000-8000-000000000001',
-      notifications: notifications,
+  test('crea progetto, sezione e attività nella destinazione scelta', () async {
+    final projectId = await repository.createProject('Ricerca', color: 'blue');
+    final sectionId = await repository.createProjectSection(projectId, 'Idee');
+    final taskId = await repository.create(
+      'Nuovo studio',
+      projectId: projectId,
+      sectionId: sectionId,
     );
-    final id = await notifiedRepository.create(
-      'Promemoria',
-      status: TaskStatus.scheduled,
-      showDate: '2099-08-05',
-      timeMinutes: 570,
-      timeZone: 'Europe/London',
-    );
+
+    final project = await db.select(db.projects).getSingle();
+    final section = await db.select(db.projectSections).getSingle();
     final task = await (db.select(
       db.tasks,
-    )..where((row) => row.id.equals(id))).getSingle();
-    notifications.scheduled.clear();
-    notifications.cancelled.clear();
-
-    await notifiedRepository.softDelete(task);
-
-    expect(notifications.cancelled, [id]);
-    expect(notifications.scheduled, isEmpty);
+    )..where((row) => row.id.equals(taskId))).getSingle();
+    expect(project.color, 'blue');
+    expect(section.projectId, project.id);
+    expect(task.projectId, project.id);
+    expect(task.sectionId, section.id);
   });
 
-  test('modificare data e ora ripianifica la notifica', () async {
-    final notifications = RecordingNotificationService();
-    final notifiedRepository = TaskRepository(
-      db,
-      deviceId: '00000000-0000-4000-8000-000000000001',
-      notifications: notifications,
+  test('riordina e archivia progetti e sezioni senza perdere i dati', () async {
+    final firstId = await repository.createProject('Primo');
+    final secondId = await repository.createProject('Secondo');
+    final firstSectionId = await repository.createProjectSection(
+      firstId,
+      'Prima sezione',
     );
-    final id = await notifiedRepository.create('Promemoria');
-    final task = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(id))).getSingle();
-
-    await notifiedRepository.updateDetails(
-      task,
-      title: task.title,
-      showDate: '2099-08-05',
-      timeMinutes: 600,
-      timeZone: 'Europe/London',
+    final secondSectionId = await repository.createProjectSection(
+      firstId,
+      'Seconda sezione',
     );
+    final taskId = await repository.create(
+      'Conservami',
+      projectId: firstId,
+      sectionId: firstSectionId,
+    );
+    var projects = await db.select(db.projects).get();
+    var sections = await db.select(db.projectSections).get();
 
-    expect(notifications.cancelled, [id]);
-    expect(notifications.scheduled.single.id, id);
-    expect(notifications.scheduled.single.timeMinutes, 600);
+    await repository.swapProjects(
+      projects.firstWhere((item) => item.id == firstId),
+      projects.firstWhere((item) => item.id == secondId),
+    );
+    await repository.swapProjectSections(
+      sections.firstWhere((item) => item.id == firstSectionId),
+      sections.firstWhere((item) => item.id == secondSectionId),
+    );
+    projects = await db.select(db.projects).get();
+    sections = await db.select(db.projectSections).get();
+    final first = projects.firstWhere((item) => item.id == firstId);
+    final firstSection = sections.firstWhere(
+      (item) => item.id == firstSectionId,
+    );
+    expect(
+      first.position,
+      greaterThan(projects.firstWhere((item) => item.id == secondId).position),
+    );
+    expect(
+      firstSection.position,
+      greaterThan(
+        sections.firstWhere((item) => item.id == secondSectionId).position,
+      ),
+    );
+    expect(first.logicalVersion, 2);
+    expect(firstSection.logicalVersion, 2);
+
+    await repository.updateProject(first, isArchived: true);
+    await repository.updateProjectSection(firstSection, isArchived: true);
+    expect(
+      (await (db.select(
+        db.projects,
+      )..where((row) => row.id.equals(firstId))).getSingle()).isArchived,
+      isTrue,
+    );
+    expect(
+      (await (db.select(
+        db.projectSections,
+      )..where((row) => row.id.equals(firstSectionId))).getSingle()).isArchived,
+      isTrue,
+    );
+    expect(
+      (await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(taskId))).getSingle()).title,
+      'Conservami',
+    );
   });
-}
 
-class RecordingNotificationService extends NotificationService {
-  final scheduled = <Task>[];
-  final cancelled = <String>[];
+  test('Completate limita il carico e archivia quelle oltre un anno', () async {
+    for (var index = 0; index < 205; index++) {
+      final id = await repository.create('Completata $index');
+      final task = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(id))).getSingle();
+      await repository.setCompleted(task, true);
+    }
+    expect(await repository.watchCompleted().first, hasLength(200));
 
-  @override
-  Future<void> schedule(Task task) async => scheduled.add(task);
+    final oldest = (await db.select(db.tasks).get()).first;
+    await (db.update(db.tasks)..where((row) => row.id.equals(oldest.id))).write(
+      TasksCompanion(
+        completedAt: Value(
+          DateTime.now()
+              .subtract(const Duration(days: 366))
+              .toUtc()
+              .microsecondsSinceEpoch,
+        ),
+      ),
+    );
+    expect(
+      await repository.archiveCompletedOlderThan(
+        DateTime.now().subtract(const Duration(days: 365)),
+      ),
+      1,
+    );
+    expect(
+      (await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(oldest.id))).getSingle()).deletedAt,
+      isNotNull,
+    );
+  });
 
-  @override
-  Future<void> cancel(String taskId) async => cancelled.add(taskId);
+  test(
+    'reset locale è atomico e conserva soltanto identità dispositivo',
+    () async {
+      final projectId = await repository.createProject('Casa');
+      await repository.create('Task', projectId: projectId);
+      await db
+          .into(db.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(key: 'device_id', value: 'device-test'),
+          );
+      await db
+          .into(db.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(key: 'temporary', value: 'value'),
+          );
+
+      await repository.resetAllLocalData();
+
+      expect(await db.select(db.tasks).get(), isEmpty);
+      expect(await db.select(db.projects).get(), isEmpty);
+      expect(await db.select(db.projectSections).get(), isEmpty);
+      expect(await db.select(db.outboxEntries).get(), isEmpty);
+      final settings = await db.select(db.appSettings).get();
+      expect(settings.single.key, 'device_id');
+    },
+  );
 }
