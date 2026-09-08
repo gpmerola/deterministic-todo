@@ -36,6 +36,8 @@ public final class MovementDebugProvider extends ContentProvider {
 
     @Override public Cursor query(Uri uri, String[] projection, String selection,
                                   String[] selectionArgs, String sortOrder) {
+        if (getContext() != null && "step_minutes".equals(uri.getLastPathSegment()))
+            return LocalStepIntervalQuery.query(getContext(), uri, projection, selection, selectionArgs, sortOrder);
         if (getContext() == null || !"status".equals(uri.getLastPathSegment()))
             throw new IllegalArgumentException("Supported path: /status");
         Map<String, Object> values = PassiveMovementDebugState.values(getContext());

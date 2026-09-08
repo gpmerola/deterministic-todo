@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.37.2 (build 173)
+
+- Todo Test: lettura locale ADB dei minuti di passi in un intervallo esplicito
+  limitato a un'ora; minuti assenti, limiti ai confini e distanza passiva stimata.
+- Accesso riservato alla shell autorizzata; nessun upload, sensore o modifica
+  dei dati. Modello di raccolta e stima invariato.
+
 ## 2.37.1 (build 172)
 
 - Web: attende la persistenza IndexedDB dopo il commit esterno; le modifiche e

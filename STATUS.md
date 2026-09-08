@@ -1,6 +1,21 @@
 # Stato corrente
 
-Aggiornato il 7 settembre 2026.
+Aggiornato l’8 settembre 2026.
+
+## Build 173 — Diagnostica locale per intervallo
+
+Implementata lettura ADB riservata alla shell su Todo Test, senza raccolte
+aggiuntive o upload. Contratto, confini temporali e limiti della ricalcolazione:
+[MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+Verifiche superate: `make check` (analisi Flutter, 171 test Flutter, 10 test
+strumenti e link), 159 test JVM e 5 test strumentali sul Galaxy con database
+sintetici. Il lint Android conserva 38 errori/fatali preesistenti, nessuno nei
+file modificati; nessuna baseline aggiunta. `make todo-test` ha installato
+2.37.2-dev/versionCode 2173 in-place. La query reale ha restituito i minuti
+richiesti e rifiuta intervalli mancanti o oltre il limite. Dati personali e
+analisi restano privati fuori dal repository. La risoluzione al minuto limita
+la valutazione degli stop al secondo: non è dichiarata una calibrazione validata.
+Nessuna nuova release stabile promossa; Play resta disabilitata sul Galaxy.
 
 ## Build 172 — Sincronizzazione per campo, storico e persistenza Web
 

@@ -138,6 +138,48 @@ Resta da validare il modello su passi contati, percorsi noti e batteria. La
 calibrazione per cadenza, il modello calorico MET, la fusione temporale Amazfit
 e la copertura durante revoche permesso/arresto forzato sono affinamenti futuri.
 
+## Lettura locale degli intervalli — build 173
+
+Il provider Todo Test espone `step_minutes` soltanto alla shell ADB (UID shell),
+oltre al permesso `DUMP` del provider. Il canale Play/direct principale non
+consente questa lettura. Nessuna query implicita: sono obbligatori `start_ms` e
+`end_ms`, istanti UTC in millisecondi, intervallo semiaperto `[start, end)` di
+massimo un'ora. Non sono ammessi SQL, ordinamenti o selezioni arbitrari.
+
+Esempio sintetico, dalla shell Android autorizzata:
+
+```sh
+adb shell 'content query --uri "content://app.deterministic.todo.deterministic_todo.dev.movement_debug/step_minutes?start_ms=60000&end_ms=180000"'
+```
+
+La query indicizzata legge soltanto i minuti sovrapposti in una transazione
+Room; non importa dati, non modifica subtotali e non avvia sensori, GPS, BLE,
+worker o upload. Nessuna migrazione, dipendenza o modifica dell'algoritmo.
+L'output è dato personale: conservarlo solo in storage privato, mai nei log o
+nel repository. Nessun percorso GPS, battito o contenuto Todo viene letto.
+
+Schema 1: una riga per minuto, `minute_start_ms`, `overlap_ms`, `sample_present`,
+`steps`, `zone_id`, `imported_at_ms` e provenienza `local_recording_api`.
+Un minuto assente restituisce conteggi e stime nulli, non zero; anche una riga
+presente non dimostra copertura perfetta del sensore. `steps_lower/upper` sono
+limiti dell'attribuzione temporale dei passi **registrati**, non limiti
+sull'errore del sensore: in un minuto intero coincidono, in uno parziale vanno
+da zero al conteggio del minuto. `prorated_steps_estimate` assume distribuzione
+uniforme e non è una misura esatta al secondo. I limiti di un intervallo con
+minuti mancanti non descrivono il totale completo.
+
+`passive_meters_estimate` riusa `LocalDailyMovementModel` versione 1 e dichiara
+`profile_basis=current_profile_and_timeline_no_gps_no_bip`, con le due falcate
+applicate. È una ricalcolazione col profilo e la cronologia di classificazione
+attualmente disponibili, senza GPS, Bip, legacy o calorie; non è uno snapshot
+immutabile del valore UI storico né del totale giornaliero fuso. Ai confini
+parziali la distanza è proporzionale al tempo, come nel modello corrente.
+
+Per un confronto: acquisire i minuti della sola prova, controllare presenza,
+istanti di import e sorgente, poi confrontare riferimento e conteggi. Indicare
+separatamente incertezza ai confini e scostamento. Una sottoscrizione riuscita
+o un import successivo alla prova non costituiscono un test di accuratezza.
+
 ## Procedura di verifica
 
 ```sh

@@ -46,6 +46,19 @@ public class LocalStepStorageTest {
         assertEquals(240_000, db.runs().localStepState().importedThroughMillis);
     }
 
+    @Test public void intervalReadIncludesPartialFirstMinuteWithoutChangingStoredData() {
+        db.runs().insertLocalStepState(new LocalStepState());
+        db.runs().importLocalStepMinutes(List.of(minute(60_000, 100), minute(120_000, 90)), 180_000);
+        var range = new LocalStepIntervalReport.Range(90_000, 180_000);
+        var rows = db.runInTransaction(() -> LocalStepIntervalReport.build(range,
+            db.runs().localStepMinutes(range.firstMinute(), range.end()), List.of(),
+            new MovementProfile(70, .7, 1.1)));
+        assertEquals(2, rows.size());
+        assertEquals(50, rows.get(0).proratedSteps(), .0001);
+        assertEquals(190, db.runs().localSteps(0, 180_000));
+        assertEquals(180_000, db.runs().localStepState().importedThroughMillis);
+    }
+
     @Test public void failedBatchRollsBackRowsAndImportCursor() {
         db.runs().insertLocalStepState(new LocalStepState());
         db.runs().importLocalStepMinutes(List.of(minute(60_000, 10)), 120_000);

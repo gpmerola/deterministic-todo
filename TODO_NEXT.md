@@ -1,6 +1,6 @@
 # TODO e handover
 
-Aggiornato il 7 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato l’8 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 ## P0 — Sincronizzazione e storico, build 172
 
@@ -16,6 +16,8 @@ Aggiornato il 7 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modifica
 
 Riscontri e piano canonico: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
 
+- [x] Build 173: lettura ADB locale dei minuti per confronti su intervalli
+  espliciti; contratto e limiti in MOVEMENT_AUTONOMY, collaudo in STATUS.
 - [x] Primo incremento 169: regressioni automatiche e installazione ADB;
   verificata l'esposizione dello stato tecnico sul Galaxy.
 - [x] Build 170: raccolta Recording API, import Room idempotente, classificazione
