@@ -8,7 +8,9 @@ import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
 import 'paged_remote.dart';
 import 'project_sync_writer.dart';
+import 'purge_batch_merge.dart';
 import 'remote_batch_merge.dart';
+import 'sync_overview.dart';
 import 'sync_request_scope.dart';
 import 'task_fingerprints.dart';
 import 'task_sync_writer.dart';
@@ -615,10 +617,16 @@ class SyncService {
       if (pullAll) {
         stage = SyncStage.projects;
         _reportProgress(cycle, stage, entries.length);
-        await _syncProjects();
+        final overview = await SyncOverview.fetch(client, _requests);
+        await _syncProjects(overview);
         stage = SyncStage.taskPull;
         _reportProgress(cycle, stage, entries.length);
-        final buckets = await changedTaskBuckets(db, client, _requests);
+        final buckets = await changedTaskBuckets(
+          db,
+          client,
+          _requests,
+          fingerprints: overview?.tasks,
+        );
         for (final bucket in buckets ?? <String?>[null]) {
           await for (final page in remotePages(
             client,
@@ -646,7 +654,10 @@ class SyncService {
         }
         stage = SyncStage.purgePull;
         _reportProgress(cycle, stage, entries.length, remoteRows: remoteCount);
-        await _pullPurgedEntities();
+        if (overview == null ||
+            !await overview.matches(db, 'purged_entities', _requests)) {
+          await _pullPurgedEntities();
+        }
       }
       final remaining = await db.select(db.outboxEntries).get();
       _requests.check();
@@ -689,6 +700,10 @@ class SyncService {
             'sync_stage': SyncStage.idle.name,
             'pending': remaining.length,
             'auth_state': syncAuthState(client.auth.currentSession),
+            'request_count': _requests.requestCount,
+            'network_ms': _requests.networkMs,
+            'comparison_ms': _requests.comparisonMs,
+            'purge_ms': _requests.purgeMs,
             'uploaded_entities': uploadedEntities,
             'rebased_entities': rebasedEntities,
             'remote_rows': remoteCount,
@@ -807,8 +822,11 @@ class SyncService {
     return delay;
   }
 
-  Future<void> _syncProjects() async {
+  Future<void> _syncProjects(SyncOverview? overview) async {
     for (final table in ['projects', 'project_sections']) {
+      if (overview != null && await overview.matches(db, table, _requests)) {
+        continue;
+      }
       await for (final page in remotePages(client, table, scope: _requests)) {
         await mergeRemoteBatch(db, table, page, _requests);
       }
@@ -847,37 +865,7 @@ class SyncService {
         'purged_entities',
         scope: _requests,
       )) {
-        await db.withRevisionSource('sync_purge', () async {
-          _requests.check();
-          for (final row in page) {
-            final table = row['entity_type'] as String;
-            if (!const {
-              'tasks',
-              'projects',
-              'project_sections',
-            }.contains(table)) {
-              throw const FormatException('Invalid purge type');
-            }
-            final id = row['entity_id'] as String;
-            await db
-                .into(db.appSettings)
-                .insert(
-                  AppSettingsCompanion.insert(
-                    key: 'purged:$table:$id',
-                    value: '1',
-                  ),
-                  mode: InsertMode.insertOrIgnore,
-                );
-            await db.customUpdate(
-              'DELETE FROM "$table" WHERE id = ?',
-              variables: [Variable(id)],
-              updates: {db.tasks, db.projects, db.projectSections},
-            );
-            await (db.delete(
-              db.outboxEntries,
-            )..where((r) => r.entityId.equals(id))).go();
-          }
-        });
+        await mergePurgeBatch(db, page, _requests);
       }
     } on PostgrestException catch (e) {
       if (!const {'42P01', 'PGRST205'}.contains(e.code)) rethrow;

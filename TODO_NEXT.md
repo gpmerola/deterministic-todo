@@ -2,6 +2,16 @@
 
 Aggiornato l’11 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
+## P0 — Controllo unificato, build 178
+
+- [x] RPC unica, cache SQLite transazionale, applicazione aggregata delle cancellazioni.
+- [x] Test locali e Galaxy; migrazione server 004 applicata dopo consenso specifico.
+- [x] Misurare il ciclo reale e distinguere rete, confronto e cancellazioni.
+- [ ] Pubblicare il branch verificato e controllare il manifest Todo Test.
+
+Contratto e recovery: [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
+Esiti misurati: [STATUS](STATUS.md).
+
 ## P0 — Lentezza sincronizzazione APK, build 177
 
 - [x] Confronto compatto delle versioni, merge SQLite aggregato e controlli sovrapposti condivisi.

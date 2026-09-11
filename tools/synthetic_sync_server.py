@@ -53,13 +53,22 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(rows[:min(int(query.get("limit", [200])[0]), 200)])
 
     def do_POST(self):
-        if urlparse(self.path).path.endswith('/rpc/todo_task_fingerprints_v1'):
+        rpc = urlparse(self.path).path.rsplit('/', 1)[-1]
+        if rpc in ('todo_task_fingerprints_v1', 'todo_sync_overview_v1'):
             with LOCK:
                 signatures = {}
                 for row in sorted(TABLES['tasks'].values(), key=lambda r: r['id']):
                     bucket = row['id'][:2]
                     signatures[bucket] = signatures.get(bucket, '') + f"{row['id']}:{row['logical_version']}:{row['device_id']};"
-                return self.reply([{'bucket': key, 'fingerprint': hashlib.sha256(value.encode()).hexdigest()} for key, value in signatures.items()])
+                fingerprints = [{'bucket': key, 'fingerprint': hashlib.sha256(value.encode()).hexdigest()} for key, value in signatures.items()]
+                if rpc == 'todo_task_fingerprints_v1':
+                    return self.reply(fingerprints)
+                overview = {'schema': 1, 'tasks': fingerprints}
+                for table in ('projects', 'project_sections', 'purged_entities'):
+                    values = [f"purged:{r['entity_type']}:{r['entity_id']};" if table == 'purged_entities'
+                              else f"{r['id']}:{r['logical_version']}:{r['device_id']};" for r in TABLES[table].values()]
+                    overview[table] = hashlib.sha256(''.join(sorted(values)).encode()).hexdigest()
+                return self.reply(overview)
         self.write_rows()
 
     def do_PATCH(self):

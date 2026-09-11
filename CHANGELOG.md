@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.0 (build 178) — Todo Test, pubblicazione in corso
+
+- Un solo controllo server per task, progetti, sezioni e cancellazioni invariati;
+  migrazione 004 di sola lettura, compatibile con i client precedenti.
+- Impronte task conservate localmente e invalidate nella stessa transazione delle
+  modifiche; schema SQLite 10 preserva dati e coda.
+- Applicazione aggregata del registro delle eliminazioni, replay idempotente e
+  conservazione degli intenti di altri domini anche con UUID uguale.
+- Diagnostica con numero richieste e durate separate di rete, confronto e purge.
+
 ## 2.39.2 (build 177) — Todo Test
 
 - Confronto SHA-256 delle versioni per scaricare soltanto i gruppi di task diversi;

@@ -19,11 +19,45 @@ class SyntheticSyncServer {
   int writes = 0;
   int pages = 0;
   bool fingerprints = false;
+  bool overview = false;
+  int overviewReads = 0;
   int fingerprintReads = 0;
   bool failReceipt = false;
   final loseResponse = <String>{};
   Future<void> Function(String table, String id)? beforeWrite;
   Future<void> Function(String table)? beforeRead;
+
+  List<Map<String, String>> taskFingerprints() {
+    final signatures = <String, StringBuffer>{};
+    final rows = tables['tasks']!.values.toList()
+      ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+    for (final row in rows) {
+      final bucket = (row['id'] as String).substring(0, 2);
+      signatures
+          .putIfAbsent(bucket, StringBuffer.new)
+          .write('${row['id']}:${row['logical_version']}:${row['device_id']};');
+    }
+    return [
+      for (final e in signatures.entries)
+        {
+          'bucket': e.key,
+          'fingerprint': sha256
+              .convert(utf8.encode(e.value.toString()))
+              .toString(),
+        },
+    ];
+  }
+
+  String tableDigest(String table) {
+    final rows = tables[table]!.values.toList();
+    final values = [
+      for (final row in rows)
+        table == 'purged_entities'
+            ? 'purged:${row['entity_type']}:${row['entity_id']};'
+            : '${row['id']}:${row['logical_version']}:${row['device_id']};',
+    ]..sort();
+    return sha256.convert(utf8.encode(values.join())).toString();
+  }
 
   Future<SupabaseClient> client() async {
     final client = SupabaseClient(
@@ -38,31 +72,28 @@ class SyntheticSyncServer {
           headers: {'content-type': 'application/json'},
         );
         final table = request.url.pathSegments.last;
+        if (table == 'todo_sync_overview_v1') {
+          if (!overview) {
+            return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
+          }
+          overviewReads++;
+          return reply({
+            'schema': 1,
+            'tasks': taskFingerprints(),
+            for (final name in [
+              'projects',
+              'project_sections',
+              'purged_entities',
+            ])
+              name: tableDigest(name),
+          });
+        }
         if (table == 'todo_task_fingerprints_v1') {
           if (!fingerprints) {
             return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
           }
           fingerprintReads++;
-          final signatures = <String, StringBuffer>{};
-          final rows = tables['tasks']!.values.toList()
-            ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
-          for (final row in rows) {
-            final bucket = (row['id'] as String).substring(0, 2);
-            signatures
-                .putIfAbsent(bucket, StringBuffer.new)
-                .write(
-                  '${row['id']}:${row['logical_version']}:${row['device_id']};',
-                );
-          }
-          return reply([
-            for (final e in signatures.entries)
-              {
-                'bucket': e.key,
-                'fingerprint': sha256
-                    .convert(utf8.encode(e.value.toString()))
-                    .toString(),
-              },
-          ]);
+          return reply(taskFingerprints());
         }
         if (table == 'sync_operations') {
           if (failReceipt) throw StateError('synthetic receipt failure');

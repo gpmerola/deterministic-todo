@@ -95,6 +95,10 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "active_stage", active, "sync_stage");
         put(values, "active_pending", active, "pending");
         put(values, "active_remote_rows", active, "remote_rows");
+        put(values, "last_success_request_count", lastCompleted, "request_count");
+        put(values, "last_success_network_ms", lastCompleted, "network_ms");
+        put(values, "last_success_comparison_ms", lastCompleted, "comparison_ms");
+        put(values, "last_success_purge_ms", lastCompleted, "purge_ms");
         put(values, "last_success_duration_ms", lastCompleted, "duration_ms");
         put(values, "last_success_remote_rows", lastCompleted, "remote_rows");
         put(values, "last_success_pending", lastCompleted, "pending");

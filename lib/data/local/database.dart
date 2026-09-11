@@ -11,6 +11,7 @@ import 'database_connection_native.dart'
 part 'database.g.dart';
 part 'revision_schema.dart';
 part 'project_intents.dart';
+part 'fingerprint_cache_schema.dart';
 
 class Tasks extends Table {
   TextColumn get id => text()();
@@ -132,7 +133,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,10 +142,12 @@ class AppDatabase extends _$AppDatabase {
       await _createPerformanceIndexes();
       await _createOutboxIndex();
       await _createImportIndexes();
+      await _installFingerprintCache(this);
       await _installRevisionTriggers(this);
       await _installProjectIntents(this);
     },
     onUpgrade: (migrator, from, to) async {
+      if (from < 10) await _installFingerprintCache(this);
       if (from < 2) await _createPerformanceIndexes();
       if (from < 4) await _ensureImportSchema(migrator);
       if (from < 5 && !await _columnExists('tasks', tasks.itemKind.$name)) {

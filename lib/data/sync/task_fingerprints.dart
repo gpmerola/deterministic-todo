@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:drift/drift.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../local/database.dart';
@@ -13,11 +14,14 @@ import 'sync_request_scope.dart';
 Future<List<String>?> changedTaskBuckets(
   AppDatabase db,
   SupabaseClient client,
-  SyncRequestScope scope,
-) async {
+  SyncRequestScope scope, {
+  List<dynamic>? fingerprints,
+}) async {
   List<dynamic> remote;
   try {
-    remote = await scope.send(client.rpc('todo_task_fingerprints_v1'));
+    remote =
+        fingerprints ??
+        await scope.send(client.rpc('todo_task_fingerprints_v1'));
   } on PostgrestException catch (e) {
     if (e.code == 'PGRST202' || e.code == '42883') return null;
     rethrow;
@@ -36,22 +40,70 @@ Future<List<String>?> changedTaskBuckets(
   }
   scope.check();
   if (expected.isEmpty) return [];
-  // SQLite groups ordered metadata into at most 256 strings. Avoid 90k Dart
-  // maps/isolate messages, selecting neither task text nor history.
-  final local = await db.customSelect('''
-    SELECT substr(id, 1, 2) AS bucket,
-      group_concat(id || ':' || logical_version || ':' || device_id || ';', '') AS signature
-    FROM (SELECT id, logical_version, device_id FROM tasks ORDER BY id)
-    GROUP BY substr(id, 1, 2)
-  ''').get();
-  for (final row in local) {
-    final bucket = row.read<String>('bucket');
-    if (!expected.containsKey(bucket)) continue;
-    if (sha256.convert(utf8.encode(row.read<String>('signature'))).toString() ==
-        expected[bucket]) {
-      expected.remove(bucket);
-    }
+  final local = await scope.compareLocally(
+    () => cachedTaskFingerprints(db, expected.keys.toList(), scope),
+  );
+  for (final e in local.entries) {
+    if (expected[e.key] == e.value) expected.remove(e.key);
   }
   scope.check();
   return expected.keys.toList()..sort();
 }
+
+/// Cache reads, recomputation and replacement share one transaction. A write
+/// either precedes this snapshot or invalidates its cache on the same commit.
+Future<Map<String, String>> cachedTaskFingerprints(
+  AppDatabase db,
+  List<String> buckets,
+  SyncRequestScope scope,
+) => db.transaction(() async {
+  scope.check();
+  const prefix = 'sync_fp:v1:tasks:';
+  final cached = await db
+      .customSelect(
+        'SELECT key, value FROM app_settings WHERE key IN (SELECT value FROM json_each(?))',
+        variables: [
+          Variable(jsonEncode(buckets.map((b) => '$prefix$b').toList())),
+        ],
+      )
+      .get();
+  final result = {
+    for (final r in cached)
+      r.read<String>('key').substring(prefix.length): r.read<String>('value'),
+  };
+  final missing = buckets.where((b) => !result.containsKey(b)).toList();
+  if (missing.isNotEmpty) {
+    final rows = await db
+        .customSelect(
+          '''
+      SELECT substr(id, 1, 2) AS bucket,
+        group_concat(id || ':' || logical_version || ':' || device_id || ';', '') AS signature
+      FROM (SELECT id, logical_version, device_id FROM tasks
+        WHERE substr(id, 1, 2) IN (SELECT value FROM json_each(?)) ORDER BY id)
+      GROUP BY substr(id, 1, 2)
+    ''',
+          variables: [Variable(jsonEncode(missing))],
+        )
+        .get();
+    final signatures = {
+      for (final r in rows)
+        r.read<String>('bucket'): r.read<String>('signature'),
+    };
+    for (final bucket in missing) {
+      result[bucket] = sha256
+          .convert(utf8.encode(signatures[bucket] ?? ''))
+          .toString();
+    }
+    await db.batch(
+      (b) => b.insertAllOnConflictUpdate(db.appSettings, [
+        for (final bucket in missing)
+          AppSettingsCompanion.insert(
+            key: '$prefix$bucket',
+            value: result[bucket]!,
+          ),
+      ]),
+    );
+  }
+  scope.check();
+  return result;
+});

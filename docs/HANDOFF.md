@@ -1,6 +1,7 @@
 # Handoff tecnico e di prodotto
 
-Per il lavoro Todo della build 175 leggere prima
+Per il lavoro Todo della build 178 leggere prima
+[Sincronizzazione compatta](architecture/TODO_SYNC_PERFORMANCE.md), poi
 [Backup e lifecycle](architecture/TODO_BACKUP_AND_LIFECYCLE.md), poi
 [Todo UX hardening](architecture/TODO_UX_HARDENING.md) e [STATUS](../STATUS.md).
 Movimento è escluso da questo incremento; le sezioni storiche sotto restano

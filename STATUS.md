@@ -2,6 +2,40 @@
 
 Aggiornato l’11 settembre 2026.
 
+## Build 178 — Controllo unificato e cache
+
+Contratto e recovery: [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
+`make check`: 214 test Flutter, analisi statica, 11 test strumenti, link e SQL
+superati. `make check-generated`: Drift coerente. Galaxy Validation: 33 test
+passati, un caso desktop escluso; la prova aggiuntiva di 1.001 purge è passata
+localmente. Il rerun hardware che la includeva si è interrotto prima dei test
+per cambio porta/offline ADB; non è conteggiato come superato.
+
+20.000 task sintetiche, cache già pronta: 154 ms sul Galaxy (comprende il server
+mock); non è una stima della latenza di produzione. Verificati migrazione 9→10,
+conservazione outbox, rollback/cache dopo riapertura, cambi remoti di progetti e
+sezioni, registro purge e separazione degli intenti tra domini.
+
+`make todo-test` ha installato in-place **2.40.0-dev, versionCode 2178**, APK
+arm64 24,4 MB. Migrazione 004 applicata in Supabase dopo consenso specifico:
+EXECUTE autenticati true, anon false. Nessun task modificato dalla migrazione.
+
+Misure reali via provider sicuro della build 2178:
+- prima della 004, successo 15:56:47 UTC: **3.275 ms**, 25 richieste, rete
+  3.031 ms, confronto locale 35 ms, applicazione purge 0 ms, coda finale zero;
+- dopo la 004, successo **16:01:41 UTC**: **250 ms**, **una richiesta**, rete
+  247 ms, confronto locale 1 ms, applicazione purge 0 ms, coda finale zero.
+Sono osservazioni di cicli senza lavoro residuo, non una garanzia di 250 ms per
+ogni rete o quantità di modifiche. Nessun contenuto personale ispezionato.
+
+Web release distribuibile e fixture compilate. Chrome su localhost isolato:
+attività e link sincronizzati e conservati dopo refresh con server sintetico
+spento. HTTPS risponde 200 con CA esplicita; UI provata su HTTP localhost,
+contesto sicuro, senza aggirare avvisi certificato. Pubblicazione rolling da verificare.
+
+SHA-256 della migrazione 004 applicata:
+`447163b1693e39d7238c70a1f58482b8d9a3c18f4b9f3b0ec3c066a84d3beb4a`.
+
 ## Build 177 — Lentezza sincronizzazione APK
 
 Contratto: [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).

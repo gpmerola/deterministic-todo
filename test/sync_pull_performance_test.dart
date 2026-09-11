@@ -75,6 +75,12 @@ void main() {
         'fingerprint_20000: ${watch.elapsedMilliseconds} ms, zero task downloads',
       );
 
+      final warmWatch = Stopwatch()..start();
+      await sync.sync();
+      warmWatch.stop();
+      // ignore: avoid_print
+      print('cached_fingerprint_20000: ${warmWatch.elapsedMilliseconds} ms');
+
       // A delayed offline writer has a counter BELOW the already observed 100.
       const lateId = 'ff000000-0000-4000-8000-999999999999';
       server.tables['tasks']![lateId] = {

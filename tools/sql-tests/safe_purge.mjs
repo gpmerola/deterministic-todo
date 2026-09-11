@@ -17,7 +17,7 @@ try {
     grant usage on schema auth to authenticated, anon;
     grant execute on function auth.uid() to authenticated, anon;
   `);
-  for (const name of ['202608040001_initial', '202608040002_todoist_import', '202608080001_references', '202608310001_purge_trash', '202609110001_safe_purge', '202609110002_ledger_privileges', '202609110003_task_fingerprints']) {
+  for (const name of ['202608040001_initial', '202608040002_todoist_import', '202608080001_references', '202608310001_purge_trash', '202609110001_safe_purge', '202609110002_ledger_privileges', '202609110003_task_fingerprints', '202609110004_sync_overview']) {
     await db.exec(await readFile(new URL(`../../supabase/migrations/${name}.sql`, import.meta.url), 'utf8'));
   }
   for (const role of ['anon', 'authenticated']) {
@@ -48,6 +48,10 @@ try {
   const insertTask = () => db.query(`select public.merge_task($1::jsonb)`, [JSON.stringify(task)]);
   await insertTask();
   const fingerprint = async () => ({rows: (await db.query('select public.todo_task_fingerprints_v1() as result')).rows[0].result});
+  const overview = async () => (await db.query('select public.todo_sync_overview_v1() as result')).rows[0].result;
+  const emptyDigest = createHash('sha256').update('').digest('hex');
+  assert.equal((await overview()).projects, emptyDigest);
+  assert.equal((await db.query("select has_function_privilege('anon','public.todo_sync_overview_v1()','EXECUTE') as allowed")).rows[0].allowed, false);
   const expectedDigest = createHash('sha256').update(`${taskId}:1:${owner};`).digest('hex');
   assert.deepEqual((await fingerprint()).rows, [{bucket: '00', fingerprint: expectedDigest}]);
   assert.equal((await db.query("select has_function_privilege('anon','public.todo_task_fingerprints_v1()','EXECUTE') as allowed")).rows[0].allowed, false);
@@ -66,6 +70,9 @@ try {
   assert.deepEqual((await fingerprint()).rows, [], 'purge removes bucket');
   const ledger = (await db.query('select * from public.purged_entities')).rows;
   assert.equal(ledger.length, 3);
+  const purgeDigest = createHash('sha256').update(ledger.map(r => `purged:${r.entity_type}:${r.entity_id};`).sort().join('')).digest('hex');
+  assert.equal((await overview()).purged_entities, purgeDigest);
+  assert.deepEqual((await overview()).tasks, []);
   assert.ok(!JSON.stringify(ledger).includes('Synthetic'), 'ledger has no content');
   task.deleted_at = null; task.logical_version = 999;
   await assert.rejects(insertTask, /todo_entity_purged/, 'old merge RPC cannot resurrect a UUID');
@@ -80,6 +87,7 @@ try {
   await insertTask();
   await db.exec("select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false)");
   assert.deepEqual((await fingerprint()).rows, [], 'fingerprints isolate account metadata');
+  assert.deepEqual(await overview(), {schema: 1, tasks: [], projects: emptyDigest, project_sections: emptyDigest, purged_entities: emptyDigest});
   await db.exec('reset role;');
   await db.query('delete from auth.users where id = $1', [owner]);
   assert.equal((await db.query('select * from public.purged_entities')).rows.length, 0, 'account deletion clears ledger');

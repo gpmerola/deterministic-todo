@@ -406,3 +406,7 @@ Backup e gestione delle richieste: [contratto Todo](docs/architecture/TODO_BACKU
 La sincronizzazione dalla build 177 confronta impronte delle versioni prima di
 scaricare le attività; protocollo, compatibilità e recovery sono descritti in
 [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
+
+Dalla build 178 un controllo unificato evita le richieste delle tabelle invariate;
+SQLite 10 conserva le impronte con invalidazione transazionale. Stato e collaudi
+sono in [STATUS](STATUS.md).
