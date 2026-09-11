@@ -25,17 +25,37 @@ hardware e verificato nella suite locale. Il test separato browser–Galaxy con
 riapertura SQLite è passato. Build Web distribuibile compilata con configurazione
 canonica. `make todo-test` ha verificato e installato in-place **2.38.0-dev,
 versionCode 2174**, APK arm64 24,3 MB; processo avviato e versione riletta via ADB.
-Il provider tecnico riporta ancora un successo precedente all'installazione e
-un `channelError` Realtime: nessun nuovo ciclo cloud è dichiarato verificato.
+Il provider tecnico ha registrato nuovi successi cloud dopo l'installazione
+(ultimo alle 12:54:06 UTC), poi un errore di rete alle 12:55:34 UTC, con zero
+elementi in attesa. Al controllo finale non registra ancora un ciclo successivo
+alla migrazione; il recupero Realtime non è dichiarato verificato.
 Il package Play non è stato modificato; al controllo finale non è elencato per
 l'utente Android 0 (non viene reinstallato o riattivato da questo task).
 La simulazione desktop sul telefono produceva overflow per gli inset della
 tastiera fisica: il layout desktop è verificato sul computer/browser, il telefono
 esegue i casi mobili. Il package `.dev.validation` non registra Movimento.
 
-Migrazione Supabase del cestino **preparata e verificata localmente, non applicata
-al servizio reale**. Nessuna nuova release stabile Web/Play pubblicata: richiede
-`PUBBLICA`, con conferma distinta per la migrazione sul servizio condiviso.
+Migrazioni Supabase `202609110001` e `202609110002` **applicate** l'11 settembre
+2026, in una singola transazione autorizzata. Verifica catalogo alle 13:02:57 UTC:
+RLS attiva, sei trigger, lettura autenticata e RPC consentite; TRUNCATE client,
+lettura anonima, RPC anonime ed esecuzione diretta del guard negati. Nessuna
+chiamata di purge né cancellazione di dati durante il deploy. Il test SQL
+riproduce i privilegi predefiniti Supabase, incluso TRUNCATE.
+
+Release stabile **2.38.0+174 pubblicata**: Web, APK diretti e track interno Play.
+[Pipeline coordinata](https://github.com/gpmerola/deterministic-todo/actions/runs/34600900234)
+interamente verde, commit client `750e23e9678f4b2f62c5879bdf1289ce96a8b807`.
+Identità pubbliche Web/Android corrispondenti e SHA-256 dei quattro asset del
+manifest confrontati con i digest GitHub. Il permesso temporaneo di deploy Pages
+per questo branch è stato rimosso dopo il rilascio; nessun merge eseguito.
+L'aggiornamento Play sul telefono non è stato collaudato.
+
+SHA-256 delle migrazioni canoniche applicate:
+
+- `202609110001`: `16746f6fb8605e1b166bf51ec6c7372eba4a499a12e3f0c0af93aa0abc46bb71`
+- `202609110002`: `77075e62d976e5776c143da4622efff9bf064ee35eb8449d5bda99a269f4570a`
+
+Procedura e recovery: [SAFE_PURGE](docs/operations/SAFE_PURGE.md).
 La prova sintetica non dimostra autenticazione/RLS/Realtime né convergenza con
 l'account cloud reale. Il registro non ricostruisce UUID eliminati prima della
 migrazione; i client vecchi mantengono il vecchio merge finché non aggiornati.

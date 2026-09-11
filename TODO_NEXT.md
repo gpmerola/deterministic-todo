@@ -7,8 +7,17 @@ Aggiornato l’11 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modifi
 - [x] Implementare editor, bozze, viste filtrate, intenti progetti/sezioni,
   paginazione e isolamento dei conflitti.
 - [x] Completare collaudo Galaxy e confronto browser/telefono con fixture.
-- [ ] Applicare la migrazione del cestino dopo approvazione del servizio condiviso.
-- [ ] Pubblicare Web/stabile dopo conferma `PUBBLICA` e collaudare account reale.
+- [x] Applicare le migrazioni del cestino e dei privilegi dopo autorizzazione.
+- [x] Pubblicare Web, APK diretti e Play interno dopo conferma `PUBBLICA`.
+- [ ] Verificare un nuovo ciclo cloud dopo la migrazione e convergenza tra client reali.
+- [ ] Completare backup/ripristino JSON: progetti e sezioni assenti dall’export,
+  impostazioni esportate ma ignorate in import (`ExportService`). Riprodotto
+  con export/import tra due database vuoti separati e fixture sintetiche.
+- [ ] Proteggere `SyncService.dispose` dalle risposte tardive: riprodotto
+  `StateError` di stream chiuso con una scrittura sintetica sospesa. Configurare
+  timeout delle richieste PostgREST con annullamento reale, preservando gli intenti.
+- [ ] Alleggerire lo stream outbox ai soli ID e valutare indice per entità/operazione:
+  EXPLAIN sintetico passa da scansione a ricerca indicizzata; misurare code grandi.
 
 Contratto: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).
 Esiti e limiti correnti: [STATUS](STATUS.md). Movimento escluso da questo task.

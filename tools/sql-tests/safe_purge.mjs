@@ -7,6 +7,8 @@ try {
   await db.exec(`
     create role authenticated; create role anon;
     create schema auth;
+    alter default privileges in schema public grant all on tables to anon, authenticated;
+    alter default privileges in schema public grant all on functions to anon, authenticated;
     create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$
       select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
@@ -14,8 +16,23 @@ try {
     grant usage on schema auth to authenticated, anon;
     grant execute on function auth.uid() to authenticated, anon;
   `);
-  for (const name of ['202608040001_initial', '202608040002_todoist_import', '202608080001_references', '202608310001_purge_trash', '202609110001_safe_purge']) {
+  for (const name of ['202608040001_initial', '202608040002_todoist_import', '202608080001_references', '202608310001_purge_trash', '202609110001_safe_purge', '202609110002_ledger_privileges']) {
     await db.exec(await readFile(new URL(`../../supabase/migrations/${name}.sql`, import.meta.url), 'utf8'));
+  }
+  for (const role of ['anon', 'authenticated']) {
+    for (const privilege of ['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) {
+      assert.equal((await db.query('select has_table_privilege($1, $2, $3) as allowed',
+        [role, 'public.purged_entities', privilege])).rows[0].allowed, false, `${role} cannot ${privilege} ledger`);
+    }
+  }
+  assert.equal((await db.query("select has_table_privilege('authenticated','public.purged_entities','SELECT') as allowed")).rows[0].allowed, true);
+  assert.equal((await db.query("select has_table_privilege('anon','public.purged_entities','SELECT') as allowed")).rows[0].allowed, false);
+  for (const name of ['guard_purged_entity', 'remember_purged_entity', 'purge_trash', 'purge_trash_v2']) {
+    assert.equal((await db.query('select has_function_privilege($1, $2, $3) as allowed',
+      ['anon', `public.${name}()`, 'EXECUTE'])).rows[0].allowed, false, `anon cannot execute ${name}`);
+    assert.equal((await db.query('select has_function_privilege($1, $2, $3) as allowed',
+      ['authenticated', `public.${name}()`, 'EXECUTE'])).rows[0].allowed,
+      name.startsWith('purge_trash'), `authenticated can execute only the purge RPCs`);
   }
   // Supabase grants are normally supplied by the platform.
   await db.exec(`grant select, insert, update on public.tasks, public.projects, public.project_sections, public.sync_operations to authenticated;
@@ -50,5 +67,5 @@ try {
   await db.exec('reset role;');
   await db.query('delete from auth.users where id = $1', [owner]);
   assert.equal((await db.query('select * from public.purged_entities')).rows.length, 0, 'account deletion clears ledger');
-  console.log('Safe purge: migrations, rollback, task/project/section resurrection, RLS, content minimization, replay and account deletion passed.');
+  console.log('Safe purge: migrations, rollback, task/project/section resurrection, RLS, inherited privileges/TRUNCATE, content minimization, replay and account deletion passed.');
 } finally { await db.close(); }

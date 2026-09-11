@@ -243,8 +243,13 @@ client. Sul progetto personale devono essere state applicate, nell’ordine:
 
 1. `supabase/migrations/202608040001_initial.sql`;
 2. `supabase/migrations/202608040002_todoist_import.sql`;
-3. `supabase/migrations/202608050001_realtime_sync.sql`.
-4. `supabase/migrations/202608080001_references.sql`.
+3. `supabase/migrations/202608050001_realtime_sync.sql`;
+4. `supabase/migrations/202608080001_references.sql`;
+5. `supabase/migrations/202608310001_purge_trash.sql`;
+6. `supabase/migrations/202609110001_safe_purge.sql`;
+7. `supabase/migrations/202609110002_ledger_privileges.sql`.
+
+Procedura e recovery: [registro delle eliminazioni](docs/operations/SAFE_PURGE.md).
 
 Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
 Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e

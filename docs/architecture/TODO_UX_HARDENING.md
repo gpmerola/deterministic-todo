@@ -38,6 +38,8 @@ ripristina soltanto quella riga, senza ricreare automaticamente le relazioni.
 
 `supabase/migrations/202609110001_safe_purge.sql` aggiunge il registro minimo
 `purged_entities`: utente, UUID/tipo e istante, senza titolo o descrizione.
+La successiva `202609110002_ledger_privileges.sql` revoca esplicitamente tutti
+i privilegi client ereditati prima di concedere soltanto lettura e RPC previste.
 Trigger server registrano le eliminazioni definitive e rifiutano la ricreazione
 dello stesso UUID anche da client vecchi. RLS permette soltanto la lettura del
 proprio registro; le scritture sono riservate ai trigger. Un lock transazionale
@@ -104,3 +106,5 @@ Il server è in memoria, accetta soltanto connessioni loopback e usa identità
 sintetiche: nessun account Supabase reale. La convergenza su questo trasporto
 non dimostra RLS, Realtime o autenticazione in produzione. Esiti hardware,
 pubblicazione e limiti ancora aperti sono riportati in [STATUS](../../STATUS.md).
+
+Applicazione e recovery: [runbook del registro](../operations/SAFE_PURGE.md).
