@@ -7,7 +7,7 @@ Aggiornato l’11 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modifi
 - [x] Confronto compatto delle versioni, merge SQLite aggregato e controlli sovrapposti condivisi.
 - [x] Test locali e Galaxy con 20.000 attività sintetiche.
 - [x] Applicare la migrazione server 003 dopo approvazione specifica e misurare il nuovo ciclo reale.
-- [ ] Pubblicare il branch verificato e controllare il manifest Todo Test.
+- [x] Pubblicare il branch verificato e controllare il manifest Todo Test.
 
 Contratto: [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
 Esiti e limiti: [STATUS](STATUS.md).

@@ -23,7 +23,13 @@ EXECUTE autenticati true, anon false. Il nuovo ciclo reale 2 della build 2177,
 concluso alle **14:56:01 UTC**, dura **3.115 ms**, zero task riscaricate, zero
 intenti finali e Realtime subscribed. Prima della migrazione lo stesso APK aveva
 impiegato 68.420 ms: circa il 95% di tempo in meno in queste due osservazioni.
-Non sono stati letti contenuti personali. Pubblicazione rolling ancora da verificare.
+Non sono stati letti contenuti personali.
+[CI Verify](https://github.com/gpmerola/deterministic-todo/actions/runs/34613426398)
+e [pubblicazione Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/34613422421)
+superate. Manifest rolling pubblico verificato: 2.39.2, build 177, dev, sorgente
+`b9c8346b4f9a10bc3126eb7a6d4f13a574459a87`. SHA-256 arm64 corrispondente al digest
+GitHub: `d31d312a97b9445b5ad982ffa5292a1bc5eafc43eb326782116a9c54d636a4dd`.
+Web/Play stabili restano alla 2.38.0+174; questa correzione è distribuita su Todo Test.
 
 Build Web release e fixture compilate; avvio HTTPS con CA esplicita (200).
 Chrome su origine localhost isolata: attività e link sincronizzati, conservati

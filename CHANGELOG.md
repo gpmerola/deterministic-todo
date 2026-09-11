@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.39.2 (build 177) — Todo Test, verifica in corso
+## 2.39.2 (build 177) — Todo Test
 
 - Confronto SHA-256 delle versioni per scaricare soltanto i gruppi di task diversi;
   RPC server di sola lettura, compatibile con il pull completo sui server precedenti.
