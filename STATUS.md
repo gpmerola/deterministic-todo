@@ -24,7 +24,12 @@ versionCode 2175**, APK arm64 24,4 MB, alle 15:39:28 Europe/Rome. Il provider To
 ha registrato un nuovo successo alle **13:40:46 UTC**, stato `healthy`, zero
 intenti in attesa e sessione attiva. Il precedente errore di rete delle 13:22:58
 è storico; il dispositivo ha quindi recuperato anche con la nuova build.
-La release Web/Play stabile rimane separata dalla consegna Todo Test.
+[CI Verify](https://github.com/gpmerola/deterministic-todo/actions/runs/34606014681)
+e [pubblicazione Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/34606010268)
+verdi. Manifest rolling pubblico: 2.39.0, build 175, canale dev, sorgente
+`dde96360f2aa391a6e1cc0c029cda3948de236b5`; hash arm64 corrispondente al digest
+dell'asset GitHub. Web/Play stabili restano alla release della sezione successiva;
+la build 175 è distribuita sul canale Todo Test.
 
 Diagnostica sicura Todo della 174, letta prima dell'update: `healthy`, nuovo
 successo alle 13:18:59 UTC dell'11 settembre, zero intenti in attesa. Il precedente
