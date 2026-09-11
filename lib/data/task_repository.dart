@@ -15,6 +15,61 @@ class TaskRepository {
   final String deviceId;
   final Uuid _uuid;
 
+  /// Read only the current screen; long descriptions in other views stay in SQLite.
+  Stream<List<Task>> watchView({
+    required String view,
+    required String today,
+    String? projectId,
+    String? fromDate,
+    String? throughDate,
+  }) {
+    final query = db.select(db.tasks)..where((t) => t.deletedAt.isNull());
+    if (view == 'completed') return watchCompleted();
+    query.where((t) => t.status.equals(TaskStatus.completed.name).not());
+    switch (view) {
+      case 'today':
+        final inboxProjects = db.selectOnly(db.projects)
+          ..addColumns([db.projects.id])
+          ..where(db.projects.name.trim().lower().equals('inbox'));
+        query.where(
+          (t) =>
+              (t.status.equals('inbox') &
+                  (t.projectId.isNull() |
+                      t.projectId.isInQuery(inboxProjects))) |
+              t.status.equals('available') |
+              (t.status.equals('scheduled') &
+                  t.showDate.isSmallerOrEqualValue(today)) |
+              t.showDate.equals(today),
+        );
+      case 'upcoming':
+        query.where(
+          (t) =>
+              t.status.equals('scheduled') &
+              t.showDate.isBiggerThanValue(today) &
+              t.showDate.isBiggerOrEqualValue(fromDate ?? today) &
+              t.showDate.isSmallerOrEqualValue(throughDate ?? today),
+        );
+      case 'projects':
+        query.where(
+          (t) => projectId == null
+              ? const Constant(false)
+              : t.projectId.equals(projectId),
+        );
+      case 'waiting':
+        query.where((t) => t.status.equals('waiting'));
+      case 'inbox':
+        query.where((t) => t.status.equals('inbox'));
+      default:
+        query.where((t) => const Constant(false));
+    }
+    query.orderBy([
+      (t) => OrderingTerm(expression: t.position),
+      (t) => OrderingTerm(expression: t.createdAt),
+      (t) => OrderingTerm(expression: t.id),
+    ]);
+    return query.watch();
+  }
+
   Stream<List<Task>> watchAll() =>
       (db.select(db.tasks)
             ..where((task) => task.deletedAt.isNull())
@@ -240,21 +295,33 @@ class TaskRepository {
     if (normalizedName != null && normalizedName.isEmpty) {
       throw const FormatException('Il nome è obbligatorio');
     }
-    await (db.update(
-      db.projects,
-    )..where((row) => row.id.equals(project.id))).write(
-      ProjectsCompanion(
-        name: normalizedName == null
-            ? const Value.absent()
-            : Value(normalizedName),
-        position: position == null ? const Value.absent() : Value(position),
-        isArchived: isArchived == null
-            ? const Value.absent()
-            : Value(isArchived),
-        logicalVersion: Value(project.logicalVersion + 1),
-        deviceId: Value(deviceId),
-      ),
-    );
+    if ((normalizedName == null || normalizedName == project.name) &&
+        (position == null || position == project.position) &&
+        (isArchived == null || isArchived == project.isArchived)) {
+      return;
+    }
+    await db.transaction(() async {
+      final current = await (db.select(
+        db.projects,
+      )..where((r) => r.id.equals(project.id))).getSingle();
+      await (db.update(
+        db.projects,
+      )..where((row) => row.id.equals(project.id))).write(
+        ProjectsCompanion(
+          name: normalizedName == null || normalizedName == project.name
+              ? const Value.absent()
+              : Value(normalizedName),
+          position: position == null || position == project.position
+              ? const Value.absent()
+              : Value(position),
+          isArchived: isArchived == null || isArchived == project.isArchived
+              ? const Value.absent()
+              : Value(isArchived),
+          logicalVersion: Value(current.logicalVersion + 1),
+          deviceId: Value(deviceId),
+        ),
+      );
+    });
   }
 
   Future<void> updateProjectSection(
@@ -267,21 +334,33 @@ class TaskRepository {
     if (normalizedName != null && normalizedName.isEmpty) {
       throw const FormatException('Il nome è obbligatorio');
     }
-    await (db.update(
-      db.projectSections,
-    )..where((row) => row.id.equals(section.id))).write(
-      ProjectSectionsCompanion(
-        name: normalizedName == null
-            ? const Value.absent()
-            : Value(normalizedName),
-        position: position == null ? const Value.absent() : Value(position),
-        isArchived: isArchived == null
-            ? const Value.absent()
-            : Value(isArchived),
-        logicalVersion: Value(section.logicalVersion + 1),
-        deviceId: Value(deviceId),
-      ),
-    );
+    if ((normalizedName == null || normalizedName == section.name) &&
+        (position == null || position == section.position) &&
+        (isArchived == null || isArchived == section.isArchived)) {
+      return;
+    }
+    await db.transaction(() async {
+      final current = await (db.select(
+        db.projectSections,
+      )..where((r) => r.id.equals(section.id))).getSingle();
+      await (db.update(
+        db.projectSections,
+      )..where((row) => row.id.equals(section.id))).write(
+        ProjectSectionsCompanion(
+          name: normalizedName == null || normalizedName == section.name
+              ? const Value.absent()
+              : Value(normalizedName),
+          position: position == null || position == section.position
+              ? const Value.absent()
+              : Value(position),
+          isArchived: isArchived == null || isArchived == section.isArchived
+              ? const Value.absent()
+              : Value(isArchived),
+          logicalVersion: Value(current.logicalVersion + 1),
+          deviceId: Value(deviceId),
+        ),
+      );
+    });
   }
 
   Future<void> swapProjects(Project first, Project second) =>
@@ -571,9 +650,75 @@ class TaskRepository {
     );
   });
 
+  Future<void> _ensureNotPurged(String table, String id) async {
+    final marker = await (db.select(
+      db.appSettings,
+    )..where((s) => s.key.equals('purged:$table:$id'))).getSingleOrNull();
+    if (marker != null) {
+      throw const FormatException(
+        'Elemento eliminato definitivamente: puoi copiarne il contenuto dallo storico in un nuovo elemento.',
+      );
+    }
+  }
+
+  Future<void> restoreProjectRevision(
+    String table,
+    Map<String, dynamic> snapshot,
+  ) => db.withRevisionSource('sync_user_restore', () async {
+    if (!const {'projects', 'project_sections'}.contains(table)) {
+      throw ArgumentError('Invalid entity type');
+    }
+    final id = snapshot['id'] as String;
+    await _ensureNotPurged(table, id);
+    final current = await db
+        .customSelect(
+          'SELECT logical_version FROM "$table" WHERE id = ?',
+          variables: [Variable(id)],
+        )
+        .getSingleOrNull();
+    final next = {
+      ...snapshot,
+      'logical_version':
+          (current?.read<int>('logical_version') ??
+              snapshot['logical_version'] as int) +
+          1,
+      'device_id': deviceId,
+    };
+    final json = <String, dynamic>{
+      for (final e in next.entries)
+        e.key.replaceAllMapped(
+          RegExp('_([a-z])'),
+          (m) => m[1]!.toUpperCase(),
+        ): e.key == 'is_archived' || e.key == 'is_favorite'
+            ? e.value == true || e.value == 1
+            : e.value,
+    };
+    if (table == 'projects') {
+      await db.into(db.projects).insertOnConflictUpdate(Project.fromJson(json));
+    } else {
+      await db
+          .into(db.projectSections)
+          .insertOnConflictUpdate(ProjectSection.fromJson(json));
+    }
+    await (db.delete(
+      db.outboxEntries,
+    )..where((r) => r.entityId.equals(id) & r.operation.equals(table))).go();
+    await _enqueue(
+      id,
+      table,
+      jsonEncode({
+        'schema': 3,
+        'table': table,
+        'kind': 'replace',
+        'snapshot': next,
+      }),
+    );
+  });
+
   /// Explicit recovery: all selected task fields become new user intent.
   Future<void> restoreRevision(Task snapshot) =>
       db.withRevisionSource('user_restore', () async {
+        await _ensureNotPurged('tasks', snapshot.id);
         final current = await (db.select(
           db.tasks,
         )..where((row) => row.id.equals(snapshot.id))).getSingleOrNull();

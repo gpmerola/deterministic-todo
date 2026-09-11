@@ -533,9 +533,10 @@ void main() {
     expect(find.textContaining('https://example.com'), findsNothing);
     await tester.tap(find.text('Update PhD'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Altri dettagli'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(InputChip, 'Paper1'), findsOneWidget);
+    final description = tester.widget<TextField>(
+      find.byKey(const ValueKey('task-editor-description')),
+    );
+    expect(description.controller!.text, contains('Paper1'));
     expect(find.textContaining('https://example.com'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -1184,7 +1185,7 @@ void main() {
     expect(find.text('Ora'), findsNothing);
     expect(find.text('Stato'), findsNothing);
     expect(find.text('Scadenza'), findsNothing);
-    expect(find.text('Altri dettagli'), findsOneWidget);
+    expect(find.text('Progetto e sezione'), findsOneWidget);
     expect(find.text('Note'), findsNothing);
     expect(
       tester.getSize(find.byType(TaskEditor)).height,
@@ -1333,7 +1334,7 @@ void main() {
       await tester.pumpWidget(TodoApp(repository: repository));
       await tester.pump();
       await tester.tap(find.text('Prossime'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       expect(find.text('Tutte'), findsNothing);

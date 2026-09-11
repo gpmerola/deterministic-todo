@@ -37,6 +37,110 @@ class _TaskEditorState extends State<TaskEditor> {
   late int priority = widget.task.priority;
   bool dateExplicitlyCleared = false;
   bool saving = false;
+  bool allowClose = false;
+  late Task baseline = widget.task;
+  late final drafts = EditorDrafts(widget.repository.db);
+  bool draftRestored = false;
+  bool restoringDraft = false;
+  Timer? draftTimer;
+  Future<void> draftWork = Future.value();
+
+  void _scheduleDraft() {
+    draftTimer?.cancel();
+    if (saving || restoringDraft || allowClose) return;
+    draftTimer = Timer(const Duration(milliseconds: 300), () {
+      unawaited(preserveDraft());
+    });
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _scheduleDraft();
+  }
+
+  void _onEditorTextChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    title.addListener(_onEditorTextChanged);
+    notes.addListener(_onEditorTextChanged);
+    showDate.addListener(_onEditorTextChanged);
+    unawaited(_restoreDraft().catchError((Object _) {}));
+  }
+
+  Future<void> _restoreDraft() async {
+    final draft = await drafts.read(widget.task.id);
+    if (!mounted || draft == null || !_matchesTask(baseline)) return;
+    restoringDraft = true;
+    setState(() {
+      baseline = Task.fromJson(
+        Map<String, dynamic>.from(draft['baseline'] as Map),
+      );
+      title.replaceMarkdown(draft['title'] as String);
+      notes.replaceMarkdown(draft['notes'] as String?);
+      showDate.text = draft['date'] as String? ?? '';
+      recurrence = draft['recurrence'] as String;
+      priority = draft['priority'] as int;
+      projectId = draft['projectId'] as String?;
+      projectSectionId = draft['sectionId'] as String?;
+      dateExplicitlyCleared = draft['dateCleared'] == true;
+      draftRestored = true;
+    });
+    restoringDraft = false;
+  }
+
+  Future<bool> preserveDraft() async {
+    draftTimer?.cancel();
+    if (saving) return false;
+    try {
+      if (_matchesTask(baseline)) {
+        await (draftWork = draftWork.then(
+          (_) => drafts.remove(widget.task.id),
+        ));
+      } else {
+        final value = <String, dynamic>{
+          'schema': 1,
+          'baseline': baseline.toJson(),
+          'title': title.toMarkdown(),
+          'notes': notes.toMarkdown(),
+          'date': showDate.text,
+          'recurrence': recurrence,
+          'priority': priority,
+          'projectId': projectId,
+          'sectionId': projectSectionId,
+          'dateCleared': dateExplicitlyCleared,
+        };
+        await (draftWork = draftWork.then(
+          (_) => drafts.write(widget.task.id, value),
+        ));
+      }
+      return true;
+    } on Object {
+      draftWork = Future.value();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Impossibile conservare la bozza. L’editor resta aperto.',
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _closeWithDraft() async {
+    if (!await preserveDraft() || !mounted) return;
+    setState(() => allowClose = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.pop(context);
+    });
+  }
 
   bool _matchesTask(Task task) =>
       !dateExplicitlyCleared &&
@@ -57,6 +161,7 @@ class _TaskEditorState extends State<TaskEditor> {
         saving) {
       return;
     }
+    baseline = widget.task;
     title.replaceMarkdown(widget.task.title);
     notes.replaceMarkdown(widget.task.notes);
     showDate.text = widget.task.showDate ?? '';
@@ -68,6 +173,7 @@ class _TaskEditorState extends State<TaskEditor> {
 
   @override
   void dispose() {
+    draftTimer?.cancel();
     title.dispose();
     notes.dispose();
     showDate.dispose();
@@ -95,9 +201,13 @@ class _TaskEditorState extends State<TaskEditor> {
         ? TaskStatus.available
         : TaskStatus.scheduled;
     await widget.repository.updateDetails(
-      widget.task,
+      baseline,
       title: title.toMarkdown(),
-      status: derivedStatus,
+      status:
+          baseline.status == TaskStatus.completed.name ||
+              plannedDate?.toString() == baseline.showDate
+          ? TaskStatus.values.byName(baseline.status)
+          : derivedStatus,
       notes: notes.text.trim().isEmpty ? null : notes.toMarkdown().trim(),
       showDate: plannedDate?.toString(),
       recurrence: recurrence == 'none' ? null : recurrence,
@@ -128,17 +238,33 @@ class _TaskEditorState extends State<TaskEditor> {
     setState(() => saving = true);
     try {
       final saved = await _save();
+      baseline = saved;
+      await draftWork;
+      await drafts.remove(widget.task.id);
       if (!mounted) return;
+      setState(() => allowClose = true);
       if (widget.embedded) {
         widget.onSaved?.call(saved);
       } else {
-        Navigator.pop(context);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.pop(context);
+        });
       }
     } on FormatException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.message.toString()), showCloseIcon: true),
       );
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Salvataggio non riuscito. Il testo resta nell’editor.',
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -156,6 +282,8 @@ class _TaskEditorState extends State<TaskEditor> {
   }
 
   Future<void> _saveAndExportToCalendar() async {
+    if (saving) return;
+    setState(() => saving = true);
     try {
       final saved = await _save();
       final result = await CalendarService(
@@ -163,7 +291,18 @@ class _TaskEditorState extends State<TaskEditor> {
       ).exportTask(saved);
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
-      Navigator.pop(context);
+      baseline = saved;
+      await draftWork;
+      await drafts.remove(widget.task.id);
+      if (!mounted) return;
+      setState(() => allowClose = true);
+      if (widget.embedded) {
+        widget.onSaved?.call(saved);
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.pop(context);
+        });
+      }
       messenger.showSnackBar(
         SnackBar(
           content: Text('Aggiunta a ${result.calendarName}'),
@@ -178,175 +317,218 @@ class _TaskEditorState extends State<TaskEditor> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message), showCloseIcon: true));
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedPadding(
-    duration: const Duration(milliseconds: 40),
-    padding: EdgeInsets.only(
-      bottom:
-          MediaQuery.viewInsetsOf(context).bottom +
-          MediaQuery.viewPaddingOf(context).bottom,
-    ),
-    child: ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: 560,
-        maxHeight: widget.embedded ? double.infinity : 460,
+  Widget build(BuildContext context) => PopScope(
+    canPop: widget.embedded || allowClose,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) unawaited(_closeWithDraft());
+    },
+    child: AnimatedPadding(
+      duration: const Duration(milliseconds: 40),
+      padding: EdgeInsets.only(
+        bottom:
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.viewPaddingOf(context).bottom,
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Focus(
-                      key: const ValueKey('task-editor-title-keyboard'),
-                      onKeyEvent: _submitTitleFromKeyboard,
-                      child: TextField(
-                        key: const ValueKey('task-editor-title'),
-                        controller: title,
-                        autofocus: !widget.embedded,
-                        minLines: 1,
-                        maxLines: 3,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _commit(),
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          hintText: 'Cosa devi fare?',
-                          prefixIcon: const Icon(Icons.check_circle_outline),
-                          suffixIcon: PopupMenuButton<String>(
-                            tooltip: 'Link nel titolo',
-                            icon: const Icon(Icons.link),
-                            onSelected: (value) {
-                              if (value == 'add') {
-                                _addLinkToSelection(title);
-                              } else if (!title.removeSelectedLink()) {
-                                _showSelectLinkedTextMessage();
-                              }
-                            },
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(
-                                value: 'add',
-                                child: Text('Aggiungi link'),
-                              ),
-                              PopupMenuItem(
-                                value: 'remove',
-                                child: Text('Togli link'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    _compactActions(),
-                    ExpansionTile(
-                      dense: true,
-                      visualDensity: VisualDensity.compact,
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: const EdgeInsets.only(bottom: 8),
-                      leading: const Icon(Icons.tune),
-                      title: const Text('Altri dettagli'),
-                      children: [
-                        TextField(
-                          controller: notes,
-                          minLines: 2,
-                          maxLines: 4,
-                          decoration: const InputDecoration(labelText: 'Note'),
-                        ),
-                        if (notes.links.isNotEmpty)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Wrap(
-                              spacing: 6,
-                              runSpacing: 2,
-                              children: [
-                                for (final link in notes.links)
-                                  InputChip(
-                                    avatar: const Icon(
-                                      Icons.open_in_new,
-                                      size: 16,
-                                    ),
-                                    label: Text(link.label),
-                                    tooltip: link.url,
-                                    onPressed: () => launchUrl(
-                                      Uri.parse(link.url),
-                                      mode: LaunchMode.externalApplication,
-                                    ),
-                                    onDeleted: () =>
-                                        setState(() => notes.removeLink(link)),
-                                  ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 560,
+          maxHeight: widget.embedded ? double.infinity : 460,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Focus(
+                        key: const ValueKey('task-editor-title-keyboard'),
+                        onKeyEvent: _submitTitleFromKeyboard,
+                        child: TextField(
+                          key: const ValueKey('task-editor-title'),
+                          controller: title,
+                          autofocus: !widget.embedded,
+                          minLines: 1,
+                          maxLines: 3,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _commit(),
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            hintText: 'Cosa devi fare?',
+                            prefixIcon: const Icon(Icons.check_circle_outline),
+                            suffixIcon: PopupMenuButton<String>(
+                              tooltip: 'Link nel titolo',
+                              icon: const Icon(Icons.link),
+                              onSelected: (value) {
+                                if (value == 'add') {
+                                  _addLinkToSelection(title);
+                                } else if (!title.removeSelectedLink()) {
+                                  _showSelectLinkedTextMessage();
+                                }
+                              },
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(
+                                  value: 'add',
+                                  child: Text('Aggiungi link'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'remove',
+                                  child: Text('Togli link'),
+                                ),
                               ],
                             ),
                           ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Wrap(
-                            spacing: 4,
-                            children: [
-                              TextButton.icon(
-                                onPressed: () => _addLinkToSelection(notes),
-                                icon: const Icon(Icons.link, size: 18),
-                                label: const Text('Aggiungi link'),
-                              ),
-                              TextButton.icon(
-                                onPressed: () {
-                                  if (!notes.removeSelectedLink()) {
-                                    _showSelectLinkedTextMessage();
-                                  }
-                                },
-                                icon: const Icon(Icons.link_off, size: 18),
-                                label: const Text('Togli link'),
-                              ),
-                            ],
-                          ),
                         ),
-                        const SizedBox(height: 10),
-                        _projectFields(),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 6),
+                      _compactActions(),
+                      StreamBuilder<List<OutboxEntry>>(
+                        stream:
+                            (widget.repository.db.select(
+                                  widget.repository.db.outboxEntries,
+                                )..where(
+                                  (r) => r.entityId.equals(widget.task.id),
+                                ))
+                                .watch(),
+                        builder: (context, snapshot) {
+                          final pending = snapshot.data ?? [];
+                          final conflict = pending.any(
+                            (e) =>
+                                e.lastError == 'intent_conflict' ||
+                                e.lastError == 'purged_entity',
+                          );
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              icon: Icon(
+                                conflict
+                                    ? Icons.sync_problem
+                                    : pending.isEmpty
+                                    ? Icons.check
+                                    : Icons.cloud_upload_outlined,
+                                size: 16,
+                              ),
+                              label: Text(
+                                conflict
+                                    ? 'Serve una scelta · apri storico'
+                                    : pending.isEmpty
+                                    ? 'Salvato sul dispositivo'
+                                    : 'Salvato sul dispositivo · da sincronizzare',
+                              ),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => ActivityHistoryView(
+                                    repository: widget.repository,
+                                    entityId: widget.task.id,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        key: const ValueKey('task-editor-description'),
+                        controller: notes,
+                        minLines: 2,
+                        maxLines: 8,
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Aggiungi una descrizione o incolla un link…',
+                          border: InputBorder.none,
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => _addLinkToSelection(notes),
+                          icon: const Icon(Icons.link, size: 18),
+                          label: const Text('Aggiungi link'),
+                        ),
+                      ),
+                      if (notes.links.isNotEmpty)
+                        Wrap(
+                          spacing: 6,
+                          children: [
+                            for (final link in notes.links)
+                              InputChip(
+                                label: Text(link.label),
+                                tooltip: link.url,
+                                avatar: const Icon(Icons.open_in_new, size: 16),
+                                onPressed: () => launchUrl(
+                                  Uri.parse(link.url),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                                onDeleted: () =>
+                                    setState(() => notes.removeLink(link)),
+                              ),
+                          ],
+                        ),
+                      if (draftRestored)
+                        const Text(
+                          'Bozza ripresa · non ancora salvata nell’attività',
+                        ),
+                      ExpansionTile(
+                        dense: true,
+                        tilePadding: EdgeInsets.zero,
+                        title: const Text('Progetto e sezione'),
+                        children: [_projectFields()],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            OverflowBar(
-              alignment: MainAxisAlignment.spaceBetween,
-              spacing: 8,
-              children: [
-                TextButton.icon(
-                  key: const ValueKey('task-editor-delete'),
-                  onPressed: () async {
-                    await widget.repository.softDelete(widget.task);
-                    if (!context.mounted) return;
-                    AppUndo.show(
-                      context,
-                      message: 'Spostata nel cestino',
-                      undo: () => widget.repository.restore(widget.task),
-                    );
-                    if (widget.embedded) {
-                      widget.onDeleted?.call();
-                    } else {
-                      Navigator.pop(context);
-                    }
-                  },
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Cestino'),
-                ),
-                FilledButton.icon(
-                  key: const ValueKey('task-editor-save'),
-                  onPressed: saving ? null : _commit,
-                  icon: const Icon(Icons.check),
-                  label: Text(saving ? 'Salvataggio' : 'Salva'),
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(height: 8),
+              OverflowBar(
+                alignment: MainAxisAlignment.spaceBetween,
+                spacing: 8,
+                children: [
+                  TextButton.icon(
+                    key: const ValueKey('task-editor-delete'),
+                    onPressed: () async {
+                      await widget.repository.softDelete(widget.task);
+                      await drafts.remove(widget.task.id);
+                      if (mounted) setState(() => allowClose = true);
+                      if (!context.mounted) return;
+                      AppUndo.show(
+                        context,
+                        message: 'Spostata nel cestino',
+                        undo: () => widget.repository.restore(widget.task),
+                      );
+                      if (widget.embedded) {
+                        widget.onDeleted?.call();
+                      } else {
+                        Navigator.pop(context);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Cestino'),
+                  ),
+                  if (!widget.embedded)
+                    TextButton(
+                      onPressed: _closeWithDraft,
+                      child: const Text('Chiudi'),
+                    ),
+                  FilledButton.icon(
+                    key: const ValueKey('task-editor-save'),
+                    onPressed: saving ? null : _commit,
+                    icon: const Icon(Icons.check),
+                    label: Text(saving ? 'Salvataggio' : 'Salva'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -518,41 +700,12 @@ class _TaskEditorState extends State<TaskEditor> {
   }
 
   Future<void> _addLinkToSelection(LinkTextEditingController controller) async {
-    if (controller.selectedText?.trim().isEmpty ?? true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Prima seleziona il testo da collegare.'),
-          showCloseIcon: true,
-        ),
-      );
-      return;
-    }
-    final url = TextEditingController(text: 'https://');
-    final value = await showDialog<String>(
+    final value = await showDialog<({String url, String label})>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Aggiungi link'),
-        content: TextField(
-          controller: url,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(labelText: 'Indirizzo'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, url.text),
-            child: const Text('Collega'),
-          ),
-        ],
-      ),
+      builder: (_) => TaskLinkDialog(selectedText: controller.selectedText),
     );
-    url.dispose();
     if (value == null || !mounted) return;
-    if (!controller.addLink(value)) {
+    if (!controller.insertLink(value.url, label: value.label)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Inserisci un indirizzo valido.'),

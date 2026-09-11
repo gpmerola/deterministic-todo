@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:drift/drift.dart' show OrderingTerm, QueryRow;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
@@ -16,6 +16,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
+import 'data/editor_drafts.dart';
 import 'data/local/database.dart';
 import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
@@ -42,16 +43,18 @@ import 'ui/daily_step_goal_indicator.dart';
 import 'ui/link_text_editing_controller.dart';
 import 'ui/movement_view.dart';
 import 'ui/smart_date_text_controller.dart';
+import 'ui/sync_issues_view.dart';
+import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
 
-part 'ui/settings_view.dart';
+part 'ui/app_undo.dart';
 part 'ui/data_health_view.dart';
+part 'ui/settings_view.dart';
 part 'ui/sync_account_card.dart';
+part 'ui/task_editor.dart';
+part 'ui/task_widgets.dart';
 part 'ui/trash_view.dart';
 part 'ui/undated_tasks_view.dart';
-part 'ui/task_widgets.dart';
-part 'ui/task_editor.dart';
-part 'ui/app_undo.dart';
 
 const isPlayDistribution =
     String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
@@ -204,12 +207,14 @@ class TodoApp extends StatelessWidget {
     required this.repository,
     this.syncClient,
     this.syncService,
+    this.enablePlatformServices = true,
     super.key,
   });
 
   final TaskRepository repository;
   final SupabaseClient? syncClient;
   final SyncService? syncService;
+  final bool enablePlatformServices;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -227,6 +232,7 @@ class TodoApp extends StatelessWidget {
       repository: repository,
       syncClient: syncClient,
       syncService: syncService,
+      enablePlatformServices: enablePlatformServices,
     ),
   );
 
@@ -333,12 +339,14 @@ class TaskShell extends StatefulWidget {
     required this.repository,
     this.syncClient,
     this.syncService,
+    this.enablePlatformServices = true,
     super.key,
   });
 
   final TaskRepository repository;
   final SupabaseClient? syncClient;
   final SyncService? syncService;
+  final bool enablePlatformServices;
 
   @override
   State<TaskShell> createState() => _TaskShellState();
@@ -349,11 +357,34 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final List<AppSection> sectionHistory = [];
   final Set<String> inboxProjectIds = {};
   String? selectedUpcomingDate;
+  int upcomingDays = 30;
+  int upcomingVisit = 0;
+  var desktopEditorKey = GlobalKey<_TaskEditorState>();
   String? selectedProjectId;
   String? selectedDesktopTaskId;
   final search = TextEditingController();
-  late final Stream<List<Task>> activeTasks;
-  late final Stream<List<Task>> completedTasks;
+  String? viewStreamKey;
+  Stream<List<Task>>? viewStream;
+  Stream<List<Task>> _visibleTasks() {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final start = selectedUpcomingDate == null
+        ? today.addDays(1)
+        : CivilDate.parse(selectedUpcomingDate!);
+    final key =
+        '${section.name}:$today:$selectedProjectId:$start:$upcomingDays';
+    if (key != viewStreamKey) {
+      viewStreamKey = key;
+      viewStream = widget.repository.watchView(
+        view: section.name,
+        today: today.toString(),
+        projectId: selectedProjectId,
+        fromDate: start.toString(),
+        throughDate: start.addDays(upcomingDays - 1).toString(),
+      );
+    }
+    return viewStream!;
+  }
+
   bool backgroundSnapshotTaken = false;
   Timer? updateTimer;
   Timer? movementRefreshTimer;
@@ -375,8 +406,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
     unawaited(_initializeProjectCaches());
-    activeTasks = widget.repository.watchActive();
-    completedTasks = widget.repository.watchCompleted(limit: 200);
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
       ids,
     ) {
@@ -392,17 +421,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!widget.enablePlatformServices) return;
       await _refreshDailyMovement();
       await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
     });
-    if (!isPlayDistribution) {
+    if (widget.enablePlatformServices && !isPlayDistribution) {
       updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
         if (appIsForeground) unawaited(_checkForUpdates(automatic: true));
       });
     }
-    if (isAndroidPlatform) {
+    if (widget.enablePlatformServices && isAndroidPlatform) {
       movementRefreshTimer = Timer.periodic(
         RunTrackerService.foregroundRefreshInterval,
         (_) {
@@ -587,6 +617,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.enablePlatformServices) return;
     if (state == AppLifecycleState.resumed) {
       appIsForeground = true;
       backgroundSnapshotTaken = false;
@@ -868,7 +899,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         selectedDesktopTaskId == null) {
       return false;
     }
-    setState(() => selectedDesktopTaskId = null);
+    unawaited(_closeDesktopEditor());
     return true;
   }
 
@@ -911,6 +942,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
       await _savePreference('last_quick_project', metadata.projectId ?? '');
       lastQuickProjectId = metadata.projectId;
+      if (mounted) setState(() => selectedDesktopTaskId = null);
       controller.clear();
       elapsed.stop();
       unawaited(
@@ -976,22 +1008,33 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     String? projectId,
     String? sectionId,
   }) async {
+    if (!await _closeDesktopEditor() || !mounted) return;
     final openElapsed = Stopwatch()..start();
     var openLogged = false;
     final availableProjects = List<Project>.of(quickAddProjects);
     projectId ??= availableProjects.any((item) => item.id == lastQuickProjectId)
         ? lastQuickProjectId
         : null;
-    final controller = SmartDateTextController();
-    final notesController = TextEditingController();
+    final draftStore = EditorDrafts(widget.repository.db);
+    final draft = await draftStore.read('quick_add');
+    if (!mounted) return;
+    final controller = SmartDateTextController()
+      ..text = draft?['title'] as String? ?? '';
+    final notesController = TextEditingController(
+      text: draft?['notes'] as String? ?? '',
+    );
+    projectId = draft?['projectId'] as String? ?? projectId;
+    sectionId = draft?['sectionId'] as String? ?? sectionId;
+    var submitted = false;
+    var submitting = false;
     final titleFocusNode = FocusNode(debugLabel: 'quick-add-title');
     var keyboardWasVisible = false;
     var stableKeyboardInset = 0.0;
     var closing = false;
-    var showNotes = false;
+    var showNotes = notesController.text.isNotEmpty;
     // Ogni nuova attività parte senza priorità, indipendentemente dalla scelta
     // usata nel composer precedente.
-    var priority = 1;
+    var priority = draft?['priority'] as int? ?? 1;
     if (!mounted) return;
     // Refresh in background for the next opening. The current sheet must be
     // mounted immediately, without waiting for SQLite or preferences.
@@ -1041,16 +1084,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               : currentKeyboardInset;
           final desktopComposer = MediaQuery.sizeOf(context).width >= 900;
           Future<void> submit() async {
-            if (await _createFrom(
-                  controller,
-                  projects: availableProjects,
-                  notesController: notesController,
-                  priority: priority,
-                  projectId: projectId,
-                  sectionId: sectionId,
-                ) &&
-                sheetContext.mounted) {
-              Navigator.pop(sheetContext);
+            if (submitting) return;
+            submitting = true;
+            try {
+              if (await _createFrom(
+                    controller,
+                    projects: availableProjects,
+                    notesController: notesController,
+                    priority: priority,
+                    projectId: projectId,
+                    sectionId: sectionId,
+                  ) &&
+                  sheetContext.mounted) {
+                submitted = true;
+                await draftStore.remove('quick_add');
+                if (sheetContext.mounted) Navigator.pop(sheetContext);
+              }
+            } finally {
+              submitting = false;
             }
           }
 
@@ -1186,6 +1237,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         },
       ),
     );
+    if (!submitted &&
+        (controller.text.trim().isNotEmpty ||
+            notesController.text.trim().isNotEmpty)) {
+      await draftStore.write('quick_add', {
+        'schema': 1,
+        'title': controller.text,
+        'notes': notesController.text,
+        'projectId': projectId,
+        'sectionId': sectionId,
+        'priority': priority,
+      });
+    }
     // The route completes while its exit animation can still own the field for
     // one frame. Dispose after that frame to avoid a controller-after-dispose
     // race on fast submissions.
@@ -1199,13 +1262,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   bool get _canExitFromBack =>
       section == AppSection.today && sectionHistory.isEmpty;
 
-  void _navigateTo(AppSection destination) {
+  Future<void> _navigateTo(AppSection destination) async {
     if (destination == section) return;
+    if (!await _closeDesktopEditor() || !mounted) return;
     final elapsed = Stopwatch()..start();
     setState(() {
       sectionHistory.add(section);
       if (sectionHistory.length > 20) sectionHistory.removeAt(0);
       section = destination;
+      if (destination == AppSection.upcoming) {
+        upcomingVisit++;
+        upcomingDays = 30;
+      }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       elapsed.stop();
@@ -1222,7 +1290,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     });
   }
 
-  void _handleBack() {
+  Future<void> _handleBack() async {
+    if (selectedDesktopTaskId != null) {
+      await _closeDesktopEditor();
+      return;
+    }
     setState(() {
       if (selectedDesktopTaskId != null) {
         selectedDesktopTaskId = null;
@@ -1230,6 +1302,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         selectedProjectId = null;
       } else if (sectionHistory.isNotEmpty) {
         section = sectionHistory.removeLast();
+        if (section == AppSection.upcoming) {
+          upcomingVisit++;
+          upcomingDays = 30;
+        }
       } else {
         section = AppSection.today;
       }
@@ -1256,16 +1332,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           ),
         },
         child: StreamBuilder<List<Task>>(
-          stream: section == AppSection.completed
-              ? completedTasks
-              : activeTasks,
+          stream: _visibleTasks(),
           builder: (context, snapshot) {
             final tasks = snapshot.data ?? const [];
             final primarySections = [
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
-              if (isAndroidPlatform) AppSection.movement,
+              if (widget.enablePlatformServices && isAndroidPlatform)
+                AppSection.movement,
             ];
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -1325,11 +1400,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                       const VerticalDivider(width: 1),
                                       Expanded(
                                         child: ClipRect(
-                                          child: AnimatedSwitcher(
-                                            duration: _microMotion,
-                                            child: _desktopItemDetails(
-                                              selectedDesktopTask,
-                                            ),
+                                          child: _desktopItemDetails(
+                                            selectedDesktopTask,
                                           ),
                                         ),
                                       ),
@@ -1368,7 +1440,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       ),
                     ),
                     actions: [
-                      if (isAndroidPlatform)
+                      if (widget.enablePlatformServices && isAndroidPlatform)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: DailyStepGoalIndicator(
@@ -1379,7 +1451,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           ),
                         ),
                       if (widget.syncService != null)
-                        SyncStatusAction(service: widget.syncService!),
+                        SyncStatusAction(
+                          service: widget.syncService!,
+                          repository: widget.repository,
+                        ),
                       if (section != AppSection.settings) ...[
                         IconButton(
                           tooltip: 'Comando universale',
@@ -1595,7 +1670,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     showDateMetadata:
         section != AppSection.today && section != AppSection.upcoming,
     onSelected: MediaQuery.sizeOf(context).width >= 900
-        ? () => setState(() => selectedDesktopTaskId = task.id)
+        ? () async {
+            if (selectedDesktopTaskId == task.id) return;
+            if (await _closeDesktopEditor() && mounted) {
+              setState(() {
+                desktopEditorKey = GlobalKey<_TaskEditorState>();
+                selectedDesktopTaskId = task.id;
+              });
+            }
+          }
         : null,
   );
 
@@ -1675,6 +1758,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
+  Future<bool> _closeDesktopEditor() async {
+    if (!await (desktopEditorKey.currentState?.preserveDraft() ??
+        Future.value(true))) {
+      return false;
+    }
+    if (mounted) setState(() => selectedDesktopTaskId = null);
+    return true;
+  }
+
   Widget _desktopItemDetails(Task task) => Padding(
     key: ValueKey('desktop-detail-${task.id}'),
     padding: const EdgeInsets.all(20),
@@ -1691,7 +1783,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             ),
             IconButton(
               tooltip: 'Chiudi dettagli',
-              onPressed: () => setState(() => selectedDesktopTaskId = null),
+              onPressed: _closeDesktopEditor,
               icon: const Icon(Icons.close),
             ),
           ],
@@ -1699,19 +1791,21 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         const SizedBox(height: 8),
         Expanded(
           child: Focus(
+            key: ValueKey('desktop-inline-editor-${task.id}'),
             onKeyEvent: (_, event) {
               if (event is KeyDownEvent &&
                   event.logicalKey == LogicalKeyboardKey.escape) {
-                setState(() => selectedDesktopTaskId = null);
+                unawaited(_closeDesktopEditor());
                 return KeyEventResult.handled;
               }
               return KeyEventResult.ignored;
             },
             child: TaskEditor(
-              key: ValueKey('desktop-inline-editor-${task.id}'),
+              key: desktopEditorKey,
               task: task,
               repository: widget.repository,
               embedded: true,
+              onSaved: (_) => setState(() => selectedDesktopTaskId = null),
               onDeleted: () => setState(() => selectedDesktopTaskId = null),
             ),
           ),
@@ -1826,7 +1920,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   IconButton(
                     key: const ValueKey('back-to-projects'),
                     tooltip: 'Tutti i progetti',
-                    onPressed: () => setState(() => selectedProjectId = null),
+                    onPressed: () async {
+                      if (await _closeDesktopEditor() && mounted) {
+                        setState(() => selectedProjectId = null);
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back),
                   ),
                   Icon(
@@ -2201,9 +2299,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       helpText: 'Vai rapidamente a una data',
     );
     if (picked != null && mounted) {
-      setState(
-        () => selectedUpcomingDate = CivilDate.fromDateTime(picked).toString(),
-      );
+      setState(() {
+        selectedUpcomingDate = CivilDate.fromDateTime(picked).toString();
+        upcomingDays = 30;
+        upcomingVisit++;
+      });
     }
   }
 
@@ -2219,10 +2319,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     final lastDate = CivilDate(today.year + 10, 12, 31);
     final dayCount = lastDate.asLocalDate.difference(start.asLocalDate).inDays;
     return ListView.builder(
-      key: PageStorageKey('upcoming-$selectedUpcomingDate'),
+      key: PageStorageKey('upcoming-$selectedUpcomingDate-$upcomingVisit'),
       padding: const EdgeInsets.only(bottom: 24),
-      itemCount: dayCount + 1,
+      itemCount:
+          (upcomingDays < dayCount + 1 ? upcomingDays : dayCount + 1) + 1,
       itemBuilder: (context, index) {
+        if (index ==
+            (upcomingDays < dayCount + 1 ? upcomingDays : dayCount + 1)) {
+          return upcomingDays > dayCount
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: OutlinedButton(
+                    key: const ValueKey('upcoming-load-more'),
+                    onPressed: () => setState(() => upcomingDays += 30),
+                    child: const Text('Mostra altri 30 giorni'),
+                  ),
+                );
+        }
         final date = start.addDays(index);
         final dateTasks = grouped[date.toString()] ?? const <Task>[];
         return Column(

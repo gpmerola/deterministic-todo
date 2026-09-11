@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../services/platform_runtime_native.dart'
     if (dart.library.js_interop) '../../services/platform_runtime_web.dart';
@@ -9,6 +10,7 @@ import 'database_connection_native.dart'
 
 part 'database.g.dart';
 part 'revision_schema.dart';
+part 'project_intents.dart';
 
 class Tasks extends Table {
   TextColumn get id => text()();
@@ -130,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -139,6 +141,7 @@ class AppDatabase extends _$AppDatabase {
       await _createPerformanceIndexes();
       await _createImportIndexes();
       await _installRevisionTriggers(this);
+      await _installProjectIntents(this);
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) await _createPerformanceIndexes();
@@ -153,6 +156,7 @@ class AppDatabase extends _$AppDatabase {
         await customStatement('DROP INDEX IF EXISTS tasks_kind_order_idx');
       }
       if (from < 7) await _installRevisionTriggers(this);
+      if (from < 8) await _installProjectIntents(this, migrate: true);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

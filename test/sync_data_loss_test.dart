@@ -52,7 +52,17 @@ class _Fixture {
             if (!request.url.queryParameters.containsKey('id')) {
               await beforePull?.call();
             }
-            return reply(remote == null ? [] : [remote]);
+            final cursor = request.url.queryParameters['id'];
+            return reply(
+              remote == null ||
+                      (cursor?.startsWith('gt.') == true &&
+                          (remote!['id'] as String).compareTo(
+                                cursor!.substring(3),
+                              ) <=
+                              0)
+                  ? []
+                  : [remote],
+            );
           }
           await beforeWrite?.call();
           final candidate = Map<String, dynamic>.from(
@@ -86,7 +96,8 @@ class _Fixture {
           receipts++;
           return reply([]);
         }
-        if (request.url.path.endsWith('/projects') ||
+        if (request.url.path.endsWith('/purged_entities') ||
+            request.url.path.endsWith('/projects') ||
             request.url.path.endsWith('/project_sections')) {
           return reply([]);
         }

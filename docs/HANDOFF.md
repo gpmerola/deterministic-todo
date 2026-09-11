@@ -1,5 +1,10 @@
 # Handoff tecnico e di prodotto
 
+Per il lavoro Todo della build 174 leggere prima
+[Todo UX hardening](architecture/TODO_UX_HARDENING.md) e [STATUS](../STATUS.md).
+Movimento è escluso da questo incremento; le sezioni storiche sotto restano
+riferimenti del modulo separato.
+
 La build 171 sostituisce il rebase delle attività descritto nelle sezioni
 storiche sotto. Fonte canonica corrente: [sincronizzazione e storico](architecture/TODO_SYNC_AND_HISTORY.md).
 Il cambio giorno non scrive task; intenti per campo, UPDATE condizionali e

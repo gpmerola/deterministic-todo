@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/task.dart' as domain;
 import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
+import 'paged_remote.dart';
+import 'project_sync_writer.dart';
 import 'task_sync_writer.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
@@ -334,7 +336,12 @@ class SyncService {
 
   Future<void> purgeRemoteTrash() async {
     await sync();
-    await client.rpc('purge_trash');
+    if (_latest.phase != SyncPhase.current ||
+        (await db.select(db.outboxEntries).get()).isNotEmpty) {
+      throw const SyncWriteVerificationException();
+    }
+    await client.rpc('purge_trash_v2');
+    await _pullPurgedEntities();
   }
 
   Future<void> _syncUntilQuiet() async {
@@ -351,9 +358,14 @@ class SyncService {
       _emit(const SyncSnapshot(SyncPhase.disabled));
       return;
     }
-    final entries = await (db.select(
-      db.outboxEntries,
-    )..orderBy([(row) => OrderingTerm(expression: row.createdAt)])).get();
+    final entries =
+        await (db.select(db.outboxEntries)..orderBy([
+              (row) => OrderingTerm(expression: row.createdAt),
+              (_) => OrderingTerm(
+                expression: const CustomExpression<int>('rowid'),
+              ),
+            ]))
+            .get();
     final cycle = ++_syncCycle;
     var stage = SyncStage.projects;
     final oldestOutboxAgeMs = syncOutboxOldestAgeMs(
@@ -382,83 +394,132 @@ class SyncService {
     );
     final timer = Stopwatch()..start();
     try {
-      final projectMetrics = pullAll
-          ? await _syncProjects()
-          : (skippedProjects: 0, skippedSections: 0);
-      final acknowledged = <OutboxEntry>[...entries];
-      final pendingIds = distinctEntityIds(
-        entries.map((entry) => entry.entityId),
-      );
+      var conflicts = 0;
       var uploadedEntities = 0;
       var rebasedEntities = 0;
-      final acceptedRows = <Map<String, dynamic>>[];
-      if (pendingIds.isNotEmpty) {
-        stage = SyncStage.taskUpload;
-        final pendingTasks = await (db.select(
-          db.tasks,
-        )..where((row) => row.id.isIn(pendingIds))).get();
-        for (final task in pendingTasks) {
-          try {
-            final result = await TaskSyncWriter(db, client).upload(
-              task,
-              entries.where((entry) => entry.entityId == task.id).toList(),
-            );
-            rebasedEntities += result.retries;
-            acceptedRows.add(result.row);
-          } on PostgrestException catch (error) {
-            if (!isRecurringOccurrenceConflict(error) ||
-                !await _reconcileRecurringOccurrence(task)) {
+      final grouped = <String, List<OutboxEntry>>{};
+      // Parent rows precede tasks, and each entity receives its own acknowledgement.
+      for (final entry in entries) {
+        grouped
+            .putIfAbsent(
+              '${isProjectOperation(entry) ? entry.operation : 'tasks'}:${entry.entityId}',
+              () => [],
+            )
+            .add(entry);
+      }
+      int rank(List<OutboxEntry> group) => group.first.operation == 'projects'
+          ? 0
+          : group.first.operation == 'project_sections'
+          ? 1
+          : 2;
+      final groups = grouped.values.toList()
+        ..sort((a, b) => rank(a).compareTo(rank(b)));
+      for (final group in groups) {
+        final entry = group.first;
+        try {
+          Map<String, dynamic> row;
+          if (isProjectOperation(entry)) {
+            stage = SyncStage.projects;
+            row = await ProjectSyncWriter(db, client).upload(group);
+          } else {
+            stage = SyncStage.taskUpload;
+            final task = await (db.select(
+              db.tasks,
+            )..where((r) => r.id.equals(entry.entityId))).getSingleOrNull();
+            if (task == null) throw const SyncIntentConflictException();
+            try {
+              final result = await TaskSyncWriter(
+                db,
+                client,
+              ).upload(task, group);
+              rebasedEntities += result.retries;
+              row = result.row;
+            } on PostgrestException catch (error) {
+              if (isRecurringOccurrenceConflict(error)) {
+                await _reconcileRecurringOccurrence(task);
+              }
               rethrow;
             }
           }
+          stage = SyncStage.receipt;
+          await client
+              .from('sync_operations')
+              .upsert(
+                [
+                  for (final op in group)
+                    {
+                      'operation_id': op.operationId,
+                      'entity_id': op.entityId,
+                      'operation': isProjectOperation(op)
+                          ? 'upsert'
+                          : op.operation,
+                      'payload': syncReceipt(op),
+                    },
+                ],
+                onConflict: 'operation_id',
+                ignoreDuplicates: true,
+              );
+          await db.transaction(() async {
+            await (db.delete(db.outboxEntries)..where(
+                  (r) => r.operationId.isIn(group.map((e) => e.operationId)),
+                ))
+                .go();
+            if (isProjectOperation(entry)) {
+              await _mergeProject(entry.operation, row);
+            } else {
+              await _mergeRemote(row, null);
+            }
+          });
+          uploadedEntities++;
+        } on PostgrestException catch (error) {
+          if (error.code != 'P0001' ||
+              !error.message.contains('todo_entity_purged')) {
+            rethrow;
+          }
+          conflicts++;
+          await (db.update(db.outboxEntries)..where(
+                (r) => r.operationId.isIn(group.map((e) => e.operationId)),
+              ))
+              .write(
+                const OutboxEntriesCompanion(lastError: Value('purged_entity')),
+              );
+        } on SyncIntentConflictException {
+          conflicts++;
+          await (db.update(db.outboxEntries)..where(
+                (r) => r.operationId.isIn(group.map((e) => e.operationId)),
+              ))
+              .write(
+                const OutboxEntriesCompanion(
+                  lastError: Value('intent_conflict'),
+                ),
+              );
         }
-        uploadedEntities = pendingTasks.length;
-      }
-      if (acknowledged.isNotEmpty) {
-        stage = SyncStage.receipt;
-        await client
-            .from('sync_operations')
-            .upsert(
-              [
-                for (final entry in acknowledged)
-                  {
-                    'operation_id': entry.operationId,
-                    'entity_id': entry.entityId,
-                    'operation': entry.operation,
-                    'payload': syncReceipt(entry),
-                  },
-              ],
-              onConflict: 'operation_id',
-              ignoreDuplicates: true,
-            );
-        await db.transaction(() async {
-          for (final entry in acknowledged) {
-            await (db.delete(
-              db.outboxEntries,
-            )..where((row) => row.operationId.equals(entry.operationId))).go();
-          }
-          for (final row in acceptedRows) {
-            await _mergeRemote(row, null);
-          }
-        });
       }
       stage = SyncStage.taskPull;
-      final remoteRows = pullAll
-          ? await client.from('tasks').select()
-          : const <Map<String, dynamic>>[];
-      final remoteIds = remoteRows
-          .map((raw) => raw['id'] as String)
-          .toList(growable: false);
-      final localTasks = remoteIds.isEmpty
-          ? const <Task>[]
-          : await (db.select(
-              db.tasks,
-            )..where((row) => row.id.isIn(remoteIds))).get();
-      final localById = {for (final task in localTasks) task.id: task};
-      stage = SyncStage.taskMerge;
-      for (final raw in remoteRows) {
-        await _mergeRemote(raw, localById[raw['id'] as String]);
+      var remoteCount = 0;
+      if (pullAll) {
+        await _syncProjects();
+        await for (final page in remotePages(client, 'tasks')) {
+          stage = SyncStage.taskMerge;
+          await db.transaction(() async {
+            for (final raw in page) {
+              await _mergeRemote(raw, null);
+            }
+          });
+          remoteCount += page.length;
+        }
+        await _pullPurgedEntities();
       }
+      final remaining = await db.select(db.outboxEntries).get();
+      conflicts = remaining
+          .where(
+            (e) =>
+                e.lastError == 'intent_conflict' ||
+                e.lastError == 'purged_entity',
+          )
+          .map((e) => e.entityId)
+          .toSet()
+          .length;
       final now = DateTime.now().toUtc();
       timer.stop();
       final recoveredFailures = _consecutiveFailures;
@@ -468,7 +529,11 @@ class SyncService {
       if (recoveredFailures > 0) _lastRecoveryAt = now;
       _emit(
         SyncSnapshot(
-          SyncPhase.current,
+          conflicts > 0 ? SyncPhase.error : SyncPhase.current,
+          pending: remaining.length,
+          error: conflicts > 0
+              ? 'Serve una scelta per $conflicts elementi'
+              : null,
           lastSuccess: now,
           lastFailure: _lastFailureAt,
           lastError: _lastError,
@@ -485,9 +550,8 @@ class SyncService {
             'sync_stage': SyncStage.idle.name,
             'uploaded_entities': uploadedEntities,
             'rebased_entities': rebasedEntities,
-            'remote_rows': remoteRows.length,
-            'skipped_projects': projectMetrics.skippedProjects,
-            'skipped_sections': projectMetrics.skippedSections,
+            'remote_rows': remoteCount,
+            'conflicts': conflicts,
             'duration_ms': timer.elapsedMilliseconds,
           },
         ),
@@ -588,242 +652,133 @@ class SyncService {
     return delay;
   }
 
-  Future<({int skippedProjects, int skippedSections})> _syncProjects() async {
-    var skippedProjects = 0;
-    var skippedSections = 0;
-    final savedRows =
-        await (db.select(db.appSettings)..where(
-              (row) =>
-                  row.key.like('sync_project:%') |
-                  row.key.like('sync_section:%'),
-            ))
-            .get();
-    final savedFingerprints = {
-      for (final setting in savedRows) setting.key: setting.value,
-    };
-    final projects = await db.select(db.projects).get();
-    for (final project in projects) {
-      final fingerprint = _fingerprint(
-        project.logicalVersion,
-        project.deviceId,
-      );
-      if (savedFingerprints['sync_project:${project.id}'] == fingerprint) {
-        skippedProjects++;
-        continue;
+  Future<void> _syncProjects() async {
+    for (final table in ['projects', 'project_sections']) {
+      await for (final page in remotePages(client, table)) {
+        for (final raw in page) {
+          await _mergeProject(table, raw);
+        }
       }
-      await client.rpc(
-        'merge_project',
-        params: {'record': _remoteProject(project)},
-      );
-      await _saveSyncedFingerprint('project', project.id, fingerprint);
     }
-    final sections = await db.select(db.projectSections).get();
-    for (final section in sections) {
-      final fingerprint = _fingerprint(
-        section.logicalVersion,
-        section.deviceId,
-      );
-      if (savedFingerprints['sync_section:${section.id}'] == fingerprint) {
-        skippedSections++;
-        continue;
-      }
-      await client.rpc(
-        'merge_project_section',
-        params: {'record': _remoteSection(section)},
-      );
-      await _saveSyncedFingerprint('section', section.id, fingerprint);
-    }
-    for (final raw in await client.from('projects').select()) {
-      final local = await (db.select(
-        db.projects,
-      )..where((row) => row.id.equals(raw['id'] as String))).getSingleOrNull();
-      final remoteVersion = domain.LogicalVersion(
-        raw['logical_version'] as int,
-        raw['device_id'] as String,
-      );
-      if (local != null &&
-          remoteVersion.compareTo(
-                domain.LogicalVersion(local.logicalVersion, local.deviceId),
-              ) <=
-              0) {
-        continue;
-      }
-      await db.withRevisionSource(
-        'sync_pull',
-        () => db
-            .into(db.projects)
-            .insertOnConflictUpdate(
-              ProjectsCompanion(
-                id: Value(raw['id'] as String),
-                userId: Value(raw['user_id'] as String?),
-                name: Value(raw['name'] as String),
-                color: Value(raw['color'] as String?),
-                parentId: Value(raw['parent_id'] as String?),
-                position: Value(raw['position'] as int),
-                isFavorite: Value(raw['is_favorite'] as bool),
-                isArchived: Value(raw['is_archived'] as bool),
-                externalSource: Value(raw['external_source'] as String?),
-                externalId: Value(raw['external_id'] as String?),
-                logicalVersion: Value(raw['logical_version'] as int),
-                deviceId: Value(raw['device_id'] as String),
-              ),
-            ),
-      );
-      await _saveSyncedFingerprint(
-        'project',
-        raw['id'] as String,
-        _fingerprint(raw['logical_version'] as int, raw['device_id'] as String),
-      );
-    }
-    for (final raw in await client.from('project_sections').select()) {
-      final local = await (db.select(
-        db.projectSections,
-      )..where((row) => row.id.equals(raw['id'] as String))).getSingleOrNull();
-      final remoteVersion = domain.LogicalVersion(
-        raw['logical_version'] as int,
-        raw['device_id'] as String,
-      );
-      if (local != null &&
-          remoteVersion.compareTo(
-                domain.LogicalVersion(local.logicalVersion, local.deviceId),
-              ) <=
-              0) {
-        continue;
-      }
-      await db.withRevisionSource(
-        'sync_pull',
-        () => db
-            .into(db.projectSections)
-            .insertOnConflictUpdate(
-              ProjectSectionsCompanion(
-                id: Value(raw['id'] as String),
-                userId: Value(raw['user_id'] as String?),
-                projectId: Value(raw['project_id'] as String),
-                name: Value(raw['name'] as String),
-                position: Value(raw['position'] as int),
-                isArchived: Value(raw['is_archived'] as bool),
-                externalSource: Value(raw['external_source'] as String?),
-                externalId: Value(raw['external_id'] as String?),
-                logicalVersion: Value(raw['logical_version'] as int),
-                deviceId: Value(raw['device_id'] as String),
-              ),
-            ),
-      );
-      await _saveSyncedFingerprint(
-        'section',
-        raw['id'] as String,
-        _fingerprint(raw['logical_version'] as int, raw['device_id'] as String),
-      );
-    }
-    return (skippedProjects: skippedProjects, skippedSections: skippedSections);
   }
 
   Future<void> _pullRemoteProjects({
     required Set<String> projectIds,
     required Set<String> sectionIds,
   }) async {
-    if (projectIds.isNotEmpty) {
-      for (final raw
-          in await client
-              .from('projects')
-              .select()
-              .inFilter('id', projectIds.toList())) {
-        final local =
-            await (db.select(db.projects)
-                  ..where((row) => row.id.equals(raw['id'] as String)))
-                .getSingleOrNull();
-        final remoteVersion = domain.LogicalVersion(
-          raw['logical_version'] as int,
-          raw['device_id'] as String,
-        );
-        if (local != null &&
-            remoteVersion.compareTo(
-                  domain.LogicalVersion(local.logicalVersion, local.deviceId),
-                ) <=
-                0) {
-          continue;
+    for (final group in {
+      'projects': projectIds,
+      'project_sections': sectionIds,
+    }.entries) {
+      final ids = group.value.toList();
+      for (var start = 0; start < ids.length; start += 100) {
+        final batch = ids.skip(start).take(100).toList();
+        for (final raw
+            in await client.from(group.key).select().inFilter('id', batch)) {
+          await _mergeProject(group.key, raw);
         }
-        await db.withRevisionSource(
-          'sync_pull',
-          () => db
-              .into(db.projects)
-              .insertOnConflictUpdate(
-                ProjectsCompanion(
-                  id: Value(raw['id'] as String),
-                  userId: Value(raw['user_id'] as String?),
-                  name: Value(raw['name'] as String),
-                  color: Value(raw['color'] as String?),
-                  parentId: Value(raw['parent_id'] as String?),
-                  position: Value(raw['position'] as int),
-                  isFavorite: Value(raw['is_favorite'] as bool),
-                  isArchived: Value(raw['is_archived'] as bool),
-                  externalSource: Value(raw['external_source'] as String?),
-                  externalId: Value(raw['external_id'] as String?),
-                  logicalVersion: Value(raw['logical_version'] as int),
-                  deviceId: Value(raw['device_id'] as String),
-                ),
-              ),
-        );
-      }
-    }
-    if (sectionIds.isNotEmpty) {
-      for (final raw
-          in await client
-              .from('project_sections')
-              .select()
-              .inFilter('id', sectionIds.toList())) {
-        final local =
-            await (db.select(db.projectSections)
-                  ..where((row) => row.id.equals(raw['id'] as String)))
-                .getSingleOrNull();
-        final remoteVersion = domain.LogicalVersion(
-          raw['logical_version'] as int,
-          raw['device_id'] as String,
-        );
-        if (local != null &&
-            remoteVersion.compareTo(
-                  domain.LogicalVersion(local.logicalVersion, local.deviceId),
-                ) <=
-                0) {
-          continue;
-        }
-        await db.withRevisionSource(
-          'sync_pull',
-          () => db
-              .into(db.projectSections)
-              .insertOnConflictUpdate(
-                ProjectSectionsCompanion(
-                  id: Value(raw['id'] as String),
-                  userId: Value(raw['user_id'] as String?),
-                  projectId: Value(raw['project_id'] as String),
-                  name: Value(raw['name'] as String),
-                  position: Value(raw['position'] as int),
-                  isArchived: Value(raw['is_archived'] as bool),
-                  externalSource: Value(raw['external_source'] as String?),
-                  externalId: Value(raw['external_id'] as String?),
-                  logicalVersion: Value(raw['logical_version'] as int),
-                  deviceId: Value(raw['device_id'] as String),
-                ),
-              ),
-        );
       }
     }
   }
 
-  String _fingerprint(int version, String deviceId) => '$version:$deviceId';
+  Future<void> _mergeProject(
+    String table,
+    Map<String, dynamic> raw,
+  ) => db.withRevisionSource('sync_pull', () async {
+    final id = raw['id'] as String;
+    if (await _wasPurged(table, id)) return;
+    final pending =
+        await (db.select(db.outboxEntries)
+              ..where((r) => r.entityId.equals(id) & r.operation.equals(table))
+              ..limit(1))
+            .get();
+    if (pending.isNotEmpty) return;
+    await _observeLogicalCounter(raw['logical_version'] as int);
+    final old = await db
+        .customSelect(
+          'SELECT logical_version, device_id FROM "$table" WHERE id = ?',
+          variables: [Variable(id)],
+        )
+        .getSingleOrNull();
+    if (old != null &&
+        domain.LogicalVersion(
+              raw['logical_version'] as int,
+              raw['device_id'] as String,
+            ).compareTo(
+              domain.LogicalVersion(
+                old.read<int>('logical_version'),
+                old.read<String>('device_id'),
+              ),
+            ) <=
+            0) {
+      return;
+    }
+    final json = <String, dynamic>{
+      for (final e in normalizeProject(raw).entries)
+        e.key.replaceAllMapped(RegExp('_([a-z])'), (m) => m[1]!.toUpperCase()):
+            e.value,
+    };
+    if (table == 'projects') {
+      await db.into(db.projects).insertOnConflictUpdate(Project.fromJson(json));
+    } else {
+      await db
+          .into(db.projectSections)
+          .insertOnConflictUpdate(ProjectSection.fromJson(json));
+    }
+  });
 
-  Future<void> _saveSyncedFingerprint(String type, String id, String value) =>
-      db
-          .into(db.appSettings)
-          .insertOnConflictUpdate(
-            AppSettingsCompanion.insert(key: 'sync_$type:$id', value: value),
-          );
+  Future<bool> _wasPurged(String table, String id) async =>
+      await (db.select(
+        db.appSettings,
+      )..where((s) => s.key.equals('purged:$table:$id'))).getSingleOrNull() !=
+      null;
+
+  /// Older servers remain usable, but cannot perform the new safe purge.
+  Future<void> _pullPurgedEntities() async {
+    try {
+      await for (final page in remotePages(client, 'purged_entities')) {
+        await db.withRevisionSource('sync_purge', () async {
+          for (final row in page) {
+            final table = row['entity_type'] as String;
+            if (!const {
+              'tasks',
+              'projects',
+              'project_sections',
+            }.contains(table)) {
+              throw const FormatException('Invalid purge type');
+            }
+            final id = row['entity_id'] as String;
+            await db
+                .into(db.appSettings)
+                .insert(
+                  AppSettingsCompanion.insert(
+                    key: 'purged:$table:$id',
+                    value: '1',
+                  ),
+                  mode: InsertMode.insertOrIgnore,
+                );
+            await db.customUpdate(
+              'DELETE FROM "$table" WHERE id = ?',
+              variables: [Variable(id)],
+              updates: {db.tasks, db.projects, db.projectSections},
+            );
+            await (db.delete(
+              db.outboxEntries,
+            )..where((r) => r.entityId.equals(id))).go();
+          }
+        });
+      }
+    } on PostgrestException catch (e) {
+      if (!const {'42P01', 'PGRST205'}.contains(e.code)) rethrow;
+    }
+  }
 
   Future<bool> _mergeRemote(
     Map<String, dynamic> raw,
     Task? ignoredSnapshot,
   ) => db.withRevisionSource('sync_pull', () async {
     final id = raw['id'] as String;
+    if (await _wasPurged('tasks', id)) return false;
     await _observeLogicalCounter(raw['logical_version'] as int);
     final pending =
         await (db.select(db.outboxEntries)
@@ -899,34 +854,6 @@ class SyncService {
     );
     throw const SyncIntentConflictException();
   }
-
-  Map<String, Object?> _remoteProject(Project project) => {
-    'id': project.id,
-    'user_id': client.auth.currentUser!.id,
-    'name': project.name,
-    'color': project.color,
-    'parent_id': project.parentId,
-    'position': project.position,
-    'is_favorite': project.isFavorite,
-    'is_archived': project.isArchived,
-    'external_source': project.externalSource,
-    'external_id': project.externalId,
-    'logical_version': project.logicalVersion,
-    'device_id': project.deviceId,
-  };
-
-  Map<String, Object?> _remoteSection(ProjectSection section) => {
-    'id': section.id,
-    'user_id': client.auth.currentUser!.id,
-    'project_id': section.projectId,
-    'name': section.name,
-    'position': section.position,
-    'is_archived': section.isArchived,
-    'external_source': section.externalSource,
-    'external_id': section.externalId,
-    'logical_version': section.logicalVersion,
-    'device_id': section.deviceId,
-  };
 
   Future<void> dispose() async {
     _timer?.cancel();

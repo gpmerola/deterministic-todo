@@ -3,6 +3,24 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('pasting over a selection does not inherit a previous link', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      'Nota Web [example.com › documento](https://example.com/old)',
+    );
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
+    controller.value = const TextEditingValue(
+      text: 'Nota Web aggiornata https://example.com/documento',
+      selection: TextSelection.collapsed(offset: 48),
+    );
+    expect(controller.links, isEmpty);
+    expect(controller.toMarkdown(), isNot(contains('https://example.com/old')));
+    expect(controller.toMarkdown(), contains('https://example.com/documento'));
+    controller.dispose();
+  });
+
   test('nasconde URL Markdown e li conserva al salvataggio', () {
     final controller = LinkTextEditingController.fromMarkdown(
       'Leggi [Paper1](https://example.com/paper) oggi',
@@ -50,6 +68,32 @@ void main() {
       'Console [play.google.com › console](https://play.google.com/console) '
       'e [example.com](https://www.example.com).',
     );
+  });
+
+  test('identical labels retain distinct URLs after prefix insertion', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      '[Apri](https://example.com/a) e [Apri](https://example.com/b)',
+    );
+    controller.value = TextEditingValue(
+      text: 'Prima ${controller.text}',
+      selection: const TextSelection.collapsed(offset: 6),
+    );
+    expect(
+      controller.toMarkdown(),
+      'Prima [Apri](https://example.com/a) e [Apri](https://example.com/b)',
+    );
+    controller.dispose();
+  });
+
+  test('inserts a new link without selection and rejects an empty host', () {
+    final controller = LinkTextEditingController.fromMarkdown('Leggi');
+    expect(controller.insertLink('https://'), isFalse);
+    expect(
+      controller.insertLink('https://example.com/paper', label: 'Paper'),
+      isTrue,
+    );
+    expect(controller.toMarkdown(), 'Leggi [Paper](https://example.com/paper)');
+    controller.dispose();
   });
 
   test('sostituisce contenuto remoto conservando link leggibili', () {

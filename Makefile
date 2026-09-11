@@ -1,6 +1,6 @@
 .PHONY: check check-generated check-docs test-tools todo-test todo-test-adb todo-test-remote todo-test-ci
 
-check: test-tools check-docs
+check: test-tools check-docs check-sql
 	flutter analyze
 	flutter test
 
@@ -26,3 +26,8 @@ todo-test-remote:
 
 todo-test-ci:
 	gh workflow run publish-todo-test-fast.yml --ref $$(git branch --show-current)
+
+.PHONY: check-sql
+check-sql:
+	npm ci --prefix tools/sql-tests --ignore-scripts --no-audit --no-fund
+	node tools/sql-tests/safe_purge.mjs

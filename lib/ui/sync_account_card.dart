@@ -1,7 +1,13 @@
 part of '../main.dart';
 
 class SyncStatusAction extends StatefulWidget {
-  const SyncStatusAction({required this.service, super.key});
+  const SyncStatusAction({
+    required this.service,
+    required this.repository,
+    super.key,
+  });
+
+  final TaskRepository repository;
 
   final SyncService service;
 
@@ -11,6 +17,8 @@ class SyncStatusAction extends StatefulWidget {
 
 class _SyncStatusActionState extends State<SyncStatusAction> {
   StreamSubscription<SyncSnapshot>? subscription;
+  StreamSubscription<List<QueryRow>>? pendingSubscription;
+  int? localPending;
   Timer? slowTimer;
   late SyncSnapshot snapshot;
   bool showSlowSync = false;
@@ -20,6 +28,17 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
     super.initState();
     snapshot = widget.service.latest;
     subscription = widget.service.snapshots.listen(_onSnapshot);
+    pendingSubscription = widget.repository.db
+        .customSelect(
+          'SELECT COUNT(*) AS pending FROM outbox_entries',
+          readsFrom: {widget.repository.db.outboxEntries},
+        )
+        .watch()
+        .listen((rows) {
+          if (mounted) {
+            setState(() => localPending = rows.single.read<int>('pending'));
+          }
+        });
   }
 
   void _onSnapshot(SyncSnapshot next) {
@@ -40,11 +59,22 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
   void dispose() {
     slowTimer?.cancel();
     subscription?.cancel();
+    pendingSubscription?.cancel();
     super.dispose();
   }
 
+  void _openIssues() => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => SyncIssuesView(
+        repository: widget.repository,
+        service: widget.service,
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    final pending = localPending ?? snapshot.pending;
     if (snapshot.phase == SyncPhase.error ||
         snapshot.phase == SyncPhase.offline) {
       return IconButton(
@@ -53,7 +83,7 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
             : snapshot.error == null
             ? 'Sincronizzazione non riuscita'
             : 'Sincronizzazione non riuscita · ${snapshot.error}',
-        onPressed: widget.service.sync,
+        onPressed: _openIssues,
         icon: Icon(
           snapshot.phase == SyncPhase.offline
               ? Icons.cloud_off_outlined
@@ -73,7 +103,16 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
         ),
       );
     }
-    return const SizedBox.shrink();
+    return IconButton(
+      tooltip: pending > 0
+          ? '$pending modifiche da sincronizzare'
+          : 'Salvato sul dispositivo · sincronizzazione',
+      onPressed: _openIssues,
+      icon: Icon(
+        pending > 0 ? Icons.cloud_upload_outlined : Icons.cloud_done_outlined,
+        size: 20,
+      ),
+    );
   }
 }
 
@@ -227,6 +266,8 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
 
   String _syncLabel(SyncSnapshot? snapshot) => switch (snapshot?.phase) {
     SyncPhase.syncing => 'Sincronizzazione (${snapshot!.pending})…',
+    SyncPhase.current when snapshot!.pending > 0 =>
+      'Salvato sul dispositivo · ${snapshot.pending} da sincronizzare',
     SyncPhase.current =>
       snapshot!.lastSuccess == null
           ? 'Sincronizzato'

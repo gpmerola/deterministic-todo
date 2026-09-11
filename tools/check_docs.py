@@ -29,7 +29,7 @@ def local_target(document: Path, raw_target: str) -> Path | None:
 def broken_links() -> list[str]:
     failures: list[str] = []
     for document in sorted(ROOT.rglob("*.md")):
-        if any(part in {".dart_tool", "build", ".git"} for part in document.parts):
+        if any(part in {".dart_tool", "build", ".git", "node_modules", "temp"} for part in document.parts):
             continue
         text = document.read_text(encoding="utf-8")
         for match in LINK.finditer(text):

@@ -27,7 +27,10 @@ class ExportService {
       'version': 1,
       'exported_at': DateTime.now().toUtc().toIso8601String(),
       'tasks': tasks.map((task) => task.toJson()).toList(),
-      'settings': settings.map((setting) => setting.toJson()).toList(),
+      'settings': settings
+          .where((setting) => !setting.key.startsWith('editor_draft:'))
+          .map((setting) => setting.toJson())
+          .toList(),
     });
   }
 

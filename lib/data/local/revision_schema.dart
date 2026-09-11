@@ -65,6 +65,7 @@ extension RevisionAccess on AppDatabase {
 
   Future<void> recordSyncRevision({
     required String entityId,
+    String entityType = 'tasks',
     required String source,
     required Map<String, dynamic>? before,
     required Map<String, dynamic>? after,
@@ -81,7 +82,7 @@ extension RevisionAccess on AppDatabase {
     ]);
     await into(activityRevisions).insert(
       ActivityRevisionsCompanion.insert(
-        entityType: 'tasks',
+        entityType: entityType,
         entityId: entityId,
         operation: 'sync',
         source: source,

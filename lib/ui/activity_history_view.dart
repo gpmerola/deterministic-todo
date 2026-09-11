@@ -250,14 +250,20 @@ class _RevisionDetail extends StatelessWidget {
     );
     if (confirmed != true) return;
     try {
-      await repository.restoreRevision(taskFromRemote(snapshot));
+      if (revision.entityType == 'tasks') {
+        await repository.restoreRevision(taskFromRemote(snapshot));
+      } else {
+        await repository.restoreProjectRevision(revision.entityType, snapshot);
+      }
       if (context.mounted) Navigator.pop(context);
-    } on Object {
+    } on Object catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Ripristino non riuscito. Nessuna versione è stata eliminata.',
+              error is FormatException
+                  ? error.message.toString()
+                  : 'Ripristino non riuscito. Nessuna versione è stata eliminata.',
             ),
           ),
         );
@@ -302,7 +308,11 @@ class _RevisionDetail extends StatelessWidget {
                 ],
               ),
             ),
-          if (revision.entityType == 'tasks') ...[
+          if (const {
+            'tasks',
+            'projects',
+            'project_sections',
+          }.contains(revision.entityType)) ...[
             if (before.isNotEmpty)
               OutlinedButton(
                 onPressed: () => _restore(context, before),

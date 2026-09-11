@@ -1,6 +1,17 @@
 # TODO e handover
 
-Aggiornato l’8 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato l’11 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+
+## P0 — Todo UX e sincronizzazione, build 174
+
+- [x] Implementare editor, bozze, viste filtrate, intenti progetti/sezioni,
+  paginazione e isolamento dei conflitti.
+- [x] Completare collaudo Galaxy e confronto browser/telefono con fixture.
+- [ ] Applicare la migrazione del cestino dopo approvazione del servizio condiviso.
+- [ ] Pubblicare Web/stabile dopo conferma `PUBBLICA` e collaudare account reale.
+
+Contratto: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).
+Esiti e limiti correnti: [STATUS](STATUS.md). Movimento escluso da questo task.
 
 ## P0 — Sincronizzazione e storico, build 172
 
@@ -82,7 +93,7 @@ non duplicare qui i dettagli tecnici.
 
 - Repository sorgente pubblico: `gpmerola/deterministic-todo`.
 - Repository release Android: `gpmerola/deterministic-todo-releases`.
-- Branch operativo: `agent/verify-public-release-token`.
+- Branch operativo: `agent/todo-ux-sync-hardening`.
 - Android è il primo canale nativo; desktop usa la web app GitHub Pages.
 - Release Todo Test installata e stato dei monitor: fonte corrente [STATUS](STATUS.md).
   **Todo Test** (`.dev`) è il solo client operativo sul Galaxy S21.

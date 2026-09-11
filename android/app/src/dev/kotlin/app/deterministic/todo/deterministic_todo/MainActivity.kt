@@ -6,7 +6,9 @@ import io.flutter.embedding.engine.FlutterEngine
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        RunTrackerChannel.register(this, flutterEngine)
+        if (!applicationContext.packageName.endsWith(".dev.validation")) {
+            RunTrackerChannel.register(this, flutterEngine)
+        }
         RuntimeMetricsChannel.register(flutterEngine)
     }
 }

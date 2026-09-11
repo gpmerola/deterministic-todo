@@ -18,7 +18,7 @@ class TrashView extends StatelessWidget {
                     'non può essere annullata.'
               : 'Tutti gli elementi nel Cestino saranno eliminati '
                     'definitivamente dal cloud e da questo dispositivo. '
-                    'Prima sincronizza eventuali altri dispositivi offline. '
+                    'Una traccia della cancellazione impedirà la ricomparsa dagli altri dispositivi. '
                     'Questa azione non può essere annullata.',
         ),
         actions: [
@@ -36,8 +36,11 @@ class TrashView extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await syncService?.purgeRemoteTrash();
-      await repository.purgeLocalTrash();
+      if (syncService != null) {
+        await syncService!.purgeRemoteTrash();
+      } else {
+        await repository.purgeLocalTrash();
+      }
       messenger.showSnackBar(
         const SnackBar(content: Text('Cestino svuotato'), showCloseIcon: true),
       );
@@ -45,7 +48,7 @@ class TrashView extends StatelessWidget {
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
-            'Impossibile svuotare il Cestino: nessun elemento locale è stato eliminato.',
+            'Cestino non svuotato completamente. Verifica la sincronizzazione e che il server supporti la cancellazione protetta.',
           ),
           showCloseIcon: true,
         ),

@@ -46,6 +46,7 @@ Map<String, dynamic> syncReceipt(OutboxEntry entry) {
     'id': entry.entityId,
     'version': payload['version'] ?? payload['logical_version'],
     'kind': payload['kind'] ?? 'legacy',
+    'entity_type': payload['table'] ?? 'tasks',
     'changed_fields': (payload['changes'] as Map?)?.keys.toList() ?? [],
   };
 }

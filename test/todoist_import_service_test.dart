@@ -180,7 +180,10 @@ void main() {
     expect(second.addedSections, 0);
     expect(second.addedTasks, 0);
     expect(await db.select(db.tasks).get(), hasLength(1));
-    expect(await db.select(db.outboxEntries).get(), hasLength(1));
+    expect(
+      await db.select(db.outboxEntries).get(),
+      hasLength(3),
+    ); // task, project and section intents
     expect(
       (await db.select(db.tasks).getSingle()).recurrence,
       'calendar:month:1',

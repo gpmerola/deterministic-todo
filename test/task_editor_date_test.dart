@@ -39,7 +39,12 @@ void main() {
       expect(saved.status, TaskStatus.inbox.name);
       expect(saved.projectId, projectId);
       expect(saved.logicalVersion, original.logicalVersion + 1);
-      expect(await reopened.select(reopened.outboxEntries).get(), hasLength(2));
+      expect(
+        await (reopened.select(
+          reopened.outboxEntries,
+        )..where((r) => r.operation.equals('upsert'))).get(),
+        hasLength(2),
+      );
     } finally {
       await reopened.close();
     }

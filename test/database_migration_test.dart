@@ -1,11 +1,66 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:deterministic_todo/data/local/database.dart';
+import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {
+  test(
+    'schema 7 keeps synced projects clean and queues legacy changes once',
+    () async {
+      final directory = await Directory.systemTemp.createTemp('todo-db-v7-');
+      final file = File('${directory.path}/todo.sqlite');
+      final initial = AppDatabase.forTesting(NativeDatabase(file));
+      final repo = TaskRepository(initial, deviceId: 'fixture');
+      final syncedId = await repo.createProject('Sincronizzato sintetico');
+      final pendingId = await repo.createProject('Locale sintetico');
+      final sectionId = await repo.createProjectSection(
+        pendingId,
+        'Sezione sintetica',
+      );
+      await initial.customStatement('DELETE FROM outbox_entries');
+      final synced = await (initial.select(
+        initial.projects,
+      )..where((p) => p.id.equals(syncedId))).getSingle();
+      await initial
+          .into(initial.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(
+              key: 'sync_project:$syncedId',
+              value: '${synced.logicalVersion}:${synced.deviceId}',
+            ),
+          );
+      await initial.close();
+      final legacy = sqlite.sqlite3.open(file.path);
+      for (final table in ['projects', 'project_sections']) {
+        for (final op in ['insert', 'update']) {
+          legacy.execute('DROP TRIGGER ${table}_intent_$op');
+        }
+      }
+      legacy.execute('PRAGMA user_version = 7');
+      legacy.close();
+      var upgraded = AppDatabase.forTesting(NativeDatabase(file));
+      final pending = await upgraded.select(upgraded.outboxEntries).get();
+      expect(pending.map((e) => e.entityId).toSet(), {pendingId, sectionId});
+      expect(
+        pending.every(
+          (e) =>
+              (jsonDecode(e.payload) as Map<String, dynamic>)['kind'] ==
+              'legacy',
+        ),
+        isTrue,
+      );
+      await upgraded.close();
+      upgraded = AppDatabase.forTesting(NativeDatabase(file));
+      expect(await upgraded.select(upgraded.outboxEntries).get(), hasLength(2));
+      await upgraded.close();
+      await directory.delete(recursive: true);
+    },
+  );
+
   test('riprende una migrazione versione 2 rimasta a metà', () async {
     final directory = await Directory.systemTemp.createTemp(
       'todo-db-migration-',
@@ -73,7 +128,7 @@ void main() {
         .customSelect('PRAGMA user_version')
         .map((row) => row.read<int>('user_version'))
         .getSingle();
-    expect(version, 7);
+    expect(version, 8);
     final columns = await database
         .customSelect('PRAGMA table_info(tasks)')
         .get();

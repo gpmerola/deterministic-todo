@@ -4,6 +4,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val todoValidation = providers.gradleProperty("todoValidation").orNull == "true"
+
 android {
     namespace = "app.deterministic.todo.deterministic_todo"
     compileSdk = flutter.compileSdkVersion
@@ -25,9 +27,9 @@ android {
         }
         create("dev") {
             dimension = "distribution"
-            applicationIdSuffix = ".dev"
+            applicationIdSuffix = if (todoValidation) ".dev.validation" else ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "Todo Test")
+            resValue("string", "app_name", if (todoValidation) "Todo Validation" else "Todo Test")
         }
     }
 

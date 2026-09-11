@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.38.0 (build 174) — Todo Test
+
+- Prossime ritorna in cima al rientro e carica 30 giorni per volta; query locali
+  filtrate per la schermata corrente.
+- Editor desktop chiuso dopo salvataggio; descrizione visibile, link immediati,
+  bozze locali e protezione del doppio invio.
+- Intenti per campo anche per progetti/sezioni, pull completo paginato,
+  conflitti isolati e stato sincronizzazione per elemento.
+- Migrazione server preparata per impedire la ricomparsa di elementi eliminati
+  definitivamente; richiede applicazione separata. Stato effettivo in STATUS.
+
 ## 2.37.2 (build 173)
 
 - Todo Test: lettura locale ADB dei minuti di passi in un intervallo esplicito

@@ -1,6 +1,44 @@
 # Stato corrente
 
-Aggiornato l’8 settembre 2026.
+Aggiornato l’11 settembre 2026.
+
+## Build 174 — Todo UX e sincronizzazione
+
+Contratto: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).
+`make check` superato: 193 test Flutter, analisi statica senza segnalazioni,
+10 test strumenti, link documentali e migrazioni PostgreSQL PGlite con RLS,
+rollback e protezione di task/progetti/sezioni eliminati. `make check-generated`
+conferma Drift invariato. I benchmark locali su 100/1.000/10.000 task sintetiche
+materializzano dieci righe: circa 11,3 ms a freddo e 1 ms nelle prove successive;
+non sono misure di frame, RAM o batteria del Galaxy.
+
+Convergenza browser–Galaxy verificata su trasporto HTTP sintetico locale: creazione
+Web, modifica nota e nuova attività Android, ritorno Web. Il test Android riapre
+SQLite e conserva i risultati; Chrome conferma nota Android e task creata sul
+Galaxy anche dopo refresh. Editor Web: bozza recuperata, pannello chiuso dopo
+salvataggio e nuovo URL corretto dopo sostituzione del testo. Build Web release
+sintetica servita via HTTPS con CA esplicita (200); UI verificata su localhost
+HTTP, contesto sicuro del browser. Non sono stati usati account o contenuti reali.
+
+Suite Galaxy finale: 13 test mobili passati; un caso desktop escluso dal run
+hardware e verificato nella suite locale. Il test separato browser–Galaxy con
+riapertura SQLite è passato. Build Web distribuibile compilata con configurazione
+canonica. `make todo-test` ha verificato e installato in-place **2.38.0-dev,
+versionCode 2174**, APK arm64 24,3 MB; processo avviato e versione riletta via ADB.
+Il provider tecnico riporta ancora un successo precedente all'installazione e
+un `channelError` Realtime: nessun nuovo ciclo cloud è dichiarato verificato.
+Il package Play non è stato modificato; al controllo finale non è elencato per
+l'utente Android 0 (non viene reinstallato o riattivato da questo task).
+La simulazione desktop sul telefono produceva overflow per gli inset della
+tastiera fisica: il layout desktop è verificato sul computer/browser, il telefono
+esegue i casi mobili. Il package `.dev.validation` non registra Movimento.
+
+Migrazione Supabase del cestino **preparata e verificata localmente, non applicata
+al servizio reale**. Nessuna nuova release stabile Web/Play pubblicata: richiede
+`PUBBLICA`, con conferma distinta per la migrazione sul servizio condiviso.
+La prova sintetica non dimostra autenticazione/RLS/Realtime né convergenza con
+l'account cloud reale. Il registro non ricostruisce UUID eliminati prima della
+migrazione; i client vecchi mantengono il vecchio merge finché non aggiornati.
 
 ## Build 173 — Diagnostica locale per intervallo
 

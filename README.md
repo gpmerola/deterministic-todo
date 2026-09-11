@@ -387,3 +387,10 @@ Il punto di ingresso per riprendere lo sviluppo è
 [docs/operations/](docs/operations/), lo stato corrente in [STATUS.md](STATUS.md),
 le versioni in [CHANGELOG.md](CHANGELOG.md) e il lavoro residuo in
 [TODO_NEXT.md](TODO_NEXT.md).
+
+### Todo: editor e sincronizzazione
+
+Descrizione e collegamenti sono direttamente accessibili nell’editor; le bozze
+restano locali. Prossime riparte in cima al cambio schermata e carica 30 giorni
+per volta. Il pulsante cloud mostra gli elementi in attesa e rimanda allo storico.
+Contratto, migrazione server e collaudo sintetico: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).

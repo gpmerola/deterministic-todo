@@ -35,7 +35,7 @@ UPDATE condizionato a UUID, versione e dispositivo della riga appena letta.
 La condizione viene valutata da Postgres nella stessa scrittura: se un altro
 client è intervenuto, zero righe aggiornate significano rileggere e riprovare
 (max quattro tentativi). Le INSERT conservano UUID e vincoli di unicità.
-Non occorrono nuove tabelle, credenziali amministrative o RPC sul server:
+Per il writer delle attività introdotto nella 171 non occorrono nuove tabelle, credenziali amministrative o RPC sul server:
 si usano le policy RLS esistenti per SELECT/INSERT/UPDATE dell'utente autenticato.
 
 Politica dei conflitti: i campi toccati da un intento volontario pendente
@@ -86,8 +86,8 @@ attività**, oppure **editor → Altre azioni → Storico attività** per una si
 attività. La lista carica 50 revisioni per pagina con cursore sequenziale. Il
 dettaglio mostra i campi cambiati. Per le attività, **Usa la versione precedente**
 o **successiva** richiede una conferma e crea una nuova modifica sincronizzabile;
-non cancella la cronologia. Progetti e sezioni sono consultabili, non ripristinati
-automaticamente con le loro relazioni.
+non cancella la cronologia. Dalla build 174 anche progetti e sezioni hanno ripristino esplicito della singola
+riga; le relazioni non vengono ricreate automaticamente.
 
 Le revisioni restano nel database locale e non entrano nei bundle diagnostici
 Drive, nei log tecnici o nel normale export backup. **Esporta storico** crea un
@@ -143,3 +143,10 @@ annidati non eseguono flush prematuri. Nessun timer, duplicazione del database,
 patch della cache o aggiornamento degli asset vendorizzati. Un errore di storage
 resta un errore, non viene ignorato. Test: `test/web_transaction_flush_test.dart`;
 prova decisiva: modifica e storico conservati dopo refresh e chiusura scheda.
+
+## Estensione build 174
+
+Intenti progetti/sezioni, conflitti isolati, pull paginato e registro delle
+eliminazioni definitive sono descritti in [Todo UX hardening](TODO_UX_HARDENING.md).
+Il registro richiede una nuova migrazione server; disponibilità in
+[STATUS](../../STATUS.md).
