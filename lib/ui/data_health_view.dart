@@ -70,7 +70,8 @@ class DataHealthView extends StatelessWidget {
                 ),
               if (sync?.lastFailure != null)
                 _HealthRow(
-                  ok: sync?.lastRecovery != null &&
+                  ok:
+                      sync?.lastRecovery != null &&
                       sync!.lastRecovery!.isAfter(sync.lastFailure!),
                   icon: Icons.troubleshoot_outlined,
                   title: 'Ultimo problema sync',
@@ -142,10 +143,12 @@ String _syncIncidentLabel(SyncSnapshot snapshot) {
     SyncStage.taskUpload => 'invio attività',
     SyncStage.receipt => 'ricevuta outbox',
     SyncStage.taskPull => 'download attività',
-    SyncStage.taskMerge => 'merge locale',
+    SyncStage.taskMerge => 'confronto locale',
+    SyncStage.purgePull => 'registro eliminazioni',
     _ => 'avvio',
   };
-  final recovered = snapshot.lastRecovery != null &&
+  final recovered =
+      snapshot.lastRecovery != null &&
       snapshot.lastRecovery!.isAfter(snapshot.lastFailure!);
   return '$timestamp · $stage · ${snapshot.lastError ?? 'errore'}'
       '${recovered ? ' · recuperato' : ''}';

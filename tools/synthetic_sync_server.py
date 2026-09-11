@@ -3,6 +3,7 @@
 Run separately from the production app, with test/validation_app.dart.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import hashlib
 import json
 import threading
 from urllib.parse import urlparse, parse_qs
@@ -40,15 +41,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({"message": "fixture endpoint missing", "code": "PGRST205"}, 404)
             query = parse_qs(url.query)
             rows = sorted(TABLES[table].values(), key=lambda row: row.get("id", row.get("operation_id")))
-            for key, expressions in query.items():
-                expression = expressions[0]
+            for key, expression in ((key, value) for key, values in query.items() for value in values):
                 if expression.startswith("eq."):
                     rows = [row for row in rows if str(row.get(key)) == expression[3:]]
+                elif expression.startswith("gte."):
+                    rows = [row for row in rows if str(row.get(key)) >= expression[4:]]
+                elif expression.startswith("lt."):
+                    rows = [row for row in rows if str(row.get(key)) < expression[3:]]
                 elif expression.startswith("gt."):
                     rows = [row for row in rows if str(row.get(key)) > expression[3:]]
             self.reply(rows[:min(int(query.get("limit", [200])[0]), 200)])
 
     def do_POST(self):
+        if urlparse(self.path).path.endswith('/rpc/todo_task_fingerprints_v1'):
+            with LOCK:
+                signatures = {}
+                for row in sorted(TABLES['tasks'].values(), key=lambda r: r['id']):
+                    bucket = row['id'][:2]
+                    signatures[bucket] = signatures.get(bucket, '') + f"{row['id']}:{row['logical_version']}:{row['device_id']};"
+                return self.reply([{'bucket': key, 'fingerprint': hashlib.sha256(value.encode()).hexdigest()} for key, value in signatures.items()])
         self.write_rows()
 
     def do_PATCH(self):

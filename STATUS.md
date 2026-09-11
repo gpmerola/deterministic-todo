@@ -2,6 +2,37 @@
 
 Aggiornato l’11 settembre 2026.
 
+## Build 177 — Lentezza sincronizzazione APK
+
+Contratto: [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
+Diagnostica release sul Galaxy: build 2176, 78.464 ms e 89.253 righe task
+scaricate. Build 2177 senza migrazione 003: fallback completo riuscito in
+68.420 ms, 89.253 righe e zero intenti finali. Questi dati confermano che il solo
+merge locale aggregato non risolve il costo del download integrale.
+
+`make check`: 210 test Flutter, analisi statica, 11 test strumenti, link e SQL
+superati. `make check-generated` conferma Drift coerente. Galaxy Validation:
+30 test passati, un caso desktop escluso. 20.000 attività sintetiche invariate:
+714 ms per controllo compatto, zero download task; inclusi writer offline con
+contatore basso, tombstone e recupero di righe locali mancanti. La misura sintetica
+non è una misura della latenza del server di produzione.
+
+`make todo-test` ha installato in-place **2.39.2-dev, versionCode 2177**.
+Migrazione 003 applicata in produzione dopo consenso specifico dell'utente:
+EXECUTE autenticati true, anon false. Il nuovo ciclo reale 2 della build 2177,
+concluso alle **14:56:01 UTC**, dura **3.115 ms**, zero task riscaricate, zero
+intenti finali e Realtime subscribed. Prima della migrazione lo stesso APK aveva
+impiegato 68.420 ms: circa il 95% di tempo in meno in queste due osservazioni.
+Non sono stati letti contenuti personali. Pubblicazione rolling ancora da verificare.
+
+Build Web release e fixture compilate; avvio HTTPS con CA esplicita (200).
+Chrome su origine localhost isolata: attività e link sincronizzati, conservati
+anche dopo refresh con server sintetico spento. UI provata su HTTP localhost,
+contesto sicuro; nessun avviso certificato aggirato.
+
+SHA-256 migrazione compatta 003 applicata:
+`f273fc3474c226447f40f6eaa8b6a7d0526db3260b0292cad1d2aeaed6f541b0`.
+
 ## Build 175 — Backup, richieste e outbox
 
 Contratto: [backup e lifecycle](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).
@@ -21,8 +52,8 @@ curl e CA esplicita, senza aggirare avvisi del browser.
 
 `make todo-test` ha compilato, verificato e installato in-place **2.39.0-dev,
 versionCode 2175**, APK arm64 24,4 MB, alle 15:39:28 Europe/Rome. Il provider Todo
-ha registrato un nuovo successo alle **13:40:46 UTC**, stato `healthy`, zero
-intenti in attesa e sessione attiva. Il precedente errore di rete delle 13:22:58
+ha registrato un nuovo successo alle **13:40:46 UTC**, stato `healthy`. Il campo storico `last_pending=0` non provava la coda
+corrente: il limite diagnostico è corretto nella build 177. Il precedente errore di rete delle 13:22:58
 è storico; il dispositivo ha quindi recuperato anche con la nuova build.
 [CI Verify](https://github.com/gpmerola/deterministic-todo/actions/runs/34606014681)
 e [pubblicazione Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/34606010268)
@@ -32,7 +63,8 @@ dell'asset GitHub. Web/Play stabili restano alla release della sezione successiv
 la build 175 è distribuita sul canale Todo Test.
 
 Diagnostica sicura Todo della 174, letta prima dell'update: `healthy`, nuovo
-successo alle 13:18:59 UTC dell'11 settembre, zero intenti in attesa. Il precedente
+successo alle 13:18:59 UTC dell'11 settembre. Il conteggio pendente esposto
+era storico, non una misura della coda corrente. Il precedente
 errore di rete delle 12:55:34 è quindi superato dopo la migrazione server.
 `last_realtime_problem` conserva un incidente storico delle 12:41:12; non è una
 misura dello stato attuale del canale. Nessun contenuto Todo o Movimento letto.

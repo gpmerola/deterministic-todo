@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
+
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -16,9 +18,12 @@ class SyntheticSyncServer {
   int pageCap = 200;
   int writes = 0;
   int pages = 0;
+  bool fingerprints = false;
+  int fingerprintReads = 0;
   bool failReceipt = false;
   final loseResponse = <String>{};
   Future<void> Function(String table, String id)? beforeWrite;
+  Future<void> Function(String table)? beforeRead;
 
   Future<SupabaseClient> client() async {
     final client = SupabaseClient(
@@ -33,6 +38,32 @@ class SyntheticSyncServer {
           headers: {'content-type': 'application/json'},
         );
         final table = request.url.pathSegments.last;
+        if (table == 'todo_task_fingerprints_v1') {
+          if (!fingerprints) {
+            return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
+          }
+          fingerprintReads++;
+          final signatures = <String, StringBuffer>{};
+          final rows = tables['tasks']!.values.toList()
+            ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+          for (final row in rows) {
+            final bucket = (row['id'] as String).substring(0, 2);
+            signatures
+                .putIfAbsent(bucket, StringBuffer.new)
+                .write(
+                  '${row['id']}:${row['logical_version']}:${row['device_id']};',
+                );
+          }
+          return reply([
+            for (final e in signatures.entries)
+              {
+                'bucket': e.key,
+                'fingerprint': sha256
+                    .convert(utf8.encode(e.value.toString()))
+                    .toString(),
+              },
+          ]);
+        }
         if (table == 'sync_operations') {
           if (failReceipt) throw StateError('synthetic receipt failure');
           for (final raw in jsonDecode(request.body) as List) {
@@ -57,6 +88,7 @@ class SyntheticSyncServer {
         final filter = q['id'];
         if (request.method == 'GET') {
           pages++;
+          await beforeRead?.call(table);
           var rows = data.values.toList()
             ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
           if (filter?.startsWith('eq.') == true) {
@@ -69,6 +101,34 @@ class SyntheticSyncServer {
                       (r['id'] as String).compareTo(filter!.substring(3)) > 0,
                 )
                 .toList();
+          }
+          final filters = request.url.queryParametersAll['id'] ?? [];
+          for (final condition in filters) {
+            if (condition.startsWith('gte.')) {
+              rows = rows
+                  .where(
+                    (r) =>
+                        (r['id'] as String).compareTo(condition.substring(4)) >=
+                        0,
+                  )
+                  .toList();
+            } else if (condition.startsWith('lt.')) {
+              rows = rows
+                  .where(
+                    (r) =>
+                        (r['id'] as String).compareTo(condition.substring(3)) <
+                        0,
+                  )
+                  .toList();
+            } else if (condition.startsWith('gt.')) {
+              rows = rows
+                  .where(
+                    (r) =>
+                        (r['id'] as String).compareTo(condition.substring(3)) >
+                        0,
+                  )
+                  .toList();
+            }
           }
           final requested = int.tryParse(q['limit'] ?? '') ?? pageCap;
           return reply(

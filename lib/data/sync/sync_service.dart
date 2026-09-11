@@ -4,17 +4,26 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../domain/task.dart' as domain;
 import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
 import 'paged_remote.dart';
 import 'project_sync_writer.dart';
+import 'remote_batch_merge.dart';
 import 'sync_request_scope.dart';
+import 'task_fingerprints.dart';
 import 'task_sync_writer.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
 
-enum SyncStage { idle, projects, taskUpload, receipt, taskPull, taskMerge }
+enum SyncStage {
+  idle,
+  projects,
+  taskUpload,
+  receipt,
+  taskPull,
+  taskMerge,
+  purgePull,
+}
 
 final class SyncWriteVerificationException implements Exception {
   const SyncWriteVerificationException();
@@ -111,6 +120,7 @@ class SyncService {
   }
 
   bool _syncAgain = false;
+  bool _activePullAll = false;
   bool _pullAllRequested = false;
   bool _paused = false;
   int _consecutiveFailures = 0;
@@ -347,15 +357,9 @@ class SyncService {
         final remoteRows = await _requests.send(
           client.from('tasks').select().inFilter('id', taskIds.toList()),
         );
-        final localTasks = await (db.select(
-          db.tasks,
-        )..where((row) => row.id.isIn(taskIds))).get();
-        final localById = {for (final task in localTasks) task.id: task};
-        for (final raw in remoteRows) {
-          if (await _mergeRemote(raw, localById[raw['id'] as String])) {
-            changedTasks.add(raw['id'] as String);
-          }
-        }
+        changedTasks.addAll(
+          await mergeRemoteBatch(db, 'tasks', remoteRows, _requests),
+        );
       }
       if (!_disposed && changedTasks.isNotEmpty) {
         _remoteTaskChanges.add(changedTasks);
@@ -383,12 +387,17 @@ class SyncService {
 
   Future<void> sync({bool pullAll = true}) {
     if (_disposed) return Future.value();
-    if (pullAll) _pullAllRequested = true;
     final active = _inFlight;
     if (active != null) {
-      _syncAgain = true;
+      // Join an existing full check. Startup/auth/connectivity must not queue
+      // another identical scan. New outbox work still gets a trailing upload.
+      if (!pullAll || !_activePullAll) {
+        _syncAgain = true;
+        if (pullAll) _pullAllRequested = true;
+      }
       return active;
     }
+    if (pullAll) _pullAllRequested = true;
     final operation = _syncUntilQuiet();
     _inFlight = operation;
     return operation.whenComplete(() {
@@ -413,9 +422,38 @@ class SyncService {
     do {
       _syncAgain = false;
       final pullAll = _pullAllRequested;
+      _activePullAll = pullAll;
       _pullAllRequested = false;
       await _runScoped(() => _syncOnce(pullAll: pullAll));
     } while (_syncAgain && !_paused && !_disposed);
+  }
+
+  void _reportProgress(
+    int cycle,
+    SyncStage stage,
+    int pending, {
+    int remoteRows = 0,
+  }) {
+    _requests.check();
+    _emit(
+      SyncSnapshot(
+        SyncPhase.syncing,
+        pending: pending,
+        stage: stage,
+        lastSuccess: _latest.lastSuccess,
+      ),
+    );
+    unawaited(
+      DiagnosticLogService.instance.event(
+        'sync_progress',
+        fields: {
+          'cycle_id': cycle,
+          'sync_stage': stage.name,
+          'pending': pending,
+          'remote_rows': remoteRows,
+        },
+      ),
+    );
   }
 
   Future<void> _syncOnce({required bool pullAll}) async {
@@ -575,21 +613,39 @@ class SyncService {
       stage = SyncStage.taskPull;
       var remoteCount = 0;
       if (pullAll) {
+        stage = SyncStage.projects;
+        _reportProgress(cycle, stage, entries.length);
         await _syncProjects();
-        await for (final page in remotePages(
-          client,
-          'tasks',
-          scope: _requests,
-        )) {
-          stage = SyncStage.taskMerge;
-          await db.transaction(() async {
-            _requests.check();
-            for (final raw in page) {
-              await _mergeRemote(raw, null);
-            }
-          });
-          remoteCount += page.length;
+        stage = SyncStage.taskPull;
+        _reportProgress(cycle, stage, entries.length);
+        final buckets = await changedTaskBuckets(db, client, _requests);
+        for (final bucket in buckets ?? <String?>[null]) {
+          await for (final page in remotePages(
+            client,
+            'tasks',
+            scope: _requests,
+            idPrefix: bucket,
+          )) {
+            stage = SyncStage.taskMerge;
+            _reportProgress(
+              cycle,
+              stage,
+              entries.length,
+              remoteRows: remoteCount,
+            );
+            await mergeRemoteBatch(db, 'tasks', page, _requests);
+            remoteCount += page.length;
+            stage = SyncStage.taskPull;
+            _reportProgress(
+              cycle,
+              stage,
+              entries.length,
+              remoteRows: remoteCount,
+            );
+          }
         }
+        stage = SyncStage.purgePull;
+        _reportProgress(cycle, stage, entries.length, remoteRows: remoteCount);
         await _pullPurgedEntities();
       }
       final remaining = await db.select(db.outboxEntries).get();
@@ -631,6 +687,8 @@ class SyncService {
             'count': entries.length,
             'cycle_id': cycle,
             'sync_stage': SyncStage.idle.name,
+            'pending': remaining.length,
+            'auth_state': syncAuthState(client.auth.currentSession),
             'uploaded_entities': uploadedEntities,
             'rebased_entities': rebasedEntities,
             'remote_rows': remoteCount,
@@ -653,7 +711,19 @@ class SyncService {
         );
       }
     } catch (error) {
-      if (!_requests.isActive) return;
+      if (!_requests.isActive) {
+        unawaited(
+          DiagnosticLogService.instance.event(
+            'sync_cancelled',
+            fields: {
+              'cycle_id': cycle,
+              'sync_stage': stage.name,
+              'pending': entries.length,
+            },
+          ),
+        );
+        return;
+      }
       timer.stop();
       final errorCode = safeSyncErrorCode(error);
       final failedAt = DateTime.now().toUtc();
@@ -740,9 +810,7 @@ class SyncService {
   Future<void> _syncProjects() async {
     for (final table in ['projects', 'project_sections']) {
       await for (final page in remotePages(client, table, scope: _requests)) {
-        for (final raw in page) {
-          await _mergeProject(table, raw);
-        }
+        await mergeRemoteBatch(db, table, page, _requests);
       }
     }
   }
@@ -767,59 +835,9 @@ class SyncService {
     }
   }
 
-  Future<void> _mergeProject(
-    String table,
-    Map<String, dynamic> raw,
-  ) => db.withRevisionSource('sync_pull', () async {
-    _requests.check();
-    final id = raw['id'] as String;
-    if (await _wasPurged(table, id)) return;
-    final pending =
-        await (db.select(db.outboxEntries)
-              ..where((r) => r.entityId.equals(id) & r.operation.equals(table))
-              ..limit(1))
-            .get();
-    if (pending.isNotEmpty) return;
-    await _observeLogicalCounter(raw['logical_version'] as int);
-    final old = await db
-        .customSelect(
-          'SELECT logical_version, device_id FROM "$table" WHERE id = ?',
-          variables: [Variable(id)],
-        )
-        .getSingleOrNull();
-    if (old != null &&
-        domain.LogicalVersion(
-              raw['logical_version'] as int,
-              raw['device_id'] as String,
-            ).compareTo(
-              domain.LogicalVersion(
-                old.read<int>('logical_version'),
-                old.read<String>('device_id'),
-              ),
-            ) <=
-            0) {
-      return;
-    }
-    final json = <String, dynamic>{
-      for (final e in normalizeProject(raw).entries)
-        e.key.replaceAllMapped(RegExp('_([a-z])'), (m) => m[1]!.toUpperCase()):
-            e.value,
-    };
-    if (table == 'projects') {
-      await db.into(db.projects).insertOnConflictUpdate(Project.fromJson(json));
-    } else {
-      await db
-          .into(db.projectSections)
-          .insertOnConflictUpdate(ProjectSection.fromJson(json));
-    }
-    _requests.check();
-  });
-
-  Future<bool> _wasPurged(String table, String id) async =>
-      await (db.select(
-        db.appSettings,
-      )..where((s) => s.key.equals('purged:$table:$id'))).getSingleOrNull() !=
-      null;
+  Future<void> _mergeProject(String table, Map<String, dynamic> raw) async {
+    await mergeRemoteBatch(db, table, [raw], _requests);
+  }
 
   /// Older servers remain usable, but cannot perform the new safe purge.
   Future<void> _pullPurgedEntities() async {
@@ -869,55 +887,7 @@ class SyncService {
   Future<bool> _mergeRemote(
     Map<String, dynamic> raw,
     Task? ignoredSnapshot,
-  ) => db.withRevisionSource('sync_pull', () async {
-    _requests.check();
-    final id = raw['id'] as String;
-    if (await _wasPurged('tasks', id)) return false;
-    await _observeLogicalCounter(raw['logical_version'] as int);
-    final pending =
-        await (db.select(db.outboxEntries)
-              ..where((row) => row.entityId.equals(id))
-              ..limit(1))
-            .getSingleOrNull();
-    if (pending != null) return false;
-    // Check and write inside the same transaction; never trust a pre-network snapshot.
-    final local = await (db.select(
-      db.tasks,
-    )..where((row) => row.id.equals(id))).getSingleOrNull();
-    final remoteVersion = domain.LogicalVersion(
-      raw['logical_version'] as int,
-      raw['device_id'] as String,
-    );
-    if (local != null &&
-        remoteVersion.compareTo(
-              domain.LogicalVersion(local.logicalVersion, local.deviceId),
-            ) <=
-            0) {
-      return false;
-    }
-    await db
-        .into(db.tasks)
-        .insertOnConflictUpdate(taskFromRemote(raw).toCompanion(false));
-    _requests.check();
-    return true;
-  });
-
-  Future<void> _observeLogicalCounter(int counter) => db.transaction(() async {
-    final current =
-        await (db.select(db.appSettings)
-              ..where((row) => row.key.equals('sync_lamport_counter')))
-            .getSingleOrNull();
-    final saved = int.tryParse(current?.value ?? '') ?? 0;
-    if (counter <= saved) return;
-    await db
-        .into(db.appSettings)
-        .insertOnConflictUpdate(
-          AppSettingsCompanion.insert(
-            key: 'sync_lamport_counter',
-            value: counter.toString(),
-          ),
-        );
-  });
+  ) async => (await mergeRemoteBatch(db, 'tasks', [raw], _requests)).isNotEmpty;
 
   Future<bool> _reconcileRecurringOccurrence(Task local) async {
     final seriesId = local.seriesId;

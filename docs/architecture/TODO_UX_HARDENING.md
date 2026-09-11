@@ -27,9 +27,11 @@ la propria entità: le altre vengono inviate e il pull continua. L'ack elimina
 soltanto le operazioni catturate e conserva quelle aggiunte durante l'invio.
 I batch per entità mantengono l'ordine SQLite anche con timestamp uguali.
 
-Il pull completo pagina per UUID ordinato, 200 elementi per richiesta, fino a
+Il pull pagina per UUID ordinato, 500 elementi per richiesta, fino a
 una pagina vuota. Una pagina corta non implica fine: il limite server può essere
 inferiore. Ogni pagina è applicata in transazione, rispettando gli intenti locali.
+Dalla build 177 i gruppi di attività invariati sono esclusi tramite
+[impronte delle versioni](TODO_SYNC_PERFORMANCE.md).
 Il pulsante cloud mostra la coda SQLite e apre gli elementi in attesa; l'editor
 collega lo stato della task al suo storico. Il ripristino di progetti/sezioni
 ripristina soltanto quella riga, senza ricreare automaticamente le relazioni.

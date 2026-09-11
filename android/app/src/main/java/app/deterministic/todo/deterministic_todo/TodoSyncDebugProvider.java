@@ -42,6 +42,10 @@ public final class TodoSyncDebugProvider extends ContentProvider {
     }
 
     private Map<String, Object> readStatus() {
+        JSONObject lastStarted = null;
+        JSONObject lastProgress = null;
+        JSONObject lastCancelled = null;
+        JSONObject lastRealtime = null;
         JSONObject lastCompleted = null;
         JSONObject lastFailed = null;
         JSONObject lastRecovered = null;
@@ -59,6 +63,10 @@ public final class TodoSyncDebugProvider extends ContentProvider {
                 while ((line = reader.readLine()) != null) {
                     JSONObject event = new JSONObject(line);
                     String name = event.optString("event");
+                    if ("sync_started".equals(name)) lastStarted = newer(lastStarted, event);
+                    if ("sync_progress".equals(name)) lastProgress = newer(lastProgress, event);
+                    if ("sync_cancelled".equals(name)) lastCancelled = newer(lastCancelled, event);
+                    if ("realtime_status".equals(name)) lastRealtime = newer(lastRealtime, event);
                     if ("sync_completed".equals(name)) lastCompleted = newer(lastCompleted, event);
                     if ("sync_failed".equals(name)) lastFailed = newer(lastFailed, event);
                     if ("sync_recovered".equals(name)) lastRecovered = newer(lastRecovered, event);
@@ -73,7 +81,26 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         }
 
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
-        values.put("state", syncState(lastCompleted, lastFailed, lastRecovered));
+        JSONObject ended = lastCompleted;
+        if (lastFailed != null) ended = newer(ended, lastFailed);
+        if (lastCancelled != null) ended = newer(ended, lastCancelled);
+        boolean unfinished = TodoSyncTimeline.unfinished(
+            timestamp(lastStarted), timestamp(lastCompleted), timestamp(lastFailed), timestamp(lastCancelled));
+        JSONObject active = unfinished ? lastStarted : null;
+        if (active != null && lastProgress != null
+            && lastProgress.optString("session").equals(active.optString("session"))
+            && lastProgress.optInt("cycle_id") == active.optInt("cycle_id")) active = lastProgress;
+        values.put("state", unfinished ? "unfinished" : syncState(lastCompleted, lastFailed, lastRecovered));
+        put(values, "active_started_at", unfinished ? lastStarted : null, "timestamp");
+        put(values, "active_stage", active, "sync_stage");
+        put(values, "active_pending", active, "pending");
+        put(values, "active_remote_rows", active, "remote_rows");
+        put(values, "last_success_duration_ms", lastCompleted, "duration_ms");
+        put(values, "last_success_remote_rows", lastCompleted, "remote_rows");
+        put(values, "last_success_pending", lastCompleted, "pending");
+        put(values, "last_success_build", lastCompleted, "build");
+        put(values, "last_realtime_event_at", lastRealtime, "timestamp");
+        put(values, "current_realtime_status", lastRealtime, "status");
         put(values, "last_success_at", lastCompleted, "timestamp");
         put(values, "last_success_cycle", lastCompleted, "cycle_id");
         put(values, "last_failure_at", lastFailed, "timestamp");
@@ -84,7 +111,8 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "last_error_code", lastFailed, "error_code");
         put(values, "last_network_state", lastFailed, "network_state");
         put(values, "last_auth_state", lastFailed, "auth_state");
-        put(values, "last_pending", lastFailed, "pending");
+        put(values, "last_pending", unfinished ? active : ended, "pending");
+        put(values, "last_failure_pending", lastFailed, "pending");
         put(values, "last_retry_at", lastFailed, "retry_at");
         put(values, "last_recovered_at", lastRecovered, "timestamp");
         put(values, "last_recovered_failures", lastRecovered, "recovered_failures");
@@ -104,6 +132,10 @@ public final class TodoSyncDebugProvider extends ContentProvider {
                 target.add(child);
             }
         }
+    }
+
+    private static String timestamp(JSONObject event) {
+        return event == null ? null : event.optString("timestamp");
     }
 
     private static JSONObject newer(JSONObject current, JSONObject candidate) {

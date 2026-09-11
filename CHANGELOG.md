@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.39.2 (build 177) — Todo Test, verifica in corso
+
+- Confronto SHA-256 delle versioni per scaricare soltanto i gruppi di task diversi;
+  RPC server di sola lettura, compatibile con il pull completo sui server precedenti.
+- Merge SQLite per pagina e condivisione dei controlli completi sovrapposti;
+  gli intenti aggiunti durante l'invio restano protetti.
+- Diagnostica con durata, avanzamento e conteggio finale della coda, separati dagli
+  incidenti storici. Build 176 usata solo nel collaudo locale, non pubblicata rolling.
+- Stato della migrazione e del collaudo reale in [STATUS](STATUS.md).
+
 ## 2.39.0 (build 175) — Todo Test
 
 - Backup JSON completo di progetti, sezioni e preferenze trasferibili; anteprima,

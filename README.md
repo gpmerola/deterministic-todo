@@ -402,3 +402,7 @@ per volta. Il pulsante cloud mostra gli elementi in attesa e rimanda allo storic
 Contratto, migrazione server e collaudo sintetico: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).
 
 Backup e gestione delle richieste: [contratto Todo](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).
+
+La sincronizzazione dalla build 177 confronta impronte delle versioni prima di
+scaricare le attività; protocollo, compatibilità e recovery sono descritti in
+[sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).

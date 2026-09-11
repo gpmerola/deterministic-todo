@@ -2,6 +2,16 @@
 
 Aggiornato l’11 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
+## P0 — Lentezza sincronizzazione APK, build 177
+
+- [x] Confronto compatto delle versioni, merge SQLite aggregato e controlli sovrapposti condivisi.
+- [x] Test locali e Galaxy con 20.000 attività sintetiche.
+- [x] Applicare la migrazione server 003 dopo approvazione specifica e misurare il nuovo ciclo reale.
+- [ ] Pubblicare il branch verificato e controllare il manifest Todo Test.
+
+Contratto: [sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
+Esiti e limiti: [STATUS](STATUS.md).
+
 ## P0 — Todo UX e sincronizzazione, build 174
 
 - [x] Implementare editor, bozze, viste filtrate, intenti progetti/sezioni,
