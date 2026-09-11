@@ -31,7 +31,13 @@ ogni rete o quantità di modifiche. Nessun contenuto personale ispezionato.
 Web release distribuibile e fixture compilate. Chrome su localhost isolato:
 attività e link sincronizzati e conservati dopo refresh con server sintetico
 spento. HTTPS risponde 200 con CA esplicita; UI provata su HTTP localhost,
-contesto sicuro, senza aggirare avvisi certificato. Pubblicazione rolling da verificare.
+contesto sicuro, senza aggirare avvisi certificato.
+[CI Verify](https://github.com/gpmerola/deterministic-todo/actions/runs/34619903402)
+e [pubblicazione Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/34619899790)
+superate. Manifest rolling pubblico verificato: 2.40.0, build 178, dev, sorgente
+`b4fb63c15d7755b8d289593496b6c15fa5cd5b3a`. SHA-256 arm64 corrispondente al digest
+GitHub: `2861f521c6ed9943f2127d2c69d06ff2460dc0a573376c55bfcd66a67086e902`.
+Web/Play stabili restano alla 2.38.0+174; la 178 è distribuita su Todo Test.
 
 SHA-256 della migrazione 004 applicata:
 `447163b1693e39d7238c70a1f58482b8d9a3c18f4b9f3b0ec3c066a84d3beb4a`.

@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.40.0 (build 178) — Todo Test, pubblicazione in corso
+## 2.40.0 (build 178) — Todo Test
 
 - Un solo controllo server per task, progetti, sezioni e cancellazioni invariati;
   migrazione 004 di sola lettura, compatibile con i client precedenti.
