@@ -128,7 +128,7 @@ void main() {
         .customSelect('PRAGMA user_version')
         .map((row) => row.read<int>('user_version'))
         .getSingle();
-    expect(version, 8);
+    expect(version, 9);
     final columns = await database
         .customSelect('PRAGMA table_info(tasks)')
         .get();

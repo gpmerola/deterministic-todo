@@ -143,6 +143,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
     await Supabase.initialize(
       url: url,
       publishableKey: key,
+      postgrestOptions: const PostgrestClientOptions(
+        requestTimeout: Duration(seconds: 20),
+      ),
       authOptions: const FlutterAuthClientOptions(
         localStorage: SecureSupabaseStorage(),
         autoRefreshToken: true,

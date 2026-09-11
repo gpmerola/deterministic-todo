@@ -87,6 +87,23 @@ class SettingsView extends StatelessWidget {
   }
 
   Future<void> _import(BuildContext context) async {
+    try {
+      await _importBackup(context);
+    } on Object {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Importazione non riuscita. Verifica il file di backup; nessuna modifica parziale è stata salvata.',
+            ),
+            showCloseIcon: true,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _importBackup(BuildContext context) async {
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
@@ -103,7 +120,12 @@ class SettingsView extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Anteprima importazione'),
         content: Text(
-          'Da aggiungere: ${preview.added}\nDa aggiornare: ${preview.updated}\nInvariate: ${preview.unchanged}',
+          'Attività da aggiungere: ${preview.added}\n'
+          'Attività da aggiornare: ${preview.updated}\nInvariate: ${preview.unchanged}\n'
+          'Progetti: ${preview.projects} · Sezioni: ${preview.sections}\n'
+          'Preferenze: ${preview.settings}\n'
+          'Eliminati definitivamente, esclusi: ${preview.skippedPurged}'
+          '${preview.legacy ? '\nBackup precedente: progetti e sezioni potrebbero mancare.' : ''}',
         ),
         actions: [
           TextButton(

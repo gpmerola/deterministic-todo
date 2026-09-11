@@ -2,6 +2,36 @@
 
 Aggiornato l’11 settembre 2026.
 
+## Build 175 — Backup, richieste e outbox
+
+Contratto: [backup e lifecycle](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).
+`make check` superato: 206 test Flutter, analisi statica, 10 test strumenti,
+link e SQL. `make check-generated` conferma Drift coerente. Galaxy: 26 test
+passati nel package `.dev.validation`; un caso desktop intenzionalmente escluso.
+Coperti backup v1/v2, rollback, risposta tardiva, cambio account, abort/timeout
+HTTP reale e migrazione SQLite 8→9 preservando la coda.
+
+Prova sintetica outbox: 10.000 ID con circa 20 MB di payload non selezionato,
+80 ms sul Galaxy in debug; è una misura di query, non frame/RAM/batteria release.
+Web release distribuibile e fixture compilate; avvio HTTPS con certificato
+verificato tramite CA locale. Chrome, su origine localhost isolata: anteprima
+backup v2, import riuscito, progetto/sezione/task con link conservati dopo refresh.
+La UI è stata provata su HTTP localhost (contesto sicuro); HTTPS verificato con
+curl e CA esplicita, senza aggirare avvisi del browser.
+
+`make todo-test` ha compilato, verificato e installato in-place **2.39.0-dev,
+versionCode 2175**, APK arm64 24,4 MB, alle 15:39:28 Europe/Rome. Il provider Todo
+ha registrato un nuovo successo alle **13:40:46 UTC**, stato `healthy`, zero
+intenti in attesa e sessione attiva. Il precedente errore di rete delle 13:22:58
+è storico; il dispositivo ha quindi recuperato anche con la nuova build.
+La release Web/Play stabile rimane separata dalla consegna Todo Test.
+
+Diagnostica sicura Todo della 174, letta prima dell'update: `healthy`, nuovo
+successo alle 13:18:59 UTC dell'11 settembre, zero intenti in attesa. Il precedente
+errore di rete delle 12:55:34 è quindi superato dopo la migrazione server.
+`last_realtime_problem` conserva un incidente storico delle 12:41:12; non è una
+misura dello stato attuale del canale. Nessun contenuto Todo o Movimento letto.
+
 ## Build 174 — Todo UX e sincronizzazione
 
 Contratto: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).

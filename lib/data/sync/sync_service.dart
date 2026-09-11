@@ -9,6 +9,7 @@ import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
 import 'paged_remote.dart';
 import 'project_sync_writer.dart';
+import 'sync_request_scope.dart';
 import 'task_sync_writer.dart';
 
 enum SyncPhase { disabled, offline, syncing, current, error }
@@ -56,7 +57,7 @@ class SyncService {
   final _remoteTaskChanges = StreamController<Set<String>>.broadcast();
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
   StreamSubscription<AuthState>? _auth;
-  StreamSubscription<List<OutboxEntry>>? _outbox;
+  StreamSubscription<Set<String>>? _outbox;
   RealtimeChannel? _realtime;
   Timer? _timer;
   Timer? _outboxTimer;
@@ -65,6 +66,50 @@ class SyncService {
   Timer? _retryTimer;
   Future<void>? _realtimeRemoval;
   Future<void>? _inFlight;
+  bool _disposed = false;
+  bool _started = false;
+  Future<void>? _disposing;
+  final _scopes = <SyncRequestScope>{};
+  final _operations = <Future<void>>{};
+  static final _scopeKey = Object();
+  SyncRequestScope get _requests => Zone.current[_scopeKey] as SyncRequestScope;
+
+  Future<void> _runScoped(
+    Future<void> Function() body, {
+    bool cancelIsSuccess = true,
+  }) {
+    if (_disposed) {
+      return cancelIsSuccess
+          ? Future.value()
+          : Future.error(const SyncCancelled());
+    }
+    final scope = SyncRequestScope(client);
+    _scopes.add(scope);
+    late final Future<void> operation;
+    operation =
+        runZoned(() async {
+          try {
+            await body();
+            scope.check();
+          } on Object {
+            if (scope.isActive) rethrow;
+            if (!cancelIsSuccess) throw const SyncCancelled();
+          } finally {
+            _scopes.remove(scope);
+          }
+        }, zoneValues: {_scopeKey: scope}).whenComplete(() {
+          _operations.remove(operation);
+        });
+    _operations.add(operation);
+    return operation;
+  }
+
+  void _cancelRequests() {
+    for (final scope in _scopes) {
+      scope.cancel();
+    }
+  }
+
   bool _syncAgain = false;
   bool _pullAllRequested = false;
   bool _paused = false;
@@ -91,14 +136,25 @@ class SyncService {
   SyncSnapshot get latest => _latest;
 
   void _emit(SyncSnapshot snapshot) {
+    if (_disposed) return;
     _latest = snapshot;
     _state.add(snapshot);
   }
 
   void start() {
+    if (_disposed || _started) return;
+    _started = true;
     _authenticatedUserId = client.auth.currentUser?.id;
     _auth = client.auth.onAuthStateChange.listen((state) {
+      if (_disposed) return;
       final nextUserId = state.session?.user.id;
+      if (nextUserId != _authenticatedUserId) {
+        _cancelRequests();
+        for (final ids in _pendingRealtimeIds.values) {
+          ids.clear();
+        }
+        unawaited(_removeRealtime());
+      }
       final shouldSync = shouldSyncForAuthChange(
         _authenticatedUserId,
         nextUserId,
@@ -112,14 +168,13 @@ class SyncService {
         _emit(const SyncSnapshot(SyncPhase.disabled));
       }
     });
-    _outbox = db.select(db.outboxEntries).watch().listen((entries) {
-      final operations = entries.map((entry) => entry.operationId).toSet();
+    _outbox = db.watchOutboxOperationIds().listen((operations) {
       final hasNewWork = outboxOperationsChanged(
         _observedOutboxOperations,
         operations,
       );
       _observedOutboxOperations = operations;
-      if (entries.isNotEmpty && hasNewWork) _scheduleOutboxSync();
+      if (operations.isNotEmpty && hasNewWork) _scheduleOutboxSync();
     });
     _connectivity = Connectivity().onConnectivityChanged.listen((result) {
       if (result.contains(ConnectivityResult.none)) {
@@ -159,6 +214,7 @@ class SyncService {
   }
 
   void resume() {
+    if (_disposed) return;
     _paused = false;
     _startTimer();
     unawaited(_restoreRealtimeAndSync());
@@ -177,23 +233,24 @@ class SyncService {
 
   Future<void> _restoreRealtimeAndSync() async {
     await _realtimeRemoval;
-    if (_paused || client.auth.currentUser == null) return;
+    if (_disposed || _paused || client.auth.currentUser == null) return;
     await _subscribeRealtime();
-    if (!_paused) await sync();
+    if (!_disposed && !_paused) await sync();
   }
 
   void _startTimer() {
-    if (_timer?.isActive == true) return;
+    if (_disposed || _timer?.isActive == true) return;
     _timer = Timer.periodic(periodicInterval, (_) => unawaited(sync()));
   }
 
   void _scheduleOutboxSync() {
-    if (_paused || client.auth.currentUser == null) return;
+    if (_disposed || _paused || client.auth.currentUser == null) return;
     _outboxTimer?.cancel();
     _outboxTimer = Timer(eventDebounce, () => unawaited(sync(pullAll: false)));
   }
 
   Future<void> _subscribeRealtime() async {
+    if (_disposed) return;
     final user = client.auth.currentUser;
     if (!shouldSubscribeRealtime(
       paused: _paused,
@@ -229,7 +286,7 @@ class SyncService {
     RealtimeSubscribeStatus status,
     Object? error,
   ) async {
-    if (!identical(_realtime, channel)) return;
+    if (_disposed || !identical(_realtime, channel)) return;
     unawaited(
       DiagnosticLogService.instance.event(
         'realtime_status',
@@ -240,7 +297,7 @@ class SyncService {
     if (status == RealtimeSubscribeStatus.subscribed) {
       _realtimeReconnectTimer?.cancel();
       _realtimeReconnectTimer = null;
-      if (!_paused) unawaited(sync());
+      if (!_disposed && !_paused) unawaited(sync());
       return;
     }
     if (!shouldReconnectRealtime(status)) return;
@@ -251,16 +308,16 @@ class SyncService {
       // La riconnessione deve proseguire anche se il vecchio canale è già
       // irraggiungibile o è stato rimosso dal server.
     }
-    if (_paused || client.auth.currentUser == null) return;
+    if (_disposed || _paused || client.auth.currentUser == null) return;
     _realtimeReconnectTimer?.cancel();
     _realtimeReconnectTimer = Timer(const Duration(seconds: 2), () {
       _realtimeReconnectTimer = null;
-      if (!_paused) unawaited(_subscribeRealtime());
+      if (!_disposed && !_paused) unawaited(_subscribeRealtime());
     });
   }
 
   void _queueRealtimeChange(String table, PostgresChangePayload payload) {
-    if (_paused) return;
+    if (_disposed || _paused) return;
     final id = (payload.newRecord['id'] ?? payload.oldRecord['id']) as String?;
     if (id == null) return;
     _pendingRealtimeIds[table]!.add(id);
@@ -271,8 +328,11 @@ class SyncService {
     );
   }
 
-  Future<void> _pullQueuedRealtimeChanges() async {
-    if (_paused || client.auth.currentUser == null) return;
+  Future<void> _pullQueuedRealtimeChanges() =>
+      _runScoped(_pullQueuedRealtimeChangesScoped);
+
+  Future<void> _pullQueuedRealtimeChangesScoped() async {
+    if (_disposed || _paused || client.auth.currentUser == null) return;
     final queued = {
       for (final entry in _pendingRealtimeIds.entries)
         entry.key: entry.value.toSet(),
@@ -284,10 +344,9 @@ class SyncService {
       final taskIds = queued['tasks']!;
       final changedTasks = <String>{};
       if (taskIds.isNotEmpty) {
-        final remoteRows = await client
-            .from('tasks')
-            .select()
-            .inFilter('id', taskIds.toList());
+        final remoteRows = await _requests.send(
+          client.from('tasks').select().inFilter('id', taskIds.toList()),
+        );
         final localTasks = await (db.select(
           db.tasks,
         )..where((row) => row.id.isIn(taskIds))).get();
@@ -298,7 +357,9 @@ class SyncService {
           }
         }
       }
-      if (changedTasks.isNotEmpty) _remoteTaskChanges.add(changedTasks);
+      if (!_disposed && changedTasks.isNotEmpty) {
+        _remoteTaskChanges.add(changedTasks);
+      }
       if (queued['projects']!.isNotEmpty ||
           queued['project_sections']!.isNotEmpty) {
         await _pullRemoteProjects(
@@ -321,6 +382,7 @@ class SyncService {
   }
 
   Future<void> sync({bool pullAll = true}) {
+    if (_disposed) return Future.value();
     if (pullAll) _pullAllRequested = true;
     final active = _inFlight;
     if (active != null) {
@@ -334,13 +396,16 @@ class SyncService {
     });
   }
 
-  Future<void> purgeRemoteTrash() async {
+  Future<void> purgeRemoteTrash() =>
+      _runScoped(_purgeRemoteTrashScoped, cancelIsSuccess: false);
+
+  Future<void> _purgeRemoteTrashScoped() async {
     await sync();
     if (_latest.phase != SyncPhase.current ||
         (await db.select(db.outboxEntries).get()).isNotEmpty) {
       throw const SyncWriteVerificationException();
     }
-    await client.rpc('purge_trash_v2');
+    await _requests.send(client.rpc('purge_trash_v2'));
     await _pullPurgedEntities();
   }
 
@@ -349,8 +414,8 @@ class SyncService {
       _syncAgain = false;
       final pullAll = _pullAllRequested;
       _pullAllRequested = false;
-      await _syncOnce(pullAll: pullAll);
-    } while (_syncAgain && !_paused);
+      await _runScoped(() => _syncOnce(pullAll: pullAll));
+    } while (_syncAgain && !_paused && !_disposed);
   }
 
   Future<void> _syncOnce({required bool pullAll}) async {
@@ -358,6 +423,7 @@ class SyncService {
       _emit(const SyncSnapshot(SyncPhase.disabled));
       return;
     }
+    _requests.check();
     final entries =
         await (db.select(db.outboxEntries)..orderBy([
               (row) => OrderingTerm(expression: row.createdAt),
@@ -366,6 +432,7 @@ class SyncService {
               ),
             ]))
             .get();
+    _requests.check();
     final cycle = ++_syncCycle;
     var stage = SyncStage.projects;
     final oldestOutboxAgeMs = syncOutboxOldestAgeMs(
@@ -415,12 +482,17 @@ class SyncService {
       final groups = grouped.values.toList()
         ..sort((a, b) => rank(a).compareTo(rank(b)));
       for (final group in groups) {
+        _requests.check();
         final entry = group.first;
         try {
           Map<String, dynamic> row;
           if (isProjectOperation(entry)) {
             stage = SyncStage.projects;
-            row = await ProjectSyncWriter(db, client).upload(group);
+            row = await ProjectSyncWriter(
+              db,
+              client,
+              scope: _requests,
+            ).upload(group);
           } else {
             stage = SyncStage.taskUpload;
             final task = await (db.select(
@@ -431,6 +503,7 @@ class SyncService {
               final result = await TaskSyncWriter(
                 db,
                 client,
+                scope: _requests,
               ).upload(task, group);
               rebasedEntities += result.retries;
               row = result.row;
@@ -441,25 +514,29 @@ class SyncService {
               rethrow;
             }
           }
+          _requests.check();
           stage = SyncStage.receipt;
-          await client
-              .from('sync_operations')
-              .upsert(
-                [
-                  for (final op in group)
-                    {
-                      'operation_id': op.operationId,
-                      'entity_id': op.entityId,
-                      'operation': isProjectOperation(op)
-                          ? 'upsert'
-                          : op.operation,
-                      'payload': syncReceipt(op),
-                    },
-                ],
-                onConflict: 'operation_id',
-                ignoreDuplicates: true,
-              );
+          await _requests.send(
+            client
+                .from('sync_operations')
+                .upsert(
+                  [
+                    for (final op in group)
+                      {
+                        'operation_id': op.operationId,
+                        'entity_id': op.entityId,
+                        'operation': isProjectOperation(op)
+                            ? 'upsert'
+                            : op.operation,
+                        'payload': syncReceipt(op),
+                      },
+                  ],
+                  onConflict: 'operation_id',
+                  ignoreDuplicates: true,
+                ),
+          );
           await db.transaction(() async {
+            _requests.check();
             await (db.delete(db.outboxEntries)..where(
                   (r) => r.operationId.isIn(group.map((e) => e.operationId)),
                 ))
@@ -499,9 +576,14 @@ class SyncService {
       var remoteCount = 0;
       if (pullAll) {
         await _syncProjects();
-        await for (final page in remotePages(client, 'tasks')) {
+        await for (final page in remotePages(
+          client,
+          'tasks',
+          scope: _requests,
+        )) {
           stage = SyncStage.taskMerge;
           await db.transaction(() async {
+            _requests.check();
             for (final raw in page) {
               await _mergeRemote(raw, null);
             }
@@ -511,6 +593,7 @@ class SyncService {
         await _pullPurgedEntities();
       }
       final remaining = await db.select(db.outboxEntries).get();
+      _requests.check();
       conflicts = remaining
           .where(
             (e) =>
@@ -570,6 +653,7 @@ class SyncService {
         );
       }
     } catch (error) {
+      if (!_requests.isActive) return;
       timer.stop();
       final errorCode = safeSyncErrorCode(error);
       final failedAt = DateTime.now().toUtc();
@@ -577,6 +661,7 @@ class SyncService {
       final retryDelay = transient ? _scheduleRetry() : null;
       final retryAt = retryDelay == null ? null : failedAt.add(retryDelay);
       final networkState = await safeSyncNetworkState();
+      if (!_requests.isActive) return;
       _lastFailureAt = failedAt;
       _lastError = errorCode;
       _lastFailureStage = stage;
@@ -642,19 +727,19 @@ class SyncService {
   }
 
   Duration? _scheduleRetry() {
-    if (_paused || client.auth.currentUser == null) return null;
+    if (_disposed || _paused || client.auth.currentUser == null) return null;
     _retryTimer?.cancel();
     final delay = syncRetryDelay(_consecutiveFailures++);
     _retryTimer = Timer(delay, () {
       _retryTimer = null;
-      if (!_paused) unawaited(sync());
+      if (!_disposed && !_paused) unawaited(sync());
     });
     return delay;
   }
 
   Future<void> _syncProjects() async {
     for (final table in ['projects', 'project_sections']) {
-      await for (final page in remotePages(client, table)) {
+      await for (final page in remotePages(client, table, scope: _requests)) {
         for (final raw in page) {
           await _mergeProject(table, raw);
         }
@@ -673,8 +758,9 @@ class SyncService {
       final ids = group.value.toList();
       for (var start = 0; start < ids.length; start += 100) {
         final batch = ids.skip(start).take(100).toList();
-        for (final raw
-            in await client.from(group.key).select().inFilter('id', batch)) {
+        for (final raw in await _requests.send(
+          client.from(group.key).select().inFilter('id', batch),
+        )) {
           await _mergeProject(group.key, raw);
         }
       }
@@ -685,6 +771,7 @@ class SyncService {
     String table,
     Map<String, dynamic> raw,
   ) => db.withRevisionSource('sync_pull', () async {
+    _requests.check();
     final id = raw['id'] as String;
     if (await _wasPurged(table, id)) return;
     final pending =
@@ -725,6 +812,7 @@ class SyncService {
           .into(db.projectSections)
           .insertOnConflictUpdate(ProjectSection.fromJson(json));
     }
+    _requests.check();
   });
 
   Future<bool> _wasPurged(String table, String id) async =>
@@ -736,8 +824,13 @@ class SyncService {
   /// Older servers remain usable, but cannot perform the new safe purge.
   Future<void> _pullPurgedEntities() async {
     try {
-      await for (final page in remotePages(client, 'purged_entities')) {
+      await for (final page in remotePages(
+        client,
+        'purged_entities',
+        scope: _requests,
+      )) {
         await db.withRevisionSource('sync_purge', () async {
+          _requests.check();
           for (final row in page) {
             final table = row['entity_type'] as String;
             if (!const {
@@ -777,6 +870,7 @@ class SyncService {
     Map<String, dynamic> raw,
     Task? ignoredSnapshot,
   ) => db.withRevisionSource('sync_pull', () async {
+    _requests.check();
     final id = raw['id'] as String;
     if (await _wasPurged('tasks', id)) return false;
     await _observeLogicalCounter(raw['logical_version'] as int);
@@ -804,6 +898,7 @@ class SyncService {
     await db
         .into(db.tasks)
         .insertOnConflictUpdate(taskFromRemote(raw).toCompanion(false));
+    _requests.check();
     return true;
   });
 
@@ -829,12 +924,14 @@ class SyncService {
     final occurrenceKey = local.occurrenceKey;
     if (seriesId == null || occurrenceKey == null) return false;
 
-    final rows = await client
-        .from('tasks')
-        .select()
-        .eq('series_id', seriesId)
-        .eq('occurrence_key', occurrenceKey)
-        .limit(1);
+    final rows = await _requests.send(
+      client
+          .from('tasks')
+          .select()
+          .eq('series_id', seriesId)
+          .eq('occurrence_key', occurrenceKey)
+          .limit(1),
+    );
     if (rows.isEmpty) return false;
     final remote = Map<String, dynamic>.from(rows.first);
     final remoteId = remote['id'] as String;
@@ -855,7 +952,12 @@ class SyncService {
     throw const SyncIntentConflictException();
   }
 
-  Future<void> dispose() async {
+  Future<void> dispose() => _disposing ??= _dispose();
+
+  Future<void> _dispose() async {
+    _disposed = true;
+    _syncAgain = false;
+    _cancelRequests();
     _timer?.cancel();
     _outboxTimer?.cancel();
     _realtimeTimer?.cancel();
@@ -865,6 +967,7 @@ class SyncService {
     await _auth?.cancel();
     await _outbox?.cancel();
     await _removeRealtime();
+    await Future.wait(_operations.toList());
     await _state.close();
     await _remoteTaskChanges.close();
   }

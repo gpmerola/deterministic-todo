@@ -78,7 +78,8 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - Undo e Cestino per attività, progetti e sezioni;
 - descrizioni e link Todoist leggibili senza URL estesi;
 - import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
-- export/import JSON e CSV;
+- backup JSON versionato con attività, progetti, sezioni e preferenze Todo;
+  ripristino atomico e compatibilità con il formato precedente; export CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
 - modulo Android isolato **Movimento** con passi del telefono tramite la
   Recording API locale, distanza e calorie attive stimate, sessioni GPS, archivio Room
@@ -399,3 +400,5 @@ Descrizione e collegamenti sono direttamente accessibili nell’editor; le bozze
 restano locali. Prossime riparte in cima al cambio schermata e carica 30 giorni
 per volta. Il pulsante cloud mostra gli elementi in attesa e rimanda allo storico.
 Contratto, migrazione server e collaudo sintetico: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).
+
+Backup e gestione delle richieste: [contratto Todo](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).

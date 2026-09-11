@@ -30,7 +30,8 @@ Future<void> _installProjectIntents(
         BEGIN
           INSERT INTO outbox_entries(operation_id, entity_id, operation, payload, created_at)
           VALUES(lower(hex(randomblob(16))), NEW.id, '$name',
-            json_object('schema', 3, 'table', '$name', 'kind', '${operation == 'INSERT' ? 'create' : 'patch'}',
+            json_object('schema', 3, 'table', '$name', 'kind', CASE WHEN (SELECT value FROM app_settings WHERE key = '_revision_source') = 'backup_import'
+                THEN 'replace' ELSE '${operation == 'INSERT' ? 'create' : 'patch'}' END,
               'snapshot', json($after), 'changes', json($changes)),
             CAST((julianday('now') - 2440587.5) * 86400000000 AS INTEGER));
         END

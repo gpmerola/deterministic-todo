@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../local/database.dart';
+import 'sync_request_scope.dart';
 import 'task_sync_writer.dart';
 
 bool isProjectOperation(OutboxEntry entry) =>
@@ -37,7 +38,9 @@ bool _same(
 }
 
 class ProjectSyncWriter {
-  ProjectSyncWriter(this.db, this.client);
+  ProjectSyncWriter(this.db, this.client, {SyncRequestScope? scope})
+    : scope = scope ?? SyncRequestScope(client);
+  final SyncRequestScope scope;
   final AppDatabase db;
   final SupabaseClient client;
 
@@ -50,6 +53,7 @@ class ProjectSyncWriter {
         .toList();
     final ids = entries.map((e) => e.operationId).toList();
     Future<void> conflict(Map<String, dynamic>? remote) async {
+      scope.check();
       await db.recordSyncRevision(
         entityId: first.entityId,
         entityType: table,
@@ -62,11 +66,9 @@ class ProjectSyncWriter {
     }
 
     for (var retry = 0; retry < 4; retry++) {
-      final rows = await client
-          .from(table)
-          .select()
-          .eq('id', first.entityId)
-          .limit(1);
+      final rows = await scope.send(
+        client.from(table).select().eq('id', first.entityId).limit(1),
+      );
       final remote = rows.firstOrNull;
       final active = <int>[];
       for (var i = 0; i < entries.length; i++) {
@@ -128,7 +130,8 @@ class ProjectSyncWriter {
             await conflict(remote);
         }
       }
-      candidate!['user_id'] = client.auth.currentUser!.id;
+      scope.check();
+      candidate!['user_id'] = scope.userId;
       if (remote != null && _same(candidate, remote, contentOnly: true)) {
         for (final i in active) {
           payloads[i]['confirmed'] = true;
@@ -146,6 +149,7 @@ class ProjectSyncWriter {
         payloads[i]['attempt'] = {'before': remote, 'after': candidate};
         await _save(entries[i], payloads[i]);
       }
+      scope.check();
       await db.recordSyncRevision(
         entityId: first.entityId,
         entityType: table,
@@ -157,14 +161,16 @@ class ProjectSyncWriter {
       List<Map<String, dynamic>> written;
       try {
         written = remote == null
-            ? await client.from(table).insert(candidate).select()
-            : await client
-                  .from(table)
-                  .update(candidate)
-                  .eq('id', first.entityId)
-                  .eq('logical_version', remote['logical_version'])
-                  .eq('device_id', remote['device_id'])
-                  .select();
+            ? await scope.send(client.from(table).insert(candidate).select())
+            : await scope.send(
+                client
+                    .from(table)
+                    .update(candidate)
+                    .eq('id', first.entityId)
+                    .eq('logical_version', remote['logical_version'])
+                    .eq('device_id', remote['device_id'])
+                    .select(),
+              );
       } on PostgrestException catch (e) {
         if (e.code != '23505') rethrow;
         written = [];
@@ -184,6 +190,7 @@ class ProjectSyncWriter {
         payloads[i]['confirmed'] = true;
         await _save(entries[i], payloads[i]);
       }
+      scope.check();
       await db.recordSyncRevision(
         entityId: first.entityId,
         entityType: table,
@@ -197,8 +204,10 @@ class ProjectSyncWriter {
     throw const SyncConcurrentWriteException();
   }
 
-  Future<void> _save(OutboxEntry e, Map<String, dynamic> payload) =>
-      (db.update(db.outboxEntries)
-            ..where((r) => r.operationId.equals(e.operationId)))
-          .write(OutboxEntriesCompanion(payload: Value(jsonEncode(payload))));
+  Future<void> _save(OutboxEntry e, Map<String, dynamic> payload) {
+    scope.check();
+    return (db.update(db.outboxEntries)
+          ..where((r) => r.operationId.equals(e.operationId)))
+        .write(OutboxEntriesCompanion(payload: Value(jsonEncode(payload))));
+  }
 }

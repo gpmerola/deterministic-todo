@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.39.0 (build 175) — Todo Test
+
+- Backup JSON completo di progetti, sezioni e preferenze trasferibili; anteprima,
+  ripristino atomico, formato precedente supportato e reimport senza duplicati.
+- Richieste Todo annullate alla chiusura/cambio account, timeout HTTP effettivo di
+  20 secondi e conservazione degli intenti con esito incerto.
+- Outbox osservata tramite soli ID e indice SQLite per entità/operazione;
+  schema 9 preserva coda e dati esistenti.
+
 ## 2.38.0 (build 174)
 
 - Prossime ritorna in cima al rientro e carica 30 giorni per volta; query locali

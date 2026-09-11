@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../local/database.dart';
+import 'sync_request_scope.dart';
 
 /// An old outbox has no field-level intent. Never guess and overwrite a server row.
 final class SyncIntentConflictException implements Exception {
@@ -54,7 +55,9 @@ Map<String, dynamic> syncReceipt(OutboxEntry entry) {
 /// Reads the latest row, applies only captured intent and conditionally writes it.
 /// The version predicate is evaluated by Postgres in the same UPDATE statement.
 class TaskSyncWriter {
-  TaskSyncWriter(this.db, this.client);
+  TaskSyncWriter(this.db, this.client, {SyncRequestScope? scope})
+    : scope = scope ?? SyncRequestScope(client);
+  final SyncRequestScope scope;
   final AppDatabase db;
   final SupabaseClient client;
 
@@ -62,7 +65,8 @@ class TaskSyncWriter {
     Task initial,
     List<OutboxEntry> entries,
   ) async {
-    final userId = client.auth.currentUser!.id;
+    scope.check();
+    final userId = scope.userId!;
     final pending = entries
         .where((e) => (jsonDecode(e.payload) as Map)['confirmed'] != true)
         .toList();
@@ -73,11 +77,9 @@ class TaskSyncWriter {
     final replacement = operations.any((op) => op['kind'] == 'replace');
     final legacy = !replacement && operations.any((op) => op['schema'] != 2);
     for (var attempt = 0; attempt < 4; attempt++) {
-      final rows = await client
-          .from('tasks')
-          .select()
-          .eq('id', initial.id)
-          .limit(1);
+      final rows = await scope.send(
+        client.from('tasks').select().eq('id', initial.id).limit(1),
+      );
       final remote = rows.isEmpty
           ? null
           : Map<String, dynamic>.from(rows.first);
@@ -142,6 +144,7 @@ class TaskSyncWriter {
             taskToRemote(taskFromRemote(remote), userId),
           )) {
         await _mark(pending, confirmed: true);
+        scope.check();
         await db.recordSyncRevision(
           entityId: initial.id,
           source: 'sync_confirmed',
@@ -160,6 +163,7 @@ class TaskSyncWriter {
       candidate['device_id'] = initial.deviceId;
       candidate['updated_at'] = DateTime.now().toUtc().microsecondsSinceEpoch;
       // Persist the remote preimage before sending; it survives a process/network failure.
+      scope.check();
       await db.recordSyncRevision(
         entityId: initial.id,
         source: 'sync_attempt',
@@ -171,7 +175,9 @@ class TaskSyncWriter {
       List<Map<String, dynamic>> written;
       if (remote == null) {
         try {
-          written = await client.from('tasks').insert(candidate).select();
+          written = await scope.send(
+            client.from('tasks').insert(candidate).select(),
+          );
         } on PostgrestException catch (error) {
           if (error.code == '23505' && !error.message.contains('series_id')) {
             await _mark(pending);
@@ -180,13 +186,15 @@ class TaskSyncWriter {
           rethrow;
         }
       } else {
-        written = await client
-            .from('tasks')
-            .update(candidate)
-            .eq('id', initial.id)
-            .eq('logical_version', remote['logical_version'])
-            .eq('device_id', remote['device_id'])
-            .select();
+        written = await scope.send(
+          client
+              .from('tasks')
+              .update(candidate)
+              .eq('id', initial.id)
+              .eq('logical_version', remote['logical_version'])
+              .eq('device_id', remote['device_id'])
+              .select(),
+        );
       }
       if (written.isEmpty) {
         await _mark(pending);
@@ -194,6 +202,7 @@ class TaskSyncWriter {
       } // Concurrent write: re-read, never blindly rebase.
       final accepted = Map<String, dynamic>.from(written.single);
       await _mark(pending, confirmed: true);
+      scope.check();
       await db.recordSyncRevision(
         entityId: initial.id,
         source: 'sync_accepted',
@@ -211,6 +220,7 @@ class TaskSyncWriter {
     bool confirmed = false,
     Map<String, dynamic>? attempt,
   }) => db.transaction(() async {
+    scope.check();
     for (final entry in entries) {
       final payload =
           Map<String, dynamic>.from(jsonDecode(entry.payload) as Map)
@@ -229,6 +239,7 @@ class TaskSyncWriter {
     Map<String, dynamic>? remote,
     List<String> ids,
   ) async {
+    scope.check();
     await db.recordSyncRevision(
       entityId: initial.id,
       source: 'sync_conflict',

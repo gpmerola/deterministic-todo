@@ -132,13 +132,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _createPerformanceIndexes();
+      await _createOutboxIndex();
       await _createImportIndexes();
       await _installRevisionTriggers(this);
       await _installProjectIntents(this);
@@ -157,6 +158,17 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 7) await _installRevisionTriggers(this);
       if (from < 8) await _installProjectIntents(this, migrate: true);
+      if (from < 9) {
+        await _createOutboxIndex();
+        for (final table in ['projects', 'project_sections']) {
+          for (final operation in ['insert', 'update']) {
+            await customStatement(
+              'DROP TRIGGER IF EXISTS ${table}_intent_$operation',
+            );
+          }
+        }
+        await _installProjectIntents(this);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -205,6 +217,18 @@ class AppDatabase extends _$AppDatabase {
     ).getSingleOrNull();
     return row != null;
   }
+
+  Stream<Set<String>> watchOutboxOperationIds() =>
+      (selectOnly(
+        outboxEntries,
+      )..addColumns([outboxEntries.operationId])).watch().map(
+        (rows) => rows.map((r) => r.read(outboxEntries.operationId)!).toSet(),
+      );
+
+  Future<void> _createOutboxIndex() => customStatement(
+    'CREATE INDEX IF NOT EXISTS outbox_entity_operation_idx '
+    'ON outbox_entries (entity_id, operation)',
+  );
 
   Future<void> _createPerformanceIndexes() async {
     await customStatement(
