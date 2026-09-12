@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.40.1 (build 179) — in verifica
+## 2.40.1 (build 179) — Todo Test
 
 - Paginazione remota in ordine crescente esplicito: evita record ripetuti e
   aggiornamenti saltati quando l'archivio supera una pagina.

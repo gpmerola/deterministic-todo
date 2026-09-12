@@ -20,7 +20,14 @@ con CA locale esplicita; UI verificata su HTTP localhost, contesto sicuro,
 senza aggirare avvisi di certificato.
 
 APK Todo Test finale compilato e verificato localmente tramite il tool canonico:
-2.40.1-dev, versionCode 2179, arm64 24,4 MB. Consegna rolling ancora da verificare.
+2.40.1-dev, versionCode 2179, arm64 24,4 MB. `make todo-test` ha pubblicato
+direttamente dal Mac in assenza di ADB, verificando il digest dell'asset.
+[CI Verify](https://github.com/gpmerola/deterministic-todo/actions/runs/34698838332)
+e [pubblicazione Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/34698836044)
+superate. Manifest rolling ricontrollato dopo la CI: 2.40.1, build 179, dev,
+sorgente `edeaa0e40fa944c8e5798fca1f97e20d94141e60`.
+SHA-256 arm64 corrispondente al digest GitHub:
+`9ed787abd5bae65f22a71274047920941075e09cd764a69e3267d7efb0701bdc`.
 
 Il Web osservato usa ancora la 174; Todo Test osservato usa la 178.
 Il telefono ha perso ADB dopo il confronto visivo: storico Android della singola

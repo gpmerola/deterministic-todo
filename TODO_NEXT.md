@@ -7,7 +7,8 @@ Aggiornato il 12 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Riprodurre il difetto reale di ordine/cursore con server sintetico corretto.
 - [x] Correggere ordine, guardie di pagina e diagnostica di scansione/conflitti.
 - [x] Completare verifiche locali e build Android/Web; stato in [STATUS](STATUS.md).
-- [ ] Verificare consegna rolling Todo Test e collaudare la 179 sul Galaxy.
+- [x] Verificare consegna rolling Todo Test e CI.
+- [ ] Installare e collaudare la 179 sul Galaxy, attualmente non raggiungibile.
 - [ ] Pubblicare il Web dopo conferma `PUBBLICA` e verificare la convergenza reale.
 - [ ] Confrontare lo storico Android della singola attività quando ADB torna disponibile.
 
