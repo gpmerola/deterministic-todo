@@ -9,7 +9,8 @@ Aggiornato il 12 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Completare verifiche locali e build Android/Web; stato in [STATUS](STATUS.md).
 - [x] Verificare consegna rolling Todo Test e CI.
 - [ ] Installare e collaudare la 179 sul Galaxy, attualmente non raggiungibile.
-- [ ] Pubblicare il Web dopo conferma `PUBBLICA` e verificare la convergenza reale.
+- [x] Pubblicare Web, APK diretti e Play interno dopo conferma `PUBBLICA`; parità verificata.
+- [ ] Verificare la convergenza reale dopo aggiornamento Android e refresh Web.
 - [ ] Confrontare lo storico Android della singola attività quando ADB torna disponibile.
 
 Contratto: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).

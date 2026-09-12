@@ -29,11 +29,23 @@ sorgente `edeaa0e40fa944c8e5798fca1f97e20d94141e60`.
 SHA-256 arm64 corrispondente al digest GitHub:
 `9ed787abd5bae65f22a71274047920941075e09cd764a69e3267d7efb0701bdc`.
 
-Il Web osservato usa ancora la 174; Todo Test osservato usa la 178.
-Il telefono ha perso ADB dopo il confronto visivo: storico Android della singola
-attività e collaudo hardware della correzione non eseguiti. Nessun contenuto
-personale o log grezzo inserito nel repository. Nessuna pubblicazione stabile
-autorizzata in questo task; Web/Play restano invariati fino a `PUBBLICA`.
+Release stabile **2.40.1+179 pubblicata** dopo conferma `PUBBLICA`:
+[workflow coordinato](https://github.com/gpmerola/deterministic-todo/actions/runs/34699496909)
+interamente verde, inclusa parità finale. Web pubblico e manifest APK riportano
+versione, build e sorgente `f2f8eddaa9b6df719e7038402972b1dfc6a60618` identici;
+i quattro SHA-256 del manifest corrispondono ai digest degli asset GitHub.
+Play ha accettato il bundle nel track interno; propagazione al tester non
+verificata. Permesso temporaneo Pages del branch rimosso dopo il deploy;
+nessun merge eseguito. Le schede Web precedenti vanno ricaricate.
+
+Todo Test è aggiornabile senza ADB da Impostazioni → Controlla aggiornamenti
+→ Aggiorna, poi conferma Installa di Android; versione attesa 2.40.1-dev (2179).
+Il telefono ha perso ADB dopo il confronto visivo: ultima versione osservata 2178,
+storico Android della singola attività e collaudo hardware della correzione
+non eseguiti. Convergenza reale dopo aggiornamento di entrambi i client ancora
+da verificare. Il tentativo di smoke test nella scheda pubblica dopo deploy
+è bloccato dal collegamento browser (`Debugger unattached`); gli endpoint
+pubblici sono verificati. Nessun contenuto personale o log grezzo nel repository.
 
 ## Build 178 — Controllo unificato e cache
 

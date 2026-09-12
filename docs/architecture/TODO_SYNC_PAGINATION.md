@@ -92,3 +92,10 @@ Esiti e blocchi di distribuzione sono in [STATUS](../../STATUS.md).
 Per proteggere entrambi i client occorre distribuire anche il Web e ricaricare
 le schede precedenti. La pubblicazione stabile richiede conferma `PUBBLICA`;
 il push Todo Test non aggiorna il Web. Non cancellare lo storage del browser.
+
+Senza ADB, su Todo Test: **Impostazioni → Controlla aggiornamenti → Aggiorna**,
+attendere il download verificato e confermare **Installa** in Android. Se
+richiesto, consentire a Todo Test di installare aggiornamenti. Riaprire e
+controllare **2.40.1-dev (2179)**. Non disinstallare l’app: l’aggiornamento
+in-place mantiene SQLite e la coda. Sul Web ricaricare la scheda e controllare
+la versione nelle impostazioni, quindi attendere il completamento della sync.
