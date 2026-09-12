@@ -139,6 +139,7 @@ String _syncIncidentLabel(SyncSnapshot snapshot) {
     'it',
   ).format(snapshot.lastFailure!.toLocal());
   final stage = switch (snapshot.lastFailureStage) {
+    SyncStage.overview => 'controllo versioni',
     SyncStage.projects => 'progetti',
     SyncStage.taskUpload => 'invio attività',
     SyncStage.receipt => 'ricevuta outbox',

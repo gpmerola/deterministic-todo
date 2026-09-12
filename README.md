@@ -17,6 +17,11 @@ manutenzione → Storico attività** conserva 90 giorni di revisioni locali,
 consultabili, esportabili e ripristinabili per singola attività. Architettura,
 privacy e limiti: [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
+La build 179 corregge una scansione remota incompleta causata dall'ordinamento
+delle pagine e rende osservabili pagine, righe e conflitti. Diagnosi, test e
+limiti: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
+Disponibilità effettiva Android/Web: [STATUS](STATUS.md).
+
 ## Piattaforme
 
 - **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite

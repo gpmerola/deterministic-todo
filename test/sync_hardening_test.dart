@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/sync/sync_service.dart';
@@ -91,6 +92,54 @@ void main() {
     expect(saved.showDate, '2026-09-20');
     expect(saved.toJson(), (await b.select(b.tasks).getSingle()).toJson());
   });
+
+  test(
+    'reconnect recovers a completion below the first descending page',
+    () async {
+      await phone.create(
+        'Synthetic',
+        showDate: '2026-09-12',
+        status: TaskStatus.available,
+      );
+      final source = await a.select(a.tasks).getSingle();
+      await a.delete(a.outboxEntries).go();
+      await a.delete(a.tasks).go();
+      server.pageCap = 73;
+      for (var i = 0; i < 426; i++) {
+        final id = '00000000-0000-4000-8000-${i.toString().padLeft(12, '0')}';
+        server.tables['tasks']![id] = {
+          ...taskToRemote(source, '00000000-0000-4000-8000-000000000001'),
+          'id': id,
+        };
+      }
+      await syncA.sync();
+      await syncB.sync();
+      const firstId = '00000000-0000-4000-8000-000000000000';
+      final first = await (a.select(
+        a.tasks,
+      )..where((r) => r.id.equals(firstId))).getSingle();
+      await phone.setCompleted(first, true);
+      await syncA.sync();
+      server.beforeRead = (table) async {
+        if (table == 'tasks') throw const SocketException('Synthetic offline');
+      };
+      await syncB.sync();
+      expect(syncB.latest.phase, SyncPhase.error);
+      server.beforeRead = null;
+      await syncB.sync();
+      expect(syncB.latest.phase, SyncPhase.current);
+      final recovered = await (b.select(
+        b.tasks,
+      )..where((r) => r.id.equals(firstId))).getSingle();
+      expect(recovered.status, TaskStatus.completed.name);
+      final current = await (a.select(
+        a.tasks,
+      )..where((r) => r.id.equals(firstId))).getSingle();
+      expect(recovered.toJson(), current.toJson());
+      expect((await b.select(b.tasks).get()).length, 426);
+      expect(await b.select(b.outboxEntries).get(), isEmpty);
+    },
+  );
 
   test('one uncertain task does not block another or remote pull', () async {
     final blockedId = await phone.create('Conflitto sintetico');

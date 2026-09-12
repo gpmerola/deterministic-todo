@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/diagnostic_log_service.dart';
@@ -19,6 +20,7 @@ enum SyncPhase { disabled, offline, syncing, current, error }
 
 enum SyncStage {
   idle,
+  overview,
   projects,
   taskUpload,
   receipt,
@@ -453,6 +455,7 @@ class SyncService {
           'sync_stage': stage.name,
           'pending': pending,
           'remote_rows': remoteRows,
+          ..._requests.pullDiagnostics,
         },
       ),
     );
@@ -494,6 +497,7 @@ class SyncService {
           'pending': entries.length,
           'cycle_id': cycle,
           'sync_stage': stage.name,
+          'pull_all': pullAll,
           'outbox_oldest_age_ms': oldestOutboxAgeMs,
           'auth_state': syncAuthState(client.auth.currentSession),
         },
@@ -615,9 +619,11 @@ class SyncService {
       stage = SyncStage.taskPull;
       var remoteCount = 0;
       if (pullAll) {
-        stage = SyncStage.projects;
+        stage = SyncStage.overview;
         _reportProgress(cycle, stage, entries.length);
         final overview = await SyncOverview.fetch(client, _requests);
+        stage = SyncStage.projects;
+        _reportProgress(cycle, stage, entries.length);
         await _syncProjects(overview);
         stage = SyncStage.taskPull;
         _reportProgress(cycle, stage, entries.length);
@@ -708,6 +714,8 @@ class SyncService {
             'rebased_entities': rebasedEntities,
             'remote_rows': remoteCount,
             'conflicts': conflicts,
+            'pull_all': pullAll,
+            ..._requests.pullDiagnostics,
             'duration_ms': timer.elapsedMilliseconds,
           },
         ),
@@ -795,9 +803,11 @@ class SyncService {
             'pending': entries.length,
             'cycle_id': cycle,
             'sync_stage': stage.name,
-            'error_type': error.runtimeType.toString(),
+            'error_type': safeSyncErrorType(error),
             if (error is PostgrestException) 'error_code': error.code,
             'error_class': safeSyncErrorClass(error),
+            'pull_all': pullAll,
+            ..._requests.pullDiagnostics,
             'network_state': networkState,
             'auth_state': syncAuthState(client.auth.currentSession),
             'failure_index': _consecutiveFailures,
@@ -976,10 +986,14 @@ Future<String> safeSyncNetworkState() async {
 }
 
 String safeSyncErrorClass(Object error) {
+  if (error is SyncPaginationException) return 'pagination';
   if (error is SyncIntentConflictException) return 'intent_conflict';
   if (error is SyncConcurrentWriteException) return 'concurrent_write';
   if (error is SyncWriteVerificationException) return 'write_verification';
   if (error is PostgrestException) return 'supabase';
+  if (error is AuthRetryableFetchException) return 'auth_transport';
+  if (error is TimeoutException) return 'timeout';
+  if (error is http.ClientException) return 'network';
   final type = error.runtimeType.toString().toLowerCase();
   if (type.contains('retryablefetch')) return 'auth_transport';
   if (type.contains('timeout')) return 'timeout';
@@ -1015,6 +1029,11 @@ bool shouldSubscribeRealtime({
 }) => !paused && hasAuthenticatedUser && !hasChannel;
 
 bool isTransientSyncError(Object error) {
+  if (error is http.ClientException ||
+      error is TimeoutException ||
+      error is AuthRetryableFetchException) {
+    return true;
+  }
   if (error is SyncConcurrentWriteException) return true;
   if (error is SyncWriteVerificationException) return true;
   final type = error.runtimeType.toString().toLowerCase();
@@ -1039,11 +1058,27 @@ bool isTransientSyncError(Object error) {
 }
 
 String safeSyncErrorCode(Object error) {
+  if (error is SyncPaginationException) {
+    return 'Allineamento incompleto: ordine dei dati ricevuti non valido';
+  }
   if (error is SyncIntentConflictException) {
     return 'Conflitto: scegli la versione nello storico attività';
   }
   if (error is PostgrestException) return 'Supabase ${error.code}';
-  final type = error.runtimeType.toString();
+  final type = safeSyncErrorType(error);
   if (isTransientSyncError(error)) return 'Rete $type';
   return type;
+}
+
+/// Known transport types remain stable in minified Web releases. Never include
+/// exception messages, which can contain URLs, credentials or response content.
+String safeSyncErrorType(Object error) {
+  if (error is http.ClientException) return 'ClientException';
+  if (error is TimeoutException) return 'TimeoutException';
+  if (error is AuthRetryableFetchException) {
+    return 'AuthRetryableFetchException';
+  }
+  if (error is SyncPaginationException) return 'SyncPaginationException';
+  if (error is PostgrestException) return 'PostgrestException';
+  return error.runtimeType.toString();
 }

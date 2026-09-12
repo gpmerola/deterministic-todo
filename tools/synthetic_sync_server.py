@@ -41,6 +41,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply({"message": "fixture endpoint missing", "code": "PGRST205"}, 404)
             query = parse_qs(url.query)
             rows = sorted(TABLES[table].values(), key=lambda row: row.get("id", row.get("operation_id")))
+            if query.get("order", [""])[0].startswith("id.desc"):
+                rows.reverse()
             for key, expression in ((key, value) for key, values in query.items() for value in values):
                 if expression.startswith("eq."):
                     rows = [row for row in rows if str(row.get(key)) == expression[3:]]

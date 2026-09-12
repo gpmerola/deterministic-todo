@@ -1,5 +1,10 @@
 # Handoff tecnico e di prodotto
 
+Per l'incidente del 12 settembre e la build 179 leggere prima
+[paginazione sync](architecture/TODO_SYNC_PAGINATION.md) e [STATUS](../STATUS.md).
+Non interpretare i download storici come conteggi di task distinte: la vecchia
+paginazione poteva ripetere e saltare record dichiarando successo.
+
 Per il lavoro Todo della build 178 leggere prima
 [Sincronizzazione compatta](architecture/TODO_SYNC_PERFORMANCE.md), poi
 [Backup e lifecycle](architecture/TODO_BACKUP_AND_LIFECYCLE.md), poi

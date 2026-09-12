@@ -1,6 +1,32 @@
 # Stato corrente
 
-Aggiornato l’11 settembre 2026.
+Aggiornato il 12 settembre 2026.
+
+## Build 179 — Paginazione e diagnostica
+
+Diagnosi e contratto: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
+Difetto riprodotto con fixture sintetiche: 73 task recuperate su 1.501, con
+vecchio client e server che rispetta l'ordine richiesto. `make check` superato:
+221 test Flutter, analisi statica, 12 test strumenti, link e SQL.
+`make check-generated` conferma Drift coerente, senza modifiche allo schema.
+
+Build Web release distribuibile e fixture compilate. Chrome su origine localhost
+isolata: 601 attività sintetiche recuperate, inclusa la sentinella con UUID minimo;
+coda zero. La sentinella sopravvive al refresh con server sync spento. La prova
+release ha riprodotto separatamente la mancata classificazione degli errori
+minificati, corretta con controlli di tipo. Dopo il ripristino del server,
+il client recupera automaticamente senza pulsante Riprova. HTTPS risponde 200
+con CA locale esplicita; UI verificata su HTTP localhost, contesto sicuro,
+senza aggirare avvisi di certificato.
+
+APK Todo Test finale compilato e verificato localmente tramite il tool canonico:
+2.40.1-dev, versionCode 2179, arm64 24,4 MB. Consegna rolling ancora da verificare.
+
+Il Web osservato usa ancora la 174; Todo Test osservato usa la 178.
+Il telefono ha perso ADB dopo il confronto visivo: storico Android della singola
+attività e collaudo hardware della correzione non eseguiti. Nessun contenuto
+personale o log grezzo inserito nel repository. Nessuna pubblicazione stabile
+autorizzata in questo task; Web/Play restano invariati fino a `PUBBLICA`.
 
 ## Build 178 — Controllo unificato e cache
 

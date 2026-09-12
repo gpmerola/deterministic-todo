@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.1 (build 179) — in verifica
+
+- Paginazione remota in ordine crescente esplicito: evita record ripetuti e
+  aggiornamenti saltati quando l'archivio supera una pagina.
+- Risposte non ordinate, sovrapposte o fuori gruppo bloccano la scansione con
+  errore esplicito; nessuna cancellazione o sovrascrittura forzata.
+- Diagnostica con pagine, righe, tipo di controllo, fase overview e conflitti;
+  server dei test corretti per riprodurre il comportamento PostgREST reale.
+- Gli errori di rete Web restano riconoscibili e ritentabili anche nella build
+  release minificata, con codici diagnostici stabili privi di contenuti.
+- Diagnosi e limiti: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
+
 ## 2.40.0 (build 178) — Todo Test
 
 - Un solo controllo server per task, progetti, sezioni e cancellazioni invariati;

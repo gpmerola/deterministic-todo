@@ -23,6 +23,21 @@ class SyncRequestScope {
   int networkMs = 0;
   int comparisonMs = 0;
   int purgeMs = 0;
+  int pullPages = 0;
+  int pulledRows = 0;
+  String? pullTable;
+
+  Map<String, Object?> get pullDiagnostics => {
+    'pull_pages': pullPages,
+    'pulled_rows': pulledRows,
+    if (const {
+      'tasks',
+      'projects',
+      'project_sections',
+      'purged_entities',
+    }.contains(pullTable))
+      'pull_table': pullTable,
+  };
 
   Future<T> compareLocally<T>(Future<T> Function() body) async {
     final timer = Stopwatch()..start();

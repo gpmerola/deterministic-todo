@@ -102,6 +102,10 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "last_success_duration_ms", lastCompleted, "duration_ms");
         put(values, "last_success_remote_rows", lastCompleted, "remote_rows");
         put(values, "last_success_pending", lastCompleted, "pending");
+        put(values, "last_success_conflicts", lastCompleted, "conflicts");
+        put(values, "last_success_pull_all", lastCompleted, "pull_all");
+        put(values, "last_success_pull_pages", lastCompleted, "pull_pages");
+        put(values, "last_success_pulled_rows", lastCompleted, "pulled_rows");
         put(values, "last_success_build", lastCompleted, "build");
         put(values, "last_realtime_event_at", lastRealtime, "timestamp");
         put(values, "current_realtime_status", lastRealtime, "status");
@@ -110,6 +114,9 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "last_failure_at", lastFailed, "timestamp");
         put(values, "last_failure_cycle", lastFailed, "cycle_id");
         put(values, "last_failure_stage", lastFailed, "sync_stage");
+        put(values, "last_failure_pull_table", lastFailed, "pull_table");
+        put(values, "last_failure_pull_pages", lastFailed, "pull_pages");
+        put(values, "last_failure_pulled_rows", lastFailed, "pulled_rows");
         put(values, "last_error_class", lastFailed, "error_class");
         put(values, "last_error_type", lastFailed, "error_type");
         put(values, "last_error_code", lastFailed, "error_code");

@@ -2,6 +2,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'sync_request_scope.dart';
 
+/// The server returned overlapping or incorrectly ordered keyset pages.
+/// Contains no IDs or user content.
+final class SyncPaginationException implements Exception {
+  const SyncPaginationException();
+}
+
 /// Keyset pages, including servers configured with a smaller response cap.
 /// Never infer completion from a short page; only an empty page ends the scan.
 Stream<List<Map<String, dynamic>>> remotePages(
@@ -11,6 +17,7 @@ Stream<List<Map<String, dynamic>>> remotePages(
   String? idPrefix,
   SyncRequestScope? scope,
 }) async* {
+  if (pageSize <= 0) throw ArgumentError.value(pageSize, 'pageSize');
   final requests = scope ?? SyncRequestScope(client);
   String? cursor;
   while (true) {
@@ -27,13 +34,23 @@ Stream<List<Map<String, dynamic>>> remotePages(
       }
     }
     if (cursor != null) query = query.gt('id', cursor);
-    final rows = await requests.send(query.order('id').limit(pageSize));
+    requests.pullTable = table;
+    final rows = await requests.send(
+      query.order('id', ascending: true).limit(pageSize),
+    );
+    requests.pullPages++;
+    requests.pulledRows += rows.length;
     if (rows.isEmpty) return;
-    final next = rows.last['id'] as String;
-    if (cursor != null && next.compareTo(cursor) <= 0) {
-      throw StateError('Remote pagination did not advance');
+    var previous = cursor;
+    for (final row in rows) {
+      final id = row['id'] as String;
+      if ((previous != null && id.compareTo(previous) <= 0) ||
+          (idPrefix != null && !id.startsWith(idPrefix))) {
+        throw const SyncPaginationException();
+      }
+      previous = id;
     }
     yield rows;
-    cursor = next;
+    cursor = previous;
   }
 }

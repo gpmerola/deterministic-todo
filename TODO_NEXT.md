@@ -1,6 +1,17 @@
 # TODO e handover
 
-Aggiornato l’11 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 12 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+
+## P0 — Paginazione sync, build 179
+
+- [x] Riprodurre il difetto reale di ordine/cursore con server sintetico corretto.
+- [x] Correggere ordine, guardie di pagina e diagnostica di scansione/conflitti.
+- [x] Completare verifiche locali e build Android/Web; stato in [STATUS](STATUS.md).
+- [ ] Verificare consegna rolling Todo Test e collaudare la 179 sul Galaxy.
+- [ ] Pubblicare il Web dopo conferma `PUBBLICA` e verificare la convergenza reale.
+- [ ] Confrontare lo storico Android della singola attività quando ADB torna disponibile.
+
+Contratto: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
 
 ## P0 — Controllo unificato, build 178
 

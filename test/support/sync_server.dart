@@ -122,6 +122,9 @@ class SyntheticSyncServer {
           await beforeRead?.call(table);
           var rows = data.values.toList()
             ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+          if (q['order']?.startsWith('id.desc') == true) {
+            rows = rows.reversed.toList();
+          }
           if (filter?.startsWith('eq.') == true) {
             rows = rows.where((r) => r['id'] == filter!.substring(3)).toList();
           }
