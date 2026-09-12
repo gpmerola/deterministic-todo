@@ -1,0 +1,11 @@
+<resources>
+    <style name="RunTrackerTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#DB4035</item>
+        <item name="android:navigationBarColor">#F7F5FC</item>
+        <item name="android:statusBarColor">#202124</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">#F7F5FC</item>
+    </style>
+</resources>

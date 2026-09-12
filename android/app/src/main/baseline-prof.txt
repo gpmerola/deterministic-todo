@@ -1,0 +1,6 @@
+HSPLapp/deterministic/todo/deterministic_todo/MainActivity;-><init>()V
+Lapp/deterministic/todo/deterministic_todo/MainActivity;
+Lio/flutter/embedding/android/FlutterActivity;
+Lio/flutter/embedding/engine/FlutterEngine;
+Lio/flutter/embedding/engine/dart/DartExecutor;
+Lio/flutter/view/FlutterMain;

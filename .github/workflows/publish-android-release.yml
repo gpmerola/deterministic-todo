@@ -1,49 +1,35 @@
-name: Publish Android Release
+name: Publish Android and Web Release
 
 on:
-  push:
-    branches:
-      - 'agent/**'
-    paths:
-      - 'android/**'
-      - 'assets/**'
-      - 'lib/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - 'supabase/config.json'
-      - 'tools/generate_release_manifest.py'
   workflow_dispatch:
     inputs:
       confirmation:
-        description: 'Scrivi PUBBLICA per confermare la release latest'
+        description: 'Scrivi PUBBLICA per confermare la release coordinata'
         required: true
         type: string
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: publish-android-release
+  group: publish-coordinated-release
   cancel-in-progress: true
 
 jobs:
-  publish:
-    if: github.event_name == 'push' || inputs.confirmation == 'PUBBLICA'
+  verify:
+    if: inputs.confirmation == 'PUBBLICA'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment: android-release
-    env:
-      GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
-      RELEASE_REPOSITORY: gpmerola/deterministic-todo-releases
-
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build: ${{ steps.version.outputs.build }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Require dedicated release token
-        run: test -n "$GH_TOKEN"
-
-      - name: Read and validate version
+      - name: Validate unpublished version
         id: version
         run: |
           PACKAGE_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)
@@ -51,15 +37,89 @@ jobs:
           BUILD=${PACKAGE_VERSION##*+}
           test -n "$VERSION"
           test "$BUILD" -gt 0
-          if gh release view "v$VERSION" --repo "$RELEASE_REPOSITORY" >/dev/null 2>&1; then
+          if curl --silent --fail --location \
+            "https://api.github.com/repos/gpmerola/deterministic-todo-releases/releases/tags/v$VERSION" \
+            >/dev/null; then
             echo "Release v$VERSION already exists" >&2
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - name: Verify once for both platforms
+        run: |
+          flutter pub get
+          dart run build_runner build
+          git diff --exit-code
+          python3 -m unittest discover -s tools -p 'test_*.py'
+          flutter analyze
+          flutter test
+
+  build-web:
+    needs: verify
+    # The latest-image pool has intermittently failed before Set up job.
+    # Pin Web to the mature pool; Android remains on the current image.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - name: Build web client
+        run: |
+          flutter pub get
+          flutter build web --release --no-pub --no-wasm-dry-run \
+            --base-href /deterministic-todo/ \
+            --dart-define-from-file=supabase/config.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          Path('build/web/release-info.json').write_text(json.dumps({
+              'schema_version': 1,
+              'version': os.environ['VERSION'],
+              'build': int(os.environ['BUILD']),
+              'source_commit': os.environ['GITHUB_SHA'],
+          }, indent=2) + '\n', encoding='utf-8')
+          PY
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          BUILD: ${{ needs.verify.outputs.build }}
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload web client
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
+  build-play:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: android-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -72,11 +132,71 @@ jobs:
           flutter-version: 3.44.7
           cache: true
 
-      - name: Dependencies and verification
+      - name: Prepare stable release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+
+      - name: Build signed Play bundle
         run: |
           flutter pub get
-          flutter analyze
-          flutter test
+          flutter build appbundle --release --flavor play \
+            --split-debug-info=build/private-symbols/play \
+            --dart-define=DISTRIBUTION_CHANNEL=play \
+            --dart-define-from-file=supabase/config.json
+          cd android
+          ./gradlew :runtracker:testDebugUnitTest
+        env:
+          ANDROID_KEYSTORE_PATH: release-key.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: deterministic-todo
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Stage Play bundle
+        run: |
+          mkdir play-release
+          cp build/app/outputs/bundle/playRelease/app-play-release.aab play-release/DeterministicTodo-Android.aab
+
+      - name: Upload Play bundle immediately
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-release-${{ needs.verify.outputs.version }}
+          path: play-release/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Preserve private Play symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-symbols-play-${{ needs.verify.outputs.version }}
+          path: build/private-symbols/play/
+          retention-days: 30
+          if-no-files-found: error
+
+  build-android:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: android-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
 
       - name: Prepare stable release signing
         env:
@@ -85,49 +205,196 @@ jobs:
           test -n "$ANDROID_KEYSTORE_BASE64"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
 
-      - name: Build APKs per CPU
-        run: >-
-          flutter build apk --release --split-per-abi
-          --dart-define-from-file=supabase/config.json
+      - name: Build signed direct APKs per CPU
+        run: |
+          flutter pub get
+          flutter build apk --release --flavor direct \
+            --split-debug-info=build/private-symbols/universal \
+            --dart-define=DISTRIBUTION_CHANNEL=direct \
+            --dart-define-from-file=supabase/config.json
+          flutter build apk --release --flavor direct --split-per-abi \
+            --split-debug-info=build/private-symbols \
+            --dart-define=DISTRIBUTION_CHANNEL=direct \
+            --dart-define-from-file=supabase/config.json
+          python3 tools/check_release_budgets.py \
+            build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk \
+            build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk \
+            build/app/outputs/flutter-apk/app-x86_64-direct-release.apk
         env:
           ANDROID_KEYSTORE_PATH: release-key.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: deterministic-todo
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Prepare manifest and stable asset names
+      - name: Preserve private Dart symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: dart-symbols-${{ needs.verify.outputs.version }}
+          path: build/private-symbols/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Prepare Android release assets
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-          BUILD: ${{ steps.version.outputs.build }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          BUILD: ${{ needs.verify.outputs.build }}
         run: |
           mkdir release-assets
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-assets/DeterministicTodo-Android-x86_64.apk
+          cp build/app/outputs/flutter-apk/app-direct-release.apk release-assets/DeterministicTodo-Android-universal.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-direct-release.apk release-assets/DeterministicTodo-Android-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-direct-release.apk release-assets/DeterministicTodo-Android-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-direct-release.apk release-assets/DeterministicTodo-Android-x86_64.apk
           python3 tools/generate_release_manifest.py \
             --version "$VERSION" \
             --build "$BUILD" \
-            --release-base-url "https://github.com/$RELEASE_REPOSITORY/releases/download/v$VERSION" \
+            --source-commit "$GITHUB_SHA" \
+            --release-base-url "https://github.com/gpmerola/deterministic-todo-releases/releases/download/v$VERSION" \
+            --universal release-assets/DeterministicTodo-Android-universal.apk \
             --arm64 release-assets/DeterministicTodo-Android-arm64-v8a.apk \
             --arm32 release-assets/DeterministicTodo-Android-armeabi-v7a.apk \
             --x86-64 release-assets/DeterministicTodo-Android-x86_64.apk \
             --output release-assets/manifest.json
 
-      - name: Publish atomically as latest
+      - name: Upload staged Android release
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ needs.verify.outputs.version }}
+          path: release-assets/
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-web:
+    needs: [verify, build-web, build-android]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy coordinated web release
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          # deploy-pages enforces a hard maximum of ten minutes.
+          timeout: 600000
+
+      - name: Verify deployed web identity
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          BUILD: ${{ needs.verify.outputs.build }}
+        run: |
+          curl --fail --location --retry 12 --retry-delay 5 \
+            -H 'Cache-Control: no-cache' \
+            "https://gpmerola.github.io/deterministic-todo/release-info.json?commit=$GITHUB_SHA" \
+            --output web-release-info.json
+          python3 - <<'PY'
+          import json
+          import os
+
+          data = json.load(open('web-release-info.json', encoding='utf-8'))
+          assert data['version'] == os.environ['VERSION']
+          assert data['build'] == int(os.environ['BUILD'])
+          assert data['source_commit'] == os.environ['GITHUB_SHA']
+          PY
+
+  publish-android:
+    needs: [verify, build-play, build-android, deploy-web]
+    runs-on: ubuntu-latest
+    environment: android-release
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_REPO_TOKEN }}
+      RELEASE_REPOSITORY: gpmerola/deterministic-todo-releases
+    steps:
+      - name: Require dedicated release token
+        run: test -n "$GH_TOKEN"
+
+      - name: Download staged Android release
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-${{ needs.verify.outputs.version }}
+          path: release-assets
+
+      - name: Download staged Play bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: play-release-${{ needs.verify.outputs.version }}
+          path: release-assets
+
+      - name: Publish Android only after web succeeds
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           gh release create "v$VERSION" release-assets/* \
             --repo "$RELEASE_REPOSITORY" \
             --title "Deterministic Todo $VERSION" \
-            --notes "Release Android verificata e firmata, con APK separati per CPU." \
+            --notes "Release Android e web coordinate e verificate dallo stesso commit." \
             --latest
 
-      - name: Verify public manifest
+      - name: Verify public Android manifest
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           curl --fail --location --retry 5 --retry-delay 3 \
             "https://github.com/$RELEASE_REPOSITORY/releases/download/v$VERSION/manifest.json" \
             --output published-manifest.json
           cmp release-assets/manifest.json published-manifest.json
+
+  publish-google-play:
+    needs: [verify, build-play]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: android-release
+    steps:
+      - name: Download staged Play bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: play-release-${{ needs.verify.outputs.version }}
+          path: release-assets
+
+      - name: Require dedicated Google Play identity
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: test -n "$PLAY_SERVICE_ACCOUNT_JSON"
+
+      - name: Publish automatically to the internal test track
+        # v1.1.5 pinned to its immutable commit.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.deterministic.todo.deterministic_todo
+          releaseFiles: release-assets/DeterministicTodo-Android.aab
+          tracks: internal
+          status: completed
+
+  verify-release-parity:
+    needs: [verify, deploy-web, publish-android, publish-google-play]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare public Android and web identities
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          BUILD: ${{ needs.verify.outputs.build }}
+        run: |
+          curl --fail --location --retry 8 --retry-delay 4 \
+            -H 'Cache-Control: no-cache' \
+            "https://gpmerola.github.io/deterministic-todo/release-info.json?commit=$GITHUB_SHA" \
+            --output web.json
+          curl --fail --location --retry 8 --retry-delay 4 \
+            "https://github.com/gpmerola/deterministic-todo-releases/releases/download/v$VERSION/manifest.json" \
+            --output android.json
+          python3 - <<'PY'
+          import json
+          import os
+
+          web = json.load(open('web.json', encoding='utf-8'))
+          android = json.load(open('android.json', encoding='utf-8'))
+          expected = (os.environ['VERSION'], int(os.environ['BUILD']), os.environ['GITHUB_SHA'])
+          assert (web['version'], web['build'], web['source_commit']) == expected
+          assert (android['version'], android['build'], android['source_commit']) == expected
+          expected_path = f"/releases/download/v{os.environ['VERSION']}/"
+          assert set(android['platforms']) == {
+              'android', 'android-arm64-v8a', 'android-armeabi-v7a', 'android-x86_64'
+          }
+          for platform in android['platforms'].values():
+              assert expected_path in platform['url']
+              assert len(platform['sha256']) == 64
+          PY
