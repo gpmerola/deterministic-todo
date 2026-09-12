@@ -4,65 +4,99 @@ Questa procedura consente di leggere log e diagnostica del Galaxy S21 senza
 lasciare il telefono collegato via USB. Il pairing autorizza il Mac, mentre la
 connessione ADB è temporanea: sono due stati distinti.
 
-## Prerequisiti LAN
+## Requisiti generali del progetto
 
-- Mac e telefono sulla stessa rete Wi-Fi locale;
-- **Developer options → Wireless debugging** attivo sul telefono;
-- `adb` disponibile sul Mac;
-- Mac già presente in **Wireless debugging → Paired devices**.
+ADB serve solo al collaudo: l’app e la CI non richiedono Tailscale, un Mac o un
+LaunchAgent. Usare un dispositivo autorizzato e specificare sempre il target
+quando sono presenti più trasporti. Non riavviare indiscriminatamente il server
+ADB condiviso (`adb kill-server`) e non scollegare altri dispositivi.
+Non configurare port forwarding, Funnel o esposizione Internet di ADB.
 
-Non salvare nel repository codici di pairing, seriali ADB, MAC address o output
-che possano contenere dati personali. L'eccezione dichiarata per il telefono di
-collaudo sulla rete domestica è l'endpoint stabile documentato sotto; non
-riutilizzarlo su altre reti.
+## Configurazione locale Mac / Samsung S21
 
-## Endpoint domestico stabile
-
-Il router domestico riserva `192.168.1.120` al Galaxy S21 di collaudo. ADB
-classico è configurato sulla porta 5555 fino al successivo riavvio del telefono:
+Configurazione del 12 settembre 2026, fornita e collaudata dall’utente.
+Sul Mac eseguire:
 
 ```sh
-adb connect 192.168.1.120:5555
+s21-adb
+adb -s '[fd7a:115c:a1e0::e736:ed30]:5555' shell
 ```
 
-Nel profilo shell personale lo stesso comando è disponibile come `adbtodo` e
-viene ricordato all'apertura di un terminale. Dopo un riavvio del telefono,
-riattivare temporaneamente ADB TCP/IP tramite la connessione Wireless debugging:
+`s21-adb` verifica una risposta reale del modello SM-G991N e riconnette con
+timeout e fino a tre tentativi. Un lock impedisce esecuzioni simultanee; il
+comando ricicla soltanto il trasporto del telefono, senza riavviare il server
+ADB o scollegare altri dispositivi. `s21-adb --watch` è il controllo opzionale
+in primo piano; normalmente basta il LaunchAgent.
+
+Il LaunchAgent utente `local.s21-adb.reconnect` esegue un controllo ogni
+30 secondi (`StartInterval=30`) e all’accesso (`RunAtLoad=true`). Non opera
+mentre il Mac è spento o sospeso; lo stato `not running` tra due controlli è
+normale. Per verificare installazione e ultimo esito:
 
 ```sh
-adb connect <ip>:<porta-wireless-debugging>
-adb tcpip 5555
-adb connect 192.168.1.120:5555
+plutil -lint "$HOME/Library/LaunchAgents/local.s21-adb.reconnect.plist"
+launchctl print "gui/$(id -u)/local.s21-adb.reconnect"
 ```
 
-La prenotazione DHCP sopravvive ai riavvii; la modalità ADB TCP/IP 5555 no.
-Usare questo endpoint soltanto sulla LAN privata e disabilitare ADB sulle reti
-non fidate.
+Mac e telefono appartengono alla stessa tailnet. Sul Galaxy Tailscale usa
+**VPN sempre attiva** ed è esente dall’ottimizzazione batteria. Preferire
+l’IPv6 privato sopra: TCP IPv4 Tailscale presenta timeout, la cui causa precisa
+non è stata risolta. Il comando locale conserva IPv4 come alternativa.
+Collegamento e riconnessione manuale e automatica sono stati collaudati anche
+su rete mobile, con Wi-Fi spento. Una diversa VPN Android può interrompere
+Tailscale. L’endpoint è riportato su richiesta esplicita dell’utente; non
+aggiungere al repository account, altri identificatori della tailnet o segreti.
 
-## Connessione privata tra reti diverse
+ADB TCP ascolta sulla porta 5555. Il listener legacy è su tutte le interfacce:
+con Wi-Fi acceso può essere raggiungibile anche dalla LAN, non soltanto dalla
+VPN. La vecchia procedura LAN `adbtodo` non è più il percorso preferito;
+usare l’indirizzo LAN corrente soltanto come fallback autorizzato.
 
-Mac e telefono possono usare la stessa rete privata Tailscale. Questa
-configurazione è stata collaudata con il Wi-Fi del Galaxy spento: il tunnel è
-rimasto raggiungibile sulla rete mobile e ADB TCP ha risposto sulla porta
-5555. Tailscale fornisce connettività e un nome/IP stabile, ma non avvia ADB.
+### Provenienza e gestione dei file locali
 
-Con una connessione Wireless debugging già autorizzata:
+Fonte della configurazione: `LEGGIMI-ADB.md` nella cartella locale
+`~/Documents/Codex/2026-09-12/referenced-chatgpt-conversation-this-is-an/outputs/`.
+`/opt/homebrew/bin/s21-adb` e
+`~/Library/LaunchAgents/local.s21-adb.reconnect.plist` sono collegamenti ai file
+in quella cartella: non spostarla o cancellarla mentre vengono usati. Python
+3.13 e ADB sono dipendenze già installate sul Mac, non nuove dipendenze Todo.
+Gli script e il plist restano configurazione locale esterna al repository;
+questa procedura ne documenta l’uso, senza introdurre copie operative.
+
+Per sospendere e ripristinare l’automazione, solo quando richiesto:
 
 ```sh
-adb connect <ip-tailscale>:<porta-wireless-debugging>
-adb -s <ip-tailscale>:<porta-wireless-debugging> tcpip 5555
-adb connect <nome-magicdns-o-ip-tailscale>:5555
+launchctl bootout "gui/$(id -u)/local.s21-adb.reconnect"
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/local.s21-adb.reconnect.plist"
+```
+
+### Dopo un riavvio Android
+
+VPN sempre attiva e LaunchAgent non possono riabilitare da soli ADB TCP.
+`persist.adb.tcp.port` era vuota al collaudo: la porta 5555 potrebbe richiedere
+riattivazione dopo reboot. Non è stata verificata persistenza attraverso un
+riavvio. Con USB già autorizzata:
+
+```sh
 adb devices -l
+adb -s SERIAL_USB tcpip 5555
+s21-adb
 ```
 
-Non documentare nome, IP o account personali della tailnet. Non pubblicare né
-inoltrare la porta 5555 sul router: deve essere raggiungibile soltanto nella
-rete privata. Dopo il riavvio Android può disattivare la modalità TCP 5555; in
-quel caso riabilitarla tramite la porta temporanea di Wireless debugging o USB.
-Se il tunnel è raggiungibile ma `adb connect ...:5555` risponde `Connection
-refused`, la rete funziona e manca soltanto `adb tcpip 5555`.
+In alternativa usare Debug wireless sul Wi-Fi: recuperare **IP address & port**
+corrente dalla schermata Android o da `adb mdns services`, poi:
 
-## Connessione ordinaria
+```sh
+adb connect IP_LOCALE:PORTA
+adb -s IP_LOCALE:PORTA tcpip 5555
+s21-adb
+```
+
+Per questo fallback Mac e telefono devono essere sulla stessa LAN, Debug wireless
+attivo e il Mac già associato. Ripetere il pairing solo se richiesto, senza
+salvare il codice temporaneo. Non richiedere root o modifiche a proprietà protette.
+
+## Fallback: connessione Debug wireless sulla LAN
 
 Sul telefono aprire **Settings → Developer options → Wireless debugging** e
 leggere il valore corrente di **IP address & port**. Poi sul Mac eseguire:
@@ -191,21 +225,18 @@ progetti, titoli, note, email, URL, token o messaggi restituiti dal server.
 
 ## Aggiornamenti e firma del dispositivo di test
 
-Prima di usare `adb install -r`, verificare la provenienza dell'app installata.
-Il Galaxy S21 di test usa attualmente la firma di **Google Play App Signing**:
-un APK diretto GitHub con la stessa `applicationId` ma firmato dalla chiave del
-repository viene rifiutato con `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. È un
-controllo di integrità, non un blocco di sicurezza aggirabile.
-
-Su questa installazione usare il test interno Play e non disinstallare l'app:
-la disinstallazione eliminerebbe i dati locali. Il canale APK diretto resta
-valido per dispositivi che hanno iniziato con quella stessa linea di firma,
-ma i due canali non sono intercambiabili in-place. Per controllare la versione:
+Il canale operativo del Galaxy è **Todo Test**, package `.dev`, con firma
+diretta stabile. Per consegnare usare `make todo-test`; per controllare la
+versione senza modificare dati:
 
 ```sh
-adb shell dumpsys package app.deterministic.todo.deterministic_todo \
-  | grep -E 'versionCode|versionName|lastUpdateTime'
+adb -s '[fd7a:115c:a1e0::e736:ed30]:5555' shell dumpsys package app.deterministic.todo.deterministic_todo.dev
 ```
+
+Play e APK diretto dello stesso package non sono intercambiabili in-place.
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` richiede di verificare canale e firma,
+non di disinstallare l’app. Seguire [ANDROID_DEV_CHANNEL](ANDROID_DEV_CHANNEL.md);
+non riattivare il fallback Play per questo collaudo.
 
 ## Ambito e sicurezza
 

@@ -249,12 +249,12 @@ di cambiare architettura.
   diretto GitHub non può sostituirlo in-place e non va usata la disinstallazione
   come scorciatoia, perché rimuoverebbe i dati locali.
 - Orologio: Amazfit Bip U senza GPS integrato.
-- Il Galaxy S21 è associato al Mac per ADB wireless. È stata verificata anche
-  la connessione privata Tailscale con Wi-Fi del telefono spento e ADB TCP
-  sulla porta 5555. La modalità non sopravvive necessariamente al riavvio;
-  ripristino e fallback sono descritti in
-  [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md); non conservare nel
-  repository l'indirizzo runtime del telefono.
+- Configurazione locale Galaxy/Mac: usare prima `s21-adb`; un LaunchAgent
+  riconnette ogni 30 secondi e parte all’accesso. Preferire IPv6 Tailscale su
+  TCP 5555, collaudato anche su rete mobile. Endpoint autorizzato, provenienza
+  dei file locali, limiti dopo reboot e recovery sono nella fonte canonica
+  [`operations/ADB_WIFI.md`](operations/ADB_WIFI.md). Non è un requisito dell’app
+  o della CI; non riavviare il server ADB condiviso.
 
 Ogni modifica funzionale Android deve incrementare versione/build e superare i
 test. Durante lo sviluppo viene collaudata prima sul flavor `dev` via ADB; il

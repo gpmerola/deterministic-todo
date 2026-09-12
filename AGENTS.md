@@ -66,14 +66,29 @@ Il riferimento operativo per performance e release Android è `docs/ANDROID_PERF
 Il comando locale canonico è `make check`; `make check-generated` verifica
 separatamente che il codice Drift generato sia aggiornato.
 
-## Modulo movimento e Amazfit
+## Configurazione locale Mac / Galaxy S21
 
-- Sulla rete domestica il Galaxy S21 di collaudo ha la prenotazione DHCP
-  `192.168.1.120`; provare per prima cosa `adb connect 192.168.1.120:5555`
-  oppure l'alias personale `adbtodo`. La porta 5555 sopravvive ai cambi Wi-Fi
-  ma non al riavvio del telefono. Per ripristino, sicurezza e fallback leggere
-  integralmente `docs/operations/ADB_WIFI.md`; non salvare MAC, codici di
-  pairing o credenziali del router.
+Questa configurazione riguarda la macchina di collaudo, non i requisiti dell’app
+né della CI. Prima di usare ADB sul Galaxy eseguire `s21-adb`: verifica una vera
+risposta del telefono e ripristina il trasporto se necessario. Il LaunchAgent
+locale riconnette ogni 30 secondi e parte all’accesso dell’utente; non aggiungere
+questa automazione all’app. Usare il target esplicito:
+
+```sh
+adb -s '[fd7a:115c:a1e0::e736:ed30]:5555' shell
+```
+
+Preferire IPv6 Tailscale: IPv4 presenta timeout. Sul telefono Tailscale ha VPN
+sempre attiva ed esenzione dall’ottimizzazione batteria; collegamento e
+riconnessione sono stati verificati anche su rete mobile, con Wi-Fi spento.
+Dopo reboot Android potrebbe servire riattivare `adb tcpip 5555` da USB
+autorizzata o Debug wireless. Non configurare port forwarding o esposizione
+Internet e non riavviare indiscriminatamente il server ADB condiviso.
+Leggere `docs/operations/ADB_WIFI.md` per configurazione, limiti, recovery e
+provenienza dei file locali. L’endpoint sopra è documentato su richiesta
+esplicita dell’utente; non aggiungere MAC, codici di pairing o credenziali.
+
+## Modulo movimento e Amazfit
 
 - Il codice salute/movimento deve restare confinato in `android/runtracker` e
   nel suo sottile canale Flutter. Non mescolare database, permessi, log o sync

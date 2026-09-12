@@ -40,10 +40,29 @@ nessun merge eseguito. Le schede Web precedenti vanno ricaricate.
 
 Todo Test è aggiornabile senza ADB da Impostazioni → Controlla aggiornamenti
 → Aggiorna, poi conferma Installa di Android; versione attesa 2.40.1-dev (2179).
-Il telefono ha perso ADB dopo il confronto visivo: ultima versione osservata 2178,
-storico Android della singola attività e collaudo hardware della correzione
-non eseguiti. Convergenza reale dopo aggiornamento di entrambi i client ancora
-da verificare. Il tentativo di smoke test nella scheda pubblica dopo deploy
+Il telefono aveva perso ADB dopo il confronto visivo. Il controllo serale del
+12 settembre via IPv6 Tailscale conferma ora **2.40.1-dev (2179)** installata,
+con `lastUpdateTime=2026-09-12 16:31:23`. Il provider registra un successo della
+2179 alle **19:00:54 UTC**, 139 ms, una richiesta, zero intenti finali e zero
+conflitti. Al controllo successivo è però in errore: **20:01:10 UTC**, fase
+`overview`, `auth_transport / AuthRetryableFetchException`, sessione `expired`,
+rete `vpn+mobile`. Questo indica un fallimento del rinnovo attraverso il trasporto,
+non prova credenziali errate né una nuova divergenza dati. Dopo aver riportato
+l’app in primo piano, la lettura successiva conferma **healthy** e un nuovo
+successo alle **20:01:32 UTC**: 130 ms, una richiesta, zero intenti finali,
+zero conflitti e Realtime `subscribed`. L’errore è quindi superato; i campi
+storici `last_auth_state` e `last_failure` non descrivono il nuovo successo.
+La convergenza del contenuto dei due client resta da verificare; lo storico
+Android della singola attività non è stato ricostruito.
+
+Configurazione locale ADB aggiornata in [ADB_WIFI](docs/operations/ADB_WIFI.md):
+`s21-adb` risponde con il modello atteso, porta TCP 5555, VPN sempre attiva ed
+esenzione batteria Tailscale confermate. Plist valido, LaunchAgent caricato con
+intervallo 30 secondi e ultima uscita 0. Disconnesso solo il trasporto S21 e
+verificata la riconnessione automatica con nuova risposta del modello, senza
+richiamare manualmente lo script né riavviare il server ADB. Il precedente
+collaudo su rete mobile è descritto nel riferimento locale dell’utente; in questa
+verifica non sono stati modificati Wi-Fi, VPN o impostazioni batteria. Il tentativo di smoke test nella scheda pubblica dopo deploy
 è bloccato dal collegamento browser (`Debugger unattached`); gli endpoint
 pubblici sono verificati. Nessun contenuto personale o log grezzo nel repository.
 
