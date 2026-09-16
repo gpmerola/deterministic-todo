@@ -22,7 +22,11 @@ conflitti: le scelte già in coda hanno quindi recuperato il caso reale senza
 ulteriori ripristini o cancellazioni. Restano eventi di trasporto Realtime
 separati (`channelError`), non una coda bloccata. La release Web/stabile pubblica
 resta 179: la build Web 180 è verificata in compilazione, non pubblicata né
-collaudata in browser. Pubblicazione rolling e CI in corso.
+collaudata in browser. Verify `35090803334` e pubblicazione Todo Test
+`35090797222` completate con successo sul commit `96fd14c`. Il manifest pubblico
+rolling espone 2.40.2+180, canale dev e lo stesso commit; pubblicazione e verifica
+dell'APK sono passate. La consegna ADB locale e la pubblicazione rolling sono
+due build della stessa sorgente, non una prova del flusso OTA sul telefono.
 
 ## Build 179 — Paginazione e diagnostica
 
