@@ -30,6 +30,10 @@ jobs:
           cache: true
       - name: Verify and build Web
         run: |
+          VERSION="$(sed -n 's/^version: \([^+]*\)+.*/\1/p' pubspec.yaml)"
+          BUILD="$(sed -n 's/^version: [^+]*+\([0-9][0-9]*\)$/\1/p' pubspec.yaml)"
+          test "$VERSION" = 2.40.2
+          test "$BUILD" = 180
           flutter pub get
           dart run build_runner build
           git diff --exit-code
@@ -38,15 +42,14 @@ jobs:
           flutter build web --release --no-pub --no-wasm-dry-run \
             --base-href /deterministic-todo/ \
             --dart-define-from-file=supabase/config.json
-          python3 - <<'PY'
+          VERSION="$VERSION" BUILD="$BUILD" python3 - <<'PY'
           import json
-          import os, re
+          import os
           from pathlib import Path
-          version, build = re.match(r'^version:\s*([^+\s]+)\+(\d+)\s*$', Path('pubspec.yaml').read_text(), re.M).groups()
           Path('build/web/release-info.json').write_text(json.dumps({
               'schema_version': 1,
-              'version': version,
-              'build': int(build),
+              'version': os.environ['VERSION'],
+              'build': int(os.environ['BUILD']),
               'source_commit': os.environ['GITHUB_SHA'],
           }, indent=2) + '\n', encoding='utf-8')
           PY
