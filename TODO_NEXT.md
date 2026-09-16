@@ -8,6 +8,7 @@ Aggiornato il 16 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Correggere la precedenza dell'ultima scelta e aggiungere regressioni.
 - [x] Verifiche locali, installazione Todo Test e recupero reale: coda zero e zero conflitti.
 - [x] Rolling e CI verificate; disponibilità Web separata in [STATUS](STATUS.md).
+- [x] Correggere la policy del branch Pages e pubblicare Web 180; diagnosi e recovery in [RELEASE](docs/operations/RELEASE.md).
 
 ## P0 — Paginazione sync, build 179
 

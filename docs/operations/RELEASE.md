@@ -45,6 +45,9 @@ Procedura e vincoli in [ANDROID_DEV_CHANNEL](ANDROID_DEV_CHANNEL.md).
 
 ## Fallimento e recovery
 
+- Un job senza step/log può essere stato rifiutato dalle protezioni prima
+  dell'assegnazione del runner. Non attribuirlo a un guasto GitHub senza leggere
+  le annotazioni del check-run e la policy dell'environment (procedura sotto).
 - Prima di ripetere una pipeline fallita, controllare separatamente Play, Web
   e APK diretti: il track Play può essere già aggiornato prima del deploy Web.
 - Web fallisce: gli APK diretti non vengono pubblicati; Play potrebbe essere
@@ -53,3 +56,43 @@ Procedura e vincoli in [ANDROID_DEV_CHANNEL](ANDROID_DEV_CHANNEL.md).
   pipeline senza riscrivere release già pubblicate.
 - Non cancellare una release usata da dispositivi installati e non fare
   force-push.
+
+### Pages: branch autorizzato e annotazioni
+
+Prima del dispatch controllare che l'esatto branch sorgente sia ammesso:
+
+```sh
+gh api repos/gpmerola/deterministic-todo/environments/github-pages
+gh api repos/gpmerola/deterministic-todo/environments/github-pages/deployment-branch-policies
+```
+
+Con `custom_branch_policies=true` la presenza di un branch `agent/*` nel
+repository non implica il permesso di pubblicare: deve corrispondere a una
+policy. Usare regole esatte per i branch operativi autorizzati. Conservare
+le protezioni e non sostituirle con accesso indiscriminato. Lo stato corrente
+e la modifica applicata sono registrati in [STATUS](../../STATUS.md).
+
+Per un run fallito, sostituire RUN_ID e CHECK_RUN_ID con gli identificatori
+restituiti da GitHub:
+
+```sh
+gh api repos/gpmerola/deterministic-todo/actions/runs/RUN_ID/jobs \
+  --jq '.jobs[] | {name,conclusion,check_run_url}'
+gh api repos/gpmerola/deterministic-todo/check-runs/CHECK_RUN_ID/annotations
+```
+
+`Branch ... is not allowed to deploy ... due to environment protection rules`
+identifica un blocco di configurazione del repository. Ripetere il workflow
+senza correggere l'autorizzazione genera soltanto altre email di fallimento.
+Dopo una correzione autorizzata, riutilizzare l'artefatto verificato e non
+scaduto con `gh run rerun RUN_ID --job JOB_ID` sul solo job deploy Web.
+Controllare l'esito del job e l'identità HTTPS pubblica, non soltanto il dispatch.
+
+Per una nuova pubblicazione soltanto Web usare `publish-web.yml`, conferma
+`PUBBLICA` e branch autorizzato. Il workflow introdotto per il recovery della
+180 conserva guardie esplicite 2.40.2/180: prima di una versione diversa queste
+vanno aggiornate o sostituite con la validazione della versione canonica.
+Non rilanciare l'intera release coordinata se Play ha già accettato il numero
+versione: `Version code ... has already been used` segnala un duplicato,
+non credenziali errate. Le email “Run failed” descrivono l'esito complessivo;
+leggere quali job sono riusciti e quali sono falliti prima di agire.

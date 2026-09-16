@@ -20,17 +20,44 @@ installato in-place la 2.40.2 / versionCode 2180 sul Galaxy, preservando i dati.
 Alle 11:30:37 UTC il provider riporta `healthy`, zero operazioni pendenti e zero
 conflitti: le scelte già in coda hanno quindi recuperato il caso reale senza
 ulteriori ripristini o cancellazioni. Restano eventi di trasporto Realtime
-separati (`channelError`), non una coda bloccata. La release Web/stabile pubblica
-resta 179: la build Web 180 è verificata in compilazione, non pubblicata né
-collaudata in browser. Verify `35090803334` e pubblicazione Todo Test
+separati (`channelError`), non una coda bloccata. Disponibilità Web e Play sotto.
+Verify `35090803334` e pubblicazione Todo Test
 `35090797222` completate con successo sul commit `96fd14c`. Il manifest pubblico
 rolling espone 2.40.2+180, canale dev e lo stesso commit; pubblicazione e verifica
 dell'APK sono passate. La consegna ADB locale e la pubblicazione rolling sono
 due build della stessa sorgente, non una prova del flusso OTA sul telefono.
 
-Per isolare il deploy dal fallimento Play è stato aggiunto il workflow manuale
-`.github/workflows/publish-web.yml`, che costruisce e pubblica soltanto Web con
-la stessa conferma `PUBBLICA` e verifica `release-info.json` dopo il deploy.
+### Pubblicazione Web e diagnosi del blocco Pages
+
+Web 2.40.2+180 pubblicata dal commit `60fb9dd`: run `35139596058`, tentativo 2,
+riuscito dopo il recupero del solo job deploy. `release-info.json` pubblico
+verificato via HTTPS con versione, build e commit corretti. La build aveva già
+superato analisi, generazione e 224 test Flutter. Chrome reale, nuova scheda
+sullo stesso profilo: apertura riuscita, Impostazioni mostra `2.40.2 (180)` e
+stato `Sincronizzato`; dopo refresh la vista Oggi mostra ancora le attività.
+Questa è una verifica di riapertura, non un nuovo test di modifica offline.
+La scheda dell'utente già aperta non è stata ricaricata
+per preservare eventuali modifiche in corso.
+
+La causa dei rifiuti non era un guasto Pages: le annotazioni del check-run
+`104941554133` indicavano che `agent/todo-ux-sync-hardening` non era ammesso
+dalle regole dell'environment `github-pages`. La lista consentiva soltanto
+`main` e `agent/verify-public-release-token`. Aggiunta la sola regola esatta del
+branch operativo (policy `60177181`), conservando tutte le altre protezioni.
+Per annullare questa modifica basta rimuovere quella singola policy: i futuri
+deploy dal branch tornerebbero bloccati, senza cancellare il sito pubblicato.
+
+Le notifiche email riportavano build riuscita e deploy fallito. L'assenza di
+step/log nel job era conseguenza del rifiuto preventivo; non provava un guasto
+del servizio. Il workflow manuale `.github/workflows/publish-web.yml` separa
+Web da Play, ma da solo non poteva correggere la policy dell'environment.
+Diagnosi e recovery ripetibile in [RELEASE](docs/operations/RELEASE.md).
+
+Play aveva già accettato la build 180 nel run `35092161105`; nel successivo
+`35093331932` l'errore era `Version code 180 has already been used`, non un
+problema di credenziali. Nessun ulteriore invio Play eseguito per recuperare Web.
+Gli APK diretti stabili restano alla release precedente; la parità della
+release coordinata non è dichiarata completata.
 
 ## Build 179 — Paginazione e diagnostica
 
