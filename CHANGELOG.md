@@ -10,6 +10,7 @@ Cronologia delle modifiche distribuite, dalla più recente.
   alla ricevuta. Una ricevuta persa non riattiva le vecchie modifiche.
 - Regressioni sintetiche per ripristini ripetuti, convergenza tra client e nuovi
   esiti incerti; nessuna modifica a schema server o dati Movimento.
+- Workflow Web isolato per pubblicare Pages senza dipendere dal caricamento Play.
 
 ## 2.40.1 (build 179)
 

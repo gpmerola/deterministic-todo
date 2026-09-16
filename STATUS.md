@@ -28,6 +28,10 @@ rolling espone 2.40.2+180, canale dev e lo stesso commit; pubblicazione e verifi
 dell'APK sono passate. La consegna ADB locale e la pubblicazione rolling sono
 due build della stessa sorgente, non una prova del flusso OTA sul telefono.
 
+Per isolare il deploy dal fallimento Play è stato aggiunto il workflow manuale
+`.github/workflows/publish-web.yml`, che costruisce e pubblica soltanto Web con
+la stessa conferma `PUBBLICA` e verifica `release-info.json` dopo il deploy.
+
 ## Build 179 — Paginazione e diagnostica
 
 Diagnosi e contratto: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
