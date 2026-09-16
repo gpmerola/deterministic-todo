@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.2 (build 180) — Todo Test
+
+- Il ripristino esplicito di un'attività supera gli invii precedenti rimasti
+  incerti, evitando conflitti che ricompaiono anche dopo la scelta nello storico.
+- Conservate le modifiche successive alla scelta, la cronologia e la coda fino
+  alla ricevuta. Una ricevuta persa non riattiva le vecchie modifiche.
+- Regressioni sintetiche per ripristini ripetuti, convergenza tra client e nuovi
+  esiti incerti; nessuna modifica a schema server o dati Movimento.
+
 ## 2.40.1 (build 179)
 
 - Paginazione remota in ordine crescente esplicito: evita record ripetuti e

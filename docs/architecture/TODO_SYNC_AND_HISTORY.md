@@ -73,6 +73,22 @@ non vengono più risolte sovrascrivendo automaticamente la copia canonica.
 
 ## Storico e privacy
 
+### Recupero degli invii incerti — build 180
+
+Un ripristino esplicito di attività delimita gli intenti da applicare: il writer
+considera l'ultimo `replace` e le modifiche successive. I vecchi tentativi
+incerti non possono bloccare la scelta già effettuata. Tutti gli operation ID
+restano in coda fino alla ricevuta, e lo storico locale resta intatto. Il confine
+vale anche se il ripristino è già confermato ma manca la ricevuta: non si
+riattivano gli intenti precedenti. Un esito incerto del nuovo ripristino continua
+invece a richiedere una nuova scelta se il server è cambiato nel frattempo.
+
+La regressione è riprodotta in `test/sync_hardening_test.dart`: risposta persa,
+modifica remota successiva, ripristini ripetuti e ulteriore modifica locale.
+Prima della correzione la coda rimaneva bloccata; i test coprono anche ricevuta
+persa e protezione delle modifiche remote successive. Nessuna migrazione o
+risoluzione automatica di conflitti privi di una scelta esplicita è introdotta.
+
 SQLite schema 7 aggiunge `activity_revisions`, con indici per entità/sequenza e
 istante UTC. Trigger transazionali registrano insert, update e delete di
 attività, progetti e sezioni; un rollback annulla anche le relative revisioni.

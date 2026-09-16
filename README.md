@@ -22,6 +22,11 @@ delle pagine e rende osservabili pagine, righe e conflitti. Diagnosi, test e
 limiti: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
 Disponibilità effettiva Android/Web: [STATUS](STATUS.md).
 
+La build 180 corregge il ripristino di attività dopo un invio incerto: la scelta
+fatta nello storico supera gli intenti precedenti e conserva le modifiche
+successive. Cronologia e ricevute restano protette; dettagli nel
+[contratto di sincronizzazione](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+
 ## Piattaforme
 
 - **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite

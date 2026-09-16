@@ -1,6 +1,13 @@
 # TODO e handover
 
-Aggiornato il 12 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 16 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+
+## P0 — Recupero conflitto dopo ripristino, build 180
+
+- [x] Riprodurre il blocco causato da un vecchio invio incerto prima del ripristino.
+- [x] Correggere la precedenza dell'ultima scelta e aggiungere regressioni.
+- [x] Verifiche locali, installazione Todo Test e recupero reale: coda zero e zero conflitti.
+- [ ] Verificare rolling/CI; disponibilità Web separata in [STATUS](STATUS.md).
 
 ## P0 — Paginazione sync, build 179
 

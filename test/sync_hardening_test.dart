@@ -171,6 +171,95 @@ void main() {
   });
 
   test(
+    'explicit task restore supersedes an uncertain earlier upload',
+    () async {
+      final id = await phone.create('Base');
+      await syncA.sync();
+      final original = await a.select(a.tasks).getSingle();
+      await phone.move(original, TaskStatus.waiting);
+      server.loseResponse.add(id);
+      await syncA.sync();
+      server.loseResponse.clear();
+      server.tables['tasks']![id] = {
+        ...server.tables['tasks']![id]!,
+        'title': 'Later remote edit',
+        'logical_version': 90,
+      };
+      await syncA.sync();
+      expect(
+        (await a.select(a.outboxEntries).getSingle()).lastError,
+        'intent_conflict',
+      );
+      await phone.restoreRevision(original.copyWith(title: 'First choice'));
+      await phone.restoreRevision(original.copyWith(title: 'Final choice'));
+      await phone.move(await a.select(a.tasks).getSingle(), TaskStatus.waiting);
+      await syncA.sync();
+      expect(syncA.latest.phase, SyncPhase.current);
+      expect(await a.select(a.outboxEntries).get(), isEmpty);
+      expect(server.tables['tasks']![id]!['title'], 'Final choice');
+      expect(server.tables['tasks']![id]!['status'], 'waiting');
+      await syncB.sync();
+      expect(
+        (await b.select(b.tasks).getSingle()).toJson(),
+        (await a.select(a.tasks).getSingle()).toJson(),
+      );
+    },
+  );
+
+  test(
+    'an uncertain replacement still requires a new explicit choice',
+    () async {
+      final id = await phone.create('Base');
+      await syncA.sync();
+      final original = await a.select(a.tasks).getSingle();
+      await phone.restoreRevision(original.copyWith(title: 'Chosen'));
+      server.loseResponse.add(id);
+      await syncA.sync();
+      server.loseResponse.clear();
+      server.tables['tasks']![id] = {
+        ...server.tables['tasks']![id]!,
+        'title': 'Later remote edit',
+        'logical_version': 90,
+      };
+      await syncA.sync();
+      expect(syncA.latest.phase, SyncPhase.error);
+      expect(
+        (await a.select(a.outboxEntries).getSingle()).lastError,
+        'intent_conflict',
+      );
+      expect(server.tables['tasks']![id]!['title'], 'Later remote edit');
+    },
+  );
+
+  test(
+    'a confirmed replacement never revives superseded uncertain edits',
+    () async {
+      final id = await phone.create('Base');
+      await syncA.sync();
+      final original = await a.select(a.tasks).getSingle();
+      await phone.move(original, TaskStatus.waiting);
+      server.loseResponse.add(id);
+      await syncA.sync();
+      server.loseResponse.clear();
+      await phone.restoreRevision(original.copyWith(title: 'Chosen'));
+      server.failReceipt = true;
+      await syncA.sync();
+      server.failReceipt = false;
+      final writes = server.writes;
+      server.tables['tasks']![id] = {
+        ...server.tables['tasks']![id]!,
+        'title': 'Later remote edit',
+        'logical_version': 90,
+      };
+      await syncA.sync();
+      expect(syncA.latest.phase, SyncPhase.current);
+      expect(await a.select(a.outboxEntries).get(), isEmpty);
+      expect(server.writes, writes);
+      expect((await a.select(a.tasks).getSingle()).title, 'Later remote edit');
+    },
+  );
+
+  test(
     'projects and sections preserve distinct concurrent edits using CAS',
     () async {
       final projectId = await phone.createProject('Progetto');

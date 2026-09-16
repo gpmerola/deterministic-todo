@@ -1,6 +1,28 @@
 # Stato corrente
 
-Aggiornato il 12 settembre 2026.
+Aggiornato il 16 settembre 2026.
+
+## Recupero sincronizzazione — build 180
+
+Diagnostica tecnica Galaxy sulla 2179: 11 operazioni pendenti, un conflitto
+nell'ultimo ciclo completato e successivo `ClientException` in `taskUpload`.
+La scheda Web aperta non aveva operazioni in attesa. Nessun database personale
+è stato estratto. Il test sintetico riproduce un difetto nel recupero attività:
+un `replace` scelto nello storico restava preceduto da tentativi incerti che
+facevano fallire il writer prima di applicare la scelta. La 180 delimita gli
+intenti all'ultimo ripristino, conservando quelli successivi e tutti gli ID
+fino alla ricevuta. Contratto: [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+
+`make check` superato: 224 test Flutter, analisi statica pulita, 12 test strumenti,
+link documentali e controlli PostgreSQL/PGlite. `make check-generated` superato.
+Build release Web e Todo Test superate; il tool canonico `make todo-test` ha
+installato in-place la 2.40.2 / versionCode 2180 sul Galaxy, preservando i dati.
+Alle 11:30:37 UTC il provider riporta `healthy`, zero operazioni pendenti e zero
+conflitti: le scelte già in coda hanno quindi recuperato il caso reale senza
+ulteriori ripristini o cancellazioni. Restano eventi di trasporto Realtime
+separati (`channelError`), non una coda bloccata. La release Web/stabile pubblica
+resta 179: la build Web 180 è verificata in compilazione, non pubblicata né
+collaudata in browser. Pubblicazione rolling e CI in corso.
 
 ## Build 179 — Paginazione e diagnostica
 

@@ -67,7 +67,16 @@ class TaskSyncWriter {
   ) async {
     scope.check();
     final userId = scope.userId!;
+    // A full snapshot explicitly chosen by the user supersedes every earlier
+    // intent, including uncertain attempts. Keep all IDs for the receipt/ack,
+    // but only replay the latest replacement and edits made after that choice.
+    // Include confirmed replacements in the boundary: a failed receipt must
+    // never revive the intents they superseded.
+    final replacementIndex = entries.lastIndexWhere(
+      (e) => (jsonDecode(e.payload) as Map)['kind'] == 'replace',
+    );
     final pending = entries
+        .skip(replacementIndex < 0 ? 0 : replacementIndex)
         .where((e) => (jsonDecode(e.payload) as Map)['confirmed'] != true)
         .toList();
     final operations = pending
