@@ -6,8 +6,11 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 
 - [x] Lettura remota in blocco e ricevute raggruppate: 150 → 52 richieste per 50 modifiche.
 - [x] Nessun fetch Realtime per versioni già note; diagnostica `diverged_buckets`.
-- [ ] Consegna Todo Test e verifica sul Galaxy; Web dopo conferma `PUBBLICA`.
+- [ ] Web 183 dopo conferma `PUBBLICA`.
+- [x] Consegna Todo Test 2183, ciclo reale `healthy` e CI verde.
 - [ ] Osservare `diverged_buckets` su più cicli reali prima di progettare una riparazione.
+- [ ] Verificare nel bundle diagnostico l'assenza di cicli sync a schermo spento
+  (osservazione del 25/09 alle 18:51 UTC in [STATUS](STATUS.md)).
 
 ## P0 — Ciclo di vita e ricerca, build 182
 
