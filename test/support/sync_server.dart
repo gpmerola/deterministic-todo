@@ -24,6 +24,13 @@ class SyntheticSyncServer {
   int fingerprintReads = 0;
   bool failReceipt = false;
   final loseResponse = <String>{};
+
+  /// Row ID → SQLSTATE returned by a synthetic constraint rejection.
+  final rejectWrite = <String, String>{};
+
+  /// Largest `id=in.(...)` list accepted, modelling proxy URL limits.
+  int maxInIds = 150;
+  int inReads = 0;
   Future<void> Function(String table, String id)? beforeWrite;
   Future<void> Function(String table)? beforeRead;
 
@@ -125,6 +132,18 @@ class SyntheticSyncServer {
           if (q['order']?.startsWith('id.desc') == true) {
             rows = rows.reversed.toList();
           }
+          if (filter?.startsWith('in.(') == true) {
+            final ids = filter!
+                .substring(4, filter.length - 1)
+                .split(',')
+                .map((id) => id.replaceAll('"', ''))
+                .toSet();
+            if (ids.length > maxInIds) {
+              return reply({'message': 'URI too long'}, 414);
+            }
+            inReads++;
+            rows = rows.where((r) => ids.contains(r['id'])).toList();
+          }
           if (filter?.startsWith('eq.') == true) {
             rows = rows.where((r) => r['id'] == filter!.substring(3)).toList();
           }
@@ -174,6 +193,13 @@ class SyntheticSyncServer {
         );
         final id = candidate['id'] as String;
         await beforeWrite?.call(table, id);
+        final rejection = rejectWrite[id];
+        if (rejection != null) {
+          return reply({
+            'code': rejection,
+            'message': 'synthetic rejection',
+          }, 400);
+        }
         if (request.method == 'POST' && data.containsKey(id)) {
           return reply({'code': '23505', 'message': 'duplicate id'}, 409);
         }

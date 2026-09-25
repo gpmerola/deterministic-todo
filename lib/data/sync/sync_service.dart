@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -64,6 +65,9 @@ class SyncService {
   SyncService(this.db, this.client);
   static const periodicInterval = Duration(minutes: 10);
   static const eventDebounce = Duration(milliseconds: 120);
+
+  /// Keeps `id=in.(...)` URLs well below common proxy limits.
+  static const idBatchSize = 100;
   final AppDatabase db;
   final SupabaseClient client;
   final _state = StreamController<SyncSnapshot>.broadcast();
@@ -125,6 +129,7 @@ class SyncService {
 
   bool _syncAgain = false;
   bool _activePullAll = false;
+  bool _activeSnapshotStarted = false;
   bool _pullAllRequested = false;
   bool _paused = false;
   int _consecutiveFailures = 0;
@@ -311,7 +316,9 @@ class SyncService {
     if (status == RealtimeSubscribeStatus.subscribed) {
       _realtimeReconnectTimer?.cancel();
       _realtimeReconnectTimer = null;
-      if (!_disposed && !_paused) unawaited(sync());
+      // Events before this point were never delivered: the check must read
+      // the server after the subscription, not join an older snapshot.
+      if (!_disposed && !_paused) unawaited(sync(freshSnapshot: true));
       return;
     }
     if (!shouldReconnectRealtime(status)) return;
@@ -342,6 +349,16 @@ class SyncService {
     );
   }
 
+  /// Delivers synthetic Realtime notifications without a live channel.
+  @visibleForTesting
+  Future<void> pullRealtimeChangesForTesting(
+    String table,
+    Iterable<String> ids,
+  ) {
+    _pendingRealtimeIds[table]!.addAll(ids);
+    return _pullQueuedRealtimeChanges();
+  }
+
   Future<void> _pullQueuedRealtimeChanges() =>
       _runScoped(_pullQueuedRealtimeChangesScoped);
 
@@ -355,11 +372,14 @@ class SyncService {
       ids.clear();
     }
     try {
-      final taskIds = queued['tasks']!;
       final changedTasks = <String>{};
-      if (taskIds.isNotEmpty) {
+      final taskIds = queued['tasks']!.toList();
+      for (var start = 0; start < taskIds.length; start += idBatchSize) {
         final remoteRows = await _requests.send(
-          client.from('tasks').select().inFilter('id', taskIds.toList()),
+          client
+              .from('tasks')
+              .select()
+              .inFilter('id', taskIds.skip(start).take(idBatchSize).toList()),
         );
         changedTasks.addAll(
           await mergeRemoteBatch(db, 'tasks', remoteRows, _requests),
@@ -376,8 +396,11 @@ class SyncService {
         );
       }
     } on Object {
-      // Il controllo periodico recupera qualunque evento perso. Realtime,
-      // outbox, connettività e resume restano i percorsi immediati.
+      // Gli ID sono già stati tolti dalla coda: senza un controllo completo
+      // l'evento resterebbe perso fino al timer periodico. Il controllo a
+      // impronte recupera anche righe mai notificate; errori di rete seguono
+      // il backoff ordinario.
+      if (_requests.isActive && !_disposed && !_paused) unawaited(sync());
     }
   }
 
@@ -389,13 +412,17 @@ class SyncService {
     if (channel != null) await client.removeChannel(channel);
   }
 
-  Future<void> sync({bool pullAll = true}) {
+  /// [freshSnapshot] requires a remote read that starts after this call. A
+  /// full check whose remote snapshot is already under way cannot satisfy it.
+  Future<void> sync({bool pullAll = true, bool freshSnapshot = false}) {
     if (_disposed) return Future.value();
     final active = _inFlight;
     if (active != null) {
       // Join an existing full check. Startup/auth/connectivity must not queue
       // another identical scan. New outbox work still gets a trailing upload.
-      if (!pullAll || !_activePullAll) {
+      if (!pullAll ||
+          !_activePullAll ||
+          (freshSnapshot && _activeSnapshotStarted)) {
         _syncAgain = true;
         if (pullAll) _pullAllRequested = true;
       }
@@ -427,6 +454,7 @@ class SyncService {
       _syncAgain = false;
       final pullAll = _pullAllRequested;
       _activePullAll = pullAll;
+      _activeSnapshotStarted = false;
       _pullAllRequested = false;
       await _runScoped(() => _syncOnce(pullAll: pullAll));
     } while (_syncAgain && !_paused && !_disposed);
@@ -504,9 +532,10 @@ class SyncService {
       ),
     );
     final timer = Stopwatch()..start();
+    final isolated = <String>{};
     try {
-      var conflicts = 0;
       var uploadedEntities = 0;
+      final rejectedCodes = <String>{};
       var rebasedEntities = 0;
       final grouped = <String, List<OutboxEntry>>{};
       // Parent rows precede tasks, and each entity receives its own acknowledgement.
@@ -593,32 +622,26 @@ class SyncService {
           });
           uploadedEntities++;
         } on PostgrestException catch (error) {
-          if (error.code != 'P0001' ||
-              !error.message.contains('todo_entity_purged')) {
+          final String marker;
+          if (error.code == 'P0001' &&
+              error.message.contains('todo_entity_purged')) {
+            marker = 'purged_entity';
+          } else if (isEntityRejection(error)) {
+            // One invalid row must not stop other uploads or the pull.
+            marker = 'server_rejected';
+            rejectedCodes.add(error.code!);
+          } else {
             rethrow;
           }
-          conflicts++;
-          await (db.update(db.outboxEntries)..where(
-                (r) => r.operationId.isIn(group.map((e) => e.operationId)),
-              ))
-              .write(
-                const OutboxEntriesCompanion(lastError: Value('purged_entity')),
-              );
+          await _markGroup(group, marker, isolated);
         } on SyncIntentConflictException {
-          conflicts++;
-          await (db.update(db.outboxEntries)..where(
-                (r) => r.operationId.isIn(group.map((e) => e.operationId)),
-              ))
-              .write(
-                const OutboxEntriesCompanion(
-                  lastError: Value('intent_conflict'),
-                ),
-              );
+          await _markGroup(group, 'intent_conflict', isolated);
         }
       }
       stage = SyncStage.taskPull;
       var remoteCount = 0;
       if (pullAll) {
+        _activeSnapshotStarted = true;
         stage = SyncStage.overview;
         _reportProgress(cycle, stage, entries.length);
         final overview = await SyncOverview.fetch(client, _requests);
@@ -667,12 +690,17 @@ class SyncService {
       }
       final remaining = await db.select(db.outboxEntries).get();
       _requests.check();
-      conflicts = remaining
+      final conflicts = remaining
           .where(
             (e) =>
                 e.lastError == 'intent_conflict' ||
                 e.lastError == 'purged_entity',
           )
+          .map((e) => e.entityId)
+          .toSet()
+          .length;
+      final rejected = remaining
+          .where((e) => e.lastError == 'server_rejected')
           .map((e) => e.entityId)
           .toSet()
           .length;
@@ -685,10 +713,12 @@ class SyncService {
       if (recoveredFailures > 0) _lastRecoveryAt = now;
       _emit(
         SyncSnapshot(
-          conflicts > 0 ? SyncPhase.error : SyncPhase.current,
+          conflicts + rejected > 0 ? SyncPhase.error : SyncPhase.current,
           pending: remaining.length,
           error: conflicts > 0
               ? 'Serve una scelta per $conflicts elementi'
+              : rejected > 0
+              ? 'Rifiutati dal server: $rejected elementi'
               : null,
           lastSuccess: now,
           lastFailure: _lastFailureAt,
@@ -714,6 +744,9 @@ class SyncService {
             'rebased_entities': rebasedEntities,
             'remote_rows': remoteCount,
             'conflicts': conflicts,
+            'rejected': rejected,
+            if (rejectedCodes.isNotEmpty)
+              'rejected_codes': (rejectedCodes.toList()..sort()).join(','),
             'pull_all': pullAll,
             ..._requests.pullDiagnostics,
             'duration_ms': timer.elapsedMilliseconds,
@@ -772,7 +805,10 @@ class SyncService {
           consecutiveFailures: _consecutiveFailures,
         ),
       );
-      if (entries.isNotEmpty) {
+      final unmarked = entries
+          .where((entry) => !isolated.contains(entry.operationId))
+          .toList();
+      if (unmarked.isNotEmpty) {
         try {
           var nextAttempt = 1;
           for (final entry in entries) {
@@ -782,7 +818,7 @@ class SyncService {
           }
           await (db.update(db.outboxEntries)..where(
                 (row) => row.operationId.isIn(
-                  entries.map((entry) => entry.operationId),
+                  unmarked.map((entry) => entry.operationId),
                 ),
               ))
               .write(
@@ -821,6 +857,17 @@ class SyncService {
     }
   }
 
+  Future<void> _markGroup(
+    List<OutboxEntry> group,
+    String marker,
+    Set<String> isolated,
+  ) async {
+    final ids = group.map((e) => e.operationId).toList();
+    isolated.addAll(ids);
+    await (db.update(db.outboxEntries)..where((r) => r.operationId.isIn(ids)))
+        .write(OutboxEntriesCompanion(lastError: Value(marker)));
+  }
+
   Duration? _scheduleRetry() {
     if (_disposed || _paused || client.auth.currentUser == null) return null;
     _retryTimer?.cancel();
@@ -852,8 +899,8 @@ class SyncService {
       'project_sections': sectionIds,
     }.entries) {
       final ids = group.value.toList();
-      for (var start = 0; start < ids.length; start += 100) {
-        final batch = ids.skip(start).take(100).toList();
+      for (var start = 0; start < ids.length; start += idBatchSize) {
+        final batch = ids.skip(start).take(idBatchSize).toList();
         for (final raw in await _requests.send(
           client.from(group.key).select().inFilter('id', batch),
         )) {
@@ -1009,6 +1056,15 @@ String safeSyncErrorClass(Object error) {
 
 bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>
     previous.length != current.length || !previous.containsAll(current);
+
+/// SQLSTATE classes 22 (data) and 23 (integrity) concern the submitted row.
+/// Auth, RLS, schema and transport errors still abort the whole cycle.
+bool isEntityRejection(PostgrestException error) {
+  final code = error.code;
+  return code != null &&
+      code.length == 5 &&
+      (code.startsWith('22') || code.startsWith('23'));
+}
 
 bool isRecurringOccurrenceConflict(PostgrestException error) =>
     error.code == '23505' &&

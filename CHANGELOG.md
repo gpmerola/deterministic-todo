@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.3 (build 181) — Todo Test
+
+- Un elemento rifiutato dal server per dati o vincoli (SQLSTATE 22/23) non
+  blocca più gli altri invii né il download: resta in coda come
+  `server_rejected`, visibile in Problemi di sincronizzazione e ritentato.
+  Errori di rete, autenticazione, permessi o schema interrompono ancora il ciclo.
+- Realtime scarica le attività notificate in lotti da 100 ID; se il download
+  fallisce avvia un controllo completo invece di attendere il timer da 10 minuti.
+- Dopo la (ri)sottoscrizione Realtime il controllo legge il server dopo
+  l'iscrizione, senza agganciarsi a uno snapshot remoto già iniziato.
+- Diagnostica con `rejected` e `rejected_codes`, senza contenuti. Nessuna
+  migrazione SQLite o server; dati Movimento invariati.
+
 ## 2.40.2 (build 180) — Todo Test
 
 - Il ripristino esplicito di un'attività supera gli invii precedenti rimasti

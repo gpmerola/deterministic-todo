@@ -404,7 +404,11 @@ class _TaskEditorState extends State<TaskEditor> {
                           final conflict = pending.any(
                             (e) =>
                                 e.lastError == 'intent_conflict' ||
-                                e.lastError == 'purged_entity',
+                                e.lastError == 'purged_entity' ||
+                                e.lastError == 'server_rejected',
+                          );
+                          final rejected = pending.any(
+                            (e) => e.lastError == 'server_rejected',
                           );
                           return Align(
                             alignment: Alignment.centerLeft,
@@ -418,7 +422,9 @@ class _TaskEditorState extends State<TaskEditor> {
                                 size: 16,
                               ),
                               label: Text(
-                                conflict
+                                rejected
+                                    ? 'Salvato sul dispositivo · rifiutato dal server'
+                                    : conflict
                                     ? 'Serve una scelta · apri storico'
                                     : pending.isEmpty
                                     ? 'Salvato sul dispositivo'

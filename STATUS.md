@@ -1,6 +1,16 @@
 # Stato corrente
 
-Aggiornato il 16 settembre 2026.
+Aggiornato il 25 settembre 2026.
+
+## Isolamento errori sync — build 181
+
+Revisione del codice, senza incidente reale associato: un rifiuto server per
+singola riga fermava invii e pull dell'intero account; Realtime poteva perdere
+notifiche in blocco o dopo un fetch fallito fino al timer di 10 minuti; la
+sottoscrizione poteva agganciarsi a uno snapshot già letto. Correzioni e limiti
+in [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+Verifiche locali: `make check` e `make check-generated`. Stato della consegna
+Todo Test e Web: da aggiornare dopo il collaudo.
 
 ## Recupero sincronizzazione — build 180
 

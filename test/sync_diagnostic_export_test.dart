@@ -26,6 +26,8 @@ void main() {
         'sync_completed',
         fields: {
           'conflicts': 2,
+          'rejected': 1,
+          'rejected_codes': '23514',
           'pending': 3,
           'pull_all': true,
           'pull_pages': 4,
@@ -43,6 +45,8 @@ void main() {
           .map((line) => jsonDecode(line) as Map);
       final event = rows.last;
       expect(event['conflicts'], 2);
+      expect(event['rejected'], 1);
+      expect(event['rejected_codes'], '23514');
       expect(event['pending'], 3);
       expect(event['pull_pages'], 4);
       expect(event['pulled_rows'], 426);

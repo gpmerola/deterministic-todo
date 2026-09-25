@@ -71,6 +71,32 @@ diverso, il client conserva coda e copie e chiede una scelta esplicita. Anche
 collisioni di ricorrenze con UUID differenti conservano entrambe le versioni:
 non vengono più risolte sovrascrivendo automaticamente la copia canonica.
 
+### Isolamento dei rifiuti e Realtime — build 181
+
+Prima della 181 un `PostgrestException` non riconosciuto su una singola entità
+interrompeva l'intero ciclo: le entità successive non venivano inviate e il
+pull non partiva, a ogni tentativo. Una riga rifiutata per vincolo (per esempio
+una collisione di ricorrenza non riconciliabile) poteva quindi fermare la
+convergenza di tutto l'account, pur con la UI che dichiarava il contrario.
+
+- SQLSTATE di classe `22` (dato) e `23` (integrità) riguardano la riga inviata:
+  il gruppo viene marcato `server_rejected`, il ciclo prosegue con le altre
+  entità e con il pull. La riga resta protetta dall'outbox e viene ritentata
+  al ciclo successivo; non viene scartata né sovrascritta.
+- Autenticazione, RLS (`42501`), `P0001` applicativi come `forbidden`, schema e
+  trasporto continuano a interrompere il ciclo con backoff invariato.
+- Un errore successivo nel ciclo non sovrascrive i marker per entità già scritti.
+- Il fetch Realtime delle task usa lotti da 100 ID come progetti e sezioni. Se
+  fallisce, gli ID già tolti dalla coda non vengono persi: parte un controllo
+  completo, che con l'overview costa una richiesta se nulla è cambiato.
+- `sync(freshSnapshot: true)`, usato all'evento `subscribed`, non si unisce a un
+  controllo che ha già iniziato la lettura remota: accoda un ciclo successivo.
+  Gli altri trigger continuano a condividere il ciclo in corso.
+
+Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
+conservato dopo errore di trasporto, errore di account che ferma il ciclo,
+snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
+
 ## Storico e privacy
 
 ### Recupero degli invii incerti — build 180

@@ -69,6 +69,8 @@ class SyncIssuesView extends StatelessWidget {
                           ? 'Serve una scelta'
                           : e.lastError == 'purged_entity'
                           ? 'Eliminato definitivamente su un altro dispositivo'
+                          : e.lastError == 'server_rejected'
+                          ? 'Rifiutato dal server: verrà ritentato senza bloccare gli altri'
                           : 'Da sincronizzare',
                     ),
                     trailing: const Icon(Icons.chevron_right),

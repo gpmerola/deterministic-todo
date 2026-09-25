@@ -121,6 +121,8 @@ class DiagnosticLogService {
     'pull_table',
     'pull_all',
     'conflicts',
+    'rejected',
+    'rejected_codes',
     'uploaded_entities',
     'rebased_entities',
     'cycle_id',
