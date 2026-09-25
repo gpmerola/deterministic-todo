@@ -9,8 +9,10 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Web 183 pubblicata e `release-info.json` verificato; Web 184 dopo `PUBBLICA`.
 - [x] Consegna Todo Test 2183, ciclo reale `healthy` e CI verde.
 - [ ] Osservare `diverged_buckets` su più cicli reali prima di progettare una riparazione.
-- [x] Causa dei cicli a schermo spento: pausa persa durante l'avvio; build 184.
-- [ ] Confermare sul Galaxy l'assenza di cicli a schermo spento con la 2184.
+- [x] Build 184: pausa applicata anche se l'app va in background durante l'avvio.
+- [x] Causa reale dei cicli falliti a schermo spento: ripresa di ~1 s allo
+  sblocco; build 185 annulla il controllo in sola lettura alla pausa.
+- [ ] Confermare sul Galaxy con la 2185 che lo sblocco non lasci errori.
 
 ## P0 — Ciclo di vita e ricerca, build 182
 

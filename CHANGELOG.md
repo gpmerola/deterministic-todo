@@ -2,12 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.7 (build 185) — Todo Test
+
+- Alla pausa, un controllo in sola lettura ancora in corso viene annullato
+  invece di proseguire in background e fallire. Il caso reale: allo sblocco
+  Android riporta Todo Test in primo piano per circa un secondo; il controllo
+  avviato falliva pochi secondi dopo e lasciava uno stato di errore fittizio.
+  Gli invii di modifiche già in corso non vengono mai annullati.
+
 ## 2.40.6 (build 184) — Todo Test
 
 - Se l'app passa in background durante l'avvio, prima che l'interfaccia
-  osservi il ciclo di vita, la sincronizzazione viene comunque sospesa. Prima
-  restavano attivi timer, Realtime e controlli su cambio rete fino alla
-  riapertura, con controlli completi a schermo spento.
+  osservi il ciclo di vita, la sincronizzazione viene comunque sospesa.
+  Questa correzione non era la causa dei controlli falliti a schermo spento,
+  risolti nella build 185.
 
 ## 2.40.5 (build 183) — Todo Test
 

@@ -97,15 +97,32 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Ripresa breve allo sblocco — build 185
+
+Sul Galaxy il provider ha registrato alle 19:24:59 e 19:37:00 UTC un solo
+controllo completo fallito (`overview`, `ClientException`, coda zero) con lo
+schermo spento. Il registro eventi Android (`logcat -b events`) mostra per
+entrambi `wm_resume_activity` circa 7 s prima, seguito entro 1–1,3 s da
+`wm_pause_activity userLeaving=true` e `wm_stop_activity`: allo sblocco il
+sistema riporta brevemente in primo piano l'ultima attività. La ripresa avvia
+Realtime e un controllo completo; `pause()` non interrompeva il ciclo, che
+proseguiva in background fino al fallimento del trasporto, senza retry perché
+in pausa, lasciando lo stato `error` fino alla riapertura. Il caso delle
+18:51:32 precede il buffer eventi disponibile e non è ricostruito.
+
+`pause()` annulla ora le richieste di un ciclo che non ha intenti in coda
+(`_activeHasUploads` falso dopo la lettura dell'outbox; vero finché non è
+letta). L'esito è `sync_cancelled`, non un errore; la ripresa successiva esegue
+un nuovo controllo completo. Un ciclo con invii prosegue sempre.
+
 ### Avvio in background — build 184
 
 `SyncService.start()` avviene nell'inizializzazione asincrona, prima che lo
 stato dell'app registri l'osservatore del ciclo di vita; le transizioni
-intermedie non vengono consegnate. Sul Galaxy, dopo avvii con telefono
-bloccato, il provider ha registrato alle 18:51:32 e 19:24:59 UTC un solo
-controllo completo fallito (`overview`, rete) con app `STOPPED`, senza retry.
-`initState` legge ora `WidgetsBinding.lifecycleState` e applica subito la
-pausa se lo stato è `hidden`, `paused` o `detached` (`isBackgroundLifecycle`).
+intermedie non vengono consegnate. `initState` legge ora
+`WidgetsBinding.lifecycleState` e applica subito la pausa se lo stato è
+`hidden`, `paused` o `detached` (`isBackgroundLifecycle`). Non era la causa
+dei controlli falliti a schermo spento, descritti nella build 185.
 
 ### Invii in blocco, eco Realtime e divergenza — build 183
 

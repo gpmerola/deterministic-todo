@@ -133,6 +133,7 @@ class SyncService {
   bool _syncAgain = false;
   bool _activePullAll = false;
   bool _activeSnapshotStarted = false;
+  bool _activeHasUploads = false;
   bool _pullAllRequested = false;
   bool _paused = false;
   bool _flushUploads = false;
@@ -254,6 +255,12 @@ class SyncService {
     if (unsentEdits && client.auth.currentUser != null) {
       _flushUploads = true;
       unawaited(sync(pullAll: false));
+    } else if (_inFlight != null && !_activeHasUploads) {
+      // A read-only check started by a brief foreground (for example the
+      // unlock screen showing this app for a second) would otherwise run on
+      // in background and fail when Android restricts the process. Resume
+      // performs a new full check; uploads in flight are never cancelled.
+      _cancelRequests();
     }
   }
 
@@ -526,6 +533,7 @@ class SyncService {
         if (pullAll) _pullAllRequested = false;
         _activePullAll = pullAll;
         _activeSnapshotStarted = false;
+        _activeHasUploads = true; // Until the cycle has read the outbox.
         await _runScoped(() => _syncOnce(pullAll: pullAll));
       } while (_syncAgain && !_disposed && (!_paused || _flushUploads));
     } finally {
@@ -577,6 +585,7 @@ class SyncService {
             ]))
             .get();
     _requests.check();
+    _activeHasUploads = entries.isNotEmpty;
     final cycle = ++_syncCycle;
     var stage = SyncStage.projects;
     final oldestOutboxAgeMs = syncOutboxOldestAgeMs(

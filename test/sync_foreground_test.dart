@@ -53,6 +53,55 @@ void main() {
     await db.close();
   });
 
+  test('pausing cancels a read-only check instead of failing later', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final server = SyntheticSyncServer();
+    final client = await server.client();
+    final sync = SyncService(db, client);
+    final entered = Completer<void>(), release = Completer<void>();
+    server.beforeRead = (table) async {
+      if (table != 'projects' || entered.isCompleted) return;
+      entered.complete();
+      await release.future;
+      throw StateError('synthetic transport cut after backgrounding');
+    };
+    final check = sync.sync();
+    await entered.future;
+    sync.pause();
+    release.complete();
+    await check;
+    expect(sync.latest.phase, isNot(SyncPhase.error));
+    expect(sync.latest.lastFailure, isNull);
+    await sync.dispose();
+    await client.dispose();
+    await db.close();
+  });
+
+  test('pausing never cancels an upload already in flight', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repo = TaskRepository(db, deviceId: 'synthetic-device');
+    final server = SyntheticSyncServer();
+    final client = await server.client();
+    final sync = SyncService(db, client);
+    final id = await repo.create('In invio');
+    final entered = Completer<void>(), release = Completer<void>();
+    server.beforeWrite = (_, _) async {
+      if (entered.isCompleted) return;
+      entered.complete();
+      await release.future;
+    };
+    final upload = sync.sync(pullAll: false);
+    await entered.future;
+    sync.pause();
+    release.complete();
+    await upload;
+    expect(server.tables['tasks']!.containsKey(id), isTrue);
+    expect(await db.select(db.outboxEntries).get(), isEmpty);
+    await sync.dispose();
+    await client.dispose();
+    await db.close();
+  });
+
   test('resume without a pause does not restart work', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final server = SyntheticSyncServer();
