@@ -128,8 +128,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
     final syncClient = await supabaseInitialization;
     SyncService? syncService;
     if (syncClient != null) {
-      syncService = SyncService(database, syncClient)..start();
+      syncService = SyncService(database, syncClient);
+      // Bind first: an app started in background must not begin a cycle.
       syncLifecycle = bindSyncToLifecycle(syncService);
+      syncService.start();
     }
     PerformanceMonitor.instance.start();
     startup.stop();

@@ -8,7 +8,10 @@ Con la 2185 un avvio a schermo spento ha continuato a sincronizzare in
 background (cicli 2–11, sei fallimenti con retry, recupero alle 20:05:12 UTC)
 con attività `STOPPED`. Causa e correzione in
 [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
-Stato della consegna: da aggiornare dopo il collaudo.
+La 2186 installata a schermo spento ha eseguito un solo ciclo iniziale, fallito
+alle 20:10:45 UTC, poi si è ripresa alla riapertura (ciclo 3 riuscito alle
+20:10:55). La build 187 elimina anche quel ciclo iniziale.
+Stato della consegna 187: da aggiornare dopo il collaudo.
 
 ## Ripresa breve allo sblocco — builds 184–185
 

@@ -7,6 +7,7 @@ import 'package:deterministic_todo/main.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/sync_server.dart';
@@ -142,6 +143,34 @@ void main() {
     await tester.runAsync(() async {
       await sync.dispose();
       await other.dispose();
+      await client.dispose();
+      await db.close();
+    });
+  });
+
+  testWidgets('a service started in background makes no request until resume', (
+    tester,
+  ) async {
+    tester.binding.defaultBinaryMessenger.setMockStreamHandler(
+      const EventChannel('dev.fluttercommunity.plus/connectivity_status'),
+      MockStreamHandler.inline(onListen: (_, _) {}),
+    );
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final server = SyntheticSyncServer();
+    final client = await tester.runAsync(server.client);
+    final sync = SyncService(db, client!);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    final listener = bindSyncToLifecycle(sync);
+    sync.start();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    expect(server.requests, 0);
+    expect(sync.latest.phase, SyncPhase.disabled);
+    listener.dispose();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.runAsync(() async {
+      await sync.dispose();
       await client.dispose();
       await db.close();
     });

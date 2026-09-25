@@ -230,6 +230,8 @@ class SyncService {
         unawaited(sync());
       }
     });
+    // Started in background: [resume] performs the first check and timer.
+    if (_paused) return;
     if (client.auth.currentUser != null) {
       unawaited(_subscribeRealtime());
       unawaited(sync());

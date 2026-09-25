@@ -108,10 +108,15 @@ mentre `TodoApp` e il suo osservatore vengono costruiti solo al primo frame
 successivo, cioè alla riapertura. Il controllo in `initState` della 184 non
 poteva quindi eseguire.
 
-`bindSyncToLifecycle` crea un `AppLifecycleListener` subito dopo `start()`,
-applica lo stato corrente e resta l'unico proprietario di pausa e ripresa;
-l'interfaccia gestisce solo il proprio lavoro di primo piano. Test:
-`test/sync_foreground_test.dart`.
+`bindSyncToLifecycle` crea un `AppLifecycleListener`, applica lo stato corrente
+e resta l'unico proprietario di pausa e ripresa; l'interfaccia gestisce solo il
+proprio lavoro di primo piano. Test: `test/sync_foreground_test.dart`.
+
+Build 187: con la 2186 installata a schermo spento il primo ciclo, avviato da
+`start()` prima del listener, è fallito alle 20:10:45 UTC. Il listener è ora
+registrato prima di `start()`, che in pausa registra soltanto i listener di
+auth, outbox e connettività; primo controllo, Realtime e timer partono alla
+ripresa.
 
 
 Sul Galaxy il provider ha registrato alle 19:24:59 e 19:37:00 UTC un solo

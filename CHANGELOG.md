@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.9 (build 187) — Todo Test
+
+- Il listener del ciclo di vita è registrato prima dell'avvio della sync e
+  `SyncService.start()` rispetta la pausa: un'app avviata a schermo spento non
+  esegue il primo controllo né avvia il timer finché non torna in primo piano.
+  Con la 2186 quel primo controllo partiva comunque e falliva in background.
+
 ## 2.40.8 (build 186) — Todo Test
 
 - La pausa della sincronizzazione è gestita accanto all'avvio del servizio,

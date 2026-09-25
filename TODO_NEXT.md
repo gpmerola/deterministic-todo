@@ -14,7 +14,8 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
   sblocco; build 185 annulla il controllo in sola lettura alla pausa.
 - [x] Build 186: pausa legata al binding, non ai frame; la 184 non poteva agire
   su un avvio in background.
-- [ ] Confermare sul Galaxy con la 2186 che avvio a schermo spento e sblocco
+- [x] Build 187: listener prima di `start()`, che rispetta la pausa.
+- [ ] Confermare sul Galaxy con la 2187 che avvio a schermo spento e sblocco
   non producano cicli o errori.
 
 ## P0 — Ciclo di vita e ricerca, build 182

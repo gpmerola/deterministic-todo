@@ -32,8 +32,8 @@ jobs:
         run: |
           VERSION="$(sed -n 's/^version: \([^+]*\)+.*/\1/p' pubspec.yaml)"
           BUILD="$(sed -n 's/^version: [^+]*+\([0-9][0-9]*\)$/\1/p' pubspec.yaml)"
-          test "$VERSION" = 2.40.8
-          test "$BUILD" = 186
+          test "$VERSION" = 2.40.9
+          test "$BUILD" = 187
           flutter pub get
           dart run build_runner build
           git diff --exit-code
@@ -81,7 +81,7 @@ jobs:
           import json
           import os
           data = json.load(open('web-release-info.json', encoding='utf-8'))
-          assert data['version'] == '2.40.8'
-          assert data['build'] == 186
+          assert data['version'] == '2.40.9'
+          assert data['build'] == 187
           assert data['source_commit'] == os.environ['GITHUB_SHA']
           PY
