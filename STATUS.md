@@ -11,7 +11,13 @@ con attività `STOPPED`. Causa e correzione in
 La 2186 installata a schermo spento ha eseguito un solo ciclo iniziale, fallito
 alle 20:10:45 UTC, poi si è ripresa alla riapertura (ciclo 3 riuscito alle
 20:10:55). La build 187 elimina anche quel ciclo iniziale.
-Stato della consegna 187: da aggiornare dopo il collaudo.
+`make check` superato con 245 test Flutter; `make check-generated` superato.
+Verify `36184413603` e Publish Todo Test Fast `36184409842` riusciti sul commit
+`425cdc2`. `make todo-test` ha installato la 2.40.9 / versionCode 2187 al secondo
+tentativo (il primo `adb install` via IPv4 è fallito) con schermo spento: nessun
+ciclo all'avvio in background. Il registro eventi mostra una ripresa di circa due
+secondi alle 20:17:18 UTC, con ciclo 2 riuscito alle 20:17:20; fino alle
+20:23:32, attività `STOPPED`, nessun altro ciclo né fallimento. Web resta alla 183.
 
 ## Ripresa breve allo sblocco — builds 184–185
 

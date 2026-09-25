@@ -15,8 +15,9 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Build 186: pausa legata al binding, non ai frame; la 184 non poteva agire
   su un avvio in background.
 - [x] Build 187: listener prima di `start()`, che rispetta la pausa.
-- [ ] Confermare sul Galaxy con la 2187 che avvio a schermo spento e sblocco
-  non producano cicli o errori.
+- [x] Galaxy 2187: avvio a schermo spento senza cicli, ripresa breve riuscita,
+  nessun ciclo in background per sei minuti.
+- [ ] Pubblicare Web 187 dopo conferma `PUBBLICA`.
 
 ## P0 — Ciclo di vita e ricerca, build 182
 
