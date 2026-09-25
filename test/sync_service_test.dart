@@ -76,16 +76,19 @@ void main() {
     expect(syncOutboxOldestAgeMs(const [], now), isNull);
   });
 
-  test('la diagnostica classifica gli errori senza conservarne il messaggio', () {
-    expect(
-      safeSyncErrorClass(const SyncWriteVerificationException()),
-      'write_verification',
-    );
-    expect(
-      safeSyncErrorClass(const PostgrestException(message: 'dato privato')),
-      'supabase',
-    );
-  });
+  test(
+    'la diagnostica classifica gli errori senza conservarne il messaggio',
+    () {
+      expect(
+        safeSyncErrorClass(const SyncWriteVerificationException()),
+        'write_verification',
+      );
+      expect(
+        safeSyncErrorClass(const PostgrestException(message: 'dato privato')),
+        'supabase',
+      );
+    },
+  );
 
   test('una scrittura server non confermata mantiene retry e outbox', () {
     expect(

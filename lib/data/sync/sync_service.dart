@@ -132,6 +132,7 @@ class SyncService {
   bool _activeSnapshotStarted = false;
   bool _pullAllRequested = false;
   bool _paused = false;
+  bool _flushUploads = false;
   int _consecutiveFailures = 0;
   int _syncCycle = 0;
   DateTime? _lastFailureAt;
@@ -206,7 +207,8 @@ class SyncService {
             lastSuccess: _latest.lastSuccess,
           ),
         );
-      } else {
+      } else if (!_paused) {
+        // In background the next resume performs the check.
         unawaited(sync());
       }
     });
@@ -218,6 +220,11 @@ class SyncService {
   }
 
   void pause() {
+    if (_disposed || _paused) return;
+    // A debounced edit, or one queued behind the active cycle, is sent now
+    // instead of waiting for the next foreground: the other device sees it.
+    final unsentEdits =
+        _outboxTimer?.isActive == true || (_inFlight != null && _syncAgain);
     _paused = true;
     _timer?.cancel();
     _timer = null;
@@ -230,11 +237,18 @@ class SyncService {
     _retryTimer?.cancel();
     _retryTimer = null;
     unawaited(_suspendRealtime());
+    if (unsentEdits && client.auth.currentUser != null) {
+      _flushUploads = true;
+      unawaited(sync(pullAll: false));
+    }
   }
 
+  /// Only undoes [pause]. A transient interruption that never paused (for
+  /// example a system dialog) must not rebuild Realtime or rescan the server.
   void resume() {
-    if (_disposed) return;
+    if (_disposed || !_paused) return;
     _paused = false;
+    _flushUploads = false;
     _startTimer();
     unawaited(_restoreRealtimeAndSync());
   }
@@ -450,14 +464,20 @@ class SyncService {
   }
 
   Future<void> _syncUntilQuiet() async {
-    do {
-      _syncAgain = false;
-      final pullAll = _pullAllRequested;
-      _activePullAll = pullAll;
-      _activeSnapshotStarted = false;
-      _pullAllRequested = false;
-      await _runScoped(() => _syncOnce(pullAll: pullAll));
-    } while (_syncAgain && !_paused && !_disposed);
+    try {
+      do {
+        _syncAgain = false;
+        // While paused only pending uploads are flushed; the full check
+        // stays requested for the next foreground cycle.
+        final pullAll = _pullAllRequested && !_paused;
+        if (pullAll) _pullAllRequested = false;
+        _activePullAll = pullAll;
+        _activeSnapshotStarted = false;
+        await _runScoped(() => _syncOnce(pullAll: pullAll));
+      } while (_syncAgain && !_disposed && (!_paused || _flushUploads));
+    } finally {
+      if (_paused) _flushUploads = false;
+    }
   }
 
   void _reportProgress(

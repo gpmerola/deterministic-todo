@@ -622,6 +622,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!widget.enablePlatformServices) return;
     if (state == AppLifecycleState.resumed) {
+      if (appIsForeground) return; // Only `inactive`: nothing was suspended.
       appIsForeground = true;
       backgroundSnapshotTaken = false;
       widget.syncService?.resume();
@@ -635,9 +636,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         unawaited(_checkForUpdates(automatic: true));
       }
     } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
+      // `inactive` alone is transient (notification shade, system dialog,
+      // unfocused browser window): the app is still visible, keep it live.
       widget.syncService?.pause();
       appIsForeground = false;
       if (!backgroundSnapshotTaken) {
@@ -2413,6 +2415,25 @@ int _stableCompare(Task a, Task b, String today) {
   return byCreation != 0 ? byCreation : a.id.compareTo(b.id);
 }
 
+/// Opens the archive query once per search page. Rebuilding for each typed
+/// character must not re-subscribe and reload every task from SQLite.
+class _SearchTaskSource extends StatefulWidget {
+  const _SearchTaskSource({required this.repository, required this.builder});
+  final TaskRepository repository;
+  final AsyncWidgetBuilder<List<Task>> builder;
+
+  @override
+  State<_SearchTaskSource> createState() => _SearchTaskSourceState();
+}
+
+class _SearchTaskSourceState extends State<_SearchTaskSource> {
+  late final Stream<List<Task>> tasks = widget.repository.watchAll();
+
+  @override
+  Widget build(BuildContext context) =>
+      StreamBuilder<List<Task>>(stream: tasks, builder: widget.builder);
+}
+
 class TaskSearchDelegate extends SearchDelegate<void> {
   TaskSearchDelegate(
     this.repository, {
@@ -2447,8 +2468,8 @@ class TaskSearchDelegate extends SearchDelegate<void> {
 
   Widget _results(BuildContext context) => FutureBuilder<List<Project>>(
     future: _projects,
-    builder: (context, projectSnapshot) => StreamBuilder<List<Task>>(
-      stream: repository.watchAll(),
+    builder: (context, projectSnapshot) => _SearchTaskSource(
+      repository: repository,
       builder: (context, snapshot) {
         final rawQuery = query.trim();
         final needle = rawQuery

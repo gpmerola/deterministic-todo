@@ -97,6 +97,25 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Ciclo di vita e indicatore — build 182
+
+- `SyncService.pause()` e `resume()` sono idempotenti: `resume()` annulla solo
+  una pausa effettiva. L'app sospende la sync su `hidden`, `paused` e
+  `detached`, non su `inactive`, che su Android e sul Web indica un'interruzione
+  con l'app ancora visibile.
+- Se alla pausa esiste una modifica ancora in debounce, o accodata dietro il
+  ciclo attivo, parte un solo invio senza pull. Il controllo completo resta
+  richiesto e avviene alla ripresa. Nessun lavoro periodico in background.
+- La connettività in background aggiorna solo lo stato `offline`; il controllo
+  avviene alla ripresa.
+- Il rinnovo di un token scaduto è già eseguito dal SDK prima di ogni richiesta
+  (`GoTrueClient.getSession`, deduplicato). Un fallimento di trasporto durante il
+  rinnovo resta un errore transitorio con retry; nessuna logica duplicata.
+- `isBriefSyncRetry`: errore con retry programmato e al massimo due fallimenti
+  consecutivi. L'indicatore è neutro e mostra l'orario del nuovo tentativo.
+
+Test: `test/sync_foreground_test.dart`.
+
 ## Storico e privacy
 
 ### Recupero degli invii incerti — build 180

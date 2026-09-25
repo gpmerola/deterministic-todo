@@ -2,6 +2,12 @@
 
 Aggiornato il 25 settembre 2026.
 
+## Ciclo di vita e ricerca — build 182
+
+Revisione del codice, senza incidente reale associato. Correzioni e limiti in
+[sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+Stato della consegna: da aggiornare dopo il collaudo.
+
 ## Isolamento errori sync — build 181
 
 Revisione del codice, senza incidente reale associato: un rifiuto server per

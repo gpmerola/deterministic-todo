@@ -1,5 +1,12 @@
 part of '../main.dart';
 
+/// A transient failure with an automatic retry already scheduled is not
+/// alarming yet. Repeated failures, conflicts and rejections stay red.
+bool isBriefSyncRetry(SyncSnapshot snapshot) =>
+    snapshot.phase == SyncPhase.error &&
+    snapshot.retryAt != null &&
+    snapshot.consecutiveFailures <= 2;
+
 class SyncStatusAction extends StatefulWidget {
   const SyncStatusAction({
     required this.service,
@@ -75,6 +82,16 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
   @override
   Widget build(BuildContext context) {
     final pending = localPending ?? snapshot.pending;
+    final retryAt = snapshot.retryAt;
+    if (isBriefSyncRetry(snapshot) && retryAt != null) {
+      return IconButton(
+        tooltip:
+            'Salvato sul dispositivo · nuovo tentativo alle '
+            '${DateFormat('HH:mm:ss').format(retryAt.toLocal())}',
+        onPressed: _openIssues,
+        icon: const Icon(Icons.cloud_queue_outlined, size: 20),
+      );
+    }
     if (snapshot.phase == SyncPhase.error ||
         snapshot.phase == SyncPhase.offline) {
       return IconButton(
@@ -195,7 +212,9 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
           final sync = snapshot.data;
           return ListTile(
             leading: Icon(
-              sync?.phase == SyncPhase.error
+              sync != null && isBriefSyncRetry(sync)
+                  ? Icons.cloud_queue_outlined
+                  : sync?.phase == SyncPhase.error
                   ? Icons.sync_problem_outlined
                   : Icons.cloud_done_outlined,
             ),
@@ -265,7 +284,13 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
   }
 
   String _syncLabel(SyncSnapshot? snapshot) => switch (snapshot?.phase) {
-    SyncPhase.syncing => 'Sincronizzazione (${snapshot!.pending})…',
+    SyncPhase.syncing =>
+      snapshot!.pending > 0
+          ? 'Sincronizzazione · ${snapshot.pending} da inviare…'
+          : 'Sincronizzazione…',
+    SyncPhase.error when isBriefSyncRetry(snapshot!) =>
+      'Salvato sul dispositivo · nuovo tentativo alle '
+          '${DateFormat('HH:mm:ss').format(snapshot.retryAt!.toLocal())}',
     SyncPhase.current when snapshot!.pending > 0 =>
       'Salvato sul dispositivo · ${snapshot.pending} da sincronizzare',
     SyncPhase.current =>

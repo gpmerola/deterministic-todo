@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.4 (build 182) — Todo Test
+
+- La ricerca apre una sola lettura dell'archivio per pagina invece di
+  ricaricare tutte le attività a ogni carattere digitato.
+- Lo stato transitorio `inactive` (tendina notifiche, dialoghi di sistema,
+  finestra browser non a fuoco) non sospende più Realtime e non provoca un nuovo
+  controllo completo al ritorno. Pausa e ripresa sono idempotenti.
+- Andando in background, una modifica appena fatta viene inviata subito invece
+  di attendere la successiva apertura dell'app.
+- Un cambio di rete ad app in background non avvia più un controllo completo.
+- Un errore di rete temporaneo con nuovo tentativo già programmato appare come
+  icona neutra con l'orario del tentativo; dal terzo errore consecutivo, e per
+  conflitti o rifiuti, resta l'indicazione di errore.
+
 ## 2.40.3 (build 181) — Todo Test
 
 - Un elemento rifiutato dal server per dati o vincoli (SQLSTATE 22/23) non

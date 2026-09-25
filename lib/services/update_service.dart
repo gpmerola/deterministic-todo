@@ -117,8 +117,8 @@ class UpdateService {
       installedVersion,
     );
     if (versionDifference != 0) return versionDifference > 0;
-    final logicalInstalledBuild = distributionChannel == 'dev' &&
-            installedBuild >= 2000
+    final logicalInstalledBuild =
+        distributionChannel == 'dev' && installedBuild >= 2000
         ? installedBuild - 2000
         : installedBuild;
     return candidateBuild > logicalInstalledBuild;
