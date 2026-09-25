@@ -7,7 +7,8 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Isolare i rifiuti server per singola entità; Realtime a lotti con fallback.
 - [x] Snapshot fresco dopo la sottoscrizione Realtime; regressioni dedicate.
 - [x] Consegna Todo Test 2181 e ciclo reale sul Galaxy; CI verde. Dettagli in [STATUS](STATUS.md).
-- [ ] Pubblicare Web 181 dopo conferma `PUBBLICA` (pin del workflow già 181).
+- [x] Web 181 pubblicata e `release-info.json` verificato.
+- [ ] Ricaricare le schede Web aperte e verificare convergenza con la 2181.
 
 Contratto: [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 

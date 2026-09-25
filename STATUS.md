@@ -14,8 +14,11 @@ e link documentali; `make check-generated` superato. `make todo-test` ha
 installato in-place la 2.40.3 / versionCode 2181 sul Galaxy preservando i dati.
 Alle 18:14:10 UTC il provider riporta `healthy`, build 2181, zero operazioni
 pendenti e zero conflitti. Verify `36171968918` e Publish Todo Test Fast
-`36171960700` completati con successo sul commit `1b2c72d`. Web resta alla 180
-finché non viene confermata la pubblicazione `PUBBLICA`. Il ramo del rifiuto
+`36171960700` completati con successo sul commit `1b2c72d`. Web 2.40.3+181
+pubblicata dopo conferma `PUBBLICA` dal commit `6704525`: run `36173491508`,
+build e deploy riusciti; `release-info.json` pubblico verificato via HTTPS con
+versione, build e commit corretti. Non è stato ripetuto il collaudo in Chrome;
+le schede già aperte devono essere ricaricate per usare il nuovo client. Il ramo del rifiuto
 server e il fallback Realtime sono verificati solo sinteticamente: nessun rifiuto
 reale era presente sul telefono.
 
