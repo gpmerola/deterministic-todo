@@ -17,7 +17,10 @@ Verify `36184413603` e Publish Todo Test Fast `36184409842` riusciti sul commit
 tentativo (il primo `adb install` via IPv4 è fallito) con schermo spento: nessun
 ciclo all'avvio in background. Il registro eventi mostra una ripresa di circa due
 secondi alle 20:17:18 UTC, con ciclo 2 riuscito alle 20:17:20; fino alle
-20:23:32, attività `STOPPED`, nessun altro ciclo né fallimento. Web resta alla 183.
+20:23:32, attività `STOPPED`, nessun altro ciclo né fallimento.
+Web 2.40.9+187 pubblicata dopo conferma `PUBBLICA` dal commit `7cedb62`: run
+`36185727429`, build e deploy riusciti; `release-info.json` pubblico verificato.
+Non ripetuto il collaudo in Chrome; le schede aperte vanno ricaricate.
 
 ## Ripresa breve allo sblocco — builds 184–185
 

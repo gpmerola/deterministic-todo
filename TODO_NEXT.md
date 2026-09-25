@@ -17,7 +17,8 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Build 187: listener prima di `start()`, che rispetta la pausa.
 - [x] Galaxy 2187: avvio a schermo spento senza cicli, ripresa breve riuscita,
   nessun ciclo in background per sei minuti.
-- [ ] Pubblicare Web 187 dopo conferma `PUBBLICA`.
+- [x] Web 187 pubblicata e verificata.
+- [ ] Ricaricare le schede Web e verificare convergenza con la 2187.
 
 ## P0 — Ciclo di vita e ricerca, build 182
 
