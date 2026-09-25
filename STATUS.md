@@ -13,12 +13,16 @@ completo `healthy` alle 19:01:31 UTC con una richiesta, zero operazioni pendenti
 e zero conflitti. Verify `36176956625` e Publish Todo Test Fast `36176950283`
 riusciti sul commit `1f5e5a7`. Web resta alla 181 fino a conferma `PUBBLICA`.
 
-Osservazione aperta: con la 2182 il provider registra un controllo completo
+Web 2.40.5+183 pubblicata dopo conferma `PUBBLICA` dal commit `f9adcc7`: run
+`36179562000`, build e deploy riusciti, `release-info.json` pubblico verificato.
+
+Osservazione, causa individuata nella build 184: con la 2182 il provider registra un controllo completo
 fallito per rete alle 18:51:32 UTC (ciclo 3, fase overview, coda zero) mentre
 lo schermo era in stand-by, dopo un avvio via ADB con telefono bloccato. Alle
 19:0x l'attività risultava `STOPPED`. La causa non è attribuita: il giornale
-dettagliato non è leggibile via ADB. Verificare nel prossimo bundle diagnostico
-se nell'uso normale compaiono cicli con schermo spento.
+dettagliato non è leggibile via ADB. Si è ripetuta con la 2183 alle
+19:24:59 UTC, con Todo Test in background e schermo acceso su un'altra app.
+Causa: la pausa persa se l'app va in background durante l'avvio; vedi build 184.
 
 ## Ciclo di vita e ricerca — build 182
 

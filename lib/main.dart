@@ -407,6 +407,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Sync starts during async initialization, before this observer exists:
+    // a move to background in between would otherwise never pause it.
+    final initialLifecycle = WidgetsBinding.instance.lifecycleState;
+    if (isBackgroundLifecycle(initialLifecycle)) {
+      didChangeAppLifecycleState(initialLifecycle!);
+    }
     HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
     unawaited(_initializeProjectCaches());
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
@@ -635,9 +641,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               const Duration(hours: 6)) {
         unawaited(_checkForUpdates(automatic: true));
       }
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached ||
-        state == AppLifecycleState.hidden) {
+    } else if (isBackgroundLifecycle(state)) {
       // `inactive` alone is transient (notification shade, system dialog,
       // unfocused browser window): the app is still visible, keep it live.
       widget.syncService?.pause();
@@ -2400,6 +2404,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 }
+
+/// Not visible to the user. `inactive` alone is a transient interruption.
+bool isBackgroundLifecycle(AppLifecycleState? state) =>
+    state == AppLifecycleState.paused ||
+    state == AppLifecycleState.detached ||
+    state == AppLifecycleState.hidden;
 
 int _stableCompare(Task a, Task b, String today) {
   int group(Task task) {

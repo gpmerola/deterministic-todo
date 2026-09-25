@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.6 (build 184) — Todo Test
+
+- Se l'app passa in background durante l'avvio, prima che l'interfaccia
+  osservi il ciclo di vita, la sincronizzazione viene comunque sospesa. Prima
+  restavano attivi timer, Realtime e controlli su cambio rete fino alla
+  riapertura, con controlli completi a schermo spento.
+
 ## 2.40.5 (build 183) — Todo Test
 
 - Invio più rapido: le righe remote delle attività in coda sono lette in blocco

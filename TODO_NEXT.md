@@ -6,11 +6,11 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 
 - [x] Lettura remota in blocco e ricevute raggruppate: 150 → 52 richieste per 50 modifiche.
 - [x] Nessun fetch Realtime per versioni già note; diagnostica `diverged_buckets`.
-- [ ] Web 183 dopo conferma `PUBBLICA`.
+- [x] Web 183 pubblicata e `release-info.json` verificato; Web 184 dopo `PUBBLICA`.
 - [x] Consegna Todo Test 2183, ciclo reale `healthy` e CI verde.
 - [ ] Osservare `diverged_buckets` su più cicli reali prima di progettare una riparazione.
-- [ ] Verificare nel bundle diagnostico l'assenza di cicli sync a schermo spento
-  (osservazione del 25/09 alle 18:51 UTC in [STATUS](STATUS.md)).
+- [x] Causa dei cicli a schermo spento: pausa persa durante l'avvio; build 184.
+- [ ] Confermare sul Galaxy l'assenza di cicli a schermo spento con la 2184.
 
 ## P0 — Ciclo di vita e ricerca, build 182
 

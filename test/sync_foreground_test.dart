@@ -67,6 +67,15 @@ void main() {
     await db.close();
   });
 
+  test('only real background states suspend sync', () {
+    expect(isBackgroundLifecycle(AppLifecycleState.hidden), isTrue);
+    expect(isBackgroundLifecycle(AppLifecycleState.paused), isTrue);
+    expect(isBackgroundLifecycle(AppLifecycleState.detached), isTrue);
+    expect(isBackgroundLifecycle(AppLifecycleState.inactive), isFalse);
+    expect(isBackgroundLifecycle(AppLifecycleState.resumed), isFalse);
+    expect(isBackgroundLifecycle(null), isFalse);
+  });
+
   test('only a first transient retry is presented as non-alarming', () {
     final retryAt = DateTime.utc(2026, 9, 25, 18, 30);
     expect(

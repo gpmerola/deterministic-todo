@@ -97,6 +97,16 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Avvio in background — build 184
+
+`SyncService.start()` avviene nell'inizializzazione asincrona, prima che lo
+stato dell'app registri l'osservatore del ciclo di vita; le transizioni
+intermedie non vengono consegnate. Sul Galaxy, dopo avvii con telefono
+bloccato, il provider ha registrato alle 18:51:32 e 19:24:59 UTC un solo
+controllo completo fallito (`overview`, rete) con app `STOPPED`, senza retry.
+`initState` legge ora `WidgetsBinding.lifecycleState` e applica subito la
+pausa se lo stato è `hidden`, `paused` o `detached` (`isBackgroundLifecycle`).
+
 ### Invii in blocco, eco Realtime e divergenza — build 183
 
 - All'inizio dell'invio le righe remote delle attività in coda sono lette con
