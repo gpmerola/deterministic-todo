@@ -9,8 +9,15 @@ singola riga fermava invii e pull dell'intero account; Realtime poteva perdere
 notifiche in blocco o dopo un fetch fallito fino al timer di 10 minuti; la
 sottoscrizione poteva agganciarsi a uno snapshot già letto. Correzioni e limiti
 in [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
-Verifiche locali: `make check` e `make check-generated`. Stato della consegna
-Todo Test e Web: da aggiornare dopo il collaudo.
+`make check` superato: 231 test Flutter, analisi statica pulita, test strumenti
+e link documentali; `make check-generated` superato. `make todo-test` ha
+installato in-place la 2.40.3 / versionCode 2181 sul Galaxy preservando i dati.
+Alle 18:14:10 UTC il provider riporta `healthy`, build 2181, zero operazioni
+pendenti e zero conflitti. Verify `36171968918` e Publish Todo Test Fast
+`36171960700` completati con successo sul commit `1b2c72d`. Web resta alla 180
+finché non viene confermata la pubblicazione `PUBBLICA`. Il ramo del rifiuto
+server e il fallback Realtime sono verificati solo sinteticamente: nessun rifiuto
+reale era presente sul telefono.
 
 ## Recupero sincronizzazione — build 180
 
