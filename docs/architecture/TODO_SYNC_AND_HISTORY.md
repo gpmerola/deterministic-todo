@@ -97,7 +97,22 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
-### Ripresa breve allo sblocco — build 185
+### Pausa indipendente dai frame — build 186
+
+Con la 2185 installata a schermo spento, il registro eventi Android mostra
+l'attività `STOPPED` dalle 19:49:15 alle 20:05:08 UTC, mentre il provider
+registra i cicli 2–11 con sei fallimenti di rete consecutivi e i relativi
+retry, possibili solo con il servizio non in pausa. In background Flutter non
+produce frame: `SyncService.start()` gira nell'inizializzazione asincrona,
+mentre `TodoApp` e il suo osservatore vengono costruiti solo al primo frame
+successivo, cioè alla riapertura. Il controllo in `initState` della 184 non
+poteva quindi eseguire.
+
+`bindSyncToLifecycle` crea un `AppLifecycleListener` subito dopo `start()`,
+applica lo stato corrente e resta l'unico proprietario di pausa e ripresa;
+l'interfaccia gestisce solo il proprio lavoro di primo piano. Test:
+`test/sync_foreground_test.dart`.
+
 
 Sul Galaxy il provider ha registrato alle 19:24:59 e 19:37:00 UTC un solo
 controllo completo fallito (`overview`, `ClientException`, coda zero) con lo

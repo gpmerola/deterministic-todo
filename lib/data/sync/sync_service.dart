@@ -163,6 +163,9 @@ class SyncService {
   static bool shouldSyncForAuthChange(String? previous, String? next) =>
       next != null && previous != next;
 
+  @visibleForTesting
+  bool get isPaused => _paused;
+
   Stream<SyncSnapshot> get snapshots => _state.stream;
   Stream<Set<String>> get remoteTaskChanges => _remoteTaskChanges.stream;
   SyncSnapshot get latest => _latest;

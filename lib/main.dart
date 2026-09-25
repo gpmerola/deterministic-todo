@@ -81,6 +81,13 @@ class BootstrapApp extends StatefulWidget {
 
 class _BootstrapAppState extends State<BootstrapApp> {
   late final Future<_AppRuntime> initialization = _initialize();
+  AppLifecycleListener? syncLifecycle;
+
+  @override
+  void dispose() {
+    syncLifecycle?.dispose();
+    super.dispose();
+  }
 
   Future<_AppRuntime> _initialize() async {
     final startup = Stopwatch()..start();
@@ -122,6 +129,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
     SyncService? syncService;
     if (syncClient != null) {
       syncService = SyncService(database, syncClient)..start();
+      syncLifecycle = bindSyncToLifecycle(syncService);
     }
     PerformanceMonitor.instance.start();
     startup.stop();
@@ -407,8 +415,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Sync starts during async initialization, before this observer exists:
-    // a move to background in between would otherwise never pause it.
+    // In background no frames are built, so this may run long after startup:
+    // align the foreground bookkeeping with the current state.
     final initialLifecycle = WidgetsBinding.instance.lifecycleState;
     if (isBackgroundLifecycle(initialLifecycle)) {
       didChangeAppLifecycleState(initialLifecycle!);
@@ -631,7 +639,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (appIsForeground) return; // Only `inactive`: nothing was suspended.
       appIsForeground = true;
       backgroundSnapshotTaken = false;
-      widget.syncService?.resume();
       unawaited(_refreshDailyMovement());
       unawaited(
         PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
@@ -642,9 +649,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         unawaited(_checkForUpdates(automatic: true));
       }
     } else if (isBackgroundLifecycle(state)) {
-      // `inactive` alone is transient (notification shade, system dialog,
-      // unfocused browser window): the app is still visible, keep it live.
-      widget.syncService?.pause();
+      // Sync pause/resume is owned by [bindSyncToLifecycle].
       appIsForeground = false;
       if (!backgroundSnapshotTaken) {
         backgroundSnapshotTaken = true;
@@ -2402,6 +2407,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ),
       ),
     ),
+  );
+}
+
+/// Pauses and resumes sync from the binding, next to [SyncService.start].
+/// Widget observers are not enough: in background Flutter builds no frames,
+/// so an app started there would never reach the widget that observes it.
+AppLifecycleListener bindSyncToLifecycle(SyncService service) {
+  if (isBackgroundLifecycle(WidgetsBinding.instance.lifecycleState)) {
+    service.pause();
+  }
+  return AppLifecycleListener(
+    onStateChange: (state) {
+      if (isBackgroundLifecycle(state)) {
+        service.pause();
+      } else if (state == AppLifecycleState.resumed) {
+        service.resume();
+      }
+    },
   );
 }
 

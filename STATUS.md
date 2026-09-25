@@ -2,6 +2,14 @@
 
 Aggiornato il 25 settembre 2026.
 
+## Pausa indipendente dai frame — build 186
+
+Con la 2185 un avvio a schermo spento ha continuato a sincronizzare in
+background (cicli 2–11, sei fallimenti con retry, recupero alle 20:05:12 UTC)
+con attività `STOPPED`. Causa e correzione in
+[sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+Stato della consegna: da aggiornare dopo il collaudo.
+
 ## Ripresa breve allo sblocco — builds 184–185
 
 `make check` superato con 243 test Flutter e analisi pulita; `make check-generated`

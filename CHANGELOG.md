@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.8 (build 186) — Todo Test
+
+- La pausa della sincronizzazione è gestita accanto all'avvio del servizio,
+  non più dall'interfaccia. In background Flutter non costruisce frame: un'app
+  avviata a schermo spento non raggiungeva mai il widget che la metteva in
+  pausa e continuava a sincronizzare, con retry, fino alla prima apertura.
+
 ## 2.40.7 (build 185) — Todo Test
 
 - Alla pausa, un controllo in sola lettura ancora in corso viene annullato

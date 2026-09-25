@@ -116,6 +116,37 @@ void main() {
     await db.close();
   });
 
+  testWidgets('sync pauses in background without any frame being built', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final server = SyntheticSyncServer();
+    final client = await tester.runAsync(server.client);
+    final sync = SyncService(db, client!);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    final listener = bindSyncToLifecycle(sync);
+    expect(sync.isPaused, isTrue); // Started in background.
+    listener.dispose();
+
+    final other = SyncService(db, client);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final live = bindSyncToLifecycle(other);
+    expect(other.isPaused, isFalse);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    expect(other.isPaused, isFalse); // Transient interruption.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    expect(other.isPaused, isTrue);
+    live.dispose();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.runAsync(() async {
+      await sync.dispose();
+      await other.dispose();
+      await client.dispose();
+      await db.close();
+    });
+  });
+
   test('only real background states suspend sync', () {
     expect(isBackgroundLifecycle(AppLifecycleState.hidden), isTrue);
     expect(isBackgroundLifecycle(AppLifecycleState.paused), isTrue);

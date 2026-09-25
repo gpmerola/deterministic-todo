@@ -12,7 +12,10 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Build 184: pausa applicata anche se l'app va in background durante l'avvio.
 - [x] Causa reale dei cicli falliti a schermo spento: ripresa di ~1 s allo
   sblocco; build 185 annulla il controllo in sola lettura alla pausa.
-- [ ] Confermare sul Galaxy con la 2185 che lo sblocco non lasci errori.
+- [x] Build 186: pausa legata al binding, non ai frame; la 184 non poteva agire
+  su un avvio in background.
+- [ ] Confermare sul Galaxy con la 2186 che avvio a schermo spento e sblocco
+  non producano cicli o errori.
 
 ## P0 — Ciclo di vita e ricerca, build 182
 
