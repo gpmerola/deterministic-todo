@@ -61,10 +61,14 @@ class TaskSyncWriter {
   final AppDatabase db;
   final SupabaseClient client;
 
+  /// [prefetched] is the server row read in bulk at the start of the cycle
+  /// (`row: null` when absent). It replaces only the first read, and only
+  /// without uncertain attempts; CAS still rejects any concurrent change.
   Future<({Map<String, dynamic> row, int retries})> upload(
     Task initial,
-    List<OutboxEntry> entries,
-  ) async {
+    List<OutboxEntry> entries, {
+    ({Map<String, dynamic>? row})? prefetched,
+  }) async {
     scope.check();
     final userId = scope.userId!;
     // A full snapshot explicitly chosen by the user supersedes every earlier
@@ -85,13 +89,21 @@ class TaskSyncWriter {
     final operationIds = entries.map((e) => e.operationId).toList();
     final replacement = operations.any((op) => op['kind'] == 'replace');
     final legacy = !replacement && operations.any((op) => op['schema'] != 2);
+    var bulkRead = operations.every((op) => op['attempt'] == null)
+        ? prefetched
+        : null;
     for (var attempt = 0; attempt < 4; attempt++) {
-      final rows = await scope.send(
-        client.from('tasks').select().eq('id', initial.id).limit(1),
-      );
-      final remote = rows.isEmpty
-          ? null
-          : Map<String, dynamic>.from(rows.first);
+      final Map<String, dynamic>? remote;
+      if (bulkRead != null) {
+        final row = bulkRead.row;
+        remote = row == null ? null : Map<String, dynamic>.from(row);
+        bulkRead = null;
+      } else {
+        final rows = await scope.send(
+          client.from('tasks').select().eq('id', initial.id).limit(1),
+        );
+        remote = rows.isEmpty ? null : Map<String, dynamic>.from(rows.first);
+      }
       if (pending.isEmpty) {
         if (remote == null) await _conflict(initial, null, operationIds);
         return (row: remote, retries: attempt);

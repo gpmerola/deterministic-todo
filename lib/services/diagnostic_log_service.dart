@@ -123,6 +123,7 @@ class DiagnosticLogService {
     'conflicts',
     'rejected',
     'rejected_codes',
+    'diverged_buckets',
     'uploaded_entities',
     'rebased_entities',
     'cycle_id',

@@ -2,6 +2,12 @@
 
 Aggiornato il 25 settembre 2026.
 
+## Invii in blocco e divergenza — build 183
+
+Revisione del codice, senza incidente reale associato. Contratto in
+[sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+Stato della consegna: da aggiornare dopo il collaudo.
+
 ## Ciclo di vita e ricerca — build 182
 
 Revisione del codice, senza incidente reale associato. Correzioni e limiti in

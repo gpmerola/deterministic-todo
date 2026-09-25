@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.40.5 (build 183) — Todo Test
+
+- Invio più rapido: le righe remote delle attività in coda sono lette in blocco
+  (100 per richiesta) e le ricevute sono inviate insieme a fine invio. Nel test
+  sintetico 50 modifiche passano da 150 a 52 richieste. La scrittura resta
+  condizionata alla versione: un cambiamento concorrente viene riletto e unito.
+- Realtime non riscarica una riga quando la notifica annuncia una versione già
+  presente sul dispositivo, come l'eco delle proprie modifiche.
+- Diagnostica `diverged_buckets`: gruppi ancora diversi dal server dopo il
+  download, senza modifiche locali in coda. Nessun contenuto nei log.
+
 ## 2.40.4 (build 182) — Todo Test
 
 - La ricerca apre una sola lettura dell'archivio per pagina invece di

@@ -50,6 +50,39 @@ Future<List<String>?> changedTaskBuckets(
   return expected.keys.toList()..sort();
 }
 
+/// Diagnostic only: [buckets] that still differ from [remote] after their
+/// pull, excluding buckets with pending local task intents. A write made after
+/// the server snapshot is also counted; a repeated non-zero value across cycles
+/// indicates a divergence the pull cannot repair (for example a local-only row).
+Future<int> unresolvedTaskBuckets(
+  AppDatabase db,
+  List<dynamic> remote,
+  List<String> buckets,
+  SyncRequestScope scope,
+) async {
+  if (buckets.isEmpty) return 0;
+  final expected = {
+    for (final item in remote)
+      (item as Map)['bucket'] as String: item['fingerprint'] as String,
+  };
+  final local = await scope.compareLocally(
+    () => cachedTaskFingerprints(db, buckets, scope),
+  );
+  final pending =
+      (await db
+              .customSelect(
+                'SELECT DISTINCT substr(entity_id, 1, 2) AS bucket FROM outbox_entries '
+                "WHERE operation NOT IN ('projects', 'project_sections')",
+              )
+              .get())
+          .map((row) => row.read<String>('bucket'))
+          .toSet();
+  scope.check();
+  return buckets
+      .where((b) => !pending.contains(b) && local[b] != expected[b])
+      .length;
+}
+
 /// Cache reads, recomputation and replacement share one transaction. A write
 /// either precedes this snapshot or invalidates its cache on the same commit.
 Future<Map<String, String>> cachedTaskFingerprints(

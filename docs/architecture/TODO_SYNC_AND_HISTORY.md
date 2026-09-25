@@ -97,6 +97,28 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Invii in blocco, eco Realtime e divergenza — build 183
+
+- All'inizio dell'invio le righe remote delle attività in coda sono lette con
+  `id=in.(...)` a lotti di 100. Il writer usa la riga in blocco solo al primo
+  tentativo e solo senza tentativi incerti; l'UPDATE resta condizionato a
+  versione e dispositivo, quindi una scrittura concorrente produce zero righe,
+  una nuova lettura e l'unione degli intenti come prima.
+- Ricevute `sync_operations` in blocchi da 200 dopo l'ultimo gruppo, poi una
+  sola transazione locale elimina esattamente gli operation ID catturati e
+  unisce le righe accettate. Se l'invio si interrompe, le ricevute già
+  maturate vengono tentate prima di propagare l'errore; in ogni caso le
+  scritture restano `confirmed` e il ciclo successivo invia solo la ricevuta.
+- Realtime conserva per ID la versione Lamport annunciata (null se assente,
+  per esempio in una cancellazione). Una notifica con versione minore o uguale
+  a quella locale non viene riscaricata; ogni caso incerto viene scaricato.
+- `unresolvedTaskBuckets` ricalcola, dopo il download, le impronte dei soli
+  gruppi scaricati ed esclude quelli con intenti locali in coda. Il valore è
+  diagnostico: una scrittura successiva allo snapshot conta una volta, un valore
+  ripetuto tra cicli indica una divergenza non riparabile dal pull.
+
+Test: `test/sync_throughput_test.dart`.
+
 ### Ciclo di vita e indicatore — build 182
 
 - `SyncService.pause()` e `resume()` sono idempotenti: `resume()` annulla solo

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../domain/task.dart' show LogicalVersion;
 import '../../services/diagnostic_log_service.dart';
 import '../local/database.dart';
 import 'paged_remote.dart';
@@ -68,6 +70,7 @@ class SyncService {
 
   /// Keeps `id=in.(...)` URLs well below common proxy limits.
   static const idBatchSize = 100;
+  static const receiptBatchSize = 200;
   final AppDatabase db;
   final SupabaseClient client;
   final _state = StreamController<SyncSnapshot>.broadcast();
@@ -145,6 +148,14 @@ class SyncService {
     'projects': <String>{},
     'project_sections': <String>{},
   };
+
+  /// Highest version announced per queued ID; null when an event had none
+  /// (for example a delete), which always requires a fetch.
+  final Map<String, Map<String, LogicalVersion?>> _announcedVersions = {
+    'tasks': {},
+    'projects': {},
+    'project_sections': {},
+  };
   SyncSnapshot _latest = const SyncSnapshot(SyncPhase.disabled);
   String? _authenticatedUserId;
 
@@ -172,6 +183,9 @@ class SyncService {
         _cancelRequests();
         for (final ids in _pendingRealtimeIds.values) {
           ids.clear();
+        }
+        for (final versions in _announcedVersions.values) {
+          versions.clear();
         }
         unawaited(_removeRealtime());
       }
@@ -351,11 +365,27 @@ class SyncService {
     });
   }
 
-  void _queueRealtimeChange(String table, PostgresChangePayload payload) {
+  void _queueRealtimeChange(String table, PostgresChangePayload payload) =>
+      _queueRealtimeRecord(table, payload.newRecord, payload.oldRecord);
+
+  void _queueRealtimeRecord(
+    String table,
+    Map<String, dynamic> newRecord,
+    Map<String, dynamic> oldRecord,
+  ) {
     if (_disposed || _paused) return;
-    final id = (payload.newRecord['id'] ?? payload.oldRecord['id']) as String?;
+    final id = (newRecord['id'] ?? oldRecord['id']) as String?;
     if (id == null) return;
     _pendingRealtimeIds[table]!.add(id);
+    final versions = _announcedVersions[table]!;
+    final next = announcedVersion(newRecord);
+    final previous = versions[id];
+    if (!versions.containsKey(id)) {
+      versions[id] = next;
+    } else if (previous != null &&
+        (next == null || next.compareTo(previous) > 0)) {
+      versions[id] = next;
+    }
     _realtimeTimer?.cancel();
     _realtimeTimer = Timer(
       eventDebounce,
@@ -364,12 +394,20 @@ class SyncService {
   }
 
   /// Delivers synthetic Realtime notifications without a live channel.
+  /// [records] are the announced new rows; bare [ids] announce no version.
   @visibleForTesting
   Future<void> pullRealtimeChangesForTesting(
     String table,
-    Iterable<String> ids,
-  ) {
-    _pendingRealtimeIds[table]!.addAll(ids);
+    Iterable<String> ids, {
+    Iterable<Map<String, dynamic>> records = const [],
+  }) {
+    for (final id in ids) {
+      _queueRealtimeRecord(table, {'id': id}, const {});
+    }
+    for (final record in records) {
+      _queueRealtimeRecord(table, record, const {});
+    }
+    _realtimeTimer?.cancel();
     return _pullQueuedRealtimeChanges();
   }
 
@@ -382,10 +420,25 @@ class SyncService {
       for (final entry in _pendingRealtimeIds.entries)
         entry.key: entry.value.toSet(),
     };
+    final announced = {
+      for (final entry in _announcedVersions.entries)
+        entry.key: Map<String, LogicalVersion?>.from(entry.value),
+    };
     for (final ids in _pendingRealtimeIds.values) {
       ids.clear();
     }
+    for (final versions in _announcedVersions.values) {
+      versions.clear();
+    }
     try {
+      for (final table in queued.keys) {
+        queued[table] = await realtimeIdsToFetch(
+          db,
+          table,
+          queued[table]!,
+          announced[table]!,
+        );
+      }
       final changedTasks = <String>{};
       final taskIds = queued['tasks']!.toList();
       for (var start = 0; start < taskIds.length; start += idBatchSize) {
@@ -574,92 +627,88 @@ class SyncService {
           : 2;
       final groups = grouped.values.toList()
         ..sort((a, b) => rank(a).compareTo(rank(b)));
-      for (final group in groups) {
-        _requests.check();
-        final entry = group.first;
-        try {
-          Map<String, dynamic> row;
-          if (isProjectOperation(entry)) {
-            stage = SyncStage.projects;
-            row = await ProjectSyncWriter(
-              db,
-              client,
-              scope: _requests,
-            ).upload(group);
-          } else {
-            stage = SyncStage.taskUpload;
-            final task = await (db.select(
-              db.tasks,
-            )..where((r) => r.id.equals(entry.entityId))).getSingleOrNull();
-            if (task == null) throw const SyncIntentConflictException();
-            try {
-              final result = await TaskSyncWriter(
+      final accepted =
+          <({List<OutboxEntry> group, Map<String, dynamic> row})>[];
+      try {
+        final prefetched = await _prefetchTasks(
+          groups
+              .where((group) => !isProjectOperation(group.first))
+              .map((group) => group.first.entityId),
+        );
+        for (final group in groups) {
+          _requests.check();
+          final entry = group.first;
+          try {
+            Map<String, dynamic> row;
+            if (isProjectOperation(entry)) {
+              stage = SyncStage.projects;
+              row = await ProjectSyncWriter(
                 db,
                 client,
                 scope: _requests,
-              ).upload(task, group);
-              rebasedEntities += result.retries;
-              row = result.row;
-            } on PostgrestException catch (error) {
-              if (isRecurringOccurrenceConflict(error)) {
-                await _reconcileRecurringOccurrence(task);
+              ).upload(group);
+            } else {
+              stage = SyncStage.taskUpload;
+              final task = await (db.select(
+                db.tasks,
+              )..where((r) => r.id.equals(entry.entityId))).getSingleOrNull();
+              if (task == null) throw const SyncIntentConflictException();
+              try {
+                final result =
+                    await TaskSyncWriter(db, client, scope: _requests).upload(
+                      task,
+                      group,
+                      prefetched: prefetched.containsKey(task.id)
+                          ? (row: prefetched[task.id])
+                          : null,
+                    );
+                rebasedEntities += result.retries;
+                row = result.row;
+              } on PostgrestException catch (error) {
+                if (isRecurringOccurrenceConflict(error)) {
+                  await _reconcileRecurringOccurrence(task);
+                }
+                rethrow;
               }
+            }
+            accepted.add((group: group, row: row));
+            uploadedEntities++;
+          } on PostgrestException catch (error) {
+            final String marker;
+            if (error.code == 'P0001' &&
+                error.message.contains('todo_entity_purged')) {
+              marker = 'purged_entity';
+            } else if (isEntityRejection(error)) {
+              // One invalid row must not stop other uploads or the pull.
+              marker = 'server_rejected';
+              rejectedCodes.add(error.code!);
+            } else {
               rethrow;
             }
+            await _markGroup(group, marker, isolated);
+          } on SyncIntentConflictException {
+            await _markGroup(group, 'intent_conflict', isolated);
           }
-          _requests.check();
-          stage = SyncStage.receipt;
-          await _requests.send(
-            client
-                .from('sync_operations')
-                .upsert(
-                  [
-                    for (final op in group)
-                      {
-                        'operation_id': op.operationId,
-                        'entity_id': op.entityId,
-                        'operation': isProjectOperation(op)
-                            ? 'upsert'
-                            : op.operation,
-                        'payload': syncReceipt(op),
-                      },
-                  ],
-                  onConflict: 'operation_id',
-                  ignoreDuplicates: true,
-                ),
-          );
-          await db.transaction(() async {
-            _requests.check();
-            await (db.delete(db.outboxEntries)..where(
-                  (r) => r.operationId.isIn(group.map((e) => e.operationId)),
-                ))
-                .go();
-            if (isProjectOperation(entry)) {
-              await _mergeProject(entry.operation, row);
-            } else {
-              await _mergeRemote(row, null);
-            }
-          });
-          uploadedEntities++;
-        } on PostgrestException catch (error) {
-          final String marker;
-          if (error.code == 'P0001' &&
-              error.message.contains('todo_entity_purged')) {
-            marker = 'purged_entity';
-          } else if (isEntityRejection(error)) {
-            // One invalid row must not stop other uploads or the pull.
-            marker = 'server_rejected';
-            rejectedCodes.add(error.code!);
-          } else {
-            rethrow;
-          }
-          await _markGroup(group, marker, isolated);
-        } on SyncIntentConflictException {
-          await _markGroup(group, 'intent_conflict', isolated);
         }
+      } on Object {
+        // Server writes already accepted stay confirmed in the outbox either
+        // way; acknowledging them now just avoids re-reading them later.
+        if (accepted.isNotEmpty && _requests.isActive) {
+          try {
+            await _acknowledge(accepted);
+          } on Object {
+            // The original failure is the one reported.
+          }
+        }
+        rethrow;
+      }
+      if (accepted.isNotEmpty) {
+        stage = SyncStage.receipt;
+        await _acknowledge(accepted);
       }
       stage = SyncStage.taskPull;
       var remoteCount = 0;
+      int? divergedBuckets;
       if (pullAll) {
         _activeSnapshotStarted = true;
         stage = SyncStage.overview;
@@ -700,6 +749,14 @@ class SyncService {
               remoteRows: remoteCount,
             );
           }
+        }
+        if (overview != null && buckets != null) {
+          divergedBuckets = await unresolvedTaskBuckets(
+            db,
+            overview.tasks,
+            buckets,
+            _requests,
+          );
         }
         stage = SyncStage.purgePull;
         _reportProgress(cycle, stage, entries.length, remoteRows: remoteCount);
@@ -765,6 +822,7 @@ class SyncService {
             'remote_rows': remoteCount,
             'conflicts': conflicts,
             'rejected': rejected,
+            'diverged_buckets': ?divergedBuckets,
             if (rejectedCodes.isNotEmpty)
               'rejected_codes': (rejectedCodes.toList()..sort()).join(','),
             'pull_all': pullAll,
@@ -877,6 +935,77 @@ class SyncService {
     }
   }
 
+  /// Remote rows for the task groups of this cycle, `null` when absent.
+  /// One request per [idBatchSize] entities instead of one per entity.
+  Future<Map<String, Map<String, dynamic>?>> _prefetchTasks(
+    Iterable<String> ids,
+  ) async {
+    final pending = ids.toSet().toList();
+    final result = <String, Map<String, dynamic>?>{};
+    for (var start = 0; start < pending.length; start += idBatchSize) {
+      final batch = pending.skip(start).take(idBatchSize).toList();
+      final rows = await _requests.send(
+        client.from('tasks').select().inFilter('id', batch),
+      );
+      for (final id in batch) {
+        result[id] = null;
+      }
+      for (final row in rows) {
+        result[row['id'] as String] = Map<String, dynamic>.from(row);
+      }
+    }
+    return result;
+  }
+
+  /// Receipts in bulk, then one local transaction that removes exactly the
+  /// captured operation IDs and merges the accepted rows.
+  Future<void> _acknowledge(
+    List<({List<OutboxEntry> group, Map<String, dynamic> row})> accepted,
+  ) async {
+    final receipts = [
+      for (final item in accepted)
+        for (final op in item.group)
+          {
+            'operation_id': op.operationId,
+            'entity_id': op.entityId,
+            'operation': isProjectOperation(op) ? 'upsert' : op.operation,
+            'payload': syncReceipt(op),
+          },
+    ];
+    for (var start = 0; start < receipts.length; start += receiptBatchSize) {
+      await _requests.send(
+        client
+            .from('sync_operations')
+            .upsert(
+              receipts.skip(start).take(receiptBatchSize).toList(),
+              onConflict: 'operation_id',
+              ignoreDuplicates: true,
+            ),
+      );
+    }
+    _requests.check();
+    await db.transaction(() async {
+      _requests.check();
+      await (db.delete(db.outboxEntries)..where(
+            (r) => r.operationId.isIn(
+              receipts.map((receipt) => receipt['operation_id'] as String),
+            ),
+          ))
+          .go();
+      for (final table in const ['projects', 'project_sections', 'tasks']) {
+        final rows = [
+          for (final item in accepted)
+            if ((isProjectOperation(item.group.first)
+                    ? item.group.first.operation
+                    : 'tasks') ==
+                table)
+              item.row,
+        ];
+        if (rows.isNotEmpty) await mergeRemoteBatch(db, table, rows, _requests);
+      }
+    });
+  }
+
   Future<void> _markGroup(
     List<OutboxEntry> group,
     String marker,
@@ -948,11 +1077,6 @@ class SyncService {
       if (!const {'42P01', 'PGRST205'}.contains(e.code)) rethrow;
     }
   }
-
-  Future<bool> _mergeRemote(
-    Map<String, dynamic> raw,
-    Task? ignoredSnapshot,
-  ) async => (await mergeRemoteBatch(db, 'tasks', [raw], _requests)).isNotEmpty;
 
   Future<bool> _reconcileRecurringOccurrence(Task local) async {
     final seriesId = local.seriesId;
@@ -1072,6 +1196,50 @@ String safeSyncErrorClass(Object error) {
     return 'network';
   }
   return 'unexpected';
+}
+
+LogicalVersion? announcedVersion(Map<String, dynamic> record) {
+  final counter = record['logical_version'];
+  final device = record['device_id'];
+  return counter is int && device is String
+      ? LogicalVersion(counter, device)
+      : null;
+}
+
+/// Drops notifications whose announced version this device already has,
+/// such as the echo of its own accepted upload. Anything uncertain is fetched.
+Future<Set<String>> realtimeIdsToFetch(
+  AppDatabase db,
+  String table,
+  Set<String> ids,
+  Map<String, LogicalVersion?> announced,
+) async {
+  if (!const {'tasks', 'projects', 'project_sections'}.contains(table)) {
+    throw ArgumentError('Invalid sync table');
+  }
+  final known = ids.where((id) => announced[id] != null).toList();
+  if (known.isEmpty) return ids;
+  final rows = await db
+      .customSelect(
+        'SELECT id, logical_version, device_id FROM "$table" '
+        'WHERE id IN (SELECT value FROM json_each(?))',
+        variables: [Variable(jsonEncode(known))],
+      )
+      .get();
+  final current = {
+    for (final row in rows)
+      row.read<String>('id'): LogicalVersion(
+        row.read<int>('logical_version'),
+        row.read<String>('device_id'),
+      ),
+  };
+  return {
+    for (final id in ids)
+      if (announced[id] == null ||
+          current[id] == null ||
+          current[id]!.compareTo(announced[id]!) < 0)
+        id,
+  };
 }
 
 bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>

@@ -2,14 +2,20 @@
 
 Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
+## P0 — Invii in blocco e diagnostica divergenza, build 183
+
+- [x] Lettura remota in blocco e ricevute raggruppate: 150 → 52 richieste per 50 modifiche.
+- [x] Nessun fetch Realtime per versioni già note; diagnostica `diverged_buckets`.
+- [ ] Consegna Todo Test e verifica sul Galaxy; Web dopo conferma `PUBBLICA`.
+- [ ] Osservare `diverged_buckets` su più cicli reali prima di progettare una riparazione.
+
 ## P0 — Ciclo di vita e ricerca, build 182
 
 - [x] Ricerca senza ricarica per carattere; pausa solo in background reale.
 - [x] Invio immediato alla pausa, niente sync in background per cambi rete.
 - [x] Indicatore neutro per un retry transitorio già programmato.
 - [ ] Consegna Todo Test e verifica sul Galaxy; Web dopo conferma `PUBBLICA`.
-- [ ] Incremento successivo: prefetch e ricevute in blocco negli invii, niente
-  fetch Realtime per i propri echi, diagnostica di divergenza persistente.
+- [x] Incremento successivo realizzato nella build 183.
 
 ## P0 — Isolamento errori sync, build 181
 

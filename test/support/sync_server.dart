@@ -17,6 +17,10 @@ class SyntheticSyncServer {
   final receipts = <String, Map<String, dynamic>>{};
   int pageCap = 200;
   int writes = 0;
+
+  /// Every HTTP request, including RPC and receipts.
+  int requests = 0;
+  int receiptBatches = 0;
   int pages = 0;
   bool fingerprints = false;
   bool overview = false;
@@ -72,6 +76,7 @@ class SyntheticSyncServer {
       'synthetic-key',
       authOptions: const AuthClientOptions(autoRefreshToken: false),
       httpClient: MockClient((request) async {
+        requests++;
         http.Response reply(Object? body, [int status = 200]) => http.Response(
           jsonEncode(body),
           status,
@@ -104,6 +109,7 @@ class SyntheticSyncServer {
         }
         if (table == 'sync_operations') {
           if (failReceipt) throw StateError('synthetic receipt failure');
+          receiptBatches++;
           for (final raw in jsonDecode(request.body) as List) {
             final row = Map<String, dynamic>.from(raw as Map);
             if (!const {'upsert', 'delete'}.contains(row['operation'])) {
