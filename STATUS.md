@@ -6,7 +6,15 @@ Aggiornato il 25 settembre 2026.
 
 Revisione del codice, senza incidente reale associato. Correzioni e limiti in
 [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
-Stato della consegna: da aggiornare dopo il collaudo.
+`make check` superato con 235 test Flutter e analisi pulita; `make check-generated`
+superato. `make todo-test` ha installato in-place la 2.40.4 / versionCode 2182
+sul Galaxy preservando i dati; ciclo completo `healthy` alle 18:46:56 UTC con una
+richiesta, zero operazioni pendenti e zero conflitti. Aprendo e chiudendo la
+tendina notifiche via ADB `last_success_at` è rimasto invariato: nessun nuovo
+controllo completo. Il ritorno da background non è verificato sul telefono,
+perché il dispositivo è entrato in stand-by bloccato; è coperto dai test
+sintetici. Verify `36175440611` e Publish Todo Test Fast `36175435730` riusciti
+sul commit `7514db0`. Web resta alla 181 fino a una nuova conferma `PUBBLICA`.
 
 ## Isolamento errori sync — build 181
 
