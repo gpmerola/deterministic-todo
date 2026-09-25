@@ -2,6 +2,16 @@
 
 Aggiornato il 25 settembre 2026.
 
+## Ripresa breve allo sblocco — builds 184–185
+
+`make check` superato con 243 test Flutter e analisi pulita; `make check-generated`
+superato. `make todo-test` ha installato in-place la 2.40.7 / versionCode 2185;
+ciclo completo `healthy` alle 19:49:17 UTC, zero operazioni pendenti e zero
+conflitti. Verify `36181862462` e Publish Todo Test Fast `36181857626` riusciti
+sul commit `b973dd8`. Resta da osservare uno sblocco reale con la 2185: il
+provider non deve più registrare un fallimento pochi secondi dopo la ripresa.
+Web resta alla 183 fino a conferma `PUBBLICA`.
+
 ## Invii in blocco e divergenza — build 183
 
 Revisione del codice, senza incidente reale associato. Contratto in
