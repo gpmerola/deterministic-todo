@@ -2,6 +2,14 @@
 
 Aggiornato il 25 settembre 2026.
 
+## Anteprima descrizione — build 188
+
+`make check` superato con 247 test Flutter e analisi pulita; `make check-generated`
+superato. ADB non raggiungibile (Tailscale): `make todo-test` ha pubblicato la
+2.41.0+188 sul manifest rolling, verificato con canale dev e commit `4518052`.
+Verify `36237232202` e Publish Todo Test Fast `36237230165` riusciti. Installazione
+e verifica visiva sul Galaxy ancora da fare; Web resta alla 187.
+
 ## Pausa indipendente dai frame — build 186
 
 Con la 2185 un avvio a schermo spento ha continuato a sincronizzare in

@@ -5,7 +5,8 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 ## P1 — Anteprima descrizione, build 188
 
 - [x] Fino a tre righe di descrizione negli elenchi, righe vuote saltate.
-- [ ] Consegna Todo Test e verifica visiva sul Galaxy; Web dopo `PUBBLICA`.
+- [x] Build 188 sul manifest rolling Todo Test; CI verde.
+- [ ] Installare sul Galaxy e verificare visivamente; Web dopo `PUBBLICA`.
 - [ ] Idee UX da valutare: ricerca con attive prima delle completate; azioni
   dirette per elementi rifiutati in Problemi di sincronizzazione.
 
