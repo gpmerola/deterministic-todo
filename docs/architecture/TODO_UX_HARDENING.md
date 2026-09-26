@@ -1,5 +1,11 @@
 # Todo: editor, viste e sincronizzazione — build 174
 
+## Anteprima della descrizione — build 188
+
+Gli elenchi mostrano fino a `notesPreviewLines` (3) righe della descrizione con
+ellissi. `notesPreview` rimuove soltanto righe vuote e spazi finali per la
+visualizzazione; non modifica i dati né l'editor. Test in `test/widget_test.dart`.
+
 ## Comportamento
 
 Prossime ritorna in cima quando si rientra da un'altra schermata. Aprire e

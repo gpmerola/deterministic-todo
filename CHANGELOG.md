@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.41.0 (build 188) — Todo Test
+
+- Negli elenchi la descrizione di un'attività mostra fino a tre righe invece di
+  una sola, con puntini se continua. Le righe vuote sono saltate
+  nell'anteprima; la descrizione salvata e l'editor restano invariati.
+
 ## 2.40.9 (build 187) — Todo Test
 
 - Il listener del ciclo di vita è registrato prima dell'avvio della sync e

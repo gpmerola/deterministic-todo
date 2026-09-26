@@ -2,6 +2,13 @@
 
 Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
+## P1 — Anteprima descrizione, build 188
+
+- [x] Fino a tre righe di descrizione negli elenchi, righe vuote saltate.
+- [ ] Consegna Todo Test e verifica visiva sul Galaxy; Web dopo `PUBBLICA`.
+- [ ] Idee UX da valutare: ricerca con attive prima delle completate; azioni
+  dirette per elementi rifiutati in Problemi di sincronizzazione.
+
 ## P0 — Invii in blocco e diagnostica divergenza, build 183
 
 - [x] Lettura remota in blocco e ricevute raggruppate: 150 → 52 richieste per 50 modifiche.

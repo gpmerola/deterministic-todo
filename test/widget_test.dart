@@ -543,6 +543,49 @@ void main() {
     await db.close();
   });
 
+  test('l anteprima della descrizione elimina solo le righe vuote', () {
+    expect(notesPreview(null), isNull);
+    expect(notesPreview('  \n \n'), isNull);
+    expect(
+      notesPreview('Latte  \n\n\n- pane\n  - uova'),
+      'Latte\n- pane\n  - uova',
+    );
+  });
+
+  testWidgets('una descrizione su più righe è visibile oltre la prima', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final id = await repository.create('Spesa');
+    final task = await (db.select(
+      db.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await repository.updateDetails(
+      task,
+      title: task.title,
+      notes: 'Latte\n\n- pane\n- uova\n- caffè',
+    );
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    final preview = tester.widget<RichText>(
+      find.descendant(
+        of: find.byType(TaskTile),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is RichText &&
+              widget.text.toPlainText().startsWith('Latte'),
+        ),
+      ),
+    );
+    expect(preview.maxLines, notesPreviewLines);
+    expect(preview.text.toPlainText(), 'Latte\n- pane\n- uova\n- caffè');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('lo swipe nel cestino offre Annulla e ripristina la task', (
     tester,
   ) async {

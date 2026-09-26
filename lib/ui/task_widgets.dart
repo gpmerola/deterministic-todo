@@ -7,6 +7,20 @@ Color _priorityColor(int rawPriority) => switch (rawPriority) {
   _ => Colors.grey,
 };
 
+/// Lines of description shown in lists; the editor always shows all of it.
+const notesPreviewLines = 3;
+
+/// Description as shown in lists: blank lines and trailing spaces removed, so
+/// the preview lines carry content. The stored notes are never changed.
+String? notesPreview(String? notes) {
+  final lines = (notes ?? '')
+      .split('\n')
+      .map((line) => line.trimRight())
+      .where((line) => line.trim().isNotEmpty);
+  final preview = lines.join('\n');
+  return preview.isEmpty ? null : preview;
+}
+
 class TaskTile extends StatefulWidget {
   const TaskTile({
     required this.task,
@@ -274,7 +288,7 @@ class _TaskTileState extends State<TaskTile> {
       if (task.recurrence != null)
         '↻ ${recurrenceSmartLabel(task.recurrence, task.showDate)}',
     ];
-    final notes = task.notes?.trim();
+    final notes = notesPreview(task.notes);
     if ((notes == null || notes.isEmpty) && metadata.isEmpty) return null;
     final secondaryStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -287,7 +301,7 @@ class _TaskTileState extends State<TaskTile> {
           TodoistLinkText(
             notes,
             style: secondaryStyle,
-            maxLines: 1,
+            maxLines: notesPreviewLines,
             overflow: TextOverflow.ellipsis,
           ),
         if (metadata.isNotEmpty)
