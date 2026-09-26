@@ -2,7 +2,16 @@ enum TaskStatus { inbox, available, scheduled, waiting, completed }
 
 enum RecurrenceType { calendar, afterCompletion }
 
-enum RecurrenceUnit { day, week, month }
+enum RecurrenceUnit {
+  day,
+  weekday,
+  week,
+  month,
+  monthEnd,
+  monthWeekday,
+  monthLastWeekday,
+  year,
+}
 
 class RecurrenceRule {
   const RecurrenceRule({
@@ -30,6 +39,83 @@ class RecurrenceRule {
     );
   }
 }
+
+String recurrenceSmartLabel(String? encoded, String? showDate) {
+  final rule = RecurrenceRule.decode(encoded);
+  if (rule == null) return 'ricorrenza';
+  CivilDate? anchor;
+  if (showDate != null && showDate.isNotEmpty) {
+    try {
+      anchor = CivilDate.parse(showDate);
+    } on FormatException {
+      anchor = null;
+    }
+  }
+  final interval = rule.interval;
+  final unit = switch (rule.unit) {
+    RecurrenceUnit.day => interval == 1 ? 'giorno' : '$interval giorni',
+    RecurrenceUnit.weekday => 'giorno feriale',
+    RecurrenceUnit.week =>
+      interval == 1
+          ? anchor == null
+                ? 'settimana'
+                : _weekdayName(anchor.asLocalDate.weekday)
+          : '$interval settimane${anchor == null ? '' : ' · ${_weekdayName(anchor.asLocalDate.weekday)}'}',
+    RecurrenceUnit.month =>
+      interval == 1
+          ? anchor == null
+                ? 'mese'
+                : '${anchor.day} del mese'
+          : '$interval mesi${anchor == null ? '' : ' · giorno ${anchor.day}'}',
+    RecurrenceUnit.monthEnd => 'ultimo giorno del mese',
+    RecurrenceUnit.monthWeekday =>
+      anchor == null
+          ? 'mese'
+          : '${_ordinalName(((anchor.day - 1) ~/ 7) + 1)} ${_weekdayName(anchor.asLocalDate.weekday)} del mese',
+    RecurrenceUnit.monthLastWeekday =>
+      anchor == null
+          ? 'ultimo giorno feriale del mese'
+          : 'ultimo ${_weekdayName(anchor.asLocalDate.weekday)} del mese',
+    RecurrenceUnit.year =>
+      anchor == null ? 'anno' : '${anchor.day} ${_monthName(anchor.month)}',
+  };
+  return rule.type == RecurrenceType.afterCompletion
+      ? 'ogni $unit dopo il completamento'
+      : 'ogni $unit';
+}
+
+String _weekdayName(int weekday) => const [
+  'lunedì',
+  'martedì',
+  'mercoledì',
+  'giovedì',
+  'venerdì',
+  'sabato',
+  'domenica',
+][weekday - 1];
+
+String _monthName(int month) => const [
+  'gennaio',
+  'febbraio',
+  'marzo',
+  'aprile',
+  'maggio',
+  'giugno',
+  'luglio',
+  'agosto',
+  'settembre',
+  'ottobre',
+  'novembre',
+  'dicembre',
+][month - 1];
+
+String _ordinalName(int ordinal) => const [
+  'primo',
+  'secondo',
+  'terzo',
+  'quarto',
+  'quinto',
+][ordinal.clamp(1, 5) - 1];
 
 class CivilDate implements Comparable<CivilDate> {
   const CivilDate(this.year, this.month, this.day);
@@ -87,12 +173,76 @@ CivilDate nextOccurrence(
 ) {
   return switch (rule.unit) {
     RecurrenceUnit.day => current.addDays(rule.interval),
+    RecurrenceUnit.weekday => _nextWeekday(current, rule.interval),
     RecurrenceUnit.week => current.addDays(7 * rule.interval),
     RecurrenceUnit.month => current.addMonths(
       rule.interval,
       anchorDay: anchor.day,
     ),
+    RecurrenceUnit.monthWeekday => _nextMonthlyWeekday(
+      anchor,
+      current,
+      rule.interval,
+    ),
+    RecurrenceUnit.monthEnd => _nextMonthEnd(current, rule.interval),
+    RecurrenceUnit.monthLastWeekday => _nextMonthlyLastWeekday(
+      anchor,
+      current,
+      rule.interval,
+    ),
+    RecurrenceUnit.year => current.addMonths(
+      12 * rule.interval,
+      anchorDay: anchor.day,
+    ),
   };
+}
+
+CivilDate _nextWeekday(CivilDate current, int interval) {
+  var result = current;
+  var remaining = interval;
+  while (remaining > 0) {
+    result = result.addDays(1);
+    if (result.asLocalDate.weekday <= DateTime.friday) remaining--;
+  }
+  return result;
+}
+
+CivilDate _nextMonthEnd(CivilDate current, int interval) {
+  final month = CivilDate(current.year, current.month, 1).addMonths(interval);
+  return CivilDate(
+    month.year,
+    month.month,
+    DateTime(month.year, month.month + 1, 0).day,
+  );
+}
+
+CivilDate _nextMonthlyLastWeekday(
+  CivilDate anchor,
+  CivilDate current,
+  int interval,
+) {
+  final month = CivilDate(current.year, current.month, 1).addMonths(interval);
+  final weekday = anchor.asLocalDate.weekday;
+  var date = DateTime(month.year, month.month + 1, 0);
+  while (date.weekday != weekday) {
+    date = date.subtract(const Duration(days: 1));
+  }
+  return CivilDate.fromDateTime(date);
+}
+
+CivilDate _nextMonthlyWeekday(
+  CivilDate anchor,
+  CivilDate current,
+  int interval,
+) {
+  final target = current.addMonths(interval);
+  final ordinal = ((anchor.day - 1) ~/ 7) + 1;
+  final weekday = anchor.asLocalDate.weekday;
+  final first = DateTime(target.year, target.month);
+  var day = 1 + (weekday - first.weekday) % 7 + (ordinal - 1) * 7;
+  final lastDay = DateTime(target.year, target.month + 1, 0).day;
+  if (day > lastDay) day -= 7;
+  return CivilDate(target.year, target.month, day);
 }
 
 class LogicalVersion implements Comparable<LogicalVersion> {
@@ -107,3 +257,9 @@ class LogicalVersion implements Comparable<LogicalVersion> {
     return byCounter != 0 ? byCounter : deviceId.compareTo(other.deviceId);
   }
 }
+
+int nextLogicalCounter(int localCounter, int observedRemoteCounter) =>
+    (localCounter > observedRemoteCounter
+        ? localCounter
+        : observedRemoteCounter) +
+    1;
