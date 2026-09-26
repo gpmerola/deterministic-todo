@@ -6,7 +6,8 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 
 - [x] Fino a tre righe di descrizione negli elenchi, righe vuote saltate.
 - [x] Build 188 sul manifest rolling Todo Test; CI verde.
-- [ ] Installare sul Galaxy e verificare visivamente; Web dopo `PUBBLICA`.
+- [x] 2188 installata sul Galaxy dall'utente; Web 188 pubblicata e verificata.
+- [ ] Riscontro dell'utente sul numero di righe dell'anteprima.
 - [ ] Idee UX da valutare: ricerca con attive prima delle completate; azioni
   dirette per elementi rifiutati in Problemi di sincronizzazione.
 
