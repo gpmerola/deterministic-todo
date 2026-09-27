@@ -1,5 +1,8 @@
 # Handoff tecnico e di prodotto
 
+Per stato, viste, Inbox, ricerca e struttura della shell dalla build 189
+leggere [pianificazione e viste](architecture/TODO_PLANNING_MODEL.md).
+
 Per l'incidente del 12 settembre e la build 179 leggere prima
 [paginazione sync](architecture/TODO_SYNC_PAGINATION.md) e [STATUS](../STATUS.md).
 Non interpretare i download storici come conteggi di task distinte: la vecchia

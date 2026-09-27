@@ -28,7 +28,6 @@ void main() {
       original,
       title: original.title,
       showDate: null,
-      status: TaskStatus.inbox,
     );
     await db.close();
 

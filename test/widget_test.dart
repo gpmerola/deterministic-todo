@@ -1333,7 +1333,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('Inbox Todoist non appare come progetto separato', (
+  testWidgets('un progetto chiamato Inbox si converte solo esplicitamente', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -1347,11 +1347,25 @@ void main() {
     await tester.pumpWidget(TodoApp(repository: repository));
     await tester.pumpAndSettle();
 
-    expect(find.text('Dal contenitore Inbox'), findsOneWidget);
+    // The name alone no longer changes behaviour: it is an ordinary project.
+    expect(find.text('Dal contenitore Inbox'), findsNothing);
     await tester.tap(find.text('Progetti'));
     await tester.pumpAndSettle();
-    expect(find.text('Inbox'), findsNothing);
+    expect(find.text('Inbox'), findsOneWidget);
+
+    await tester.tap(find.byKey(ValueKey('project-actions-$inboxId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sposta in Inbox'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-move-to-inbox')));
+    await tester.pumpAndSettle();
     expect(find.text('Nessun progetto'), findsOneWidget);
+
+    await tester.tap(find.text('Oggi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dal contenitore Inbox'), findsOneWidget);
+    final task = await db.select(db.tasks).getSingle();
+    expect(task.projectId, isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();

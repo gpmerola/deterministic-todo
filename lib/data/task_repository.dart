@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../domain/recurrence.dart';
 import '../domain/task.dart';
+import '../domain/task_planning.dart';
 import 'local/database.dart';
 
 class TaskRepository {
@@ -16,6 +17,9 @@ class TaskRepository {
   final Uuid _uuid;
 
   /// Read only the current screen; long descriptions in other views stay in SQLite.
+  ///
+  /// This is the only definition of view membership: the UI sorts and groups
+  /// the rows but never filters them again. See [legacyOpenStatus].
   Stream<List<Task>> watchView({
     required String view,
     required String today,
@@ -23,28 +27,29 @@ class TaskRepository {
     String? fromDate,
     String? throughDate,
   }) {
-    final query = db.select(db.tasks)..where((t) => t.deletedAt.isNull());
     if (view == 'completed') return watchCompleted();
-    query.where((t) => t.status.equals(TaskStatus.completed.name).not());
+    final query = db.select(db.tasks)
+      ..where(
+        (t) =>
+            t.deletedAt.isNull() &
+            t.status.equals(TaskStatus.completed.name).not(),
+      );
+    Expression<bool> open($TasksTable t) =>
+        t.status.equals(TaskStatus.waiting.name).not();
     switch (view) {
       case 'today':
-        final inboxProjects = db.selectOnly(db.projects)
-          ..addColumns([db.projects.id])
-          ..where(db.projects.name.trim().lower().equals('inbox'));
+        // Overdue and today's dated items, plus the Inbox: undated items
+        // without a project. Waiting items only on their exact date.
         query.where(
           (t) =>
-              (t.status.equals('inbox') &
-                  (t.projectId.isNull() |
-                      t.projectId.isInQuery(inboxProjects))) |
-              t.status.equals('available') |
-              (t.status.equals('scheduled') &
-                  t.showDate.isSmallerOrEqualValue(today)) |
+              (open(t) & t.showDate.isSmallerOrEqualValue(today)) |
+              (open(t) & t.showDate.isNull() & t.projectId.isNull()) |
               t.showDate.equals(today),
         );
       case 'upcoming':
         query.where(
           (t) =>
-              t.status.equals('scheduled') &
+              open(t) &
               t.showDate.isBiggerThanValue(today) &
               t.showDate.isBiggerOrEqualValue(fromDate ?? today) &
               t.showDate.isSmallerOrEqualValue(throughDate ?? today),
@@ -55,10 +60,6 @@ class TaskRepository {
               ? const Constant(false)
               : t.projectId.equals(projectId),
         );
-      case 'waiting':
-        query.where((t) => t.status.equals('waiting'));
-      case 'inbox':
-        query.where((t) => t.status.equals('inbox'));
       default:
         query.where((t) => const Constant(false));
     }
@@ -69,6 +70,53 @@ class TaskRepository {
     ]);
     return query.watch();
   }
+
+  /// Search filtered and bounded in SQLite: active items before completed
+  /// ones, then by date. Matching folds ASCII case only (SQLite `LIKE`).
+  Stream<List<Task>> watchSearch({
+    required String text,
+    bool projectOnly = false,
+    String? onDate,
+    bool undated = false,
+    bool recurring = false,
+    bool highPriority = false,
+    int limit = searchLimit,
+  }) {
+    final pattern =
+        '%${text.replaceAllMapped(RegExp(r'[\\%_]'), (m) => '\\${m[0]}')}%';
+    final matchingProjects = db.selectOnly(db.projects)
+      ..addColumns([db.projects.id])
+      ..where(db.projects.name.like(pattern, escapeChar: r'\'));
+    final inProject = db.tasks.projectId.isInQuery(matchingProjects);
+    final query = db.select(db.tasks)..where((t) => t.deletedAt.isNull());
+    if (text.isNotEmpty) {
+      query.where(
+        (t) => projectOnly
+            ? inProject
+            : t.title.like(pattern, escapeChar: r'\') |
+                  t.notes.like(pattern, escapeChar: r'\') |
+                  inProject,
+      );
+    }
+    if (onDate != null) query.where((t) => t.showDate.equals(onDate));
+    if (undated) query.where((t) => t.showDate.isNull());
+    if (recurring) query.where((t) => t.recurrence.isNotNull());
+    if (highPriority) query.where((t) => t.priority.isBiggerOrEqualValue(3));
+    query
+      ..orderBy([
+        (t) => OrderingTerm(
+          expression: t.status.equals(TaskStatus.completed.name),
+        ),
+        (t) => OrderingTerm(expression: t.showDate.isNull()),
+        (t) => OrderingTerm(expression: t.showDate),
+        (t) => OrderingTerm(expression: t.position),
+        (t) => OrderingTerm(expression: t.id),
+      ])
+      ..limit(limit);
+    return query.watch();
+  }
+
+  static const searchLimit = 100;
 
   Stream<List<Task>> watchAll() =>
       (db.select(db.tasks)
@@ -189,9 +237,10 @@ class TaskRepository {
     )..where((row) => row.key.equals('device_id').not())).go();
   });
 
+  /// Without an explicit [status] the open value is projected from the date.
   Future<String> create(
     String rawTitle, {
-    TaskStatus status = TaskStatus.inbox,
+    TaskStatus? status,
     String? notes,
     String? showDate,
     String? recurrence,
@@ -212,7 +261,13 @@ class TaskRepository {
       id: id,
       title: title,
       itemKind: Value(itemKind),
-      status: status.name,
+      status:
+          (status ??
+                  legacyOpenStatus(
+                    showDate,
+                    CivilDate.fromDateTime(DateTime.now()),
+                  ))
+              .name,
       notes: Value(notes),
       showDate: Value(showDate),
       recurrence: Value(recurrence),
@@ -363,6 +418,55 @@ class TaskRepository {
     });
   }
 
+  /// Explicit conversion of a legacy Inbox project (or any project): its
+  /// items lose project and section, becoming Inbox items, and the project is
+  /// archived. Returns the previous placement for [undoMoveProjectToInbox].
+  Future<List<({String id, String? sectionId})>> moveProjectToInbox(
+    Project project,
+  ) => db.transaction(() async {
+    final tasks =
+        await (db.select(db.tasks)..where(
+              (row) =>
+                  row.projectId.equals(project.id) & row.deletedAt.isNull(),
+            ))
+            .get();
+    for (final task in tasks) {
+      await _update(
+        task,
+        const TasksCompanion(projectId: Value(null), sectionId: Value(null)),
+      );
+    }
+    final current = await (db.select(
+      db.projects,
+    )..where((row) => row.id.equals(project.id))).getSingle();
+    await updateProject(current, isArchived: true);
+    return [for (final task in tasks) (id: task.id, sectionId: task.sectionId)];
+  });
+
+  /// Restores only items still without a project: a later explicit choice wins.
+  Future<void> undoMoveProjectToInbox(
+    Project project,
+    List<({String id, String? sectionId})> moved,
+  ) => db.transaction(() async {
+    final current = await (db.select(
+      db.projects,
+    )..where((row) => row.id.equals(project.id))).getSingle();
+    await updateProject(current, isArchived: false);
+    for (final placement in moved) {
+      final task = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(placement.id))).getSingleOrNull();
+      if (task == null || task.projectId != null) continue;
+      await _update(
+        task,
+        TasksCompanion(
+          projectId: Value(project.id),
+          sectionId: Value(placement.sectionId),
+        ),
+      );
+    }
+  });
+
   Future<void> swapProjects(Project first, Project second) =>
       db.transaction(() async {
         await updateProject(first, position: second.position);
@@ -395,7 +499,12 @@ class TaskRepository {
       task,
       TasksCompanion(
         status: Value(
-          completed ? TaskStatus.completed.name : TaskStatus.available.name,
+          completed
+              ? TaskStatus.completed.name
+              : legacyOpenStatus(
+                  task.showDate,
+                  CivilDate.fromDateTime(DateTime.now()),
+                ).name,
         ),
         completedAt: Value(completed ? now : null),
       ),
@@ -478,10 +587,12 @@ class TaskRepository {
   Future<void> move(Task task, TaskStatus status) async =>
       _update(task, TasksCompanion(status: Value(status.name)));
 
+  /// A completed or waiting item keeps its status. For an open item the
+  /// legacy value is projected again only when the date actually changes, so
+  /// saving other fields never produces a status intent.
   Future<void> updateDetails(
     Task task, {
     required String title,
-    TaskStatus? status,
     String? notes,
     String? showDate,
     String? recurrence,
@@ -496,6 +607,9 @@ class TaskRepository {
     final seriesId = recurrence != null && task.seriesId == null
         ? _uuid.v4()
         : task.seriesId;
+    final status = isOpenStatus(task.status) && showDate != task.showDate
+        ? legacyOpenStatus(showDate, CivilDate.fromDateTime(DateTime.now()))
+        : null;
     await _update(
       task,
       TasksCompanion(
@@ -503,7 +617,6 @@ class TaskRepository {
         status: status == null ? const Value.absent() : Value(status.name),
         notes: Value(notes),
         showDate: Value(showDate),
-        dueDate: const Value(null),
         timeMinutes: const Value(null),
         timeZone: const Value(null),
         recurrence: Value(recurrence),
@@ -544,11 +657,11 @@ class TaskRepository {
     final companion = TasksCompanion.insert(
       id: id,
       title: source.title,
-      status: date.compareTo(CivilDate.fromDateTime(DateTime.now())) <= 0
-          ? TaskStatus.available.name
-          : TaskStatus.scheduled.name,
+      status: legacyOpenStatus(
+        date.toString(),
+        CivilDate.fromDateTime(DateTime.now()),
+      ).name,
       showDate: Value(date.toString()),
-      dueDate: const Value(null),
       timeMinutes: const Value(null),
       timeZone: const Value(null),
       notes: Value(source.notes),

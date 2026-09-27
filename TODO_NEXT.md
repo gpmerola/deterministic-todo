@@ -1,6 +1,21 @@
 # TODO e handover
 
-Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+Aggiornato il 27 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+
+## P1 — Pianificazione, Inbox e shell, build 189
+
+- [x] Stato derivato dalla data, viste definite solo in SQL, `due_date` rimossa.
+- [x] Inbox senza riconoscimento per nome; **Sposta in Inbox** esplicito.
+- [x] Ricerca in SQLite con limite; aggiornamento a mezzanotte; `main.dart` diviso.
+- [x] `make check`, migrazione Web 188 → 189 e refresh verificati in Chrome.
+- [ ] Consegna Todo Test 2189 e collaudo sul Galaxy (ADB non raggiungibile).
+- [ ] Sul Galaxy e sul Web convertire con **Sposta in Inbox** il vecchio
+  progetto "Inbox", dopo aver aggiornato entrambi i client.
+- [ ] Web 189 dopo conferma `PUBBLICA`; ricaricare le schede aperte.
+- [ ] Rimuovere `due_date` da Supabase solo con migrazione approvata.
+- [ ] Valutare se `LIKE` solo ASCII basta per la ricerca di lettere accentate.
+
+Contratto: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
 
 ## P1 — Anteprima descrizione, build 188
 
@@ -8,8 +23,9 @@ Aggiornato il 25 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Build 188 sul manifest rolling Todo Test; CI verde.
 - [x] 2188 installata sul Galaxy dall'utente; Web 188 pubblicata e verificata.
 - [ ] Riscontro dell'utente sul numero di righe dell'anteprima.
-- [ ] Idee UX da valutare: ricerca con attive prima delle completate; azioni
-  dirette per elementi rifiutati in Problemi di sincronizzazione.
+- [x] Ricerca con attive prima delle completate: build 189.
+- [ ] Idea UX da valutare: azioni dirette per elementi rifiutati in Problemi di
+  sincronizzazione.
 
 ## P0 — Invii in blocco e diagnostica divergenza, build 183
 

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show OrderingTerm, QueryRow;
+import 'package:drift/drift.dart' show QueryRow;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,20 +33,28 @@ import 'services/picked_file_reader_native.dart'
     if (dart.library.js_interop) 'services/picked_file_reader_web.dart';
 import 'services/platform_runtime_native.dart'
     if (dart.library.js_interop) 'services/platform_runtime_web.dart';
-import 'services/play_update_service.dart';
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
-import 'services/update_service.dart';
 import 'ui/activity_history_view.dart';
+import 'ui/app_section.dart';
+import 'ui/app_undo.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/link_text_editing_controller.dart';
 import 'ui/movement_view.dart';
-import 'ui/smart_date_text_controller.dart';
+import 'ui/priority_color.dart';
+import 'ui/quick_add_sheet.dart';
+import 'ui/search.dart';
+import 'ui/shell/app_update_flow.dart';
+import 'ui/shell/civil_day_clock.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
+import 'ui/views/empty_view_label.dart';
+import 'ui/views/projects_view.dart';
+import 'ui/views/task_order.dart';
+import 'ui/views/today_view.dart';
+import 'ui/views/upcoming_view.dart';
 
-part 'ui/app_undo.dart';
 part 'ui/data_health_view.dart';
 part 'ui/settings_view.dart';
 part 'ui/sync_account_card.dart';
@@ -55,9 +62,6 @@ part 'ui/task_editor.dart';
 part 'ui/task_widgets.dart';
 part 'ui/trash_view.dart';
 part 'ui/undated_tasks_view.dart';
-
-const isPlayDistribution =
-    String.fromEnvironment('DISTRIBUTION_CHANNEL') == 'play';
 
 const _pageMotion = Duration(milliseconds: 140);
 const _pageMotionOut = Duration(milliseconds: 90);
@@ -221,6 +225,7 @@ class TodoApp extends StatelessWidget {
     this.syncClient,
     this.syncService,
     this.enablePlatformServices = true,
+    this.clock,
     super.key,
   });
 
@@ -228,6 +233,9 @@ class TodoApp extends StatelessWidget {
   final SupabaseClient? syncClient;
   final SyncService? syncService;
   final bool enablePlatformServices;
+
+  /// Wall clock for the civil day; only tests replace it.
+  final DateTime Function()? clock;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -246,6 +254,7 @@ class TodoApp extends StatelessWidget {
       syncClient: syncClient,
       syncService: syncService,
       enablePlatformServices: enablePlatformServices,
+      clock: clock,
     ),
   );
 
@@ -312,47 +321,13 @@ class TodoApp extends StatelessWidget {
   }
 }
 
-enum AppSection {
-  inbox,
-  today,
-  upcoming,
-  waiting,
-  projects,
-  movement,
-  completed,
-  settings,
-}
-
-extension on AppSection {
-  String get label => switch (this) {
-    AppSection.inbox => 'Inbox',
-    AppSection.today => 'Oggi',
-    AppSection.upcoming => 'Prossime',
-    AppSection.waiting => 'In attesa',
-    AppSection.projects => 'Progetti',
-    AppSection.movement => 'Movimento',
-    AppSection.completed => 'Completate',
-    AppSection.settings => 'Impostazioni',
-  };
-
-  IconData get icon => switch (this) {
-    AppSection.inbox => Icons.inbox_outlined,
-    AppSection.today => Icons.today_outlined,
-    AppSection.upcoming => Icons.event_outlined,
-    AppSection.waiting => Icons.hourglass_empty,
-    AppSection.projects => Icons.folder_outlined,
-    AppSection.movement => Icons.directions_walk_outlined,
-    AppSection.completed => Icons.check_circle_outline,
-    AppSection.settings => Icons.settings_outlined,
-  };
-}
-
 class TaskShell extends StatefulWidget {
   const TaskShell({
     required this.repository,
     this.syncClient,
     this.syncService,
     this.enablePlatformServices = true,
+    this.clock,
     super.key,
   });
 
@@ -360,6 +335,7 @@ class TaskShell extends StatefulWidget {
   final SupabaseClient? syncClient;
   final SyncService? syncService;
   final bool enablePlatformServices;
+  final DateTime Function()? clock;
 
   @override
   State<TaskShell> createState() => _TaskShellState();
@@ -368,7 +344,6 @@ class TaskShell extends StatefulWidget {
 class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   AppSection section = AppSection.today;
   final List<AppSection> sectionHistory = [];
-  final Set<String> inboxProjectIds = {};
   String? selectedUpcomingDate;
   int upcomingDays = 30;
   int upcomingVisit = 0;
@@ -378,8 +353,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final search = TextEditingController();
   String? viewStreamKey;
   Stream<List<Task>>? viewStream;
+  final updates = AppUpdateFlow();
+  late final dayClock = CivilDayClock(now: widget.clock);
   Stream<List<Task>> _visibleTasks() {
-    final today = CivilDate.fromDateTime(DateTime.now());
+    final today = dayClock.today;
     final start = selectedUpcomingDate == null
         ? today.addDays(1)
         : CivilDate.parse(selectedUpcomingDate!);
@@ -401,8 +378,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   bool backgroundSnapshotTaken = false;
   Timer? updateTimer;
   Timer? movementRefreshTimer;
-  DateTime? lastUpdateCheck;
-  bool checkingForUpdates = false;
   bool appIsForeground = true;
   final Set<String> recentlySyncedTaskIds = {};
   StreamSubscription<Set<String>>? remoteTaskSubscription;
@@ -424,6 +399,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       didChangeAppLifecycleState(initialLifecycle!);
     }
     HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
+    dayClock.addListener(_onCivilDayChanged);
     unawaited(_initializeProjectCaches());
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
       ids,
@@ -508,13 +484,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     final projects = await widget.repository.db
         .select(widget.repository.db.projects)
         .get();
-    inboxProjectIds
-      ..clear()
-      ..addAll(
-        projects
-            .where((project) => project.name.trim().toLowerCase() == 'inbox')
-            .map((project) => project.id),
-      );
     await _refreshQuickAddCache(projects: projects);
     if (mounted) setState(() {});
   }
@@ -527,12 +496,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       widget.repository.db.appSettings,
     )..where((row) => row.key.equals('last_quick_project'))).get();
     final values = {for (final setting in settings) setting.key: setting.value};
-    quickAddProjects = projects
-        .where(
-          (item) =>
-              !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
-        )
-        .toList();
+    quickAddProjects = projects.where((item) => !item.isArchived).toList();
     lastQuickProjectId = values['last_quick_project'];
   }
 
@@ -641,13 +605,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (appIsForeground) return; // Only `inactive`: nothing was suspended.
       appIsForeground = true;
       backgroundSnapshotTaken = false;
+      dayClock.refresh();
       unawaited(_refreshDailyMovement());
       unawaited(
         PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
       );
-      if (lastUpdateCheck == null ||
-          DateTime.now().difference(lastUpdateCheck!) >=
-              const Duration(hours: 6)) {
+      if (updates.isDue(DateTime.now())) {
         unawaited(_checkForUpdates(automatic: true));
       }
     } else if (isBackgroundLifecycle(state)) {
@@ -670,231 +633,13 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _checkForUpdates({bool automatic = false}) async {
-    if (isPlayDistribution) {
-      await _checkPlayUpdate(automatic: automatic);
-      return;
-    }
-    if (checkingForUpdates) return;
-    checkingForUpdates = true;
-    lastUpdateCheck = DateTime.now();
-    final elapsed = Stopwatch()..start();
-    var result = 'current';
-    try {
-      final update = await UpdateService().check();
-      if (update == null || !mounted) return;
-      result = 'available';
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Aggiornamento disponibile'),
-          content: Text(
-            'È disponibile la versione ${update.version}. '
-            'I dati locali non verranno eliminati.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Più tardi'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await _installUpdate(update);
-              },
-              child: const Text('Aggiorna'),
-            ),
-          ],
-        ),
-      );
-    } on Object catch (error) {
-      result = 'error';
-      unawaited(
-        DiagnosticLogService.instance.event(
-          'update_check',
-          level: 'warning',
-          fields: {
-            'channel': 'direct',
-            'result': result,
-            'automatic': automatic,
-            'error_type': error.runtimeType.toString(),
-            'duration_ms': elapsed.elapsedMilliseconds,
-          },
-        ),
-      );
-      // Offline, timeout o manifest non valido: l'uso locale continua.
-    } finally {
-      elapsed.stop();
-      if (result != 'error') {
-        unawaited(
-          DiagnosticLogService.instance.event(
-            'update_check',
-            fields: {
-              'channel': 'direct',
-              'result': result,
-              'automatic': automatic,
-              'duration_ms': elapsed.elapsedMilliseconds,
-            },
-          ),
-        );
-      }
-      checkingForUpdates = false;
-    }
-  }
+  Future<void> _checkForUpdates({bool automatic = false}) =>
+      updates.check(context, automatic: automatic);
 
-  Future<void> _checkPlayUpdate({required bool automatic}) async {
-    if (checkingForUpdates) return;
-    checkingForUpdates = true;
-    lastUpdateCheck = DateTime.now();
-    final elapsed = Stopwatch()..start();
-    var status = PlayUpdateStatus.error;
-    try {
-      status = await PlayUpdateService().check(startIfAvailable: true);
-      if (!automatic && mounted) {
-        if (status == PlayUpdateStatus.unavailable) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('L’app è aggiornata'),
-              showCloseIcon: true,
-            ),
-          );
-        } else if (status == PlayUpdateStatus.available ||
-            status == PlayUpdateStatus.unsupported ||
-            status == PlayUpdateStatus.error) {
-          await _openPlayStoreListing();
-        }
-      }
-    } finally {
-      elapsed.stop();
-      unawaited(
-        DiagnosticLogService.instance.event(
-          'update_check',
-          level: status == PlayUpdateStatus.error ? 'warning' : 'info',
-          fields: {
-            'channel': 'play',
-            'result': status.name,
-            'automatic': automatic,
-            'duration_ms': elapsed.elapsedMilliseconds,
-          },
-        ),
-      );
-      checkingForUpdates = false;
-    }
-  }
-
-  Future<void> _openPlayStoreListing() async {
-    const packageName = 'app.deterministic.todo.deterministic_todo';
-    final marketUri = Uri.parse('market://details?id=$packageName');
-    final webUri = Uri.https('play.google.com', '/store/apps/details', {
-      'id': packageName,
-    });
-    try {
-      if (await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
-        return;
-      }
-    } on Object {
-      // Alcuni dispositivi non espongono lo schema market://.
-    }
-    final opened = await launchUrl(
-      webUri,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Impossibile aprire Google Play'),
-          showCloseIcon: true,
-        ),
-      );
-    }
-  }
-
-  Future<void> _installUpdate(AvailableUpdate update) async {
-    if (!isAndroidPlatform) {
-      await launchUrl(update.url, mode: LaunchMode.externalApplication);
-      return;
-    }
-    if (!await UpdateService.stillApplies(update)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('L’app è già aggiornata'),
-            showCloseIcon: true,
-          ),
-        );
-      }
-      return;
-    }
-    final ota = OtaUpdate();
-    final events = ota.execute(
-      update.url.toString(),
-      destinationFilename:
-          'deterministic-todo-${update.version}-${update.build}.apk',
-      sha256checksum: update.sha256,
-    );
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StreamBuilder<OtaEvent>(
-        stream: events,
-        builder: (context, snapshot) {
-          final event = snapshot.data;
-          final progress = event?.status == OtaStatus.DOWNLOADING
-              ? double.tryParse(event?.value ?? '')
-              : null;
-          final failed =
-              event != null &&
-              {
-                OtaStatus.ALREADY_RUNNING_ERROR,
-                OtaStatus.INSTALLATION_ERROR,
-                OtaStatus.PERMISSION_NOT_GRANTED_ERROR,
-                OtaStatus.INTERNAL_ERROR,
-                OtaStatus.DOWNLOAD_ERROR,
-                OtaStatus.CHECKSUM_ERROR,
-              }.contains(event.status);
-          final message = switch (event?.status) {
-            OtaStatus.DOWNLOADING => 'Download ${event?.value ?? '0'}%',
-            OtaStatus.INSTALLING => 'Apro l’installazione Android…',
-            OtaStatus.INSTALLATION_DONE => 'Aggiornamento installato',
-            OtaStatus.CHECKSUM_ERROR => 'Il file scaricato non è valido.',
-            OtaStatus.PERMISSION_NOT_GRANTED_ERROR =>
-              'Autorizza l’installazione da questa app nelle impostazioni Android.',
-            null => 'Preparo il download…',
-            _ when failed => 'Aggiornamento non riuscito. Riprova.',
-            _ => 'Aggiornamento in preparazione…',
-          };
-          return AlertDialog(
-            title: Text('Aggiornamento ${update.version}'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LinearProgressIndicator(
-                  value: progress == null ? null : progress / 100,
-                ),
-                const SizedBox(height: 16),
-                Text(message),
-              ],
-            ),
-            actions: [
-              if (failed)
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Chiudi'),
-                )
-              else
-                TextButton(
-                  onPressed: () async {
-                    await ota.cancel();
-                    if (dialogContext.mounted) Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Annulla'),
-                ),
-            ],
-          );
-        },
-      ),
-    );
+  /// Date-derived views re-query when the civil day changes: see
+  /// [CivilDayClock]. The change writes nothing.
+  void _onCivilDayChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -905,6 +650,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     movementRefreshTimer?.cancel();
     remoteHighlightTimer?.cancel();
     remoteTaskSubscription?.cancel();
+    dayClock
+      ..removeListener(_onCivilDayChanged)
+      ..dispose();
     search.dispose();
     super.dispose();
   }
@@ -920,46 +668,37 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<bool> _createFrom(
-    TextEditingController controller, {
+    QuickAddInput input, {
     required List<Project> projects,
-    TextEditingController? notesController,
-    int priority = 1,
-    String? projectId,
-    String? sectionId,
   }) async {
-    if (controller.text.trim().isEmpty) return false;
+    if (input.text.trim().isEmpty) return false;
     final elapsed = Stopwatch()..start();
     try {
       final metadata = parseQuickAddMetadata(
-        controller.text,
-        defaultPriority: priority,
-        defaultProjectId: projectId,
+        input.text,
+        defaultPriority: input.priority,
+        defaultProjectId: input.projectId,
         projectsByName: {
           for (final project in projects.where((item) => !item.isArchived))
             project.name: project.id,
         },
       );
       final parsed = parsePlannedQuickTask(metadata.text);
-      final today = CivilDate.fromDateTime(DateTime.now());
-      final notesText = notesController?.text.trim();
+      final notesText = input.notes.trim();
       await widget.repository.create(
         linkifyPlainUrls(parsed.title),
-        status: parsed.showDate!.compareTo(today) <= 0
-            ? TaskStatus.available
-            : TaskStatus.scheduled,
         showDate: parsed.showDate!.toString(),
-        notes: notesText == null || notesText.isEmpty
-            ? null
-            : linkifyPlainUrls(notesText),
+        notes: notesText.isEmpty ? null : linkifyPlainUrls(notesText),
         recurrence: parsed.recurrence,
         priority: metadata.priority,
         projectId: metadata.projectId,
-        sectionId: metadata.projectId == projectId ? sectionId : null,
+        sectionId: metadata.projectId == input.projectId
+            ? input.sectionId
+            : null,
       );
       await _savePreference('last_quick_project', metadata.projectId ?? '');
       lastQuickProjectId = metadata.projectId;
       if (mounted) setState(() => selectedDesktopTaskId = null);
-      controller.clear();
       elapsed.stop();
       unawaited(
         DiagnosticLogService.instance.event(
@@ -999,280 +738,27 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         AppSettingsCompanion.insert(key: key, value: value),
       );
 
-  String? _quickAddHelper(String value) {
-    if (value.trim().isEmpty) return null;
-    try {
-      final draft = const QuickAddParser().parse(value);
-      final parts = <String>[];
-      if (draft.showDate != null) {
-        parts.add(
-          DateFormat('EEE d MMM', 'it').format(draft.showDate!.asLocalDate),
-        );
-      }
-      if (draft.recurrence != null) {
-        parts.add(
-          recurrenceSmartLabel(draft.recurrence, draft.showDate?.toString()),
-        );
-      }
-      return parts.isEmpty ? null : parts.join(' · ');
-    } on FormatException {
-      return null;
-    }
-  }
-
   Future<void> _showQuickAddSheet({
     String? projectId,
     String? sectionId,
   }) async {
     if (!await _closeDesktopEditor() || !mounted) return;
-    final openElapsed = Stopwatch()..start();
-    var openLogged = false;
-    final availableProjects = List<Project>.of(quickAddProjects);
-    projectId ??= availableProjects.any((item) => item.id == lastQuickProjectId)
-        ? lastQuickProjectId
-        : null;
-    final draftStore = EditorDrafts(widget.repository.db);
-    final draft = await draftStore.read('quick_add');
-    if (!mounted) return;
-    final controller = SmartDateTextController()
-      ..text = draft?['title'] as String? ?? '';
-    final notesController = TextEditingController(
-      text: draft?['notes'] as String? ?? '',
-    );
-    projectId = draft?['projectId'] as String? ?? projectId;
-    sectionId = draft?['sectionId'] as String? ?? sectionId;
-    var submitted = false;
-    var submitting = false;
-    final titleFocusNode = FocusNode(debugLabel: 'quick-add-title');
-    var keyboardWasVisible = false;
-    var stableKeyboardInset = 0.0;
-    var closing = false;
-    var showNotes = notesController.text.isNotEmpty;
-    // Ogni nuova attività parte senza priorità, indipendentemente dalla scelta
-    // usata nel composer precedente.
-    var priority = draft?['priority'] as int? ?? 1;
-    if (!mounted) return;
+    final projects = List<Project>.of(quickAddProjects);
     // Refresh in background for the next opening. The current sheet must be
     // mounted immediately, without waiting for SQLite or preferences.
     unawaited(_refreshQuickAddCache());
-    // Let Android begin opening the IME in the same frame as the composer.
-    titleFocusNode.requestFocus();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      requestFocus: true,
-      sheetAnimationStyle: const AnimationStyle(
-        duration: Duration.zero,
-        reverseDuration: Duration.zero,
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          if (!openLogged) {
-            openLogged = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              openElapsed.stop();
-              unawaited(
-                DiagnosticLogService.instance.event(
-                  'interaction_latency',
-                  fields: {
-                    'interaction': 'composer_open',
-                    'outcome': 'visible',
-                    'duration_ms': openElapsed.elapsedMilliseconds,
-                  },
-                ),
-              );
-            });
-          }
-          final currentKeyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-          if (currentKeyboardInset > 0) {
-            keyboardWasVisible = true;
-            if (currentKeyboardInset > stableKeyboardInset) {
-              stableKeyboardInset = currentKeyboardInset;
-            }
-          } else if (keyboardWasVisible && !closing) {
-            closing = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (sheetContext.mounted) Navigator.pop(sheetContext);
-            });
-          }
-          final composerInset = keyboardWasVisible
-              ? stableKeyboardInset
-              : currentKeyboardInset;
-          final desktopComposer = MediaQuery.sizeOf(context).width >= 900;
-          Future<void> submit() async {
-            if (submitting) return;
-            submitting = true;
-            try {
-              if (await _createFrom(
-                    controller,
-                    projects: availableProjects,
-                    notesController: notesController,
-                    priority: priority,
-                    projectId: projectId,
-                    sectionId: sectionId,
-                  ) &&
-                  sheetContext.mounted) {
-                submitted = true;
-                await draftStore.remove('quick_add');
-                if (sheetContext.mounted) Navigator.pop(sheetContext);
-              }
-            } finally {
-              submitting = false;
-            }
-          }
-
-          return Padding(
-            key: const ValueKey('mobile-quick-add-keyboard-padding'),
-            padding: EdgeInsets.fromLTRB(16, 0, 16, composerInset + 12),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    key: const ValueKey('mobile-quick-add-field'),
-                    controller: controller,
-                    focusNode: titleFocusNode,
-                    minLines: 1,
-                    maxLines: desktopComposer ? 1 : 3,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (_) => setSheetState(() {}),
-                    onSubmitted: (_) => submit(),
-                    decoration: InputDecoration(
-                      hintText: 'Cosa devi fare?',
-                      helperText: _quickAddHelper(controller.text),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        key: const ValueKey('mobile-quick-add-notes'),
-                        tooltip: 'Aggiungi descrizione',
-                        onPressed: () => setSheetState(() {
-                          showNotes = !showNotes;
-                        }),
-                        icon: Icon(
-                          Icons.notes_outlined,
-                          color: showNotes
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                        ),
-                      ),
-                      PopupMenuButton<int>(
-                        key: const ValueKey('mobile-quick-add-priority'),
-                        tooltip: priority == 1
-                            ? 'Nessuna priorità'
-                            : 'Priorità P${5 - priority}',
-                        icon: Icon(
-                          Icons.circle,
-                          size: 20,
-                          color: _priorityColor(priority),
-                        ),
-                        onSelected: (value) =>
-                            setSheetState(() => priority = value),
-                        itemBuilder: (_) => [
-                          for (var raw = 4; raw >= 1; raw--)
-                            PopupMenuItem(
-                              value: raw,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.circle,
-                                    size: 18,
-                                    color: _priorityColor(raw),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    raw == 1
-                                        ? 'Nessuna priorità'
-                                        : 'P${5 - raw}',
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      if (availableProjects.isNotEmpty)
-                        PopupMenuButton<String>(
-                          tooltip: 'Progetto',
-                          icon: Icon(
-                            projectId == null
-                                ? Icons.folder_outlined
-                                : Icons.folder,
-                            color: projectId == null
-                                ? null
-                                : Theme.of(context).colorScheme.primary,
-                          ),
-                          onSelected: (value) => setSheetState(
-                            () => projectId = value.isEmpty ? null : value,
-                          ),
-                          itemBuilder: (_) => [
-                            const PopupMenuItem<String>(
-                              value: '',
-                              child: Text('Nessun progetto'),
-                            ),
-                            for (final project in availableProjects)
-                              PopupMenuItem<String>(
-                                value: project.id,
-                                child: Text(project.name),
-                              ),
-                          ],
-                        ),
-                      const Spacer(),
-                      IconButton.filled(
-                        key: const ValueKey('mobile-quick-add-submit'),
-                        tooltip: 'Aggiungi attività',
-                        onPressed: submit,
-                        icon: const Icon(Icons.arrow_upward),
-                      ),
-                    ],
-                  ),
-                  if (showNotes)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: TextField(
-                        key: const ValueKey('mobile-quick-add-notes-field'),
-                        controller: notesController,
-                        autofocus: true,
-                        minLines: 1,
-                        maxLines: 3,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Descrizione',
-                          prefixIcon: Icon(Icons.notes_outlined),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    await showQuickAddSheet(
+      context,
+      projects: projects,
+      draftStore: EditorDrafts(widget.repository.db),
+      projectId:
+          projectId ??
+          (projects.any((item) => item.id == lastQuickProjectId)
+              ? lastQuickProjectId
+              : null),
+      sectionId: sectionId,
+      onSubmit: (input) => _createFrom(input, projects: projects),
     );
-    if (!submitted &&
-        (controller.text.trim().isNotEmpty ||
-            notesController.text.trim().isNotEmpty)) {
-      await draftStore.write('quick_add', {
-        'schema': 1,
-        'title': controller.text,
-        'notes': notesController.text,
-        'projectId': projectId,
-        'sectionId': sectionId,
-        'priority': priority,
-      });
-    }
-    // The route completes while its exit animation can still own the field for
-    // one frame. Dispose after that frame to avoid a controller-after-dispose
-    // race on fast submissions.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.dispose();
-      notesController.dispose();
-      titleFocusNode.dispose();
-    });
   }
 
   bool get _canExitFromBack =>
@@ -1566,6 +1052,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     context: context,
     delegate: TaskSearchDelegate(
       widget.repository,
+      tileBuilder: (task) => TaskTile(
+        key: ValueKey('search-${task.id}'),
+        task: task,
+        repository: widget.repository,
+      ),
       onNavigate: (destination) {
         _navigateTo(destination);
       },
@@ -1578,13 +1069,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         final parsed = parsePlannedQuickTask(metadata.text);
         await widget.repository.create(
           parsed.title,
-          status:
-              parsed.showDate!.compareTo(
-                    CivilDate.fromDateTime(DateTime.now()),
-                  ) <=
-                  0
-              ? TaskStatus.available
-              : TaskStatus.scheduled,
           showDate: parsed.showDate!.toString(),
           recurrence: parsed.recurrence,
           priority: metadata.priority,
@@ -1605,7 +1089,25 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         onDailyStepGoalChanged: _setDailyStepGoal,
       );
     }
-    if (section == AppSection.projects) return _projectsView(all);
+    if (section == AppSection.projects) {
+      return ProjectsView(
+        repository: widget.repository,
+        syncService: widget.syncService,
+        tasks: all,
+        selectedProjectId: selectedProjectId,
+        onSelectProject: (id) => setState(() => selectedProjectId = id),
+        beforeLeavingProject: () async =>
+            await _closeDesktopEditor() && mounted,
+        onAddTask: (projectId, sectionId) =>
+            _showQuickAddSheet(projectId: projectId, sectionId: sectionId),
+        tileBuilder: (task) => TaskTile(
+          key: ValueKey('project-${task.id}'),
+          task: task,
+          repository: widget.repository,
+          highlightRemote: recentlySyncedTaskIds.contains(task.id),
+        ),
+      );
+    }
     if (section == AppSection.movement) {
       return MovementView(
         dailyMovement: dailyMovement,
@@ -1613,67 +1115,75 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         refreshDailyMovement: _refreshDailyMovement,
       );
     }
-    final today = CivilDate.fromDateTime(DateTime.now()).toString();
-    final visible = all.where((task) {
-      return switch (section) {
-        AppSection.inbox => task.status == TaskStatus.inbox.name,
-        AppSection.today =>
-          (task.status == TaskStatus.inbox.name &&
-                  (task.projectId == null ||
-                      inboxProjectIds.contains(task.projectId))) ||
-              task.status == TaskStatus.available.name ||
-              isScheduledDue(task.status, task.showDate, today) ||
-              task.showDate == today,
-        AppSection.upcoming =>
-          task.status == TaskStatus.scheduled.name &&
-              task.showDate != null &&
-              task.showDate!.compareTo(today) > 0,
-        AppSection.waiting => task.status == TaskStatus.waiting.name,
-        AppSection.projects => false,
-        AppSection.movement => false,
-        AppSection.completed => task.status == TaskStatus.completed.name,
-        AppSection.settings => false,
-      };
-    }).toList();
-    visible.sort((a, b) {
-      if (section == AppSection.upcoming) {
-        final byDate = a.showDate!.compareTo(b.showDate!);
-        if (byDate != 0) return byDate;
-      }
-      final byPriority = b.priority.compareTo(a.priority);
-      if (byPriority != 0) return byPriority;
-      return _stableCompare(a, b, today);
-    });
-    return Column(
-      children: [
-        if (section == AppSection.upcoming) _futureDateStrip(),
-        Expanded(
-          child: section == AppSection.upcoming
-              ? _upcomingList(visible)
-              : AnimatedSwitcher(
-                  key: ValueKey('task-state-motion-${section.name}'),
-                  duration: _microMotion,
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  child: visible.isEmpty
-                      ? _emptyState(
-                          key: ValueKey('empty-${section.name}'),
-                          label: section == AppSection.completed
-                              ? 'Nessuna attività completata'
-                              : 'Nessuna attività',
-                        )
-                      : section == AppSection.today
-                      ? _todayList(visible, today)
-                      : ListView.builder(
-                          key: PageStorageKey('task-list-${section.name}'),
-                          padding: const EdgeInsets.only(bottom: 24),
-                          itemCount: visible.length,
-                          itemBuilder: (context, index) =>
-                              _taskTile(visible[index]),
-                        ),
-                ),
-        ),
-      ],
+    final today = dayClock.today;
+    // Membership comes from SQL (`watchView`); here rows are only ordered.
+    final visible = List<Task>.of(all)
+      ..sort(
+        (a, b) => section == AppSection.upcoming
+            ? compareByDateThenPriority(a, b, today.toString())
+            : compareByPriority(a, b, today.toString()),
+      );
+    if (section == AppSection.upcoming) {
+      final start = selectedUpcomingDate == null
+          ? today.addDays(1)
+          : CivilDate.parse(selectedUpcomingDate!);
+      return Column(
+        children: [
+          UpcomingDateJump(
+            today: today,
+            selected: selectedUpcomingDate == null ? null : start,
+            onSelected: (date) => setState(() {
+              selectedUpcomingDate = date.toString();
+              upcomingDays = 30;
+              upcomingVisit++;
+            }),
+          ),
+          Expanded(
+            child: UpcomingTaskList(
+              listKey: PageStorageKey(
+                'upcoming-$selectedUpcomingDate-$upcomingVisit',
+              ),
+              tasks: visible,
+              today: today,
+              start: start,
+              days: upcomingDays,
+              onLoadMore: () => setState(() => upcomingDays += 30),
+              tileBuilder: (task) => TaskTile(
+                key: ValueKey(task.id),
+                task: task,
+                repository: widget.repository,
+                showDateMetadata: false,
+                highlightRemote: recentlySyncedTaskIds.contains(task.id),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return AnimatedSwitcher(
+      key: ValueKey('task-state-motion-${section.name}'),
+      duration: _microMotion,
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: visible.isEmpty
+          ? EmptyViewLabel(
+              section == AppSection.completed
+                  ? 'Nessuna attività completata'
+                  : 'Nessuna attività',
+              key: ValueKey('empty-${section.name}'),
+            )
+          : section == AppSection.today
+          ? TodayTaskList(
+              tasks: visible,
+              today: today.toString(),
+              tileBuilder: _taskTile,
+            )
+          : ListView.builder(
+              key: PageStorageKey('task-list-${section.name}'),
+              padding: const EdgeInsets.only(bottom: 24),
+              itemCount: visible.length,
+              itemBuilder: (context, index) => _taskTile(visible[index]),
+            ),
     );
   }
 
@@ -1696,82 +1206,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             }
           }
         : null,
-  );
-
-  Widget _todayList(List<Task> tasks, String today) {
-    final overdue = <Task>[];
-    final current = <Task>[];
-    for (final task in tasks) {
-      if (task.showDate != null && task.showDate!.compareTo(today) < 0) {
-        overdue.add(task);
-      } else {
-        current.add(task);
-      }
-    }
-    if (overdue.isEmpty) {
-      return ListView.builder(
-        key: const PageStorageKey('task-list-today'),
-        padding: const EdgeInsets.only(bottom: 24),
-        itemCount: current.length,
-        itemBuilder: (_, index) => _taskTile(current[index]),
-      );
-    }
-    final currentHeaderIndex = overdue.length + 1;
-    final itemCount =
-        currentHeaderIndex + (current.isEmpty ? 0 : 1) + current.length;
-    return ListView.builder(
-      key: const PageStorageKey('task-list-today'),
-      padding: const EdgeInsets.only(bottom: 24),
-      itemCount: itemCount,
-      itemBuilder: (_, index) {
-        if (index == 0) {
-          return _todayGroupHeader(
-            key: const ValueKey('today-group-overdue'),
-            label: 'Arretrate',
-            overdue: true,
-          );
-        }
-        if (index <= overdue.length) return _taskTile(overdue[index - 1]);
-        if (current.isNotEmpty && index == currentHeaderIndex) {
-          return _todayGroupHeader(
-            key: const ValueKey('today-group-current'),
-            label: 'Oggi',
-          );
-        }
-        final currentIndex = index - currentHeaderIndex - 1;
-        return _taskTile(current[currentIndex]);
-      },
-    );
-  }
-
-  Widget _todayGroupHeader({
-    required Key key,
-    required String label,
-    bool overdue = false,
-  }) => Padding(
-    key: key,
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-    child: Row(
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: overdue
-                ? Theme.of(context).colorScheme.error
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Divider(
-            color: overdue
-                ? Theme.of(context).colorScheme.error.withValues(alpha: 0.28)
-                : null,
-          ),
-        ),
-      ],
-    ),
   );
 
   Future<bool> _closeDesktopEditor() async {
@@ -1829,587 +1263,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ],
     ),
   );
-
-  Widget _projectsView(List<Task> tasks) => StreamBuilder<List<Project>>(
-    stream:
-        (widget.repository.db.select(widget.repository.db.projects)..orderBy([
-              (row) => OrderingTerm(expression: row.position),
-              (row) => OrderingTerm(expression: row.name),
-            ]))
-            .watch(),
-    builder: (context, projectSnapshot) => StreamBuilder<List<ProjectSection>>(
-      stream: (widget.repository.db.select(
-        widget.repository.db.projectSections,
-      )..orderBy([(row) => OrderingTerm(expression: row.position)])).watch(),
-      builder: (context, sectionSnapshot) {
-        final projects = projectSnapshot.data ?? const <Project>[];
-        final sections = sectionSnapshot.data ?? const <ProjectSection>[];
-        inboxProjectIds
-          ..clear()
-          ..addAll(
-            projects
-                .where(
-                  (project) => project.name.trim().toLowerCase() == 'inbox',
-                )
-                .map((project) => project.id),
-          );
-        final activeProjects = projects
-            .where(
-              (item) =>
-                  !item.isArchived && item.name.trim().toLowerCase() != 'inbox',
-            )
-            .toList();
-        final selected =
-            activeProjects.any((item) => item.id == selectedProjectId)
-            ? activeProjects.firstWhere((item) => item.id == selectedProjectId)
-            : null;
-        if (selected == null) {
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-                child: Row(
-                  children: [
-                    Text(
-                      'I miei progetti',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      key: const ValueKey('create-project'),
-                      tooltip: 'Nuovo progetto',
-                      onPressed: _addProject,
-                      icon: const Icon(Icons.add),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: activeProjects.isEmpty
-                    ? _emptyState(
-                        key: const ValueKey('empty-projects'),
-                        label: 'Nessun progetto',
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        itemCount: activeProjects.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1, indent: 48),
-                        itemBuilder: (context, index) {
-                          final project = activeProjects[index];
-                          return ListTile(
-                            key: ValueKey('project-row-${project.id}'),
-                            dense: true,
-                            leading: Icon(
-                              Icons.circle,
-                              size: 12,
-                              color: _projectColor(project.color),
-                            ),
-                            title: Text(project.name),
-                            trailing: _projectActions(project, activeProjects),
-                            onTap: () =>
-                                setState(() => selectedProjectId = project.id),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        }
-        final projectSections = sections
-            .where((item) => item.projectId == selected.id && !item.isArchived)
-            .toList();
-        final projectTasks = tasks
-            .where((item) => item.projectId == selected.id)
-            .toList();
-        projectTasks.sort((a, b) {
-          final byPriority = b.priority.compareTo(a.priority);
-          return byPriority != 0 ? byPriority : _stableCompare(a, b, '');
-        });
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
-              child: Row(
-                children: [
-                  IconButton(
-                    key: const ValueKey('back-to-projects'),
-                    tooltip: 'Tutti i progetti',
-                    onPressed: () async {
-                      if (await _closeDesktopEditor() && mounted) {
-                        setState(() => selectedProjectId = null);
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                  Icon(
-                    Icons.circle,
-                    size: 12,
-                    color: _projectColor(selected.color),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      selected.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Aggiungi sezione',
-                    onPressed: () => _addSection(selected.id),
-                    icon: const Icon(Icons.add_box_outlined),
-                  ),
-                  _projectActions(selected, activeProjects),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: _projectList(selected.id, projectSections, projectTasks),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-
-  Widget _projectList(
-    String projectId,
-    List<ProjectSection> sections,
-    List<Task> tasks,
-  ) => ListView(
-    key: PageStorageKey('project-list-$projectId'),
-    padding: const EdgeInsets.only(bottom: 24),
-    children: [
-      for (final section in sections)
-        ExpansionTile(
-          initiallyExpanded: true,
-          title: Text(section.name),
-          trailing: _sectionActions(section, sections),
-          children: [
-            for (final task in tasks.where(
-              (item) => item.sectionId == section.id,
-            ))
-              TaskTile(
-                key: ValueKey('project-${task.id}'),
-                task: task,
-                repository: widget.repository,
-                highlightRemote: recentlySyncedTaskIds.contains(task.id),
-              ),
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.add, size: 20),
-              title: const Text('Aggiungi'),
-              onTap: () => _addProjectTask(projectId, section.id),
-            ),
-          ],
-        ),
-      if (tasks.any((item) => item.sectionId == null))
-        ExpansionTile(
-          initiallyExpanded: true,
-          title: const Text('Senza sezione'),
-          children: [
-            for (final task in tasks.where((item) => item.sectionId == null))
-              TaskTile(
-                key: ValueKey('project-${task.id}'),
-                task: task,
-                repository: widget.repository,
-                highlightRemote: recentlySyncedTaskIds.contains(task.id),
-              ),
-          ],
-        ),
-      ListTile(
-        dense: true,
-        leading: const Icon(Icons.add, size: 20),
-        title: const Text('Aggiungi'),
-        onTap: () => _addProjectTask(projectId, null),
-      ),
-    ],
-  );
-
-  Future<String?> _askName(
-    String title,
-    String label, {
-    String? initialValue,
-  }) async {
-    final controller = TextEditingController(text: initialValue);
-    final value = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: label),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Crea'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return value?.trim().isEmpty == true ? null : value?.trim();
-  }
-
-  Future<void> _addProject() async {
-    final controller = TextEditingController();
-    var color = 'green';
-    final result = await showDialog<(String, String)>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Nuovo progetto'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Nome'),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final value in const [
-                    'red',
-                    'orange',
-                    'yellow',
-                    'green',
-                    'blue',
-                    'purple',
-                    'pink',
-                  ])
-                    ChoiceChip(
-                      avatar: CircleAvatar(
-                        backgroundColor: _projectColor(value),
-                      ),
-                      label: const SizedBox.shrink(),
-                      selected: color == value,
-                      onSelected: (_) => setDialogState(() => color = value),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annulla'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, (controller.text, color)),
-              child: const Text('Crea'),
-            ),
-          ],
-        ),
-      ),
-    );
-    controller.dispose();
-    if (result == null || result.$1.trim().isEmpty) return;
-    final id = await widget.repository.createProject(
-      result.$1,
-      color: result.$2,
-    );
-    if (mounted) setState(() => selectedProjectId = id);
-    await widget.syncService?.sync();
-  }
-
-  Future<void> _addSection(String projectId) async {
-    final name = await _askName('Nuova sezione', 'Nome');
-    if (name == null) return;
-    await widget.repository.createProjectSection(projectId, name);
-    await widget.syncService?.sync();
-  }
-
-  Widget _projectActions(Project project, List<Project> projects) {
-    final index = projects.indexWhere((item) => item.id == project.id);
-    return PopupMenuButton<String>(
-      key: ValueKey('project-actions-${project.id}'),
-      tooltip: 'Azioni progetto',
-      onSelected: (action) =>
-          _handleProjectAction(action, project, projects, index),
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: 'rename', child: Text('Rinomina')),
-        PopupMenuItem(
-          value: 'up',
-          enabled: index > 0,
-          child: const Text('Sposta su'),
-        ),
-        PopupMenuItem(
-          value: 'down',
-          enabled: index >= 0 && index < projects.length - 1,
-          child: const Text('Sposta giù'),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(value: 'delete', child: Text('Elimina')),
-      ],
-    );
-  }
-
-  Future<void> _handleProjectAction(
-    String action,
-    Project project,
-    List<Project> projects,
-    int index,
-  ) async {
-    if (action == 'rename') {
-      final name = await _askName(
-        'Rinomina progetto',
-        'Nome',
-        initialValue: project.name,
-      );
-      if (name == null) return;
-      await widget.repository.updateProject(project, name: name);
-    } else if (action == 'up' && index > 0) {
-      await widget.repository.swapProjects(project, projects[index - 1]);
-    } else if (action == 'down' && index < projects.length - 1) {
-      await widget.repository.swapProjects(project, projects[index + 1]);
-    } else if (action == 'delete') {
-      await widget.repository.updateProject(project, isArchived: true);
-      if (mounted && selectedProjectId == project.id) {
-        setState(() => selectedProjectId = null);
-      }
-      if (!mounted) return;
-      AppUndo.show(
-        context,
-        message: 'Progetto “${project.name}” eliminato',
-        undo: () async {
-          final current = await (widget.repository.db.select(
-            widget.repository.db.projects,
-          )..where((row) => row.id.equals(project.id))).getSingle();
-          await widget.repository.updateProject(current, isArchived: false);
-          await widget.syncService?.sync();
-        },
-      );
-    }
-    await widget.syncService?.sync();
-  }
-
-  Widget _sectionActions(
-    ProjectSection section,
-    List<ProjectSection> sections,
-  ) {
-    final index = sections.indexWhere((item) => item.id == section.id);
-    return PopupMenuButton<String>(
-      key: ValueKey('section-actions-${section.id}'),
-      tooltip: 'Azioni sezione',
-      onSelected: (action) =>
-          _handleSectionAction(action, section, sections, index),
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: 'rename', child: Text('Rinomina')),
-        PopupMenuItem(
-          value: 'up',
-          enabled: index > 0,
-          child: const Text('Sposta su'),
-        ),
-        PopupMenuItem(
-          value: 'down',
-          enabled: index >= 0 && index < sections.length - 1,
-          child: const Text('Sposta giù'),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(value: 'delete', child: Text('Elimina')),
-      ],
-    );
-  }
-
-  Future<void> _handleSectionAction(
-    String action,
-    ProjectSection section,
-    List<ProjectSection> sections,
-    int index,
-  ) async {
-    if (action == 'rename') {
-      final name = await _askName(
-        'Rinomina sezione',
-        'Nome',
-        initialValue: section.name,
-      );
-      if (name == null) return;
-      await widget.repository.updateProjectSection(section, name: name);
-    } else if (action == 'up' && index > 0) {
-      await widget.repository.swapProjectSections(section, sections[index - 1]);
-    } else if (action == 'down' && index < sections.length - 1) {
-      await widget.repository.swapProjectSections(section, sections[index + 1]);
-    } else if (action == 'delete') {
-      await widget.repository.updateProjectSection(section, isArchived: true);
-      if (!mounted) return;
-      AppUndo.show(
-        context,
-        message: 'Sezione “${section.name}” eliminata',
-        undo: () async {
-          final current = await (widget.repository.db.select(
-            widget.repository.db.projectSections,
-          )..where((row) => row.id.equals(section.id))).getSingle();
-          await widget.repository.updateProjectSection(
-            current,
-            isArchived: false,
-          );
-          await widget.syncService?.sync();
-        },
-      );
-    }
-    await widget.syncService?.sync();
-  }
-
-  Future<void> _addProjectTask(String projectId, String? sectionId) async {
-    await _showQuickAddSheet(projectId: projectId, sectionId: sectionId);
-  }
-
-  Color _projectColor(String? value) => switch (value) {
-    'red' || 'berry_red' => Colors.red,
-    'orange' => Colors.orange,
-    'yellow' => Colors.amber,
-    'blue' || 'sky_blue' => Colors.blue,
-    'purple' || 'violet' => Colors.purple,
-    'pink' || 'magenta' => Colors.pink,
-    'green' || 'lime_green' => Colors.green,
-    _ => Colors.grey,
-  };
-
-  Widget _futureDateStrip() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 8, 2),
-        child: TextButton.icon(
-          key: const ValueKey('jump-to-future-date'),
-          onPressed: _pickFutureDate,
-          icon: const Icon(Icons.calendar_month_outlined, size: 18),
-          label: AnimatedSwitcher(
-            duration: _microMotion,
-            child: Text(
-              selectedUpcomingDate == null
-                  ? 'Vai a data'
-                  : DateFormat('d MMM yyyy', 'it').format(
-                      CivilDate.parse(selectedUpcomingDate!).asLocalDate,
-                    ),
-              key: ValueKey(selectedUpcomingDate ?? 'jump-to-date'),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickFutureDate() async {
-    final now = DateTime.now();
-    final initial = selectedUpcomingDate == null
-        ? now.add(const Duration(days: 1))
-        : CivilDate.parse(selectedUpcomingDate!).asLocalDate;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(now.year, now.month, now.day + 1),
-      lastDate: DateTime(now.year + 10, 12, 31),
-      helpText: 'Vai rapidamente a una data',
-    );
-    if (picked != null && mounted) {
-      setState(() {
-        selectedUpcomingDate = CivilDate.fromDateTime(picked).toString();
-        upcomingDays = 30;
-        upcomingVisit++;
-      });
-    }
-  }
-
-  Widget _upcomingList(List<Task> tasks) {
-    final grouped = <String, List<Task>>{};
-    for (final task in tasks) {
-      grouped.putIfAbsent(task.showDate!, () => []).add(task);
-    }
-    final today = CivilDate.fromDateTime(DateTime.now());
-    final start = selectedUpcomingDate == null
-        ? today.addDays(1)
-        : CivilDate.parse(selectedUpcomingDate!);
-    final lastDate = CivilDate(today.year + 10, 12, 31);
-    final dayCount = lastDate.asLocalDate.difference(start.asLocalDate).inDays;
-    return ListView.builder(
-      key: PageStorageKey('upcoming-$selectedUpcomingDate-$upcomingVisit'),
-      padding: const EdgeInsets.only(bottom: 24),
-      itemCount:
-          (upcomingDays < dayCount + 1 ? upcomingDays : dayCount + 1) + 1,
-      itemBuilder: (context, index) {
-        if (index ==
-            (upcomingDays < dayCount + 1 ? upcomingDays : dayCount + 1)) {
-          return upcomingDays > dayCount
-              ? const SizedBox.shrink()
-              : Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: OutlinedButton(
-                    key: const ValueKey('upcoming-load-more'),
-                    onPressed: () => setState(() => upcomingDays += 30),
-                    child: const Text('Mostra altri 30 giorni'),
-                  ),
-                );
-        }
-        final date = start.addDays(index);
-        final dateTasks = grouped[date.toString()] ?? const <Task>[];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 5),
-              child: Text(
-                _friendlyDate(date.toString()),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            if (dateTasks.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                child: Text(
-                  'Nessuna attività',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              )
-            else
-              for (final task in dateTasks)
-                TaskTile(
-                  key: ValueKey(task.id),
-                  task: task,
-                  repository: widget.repository,
-                  showDateMetadata: false,
-                  highlightRemote: recentlySyncedTaskIds.contains(task.id),
-                ),
-            const Divider(height: 1),
-          ],
-        );
-      },
-    );
-  }
-
-  String _friendlyDate(String value) {
-    final date = CivilDate.parse(value).asLocalDate;
-    final label = DateFormat('EEEE d MMMM', 'it').format(date);
-    return label[0].toUpperCase() + label.substring(1);
-  }
-
-  Widget _emptyState({required Key key, required String label}) => Align(
-    key: key,
-    alignment: Alignment.topCenter,
-    child: Padding(
-      padding: const EdgeInsets.only(top: 32),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
-    ),
-  );
 }
 
 /// Pauses and resumes sync from the binding, next to [SyncService.start].
@@ -2435,212 +1288,6 @@ bool isBackgroundLifecycle(AppLifecycleState? state) =>
     state == AppLifecycleState.paused ||
     state == AppLifecycleState.detached ||
     state == AppLifecycleState.hidden;
-
-int _stableCompare(Task a, Task b, String today) {
-  int group(Task task) {
-    if (task.showDate == today) return 0;
-    return 1;
-  }
-
-  final byGroup = group(a).compareTo(group(b));
-  if (byGroup != 0) return byGroup;
-  final byPosition = a.position.compareTo(b.position);
-  if (byPosition != 0) return byPosition;
-  final byCreation = a.createdAt.compareTo(b.createdAt);
-  return byCreation != 0 ? byCreation : a.id.compareTo(b.id);
-}
-
-/// Opens the archive query once per search page. Rebuilding for each typed
-/// character must not re-subscribe and reload every task from SQLite.
-class _SearchTaskSource extends StatefulWidget {
-  const _SearchTaskSource({required this.repository, required this.builder});
-  final TaskRepository repository;
-  final AsyncWidgetBuilder<List<Task>> builder;
-
-  @override
-  State<_SearchTaskSource> createState() => _SearchTaskSourceState();
-}
-
-class _SearchTaskSourceState extends State<_SearchTaskSource> {
-  late final Stream<List<Task>> tasks = widget.repository.watchAll();
-
-  @override
-  Widget build(BuildContext context) =>
-      StreamBuilder<List<Task>>(stream: tasks, builder: widget.builder);
-}
-
-class TaskSearchDelegate extends SearchDelegate<void> {
-  TaskSearchDelegate(
-    this.repository, {
-    required this.onNavigate,
-    required this.onCreate,
-  }) : _projects = repository.db.select(repository.db.projects).get();
-  final TaskRepository repository;
-  final ValueChanged<AppSection> onNavigate;
-  final Future<void> Function(String raw) onCreate;
-  final Future<List<Project>> _projects;
-  final Set<_TaskSearchFilter> _filters = {};
-
-  @override
-  String get searchFieldLabel => 'Cerca, + crea, > apri, # progetto';
-
-  @override
-  List<Widget> buildActions(BuildContext context) => [
-    IconButton(onPressed: () => query = '', icon: const Icon(Icons.clear)),
-  ];
-
-  @override
-  Widget buildLeading(BuildContext context) => IconButton(
-    onPressed: () => close(context, null),
-    icon: const Icon(Icons.arrow_back),
-  );
-
-  @override
-  Widget buildResults(BuildContext context) => _results(context);
-
-  @override
-  Widget buildSuggestions(BuildContext context) => _results(context);
-
-  Widget _results(BuildContext context) => FutureBuilder<List<Project>>(
-    future: _projects,
-    builder: (context, projectSnapshot) => _SearchTaskSource(
-      repository: repository,
-      builder: (context, snapshot) {
-        final rawQuery = query.trim();
-        final needle = rawQuery
-            .replaceFirst(RegExp(r'^[+#>]\s*'), '')
-            .toLowerCase();
-        final projectNames = {
-          for (final project in projectSnapshot.data ?? const <Project>[])
-            project.id: project.name.toLowerCase(),
-        };
-        final today = CivilDate.fromDateTime(DateTime.now()).toString();
-        final projectQuery = rawQuery.startsWith('#');
-        final results = (snapshot.data ?? const <Task>[]).where((task) {
-          final matchesText =
-              needle.isEmpty ||
-              task.title.toLowerCase().contains(needle) ||
-              (task.notes?.toLowerCase().contains(needle) ?? false) ||
-              (projectNames[task.projectId]?.contains(needle) ?? false);
-          if (!matchesText) return false;
-          if (projectQuery &&
-              !(projectNames[task.projectId]?.contains(needle) ?? false)) {
-            return false;
-          }
-          if (_filters.contains(_TaskSearchFilter.today) &&
-              task.showDate != today) {
-            return false;
-          }
-          if (_filters.contains(_TaskSearchFilter.undated) &&
-              task.showDate != null) {
-            return false;
-          }
-          if (_filters.contains(_TaskSearchFilter.recurring) &&
-              task.recurrence == null) {
-            return false;
-          }
-          if (_filters.contains(_TaskSearchFilter.highPriority) &&
-              task.priority < 3) {
-            return false;
-          }
-          return true;
-        }).toList();
-        if (rawQuery.startsWith('+')) {
-          final command = rawQuery.substring(1).trim();
-          final parsed = command.isEmpty
-              ? null
-              : const QuickAddParser().parse(command);
-          return ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              ListTile(
-                enabled: parsed != null && parsed.title.isNotEmpty,
-                leading: const Icon(Icons.add_circle_outline),
-                title: Text(parsed?.title ?? 'Scrivi una nuova attività'),
-                subtitle: parsed?.showDate == null
-                    ? null
-                    : Text(parsed!.showDate.toString()),
-                onTap: parsed == null
-                    ? null
-                    : () async {
-                        await onCreate(command);
-                        if (context.mounted) close(context, null);
-                      },
-              ),
-            ],
-          );
-        }
-        if (rawQuery.startsWith('>')) {
-          final destinations = <AppSection>[
-            AppSection.today,
-            AppSection.upcoming,
-            AppSection.projects,
-            AppSection.completed,
-            AppSection.settings,
-          ].where((item) => item.label.toLowerCase().contains(needle));
-          return ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              for (final destination in destinations)
-                ListTile(
-                  leading: Icon(destination.icon),
-                  title: Text(destination.label),
-                  onTap: () {
-                    close(context, null);
-                    onNavigate(destination);
-                  },
-                ),
-            ],
-          );
-        }
-        return Column(
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-              child: Row(
-                children: [
-                  for (final filter in _TaskSearchFilter.values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        label: Text(filter.label),
-                        selected: _filters.contains(filter),
-                        onSelected: (selected) {
-                          selected
-                              ? _filters.add(filter)
-                              : _filters.remove(filter);
-                          showSuggestions(context);
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                children: [
-                  for (final task in results)
-                    TaskTile(task: task, repository: repository),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
-enum _TaskSearchFilter {
-  today('Oggi'),
-  undated('Senza data'),
-  recurring('Ricorrenti'),
-  highPriority('Priorità alta');
-
-  const _TaskSearchFilter(this.label);
-  final String label;
-}
 
 class _BackIntent extends Intent {
   const _BackIntent();

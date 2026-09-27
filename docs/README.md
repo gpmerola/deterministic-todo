@@ -17,8 +17,10 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
 - [Run tracker e Bip U](architecture/RUN_TRACKER_BIP_U.md): architettura del
   modulo Android Movimento e roadmap Amazfit.
 
-Gli hotspot noti sono `lib/main.dart`, `lib/data/sync/sync_service.dart` e
-`android/runtracker/.../RunTrackerActivity.java`. La loro dimensione è debito
+Gli hotspot noti sono `lib/data/sync/sync_service.dart` e
+`android/runtracker/.../RunTrackerActivity.java`; dalla build 189 viste,
+ricerca, composer e aggiornamenti sono stati estratti da `lib/main.dart`
+([struttura della shell](architecture/TODO_PLANNING_MODEL.md#struttura-della-shell)). La loro dimensione è debito
 tecnico registrato, non autorizzazione a dividerli durante un fix non correlato.
 Ogni estrazione futura deve preservare test e comportamento pubblico.
 

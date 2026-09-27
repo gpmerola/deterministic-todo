@@ -82,7 +82,6 @@ void main() {
       title: pb.title,
       notes: pb.notes,
       showDate: '2026-09-20',
-      status: TaskStatus.scheduled,
     );
     await syncA.sync();
     await syncB.sync();

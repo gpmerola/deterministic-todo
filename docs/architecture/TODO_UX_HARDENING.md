@@ -1,5 +1,8 @@
 # Todo: editor, viste e sincronizzazione — build 174
 
+Dalla build 189 appartenenza alle viste, Inbox e ricerca sono descritte in
+[pianificazione e viste](TODO_PLANNING_MODEL.md).
+
 ## Anteprima della descrizione — build 188
 
 Gli elenchi mostrano fino a `notesPreviewLines` (3) righe della descrizione con

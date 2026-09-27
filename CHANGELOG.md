@@ -2,6 +2,25 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.42.0 (build 189) — Todo Test
+
+- La pianificazione dipende solo dalla data. Un'attività riaperta con data
+  futura torna in Prossime invece di restare in Oggi; una senza data in un
+  progetto compare solo nel progetto. Lo stato legacy continua a essere
+  scritto, calcolato in un solo punto, per i client precedenti.
+- Le viste sono definite una sola volta in SQLite; la UI non le rifiltra.
+- L'Inbox non dipende più dal nome di un progetto. L'import Todoist usa il flag
+  `inbox_project`; un vecchio progetto "Inbox" compare tra i progetti e si
+  converte con **Sposta in Inbox**, esplicito e annullabile.
+- Rimossa la colonna locale `due_date` (schema SQLite 11) e dall'export CSV;
+  la colonna Supabase resta e non viene più inviata.
+- La ricerca interroga SQLite con un limite di 100 risultati, attive prima
+  delle completate, invece di caricare l'intero archivio.
+- A mezzanotte Oggi e Prossime si aggiornano anche senza interazioni, con un
+  solo timer giornaliero e senza scritture.
+- `main.dart` passa da 2.647 a circa 1.300 righe: viste, ricerca, composer,
+  aggiornamenti e giorno civile sono librerie separate con test dedicati.
+
 ## 2.41.0 (build 188) — Todo Test
 
 - Negli elenchi la descrizione di un'attività mostra fino a tre righe invece di

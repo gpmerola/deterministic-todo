@@ -110,6 +110,10 @@ void main() {
         'key': 'device_id',
         'value': 'forbidden-source',
       });
+      // Backups written before schema 11 still carry the removed column.
+      for (final task in (root['tasks'] as List).cast<Map>()) {
+        task['dueDate'] = '2026-10-05';
+      }
       expect((await importer.preview(jsonEncode(root))).legacy, true);
       await importer.importValidated(jsonEncode(root));
       expect(await target.select(target.tasks).get(), hasLength(1));

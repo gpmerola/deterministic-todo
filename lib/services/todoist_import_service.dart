@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 import '../data/local/database.dart';
 import '../domain/link_syntax.dart';
 import '../domain/quick_add_parser.dart';
+import '../domain/task.dart';
+import '../domain/task_planning.dart';
 
 TodoistImportPlan parseTodoistImportPlan(String source) =>
     const TodoistImportService().plan(source);
@@ -190,10 +192,18 @@ class TodoistImportService {
       );
     }
     final root = (jsonDecode(source) as Map).cast<String, dynamic>();
-    final rawProjects = _list(
+    // Todoist's Inbox is not a project here: its items have no project.
+    // Identified by Todoist's own flag, never by the (renameable) name.
+    bool isInbox(Map<String, dynamic> row) =>
+        row['inbox_project'] == true || row['is_inbox_project'] == true;
+    final allProjects = _list(
       root,
       'projects',
     ).where((row) => row['is_deleted'] != true).toList();
+    final inboxExternalIds = {
+      for (final row in allProjects.where(isInbox)) row['id'] as String,
+    };
+    final rawProjects = allProjects.where((row) => !isInbox(row)).toList();
     final projectIds = <String, String>{
       for (final row in rawProjects)
         row['id'] as String: _externalUuid('project', row['id'] as String),
@@ -214,10 +224,13 @@ class TodoistImportService {
       );
     }).toList();
 
-    final rawSections = _list(
-      root,
-      'sections',
-    ).where((row) => row['is_deleted'] != true).toList();
+    final rawSections = _list(root, 'sections')
+        .where(
+          (row) =>
+              row['is_deleted'] != true &&
+              !inboxExternalIds.contains(row['project_id']),
+        )
+        .toList();
     final sectionIds = <String, String>{};
     final sections = <TodoistSectionDraft>[];
     for (final row in rawSections) {
@@ -286,6 +299,7 @@ class TodoistImportService {
           projectId: projectExternal == null
               ? null
               : projectIds[projectExternal],
+          // Inbox sections are not imported: their items stay unsectioned.
           sectionId: sectionExternal == null
               ? null
               : sectionIds[sectionExternal],
@@ -427,11 +441,10 @@ class TodoistImportService {
       final existing = await (db.select(
         db.tasks,
       )..where((row) => row.id.equals(draft.id))).getSingleOrNull();
-      final status = draft.showDate == null
-          ? 'inbox'
-          : draft.showDate!.compareTo(today) <= 0
-          ? 'available'
-          : 'scheduled';
+      final status = legacyOpenStatus(
+        draft.showDate,
+        CivilDate.parse(today),
+      ).name;
       final changed =
           mode == TodoistImportMode.replace ||
           (draft.updatedAt != null &&

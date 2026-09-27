@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
@@ -128,7 +129,7 @@ void main() {
         .customSelect('PRAGMA user_version')
         .map((row) => row.read<int>('user_version'))
         .getSingle();
-    expect(version, 10);
+    expect(version, 11);
     final columns = await database
         .customSelect('PRAGMA table_info(tasks)')
         .get();
@@ -175,5 +176,64 @@ void main() {
       indexes.any((row) => row.read<String>('name') == 'tasks_kind_order_idx'),
       isFalse,
     );
+  });
+
+  test('schema 11 drops due_date and keeps history triggers working', () async {
+    final directory = await Directory.systemTemp.createTemp('todo-db-v10-');
+    final file = File('${directory.path}/todo.sqlite');
+    final initial = AppDatabase.forTesting(NativeDatabase(file));
+    final id = await TaskRepository(
+      initial,
+      deviceId: 'fixture',
+    ).create('Attività sintetica', showDate: '2026-09-27');
+    await initial.close();
+
+    // Rebuild the version 10 shape: column, index and a trigger naming it.
+    final legacy = sqlite.sqlite3.open(file.path);
+    for (final op in ['insert', 'update', 'delete']) {
+      legacy.execute('DROP TRIGGER tasks_history_$op');
+    }
+    legacy.execute('DROP INDEX tasks_dates_idx');
+    legacy.execute('ALTER TABLE tasks ADD COLUMN due_date TEXT NULL');
+    legacy.execute(
+      'CREATE INDEX tasks_dates_idx ON tasks (deleted_at, show_date, due_date)',
+    );
+    legacy.execute(
+      'CREATE TRIGGER tasks_history_update AFTER UPDATE ON tasks BEGIN '
+      'INSERT INTO activity_revisions '
+      '(entity_type, entity_id, operation, source, recorded_at, after_json) '
+      "VALUES ('tasks', NEW.id, 'update', 'local_write', 0, "
+      "json_object('due_date', NEW.due_date)); END",
+    );
+    legacy.execute("UPDATE tasks SET due_date = '2026-10-01'");
+    legacy.execute('PRAGMA user_version = 10');
+    legacy.close();
+
+    final upgraded = AppDatabase.forTesting(NativeDatabase(file));
+    addTearDown(() async {
+      await upgraded.close();
+      await directory.delete(recursive: true);
+    });
+    final columns = await upgraded
+        .customSelect('PRAGMA table_info(tasks)')
+        .map((row) => row.read<String>('name'))
+        .get();
+    expect(columns, isNot(contains('due_date')));
+    final task = await upgraded.select(upgraded.tasks).getSingle();
+    expect((task.id, task.showDate), (id, '2026-09-27'));
+    final indexColumns = await upgraded
+        .customSelect("PRAGMA index_info('tasks_dates_idx')")
+        .map((row) => row.read<String>('name'))
+        .get();
+    expect(indexColumns, ['deleted_at', 'show_date']);
+
+    await upgraded.customStatement("UPDATE tasks SET title = 'Rinominata'");
+    final revision =
+        await (upgraded.select(upgraded.activityRevisions)
+              ..orderBy([(r) => OrderingTerm.desc(r.sequence)])
+              ..limit(1))
+            .getSingle();
+    expect(revision.afterJson, contains('Rinominata'));
+    expect(revision.afterJson, isNot(contains('due_date')));
   });
 }

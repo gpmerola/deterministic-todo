@@ -22,6 +22,11 @@ delle pagine e rende osservabili pagine, righe e conflitti. Diagnosi, test e
 limiti: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
 Disponibilità effettiva Android/Web: [STATUS](STATUS.md).
 
+La build 189 fa dipendere la pianificazione dalla sola data, definisce le viste
+una sola volta in SQLite, rimuove `due_date` e il riconoscimento dell'Inbox per
+nome: un vecchio progetto "Inbox" si converte con **Azioni progetto → Sposta in
+Inbox**. Dettagli: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
+
 La build 180 corregge il ripristino di attività dopo un invio incerto: la scelta
 fatta nello storico supera gli intenti precedenti e conserva le modifiche
 successive. Cronologia e ricevute restano protette; dettagli nel
@@ -295,7 +300,8 @@ senza rimbalzi o cambi di dimensione del controllo.
 Titolo e descrizione rispondono con un feedback leggero sull'intera riga; gli
 stati vuoti restano una sola riga discreta. Sul Web una sincronizzazione non
 interrompe la bozza aperta nel pannello laterale.
-La ricerca copre anche progetti e URL e offre filtri compatti. “Salute dati”
+La ricerca copre anche progetti e URL, offre filtri compatti e mostra prima
+le attività attive, fino a 100 risultati. “Salute dati”
 nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home. Dalla build 154 conserva nell'apertura
 corrente anche fase e ora dell'ultimo problema Todo, retry, recupero e ultimo

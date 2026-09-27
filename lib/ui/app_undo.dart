@@ -1,4 +1,6 @@
-part of '../main.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 
 /// Un solo punto per tutte le azioni reversibili dell'interfaccia.
 abstract final class AppUndo {

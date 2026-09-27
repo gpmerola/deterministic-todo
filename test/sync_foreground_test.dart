@@ -4,6 +4,7 @@ import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/sync/sync_service.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/main.dart';
+import 'package:deterministic_todo/ui/search.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -211,13 +212,19 @@ void main() {
     );
   });
 
-  testWidgets('typing in search does not reload the whole archive', (
+  testWidgets('search is filtered in SQLite, active items first', (
     tester,
   ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = _CountingRepository(db, deviceId: 'test-device');
-    await repository.create('Alfa');
+    final done = await repository.create('Alfa completata');
+    await repository.setCompleted(
+      await (db.select(db.tasks)..where((r) => r.id.equals(done))).getSingle(),
+      true,
+    );
+    await repository.create('Alfa attiva');
     await repository.create('Beta');
+    await repository.create('50% sconto');
     late BuildContext root;
     await tester.pumpWidget(
       MaterialApp(
@@ -236,6 +243,7 @@ void main() {
           repository,
           onNavigate: (_) {},
           onCreate: (_) async {},
+          tileBuilder: (task) => Text(task.title),
         ),
       ),
     );
@@ -246,12 +254,34 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
     }
-    expect(find.text('Alfa'), findsWidgets);
+    final titles = tester
+        .widgetList<Text>(find.textContaining('Alfa '))
+        .map((t) => t.data)
+        .toList();
+    expect(titles, ['Alfa attiva', 'Alfa completata']);
     expect(find.text('Beta'), findsNothing);
-    expect(repository.watchAllCalls, 1);
+    expect(repository.watchAllCalls, 0);
+
+    // LIKE wildcards in the input are literal characters.
+    await tester.enterText(find.byType(TextField), '%');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(find.text('50% sconto'), findsOneWidget);
+    expect(find.text('Beta'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
     await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  test('search is bounded by searchLimit', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    for (var i = 0; i < TaskRepository.searchLimit + 5; i++) {
+      await repository.create('Sintetica $i');
+    }
+    final results = await repository.watchSearch(text: 'Sintetica').first;
+    expect(results, hasLength(TaskRepository.searchLimit));
   });
 }

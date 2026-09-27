@@ -77,17 +77,6 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _dueDateMeta = const VerificationMeta(
-    'dueDate',
-  );
-  @override
-  late final GeneratedColumn<String> dueDate = GeneratedColumn<String>(
-    'due_date',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _timeMinutesMeta = const VerificationMeta(
     'timeMinutes',
   );
@@ -286,7 +275,6 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     itemKind,
     status,
     showDate,
-    dueDate,
     timeMinutes,
     timeZone,
     priority,
@@ -360,12 +348,6 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       context.handle(
         _showDateMeta,
         showDate.isAcceptableOrUnknown(data['show_date']!, _showDateMeta),
-      );
-    }
-    if (data.containsKey('due_date')) {
-      context.handle(
-        _dueDateMeta,
-        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
       );
     }
     if (data.containsKey('time_minutes')) {
@@ -534,10 +516,6 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.string,
         data['${effectivePrefix}show_date'],
       ),
-      dueDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}due_date'],
-      ),
       timeMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}time_minutes'],
@@ -623,7 +601,6 @@ class Task extends DataClass implements Insertable<Task> {
   final String itemKind;
   final String status;
   final String? showDate;
-  final String? dueDate;
   final int? timeMinutes;
   final String? timeZone;
   final int priority;
@@ -649,7 +626,6 @@ class Task extends DataClass implements Insertable<Task> {
     required this.itemKind,
     required this.status,
     this.showDate,
-    this.dueDate,
     this.timeMinutes,
     this.timeZone,
     required this.priority,
@@ -683,9 +659,6 @@ class Task extends DataClass implements Insertable<Task> {
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || showDate != null) {
       map['show_date'] = Variable<String>(showDate);
-    }
-    if (!nullToAbsent || dueDate != null) {
-      map['due_date'] = Variable<String>(dueDate);
     }
     if (!nullToAbsent || timeMinutes != null) {
       map['time_minutes'] = Variable<int>(timeMinutes);
@@ -744,9 +717,6 @@ class Task extends DataClass implements Insertable<Task> {
       showDate: showDate == null && nullToAbsent
           ? const Value.absent()
           : Value(showDate),
-      dueDate: dueDate == null && nullToAbsent
-          ? const Value.absent()
-          : Value(dueDate),
       timeMinutes: timeMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(timeMinutes),
@@ -802,7 +772,6 @@ class Task extends DataClass implements Insertable<Task> {
       itemKind: serializer.fromJson<String>(json['itemKind']),
       status: serializer.fromJson<String>(json['status']),
       showDate: serializer.fromJson<String?>(json['showDate']),
-      dueDate: serializer.fromJson<String?>(json['dueDate']),
       timeMinutes: serializer.fromJson<int?>(json['timeMinutes']),
       timeZone: serializer.fromJson<String?>(json['timeZone']),
       priority: serializer.fromJson<int>(json['priority']),
@@ -833,7 +802,6 @@ class Task extends DataClass implements Insertable<Task> {
       'itemKind': serializer.toJson<String>(itemKind),
       'status': serializer.toJson<String>(status),
       'showDate': serializer.toJson<String?>(showDate),
-      'dueDate': serializer.toJson<String?>(dueDate),
       'timeMinutes': serializer.toJson<int?>(timeMinutes),
       'timeZone': serializer.toJson<String?>(timeZone),
       'priority': serializer.toJson<int>(priority),
@@ -862,7 +830,6 @@ class Task extends DataClass implements Insertable<Task> {
     String? itemKind,
     String? status,
     Value<String?> showDate = const Value.absent(),
-    Value<String?> dueDate = const Value.absent(),
     Value<int?> timeMinutes = const Value.absent(),
     Value<String?> timeZone = const Value.absent(),
     int? priority,
@@ -888,7 +855,6 @@ class Task extends DataClass implements Insertable<Task> {
     itemKind: itemKind ?? this.itemKind,
     status: status ?? this.status,
     showDate: showDate.present ? showDate.value : this.showDate,
-    dueDate: dueDate.present ? dueDate.value : this.dueDate,
     timeMinutes: timeMinutes.present ? timeMinutes.value : this.timeMinutes,
     timeZone: timeZone.present ? timeZone.value : this.timeZone,
     priority: priority ?? this.priority,
@@ -920,7 +886,6 @@ class Task extends DataClass implements Insertable<Task> {
       itemKind: data.itemKind.present ? data.itemKind.value : this.itemKind,
       status: data.status.present ? data.status.value : this.status,
       showDate: data.showDate.present ? data.showDate.value : this.showDate,
-      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       timeMinutes: data.timeMinutes.present
           ? data.timeMinutes.value
           : this.timeMinutes,
@@ -965,7 +930,6 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('itemKind: $itemKind, ')
           ..write('status: $status, ')
           ..write('showDate: $showDate, ')
-          ..write('dueDate: $dueDate, ')
           ..write('timeMinutes: $timeMinutes, ')
           ..write('timeZone: $timeZone, ')
           ..write('priority: $priority, ')
@@ -996,7 +960,6 @@ class Task extends DataClass implements Insertable<Task> {
     itemKind,
     status,
     showDate,
-    dueDate,
     timeMinutes,
     timeZone,
     priority,
@@ -1026,7 +989,6 @@ class Task extends DataClass implements Insertable<Task> {
           other.itemKind == this.itemKind &&
           other.status == this.status &&
           other.showDate == this.showDate &&
-          other.dueDate == this.dueDate &&
           other.timeMinutes == this.timeMinutes &&
           other.timeZone == this.timeZone &&
           other.priority == this.priority &&
@@ -1054,7 +1016,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> itemKind;
   final Value<String> status;
   final Value<String?> showDate;
-  final Value<String?> dueDate;
   final Value<int?> timeMinutes;
   final Value<String?> timeZone;
   final Value<int> priority;
@@ -1081,7 +1042,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.itemKind = const Value.absent(),
     this.status = const Value.absent(),
     this.showDate = const Value.absent(),
-    this.dueDate = const Value.absent(),
     this.timeMinutes = const Value.absent(),
     this.timeZone = const Value.absent(),
     this.priority = const Value.absent(),
@@ -1109,7 +1069,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.itemKind = const Value.absent(),
     required String status,
     this.showDate = const Value.absent(),
-    this.dueDate = const Value.absent(),
     this.timeMinutes = const Value.absent(),
     this.timeZone = const Value.absent(),
     this.priority = const Value.absent(),
@@ -1143,7 +1102,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? itemKind,
     Expression<String>? status,
     Expression<String>? showDate,
-    Expression<String>? dueDate,
     Expression<int>? timeMinutes,
     Expression<String>? timeZone,
     Expression<int>? priority,
@@ -1171,7 +1129,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (itemKind != null) 'item_kind': itemKind,
       if (status != null) 'status': status,
       if (showDate != null) 'show_date': showDate,
-      if (dueDate != null) 'due_date': dueDate,
       if (timeMinutes != null) 'time_minutes': timeMinutes,
       if (timeZone != null) 'time_zone': timeZone,
       if (priority != null) 'priority': priority,
@@ -1201,7 +1158,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? itemKind,
     Value<String>? status,
     Value<String?>? showDate,
-    Value<String?>? dueDate,
     Value<int?>? timeMinutes,
     Value<String?>? timeZone,
     Value<int>? priority,
@@ -1229,7 +1185,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
       itemKind: itemKind ?? this.itemKind,
       status: status ?? this.status,
       showDate: showDate ?? this.showDate,
-      dueDate: dueDate ?? this.dueDate,
       timeMinutes: timeMinutes ?? this.timeMinutes,
       timeZone: timeZone ?? this.timeZone,
       priority: priority ?? this.priority,
@@ -1274,9 +1229,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (showDate.present) {
       map['show_date'] = Variable<String>(showDate.value);
-    }
-    if (dueDate.present) {
-      map['due_date'] = Variable<String>(dueDate.value);
     }
     if (timeMinutes.present) {
       map['time_minutes'] = Variable<int>(timeMinutes.value);
@@ -1345,7 +1297,6 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('itemKind: $itemKind, ')
           ..write('status: $status, ')
           ..write('showDate: $showDate, ')
-          ..write('dueDate: $dueDate, ')
           ..write('timeMinutes: $timeMinutes, ')
           ..write('timeZone: $timeZone, ')
           ..write('priority: $priority, ')
@@ -4044,7 +3995,6 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String> itemKind,
       required String status,
       Value<String?> showDate,
-      Value<String?> dueDate,
       Value<int?> timeMinutes,
       Value<String?> timeZone,
       Value<int> priority,
@@ -4073,7 +4023,6 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> itemKind,
       Value<String> status,
       Value<String?> showDate,
-      Value<String?> dueDate,
       Value<int?> timeMinutes,
       Value<String?> timeZone,
       Value<int> priority,
@@ -4134,11 +4083,6 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get showDate => $composableBuilder(
     column: $table.showDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get dueDate => $composableBuilder(
-    column: $table.dueDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4272,11 +4216,6 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get timeMinutes => $composableBuilder(
     column: $table.timeMinutes,
     builder: (column) => ColumnOrderings(column),
@@ -4393,9 +4332,6 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<String> get showDate =>
       $composableBuilder(column: $table.showDate, builder: (column) => column);
 
-  GeneratedColumn<String> get dueDate =>
-      $composableBuilder(column: $table.dueDate, builder: (column) => column);
-
   GeneratedColumn<int> get timeMinutes => $composableBuilder(
     column: $table.timeMinutes,
     builder: (column) => column,
@@ -4497,7 +4433,6 @@ class $$TasksTableTableManager
                 Value<String> itemKind = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> showDate = const Value.absent(),
-                Value<String?> dueDate = const Value.absent(),
                 Value<int?> timeMinutes = const Value.absent(),
                 Value<String?> timeZone = const Value.absent(),
                 Value<int> priority = const Value.absent(),
@@ -4524,7 +4459,6 @@ class $$TasksTableTableManager
                 itemKind: itemKind,
                 status: status,
                 showDate: showDate,
-                dueDate: dueDate,
                 timeMinutes: timeMinutes,
                 timeZone: timeZone,
                 priority: priority,
@@ -4553,7 +4487,6 @@ class $$TasksTableTableManager
                 Value<String> itemKind = const Value.absent(),
                 required String status,
                 Value<String?> showDate = const Value.absent(),
-                Value<String?> dueDate = const Value.absent(),
                 Value<int?> timeMinutes = const Value.absent(),
                 Value<String?> timeZone = const Value.absent(),
                 Value<int> priority = const Value.absent(),
@@ -4580,7 +4513,6 @@ class $$TasksTableTableManager
                 itemKind: itemKind,
                 status: status,
                 showDate: showDate,
-                dueDate: dueDate,
                 timeMinutes: timeMinutes,
                 timeZone: timeZone,
                 priority: priority,

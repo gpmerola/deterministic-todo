@@ -1,12 +1,5 @@
 part of '../main.dart';
 
-Color _priorityColor(int rawPriority) => switch (rawPriority) {
-  4 => Colors.red,
-  3 => Colors.orange,
-  2 => Colors.blue,
-  _ => Colors.grey,
-};
-
 /// Lines of description shown in lists; the editor always shows all of it.
 const notesPreviewLines = 3;
 
@@ -162,14 +155,14 @@ class _TaskTileState extends State<TaskTile> {
                     ).colorScheme.primaryContainer.withValues(alpha: 0.55)
                   : widget.task.priority == 1
                   ? Colors.transparent
-                  : _priorityColor(
+                  : priorityColor(
                       widget.task.priority,
                     ).withValues(alpha: 0.035),
               border: widget.task.priority == 1
                   ? null
                   : Border(
                       left: BorderSide(
-                        color: _priorityColor(widget.task.priority),
+                        color: priorityColor(widget.task.priority),
                         width: 3,
                       ),
                     ),
@@ -220,7 +213,7 @@ class _TaskTileState extends State<TaskTile> {
                           activeColor: Colors.green,
                           checkColor: Colors.white,
                           side: BorderSide(
-                            color: _priorityColor(widget.task.priority),
+                            color: priorityColor(widget.task.priority),
                             width: widget.task.priority == 1 ? 1.5 : 2.5,
                           ),
                         ),

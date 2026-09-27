@@ -194,20 +194,9 @@ class _TaskEditorState extends State<TaskEditor> {
       if (parsed.recurrence != null) recurrence = parsed.recurrence!;
     }
     final plannedDate = plannedEditorDate(showDate.text);
-    final today = CivilDate.fromDateTime(DateTime.now());
-    final derivedStatus = plannedDate == null
-        ? TaskStatus.inbox
-        : plannedDate.compareTo(today) <= 0
-        ? TaskStatus.available
-        : TaskStatus.scheduled;
     await widget.repository.updateDetails(
       baseline,
       title: title.toMarkdown(),
-      status:
-          baseline.status == TaskStatus.completed.name ||
-              plannedDate?.toString() == baseline.showDate
-          ? TaskStatus.values.byName(baseline.status)
-          : derivedStatus,
       notes: notes.text.trim().isEmpty ? null : notes.toMarkdown().trim(),
       showDate: plannedDate?.toString(),
       recurrence: recurrence == 'none' ? null : recurrence,
@@ -578,7 +567,7 @@ class _TaskEditorState extends State<TaskEditor> {
           ),
           PopupMenuButton<int>(
             tooltip: 'Priorità P${5 - priority}',
-            icon: Icon(Icons.circle, color: _priorityColor(priority), size: 20),
+            icon: Icon(Icons.circle, color: priorityColor(priority), size: 20),
             onSelected: (value) => setState(() => priority = value),
             itemBuilder: (context) => [
               for (var raw = 4; raw >= 1; raw--)
@@ -586,7 +575,7 @@ class _TaskEditorState extends State<TaskEditor> {
                   value: raw,
                   child: Row(
                     children: [
-                      Icon(Icons.circle, color: _priorityColor(raw), size: 18),
+                      Icon(Icons.circle, color: priorityColor(raw), size: 18),
                       const SizedBox(width: 10),
                       Text('P${5 - raw}'),
                     ],

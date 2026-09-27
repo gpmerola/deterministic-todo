@@ -5,7 +5,6 @@ import 'package:deterministic_todo/data/sync/sync_service.dart';
 import 'package:deterministic_todo/data/sync/task_sync_writer.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart' as domain;
-import 'package:deterministic_todo/domain/task_planning.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -153,12 +152,22 @@ void main() {
   test(
     'il cambio giorno modifica la visibilità senza versioni né outbox',
     () async {
-      expect(
-        isScheduledDue(f.original.status, f.original.showDate, '2026-09-08'),
-        isTrue,
-      );
-      expect(isScheduledDue('scheduled', null, '2026-09-08'), isFalse);
-      expect(isScheduledDue('scheduled', '2026-09-09', '2026-09-08'), isFalse);
+      Future<List<String>> ids(String view, String today) async => [
+        for (final task
+            in await f.repo
+                .watchView(
+                  view: view,
+                  today: today,
+                  fromDate: today,
+                  throughDate: '2026-12-31',
+                )
+                .first)
+          task.id,
+      ];
+      expect(await ids('today', '2026-09-06'), isEmpty);
+      expect(await ids('upcoming', '2026-09-06'), [f.original.id]);
+      expect(await ids('today', '2026-09-08'), [f.original.id]);
+      expect(await ids('upcoming', '2026-09-08'), isEmpty);
       expect(await f.pending(), isEmpty);
       expect(await f.db.select(f.db.tasks).getSingle(), f.original);
     },

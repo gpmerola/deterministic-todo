@@ -31,6 +31,20 @@ CivilDate? plannedEditorDate(String input, {DateTime? now}) {
   }
 }
 
-/// A civil-day transition changes visibility, never the persisted task version.
-bool isScheduledDue(String status, String? showDate, String today) =>
-    status == 'scheduled' && showDate != null && showDate.compareTo(today) <= 0;
+/// Planning of an open task is derived from its civil date alone.
+///
+/// `status` only distinguishes completed and waiting items: `inbox`,
+/// `available` and `scheduled` are equivalent open values. They are still
+/// written, projected from the date at write time, because older clients
+/// filter on them. A civil-day transition changes visibility, never the
+/// persisted task version. View membership itself is defined once, in SQL,
+/// by `TaskRepository.watchView`.
+TaskStatus legacyOpenStatus(String? showDate, CivilDate today) =>
+    showDate == null
+    ? TaskStatus.inbox
+    : showDate.compareTo(today.toString()) <= 0
+    ? TaskStatus.available
+    : TaskStatus.scheduled;
+
+bool isOpenStatus(String status) =>
+    status != TaskStatus.completed.name && status != TaskStatus.waiting.name;

@@ -30,7 +30,6 @@ Task taskFromRemote(Map<String, dynamic> row) => Task.fromJson({
         entry.value,
   'itemKind': row['item_kind'] ?? 'task',
   'priority': row['priority'] ?? 1,
-  'dueDate': null,
   'timeMinutes': null,
   'timeZone': null,
 });

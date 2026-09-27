@@ -80,7 +80,6 @@ class ExportService {
       'item_kind',
       'status',
       'show_date',
-      'due_date',
       'completed_at',
       'deleted_at',
     ];
@@ -94,7 +93,6 @@ class ExportService {
           task.itemKind,
           task.status,
           task.showDate ?? '',
-          task.dueDate ?? '',
           task.completedAt?.toString() ?? '',
           task.deletedAt?.toString() ?? '',
         ].map(_csvCell).join(','),

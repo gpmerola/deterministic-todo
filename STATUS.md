@@ -1,6 +1,19 @@
 # Stato corrente
 
-Aggiornato il 25 settembre 2026.
+Aggiornato il 27 settembre 2026.
+
+## Pianificazione, Inbox e shell — build 189
+
+`make check` superato con 260 test Flutter e analisi pulita; `make check-generated`
+superato. Web release 188 e 189 compilate e servite sulla stessa origine
+localhost in Chrome headless: attività creata con la 188, poi caricato il
+bundle 189 (nessun service worker, trasferimento completo) che ha migrato
+SQLite WASM allo schema 11 conservandola; una nuova attività creata dopo la
+migrazione e la precedente restano dopo refresh, console senza errori. HTTPS
+locale con CA esplicita risponde 200 per pagina, `main.dart.js`, `sqlite3.wasm`,
+`drift_worker.js` e `version.json` 2.42.0+189. ADB non raggiungibile
+(porta 5555 rifiutata su Tailscale): consegna Android e collaudo sul Galaxy
+in sospeso. Contratto: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
 
 ## Anteprima descrizione — build 188
 

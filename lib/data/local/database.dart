@@ -21,7 +21,6 @@ class Tasks extends Table {
   TextColumn get itemKind => text().withDefault(const Constant('task'))();
   TextColumn get status => text()();
   TextColumn get showDate => text().nullable()();
-  TextColumn get dueDate => text().nullable()();
   IntColumn get timeMinutes => integer().nullable()();
   TextColumn get timeZone => text().nullable()();
   IntColumn get priority => integer().withDefault(const Constant(1))();
@@ -133,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -172,6 +171,7 @@ class AppDatabase extends _$AppDatabase {
         }
         await _installProjectIntents(this);
       }
+      if (from < 11) await _dropDueDate();
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -208,6 +208,25 @@ class AppDatabase extends _$AppDatabase {
     await _createImportIndexes();
   }
 
+  /// `due_date` was never shown or edited. Revision triggers snapshot every
+  /// column and SQLite refuses DROP COLUMN while a trigger or index names it,
+  /// so both are rebuilt from the current Dart schema.
+  Future<void> _dropDueDate() async {
+    if (!await _columnExists('tasks', 'due_date')) return;
+    for (final operation in ['insert', 'update', 'delete']) {
+      await customStatement('DROP TRIGGER IF EXISTS tasks_history_$operation');
+    }
+    await customStatement('DROP INDEX IF EXISTS tasks_dates_idx');
+    try {
+      await customStatement('ALTER TABLE tasks DROP COLUMN due_date');
+    } on Object {
+      // An engine without DROP COLUMN keeps an unused nullable column:
+      // Drift names its columns explicitly, so startup must not fail here.
+    }
+    await _createPerformanceIndexes();
+    await _installRevisionTriggers(this);
+  }
+
   Future<bool> _columnExists(String table, String column) async {
     final rows = await customSelect('PRAGMA table_info($table)').get();
     return rows.any((row) => row.read<String>('name') == column);
@@ -240,7 +259,7 @@ class AppDatabase extends _$AppDatabase {
     );
     await customStatement(
       'CREATE INDEX IF NOT EXISTS tasks_dates_idx '
-      'ON tasks (deleted_at, show_date, due_date)',
+      'ON tasks (deleted_at, show_date)',
     );
   }
 
