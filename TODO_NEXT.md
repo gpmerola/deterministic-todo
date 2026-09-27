@@ -8,10 +8,11 @@ Aggiornato il 27 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modific
 - [x] Inbox senza riconoscimento per nome; **Sposta in Inbox** esplicito.
 - [x] Ricerca in SQLite con limite; aggiornamento a mezzanotte; `main.dart` diviso.
 - [x] `make check`, migrazione Web 188 → 189 e refresh verificati in Chrome.
-- [ ] Consegna Todo Test 2189 e collaudo sul Galaxy (ADB non raggiungibile).
+- [x] Todo Test 2189 pubblicata; installata dall'utente (non verificata via ADB).
 - [ ] Sul Galaxy e sul Web convertire con **Sposta in Inbox** il vecchio
   progetto "Inbox", dopo aver aggiornato entrambi i client.
-- [ ] Web 189 dopo conferma `PUBBLICA`; ricaricare le schede aperte.
+- [x] Web 189 pubblicata e verificata.
+- [ ] Ricaricare le schede Web aperte prima di convertire l'Inbox.
 - [ ] Rimuovere `due_date` da Supabase solo con migrazione approvata.
 - [ ] Valutare se `LIKE` solo ASCII basta per la ricerca di lettere accentate.
 

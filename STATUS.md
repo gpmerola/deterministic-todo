@@ -15,8 +15,12 @@ locale con CA esplicita risponde 200 per pagina, `main.dart.js`, `sqlite3.wasm`,
 (porta 5555 rifiutata su Tailscale): `make todo-test` ha pubblicato la
 2.42.0 / versionCode 2189 sul manifest rolling dal commit `d81bc2d`; Verify
 `36285809685` e Publish Todo Test Fast `36285806530` riusciti, e il manifest
-finale ha canale dev e SHA-256 coincidente con l'APK pubblicato. Installazione
-e collaudo sul Galaxy in sospeso; Web 189 non pubblicata (serve `PUBBLICA`). Contratto: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
+finale ha canale dev e SHA-256 coincidente con l'APK pubblicato. L'utente riferisce
+di aver installato la 2189 sul telefono; non verificato via ADB (porta 5555
+ancora rifiutata). Web 2.42.0+189 pubblicata dopo conferma `PUBBLICA` dal commit
+`cf6a331`: run `36286530167`, build e deploy riusciti, `release-info.json`
+pubblico verificato. Chrome headless con profilo vuoto sul sito pubblico:
+avvio, creazione di un'attività e persistenza dopo refresh, console senza errori. Contratto: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
 
 ## Anteprima descrizione — build 188
 
