@@ -12,8 +12,11 @@ SQLite WASM allo schema 11 conservandola; una nuova attività creata dopo la
 migrazione e la precedente restano dopo refresh, console senza errori. HTTPS
 locale con CA esplicita risponde 200 per pagina, `main.dart.js`, `sqlite3.wasm`,
 `drift_worker.js` e `version.json` 2.42.0+189. ADB non raggiungibile
-(porta 5555 rifiutata su Tailscale): consegna Android e collaudo sul Galaxy
-in sospeso. Contratto: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
+(porta 5555 rifiutata su Tailscale): `make todo-test` ha pubblicato la
+2.42.0 / versionCode 2189 sul manifest rolling dal commit `d81bc2d`; Verify
+`36285809685` e Publish Todo Test Fast `36285806530` riusciti, e il manifest
+finale ha canale dev e SHA-256 coincidente con l'APK pubblicato. Installazione
+e collaudo sul Galaxy in sospeso; Web 189 non pubblicata (serve `PUBBLICA`). Contratto: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
 
 ## Anteprima descrizione — build 188
 
