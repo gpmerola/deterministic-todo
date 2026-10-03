@@ -184,6 +184,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     final initialCalendar = defaultEventCalendar(
       calendars,
       await widget.service.lastEventCalendar(),
+      hidden: hidden,
     );
     if (!mounted) return;
     final now = DateTime.now();

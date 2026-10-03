@@ -35,9 +35,11 @@ quell'account non compare; non esiste un aggiramento lato app.
   (`createEvent`) e con il fuso IANA del sistema; lo carica online la
   sincronizzazione dell'account (Google o Outlook). Sono proposti solo i
   calendari modificabili. Quello preselezionato è l'ultimo usato
-  (`app_settings.agenda_last_event_calendar`, locale), altrimenti il primario
-  Google, come per l'esportazione delle attività, altrimenti il primo
-  modificabile. Gli eventi creati non entrano in SQLite Todo né in Supabase.
+  (`app_settings.agenda_last_event_calendar`, locale). In mancanza, un
+  primario Google mostrato nell'Agenda: il telefono ha più account Google,
+  ognuno con il proprio primario, e dalla build 200 quelli nascosti
+  nell'Agenda vengono saltati. Poi qualsiasi calendario mostrato, poi un
+  primario Google, poi il primo modificabile. Gli eventi creati non entrano in SQLite Todo né in Supabase.
 - **Solo locale.** Eventi, titoli, luoghi e descrizioni non vengono salvati in
   SQLite, nei log, nei backup o su Supabase: possono contenere dati clinici. È
   salvata soltanto la scelta dei calendari in

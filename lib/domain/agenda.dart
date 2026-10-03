@@ -61,19 +61,31 @@ final class AgendaEventDraft {
 }
 
 /// Calendar preselected for a new event: the last one used if still
-/// writable, else the Google primary calendar, else the first writable one.
-String? defaultEventCalendar(List<AgendaCalendar> calendars, String? lastUsed) {
+/// writable; otherwise a Google primary calendar shown in Agenda, any
+/// calendar shown in Agenda, any Google primary, any writable one. Phones
+/// often hold several Google accounts, each with its own primary calendar.
+String? defaultEventCalendar(
+  List<AgendaCalendar> calendars,
+  String? lastUsed, {
+  Set<String> hidden = const {},
+}) {
   final writable = [
     for (final calendar in calendars)
       if (calendar.writable) calendar,
   ];
-  for (final calendar in writable) {
-    if (calendar.id == lastUsed) return calendar.id;
+  final preferences = <bool Function(AgendaCalendar)>[
+    (calendar) => calendar.id == lastUsed,
+    (calendar) => calendar.isGooglePrimary && !hidden.contains(calendar.id),
+    (calendar) => !hidden.contains(calendar.id),
+    (calendar) => calendar.isGooglePrimary,
+    (_) => true,
+  ];
+  for (final preferred in preferences) {
+    for (final calendar in writable) {
+      if (preferred(calendar)) return calendar.id;
+    }
   }
-  for (final calendar in writable) {
-    if (calendar.isGooglePrimary) return calendar.id;
-  }
-  return writable.firstOrNull?.id;
+  return null;
 }
 
 /// Calendars left out of the agenda: an explicit choice wins, otherwise the

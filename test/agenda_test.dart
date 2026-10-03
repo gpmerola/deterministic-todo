@@ -549,6 +549,30 @@ void main() {
     expect(defaultEventCalendar([holidays, outlook, google], 'h'), 'g');
     expect(defaultEventCalendar([holidays, outlook], null), 'o');
     expect(defaultEventCalendar([holidays], null), isNull);
+    // Several Google accounts: the primary hidden in Agenda is skipped.
+    const otherPrimary = AgendaCalendar(
+      id: 'other',
+      name: 'other',
+      accountName: 'a@gmail.com',
+      writable: true,
+      isGooglePrimary: true,
+    );
+    expect(
+      defaultEventCalendar(
+        [otherPrimary, outlook, google],
+        null,
+        hidden: {'other'},
+      ),
+      'g',
+    );
+    expect(
+      defaultEventCalendar(
+        [otherPrimary, google],
+        null,
+        hidden: {'other', 'g'},
+      ),
+      'other',
+    );
   });
 
   test('una bozza senza titolo o con fine prima dell inizio non si salva', () {

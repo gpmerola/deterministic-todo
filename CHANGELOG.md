@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.47.1 (build 200) — Todo Test
+
+- Il calendario proposto per un nuovo evento salta quelli nascosti
+  nell'Agenda. Con più account Google la 199 proponeva il primo in ordine
+  alfabetico, anche se nascosto.
+
 ## 2.47.0 (build 199) — Todo Test
 
 - Creazione di eventi dall'Agenda: pulsante **+**, oppure tocco su uno spazio

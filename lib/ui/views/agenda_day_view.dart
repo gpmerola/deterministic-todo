@@ -117,7 +117,12 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
           unawaited(
             widget
                 .onCreate(
-                  DateTime(shown.year, shown.month, shown.day, hour.clamp(0, 23)),
+                  DateTime(
+                    shown.year,
+                    shown.month,
+                    shown.day,
+                    hour.clamp(0, 23),
+                  ),
                 )
                 .then((_) {
                   if (mounted) setState(() => _refresh++);
