@@ -15,6 +15,10 @@
   coperto da test; primo salvataggio reale lasciato all'utente.
 - [x] Modifica/eliminazione (occorrenza o serie), vista 2 settimane
   predefinita e fuso IANA sempre visibile: 201–202, verificati sul Galaxy.
+- [x] Build 203: attività «Mostra in Agenda» (flag locale), vista settimana,
+  Ripeti, celle a pallino, ricerca unificata; test verdi.
+- [ ] Provare sul Galaxy (con l'utente): vista settimana, un'attività segnata,
+  un evento ricorrente creato, ricerca di un evento dalla lente.
 - [ ] Prima modifica reale di un evento da parte dell'utente: controllare
   che la sincronizzazione Google/Outlook la carichi senza duplicati.
 - [ ] Possibile: scegliere un fuso diverso alla creazione (oggi si usa

@@ -2,6 +2,23 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Attività in agenda, settimana, ripeti, ricerca — build 203
+
+`make check` superato (291 test, 32 in `test/agenda_test.dart`):
+- flag locali per attività e serie;
+- regole RRULE con fine inclusiva;
+- vista settimana in scala e creazione da spazio libero;
+- ordinamento e sezione Eventi della ricerca.
+
+`AgendaChannelTest` 5/5 (escape di `LIKE`). Installata via ADB la 2203, dati
+conservati. Sul Galaxy la vista 2 settimane mostra le celle nuove (pallino e
+titolo). Gli altri controlli a video sono stati interrotti perché l'utente
+stava usando il telefono: due tocchi ADB sono finiti su WhatsApp, senza
+effetti (nessuna chiamata attiva in `dumpsys telecom`, campo messaggio
+vuoto). Da qui in poi non si tocca lo schermo senza conferma.
+Vista settimana, attività in agenda, Ripeti e ricerca eventi non sono ancora
+stati provati sul dispositivo.
+
 ## Modifica, vista 2 settimane e fuso — builds 201–202
 
 `make check` superato (285 test, 26 in `test/agenda_test.dart`);
