@@ -92,8 +92,26 @@ adb -s IP_LOCALE:PORTA tcpip 5555
 s21-adb
 ```
 
-Per questo fallback Mac e telefono devono essere sulla stessa LAN, Debug wireless
-attivo e il Mac già associato. Ripetere il pairing solo se richiesto, senza
+Verificato il 3 ottobre 2026: anche Debug wireless funziona **via Tailscale**,
+senza mDNS né stessa LAN. Il telefono deve comunque essere su una rete Wi-Fi
+qualsiasi, perché Android disattiva Debug wireless su rete mobile. Sintomo del
+riavvio: `s21-adb` riporta `Connection refused` (tailnet raggiungibile, porta
+5555 chiusa). Procedura usata:
+
+1. trovare le porte aperte del telefono sull'IP Tailscale con una scansione TCP
+   delle porte 30000–49999 (porta di connessione e, con la finestra di
+   associazione aperta, porta di pairing);
+2. se `adb connect` resta `offline`, il Mac non è più associato: aprire
+   **Associa dispositivo con codice di accoppiamento** e lanciare
+   `adb pair <ip-tailscale>:<porta-pairing> <codice>` (codice mai salvato);
+3. `adb connect <ip-tailscale>:<porta>`, poi
+   `adb -s <ip-tailscale>:<porta> tcpip 5555` e `s21-adb`.
+
+Dopo il passo 3 si può tornare su rete mobile: la 5555 resta attiva fino al
+prossimo riavvio.
+
+Per il fallback su LAN Mac e telefono devono essere sulla stessa rete, Debug
+wireless attivo e il Mac già associato. Ripetere il pairing solo se richiesto, senza
 salvare il codice temporaneo. Non richiedere root o modifiche a proprietà protette.
 
 ## Fallback: connessione Debug wireless sulla LAN

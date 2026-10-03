@@ -2,6 +2,24 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## ADB ripristinato e Agenda collaudata — builds 192–193
+
+ADB era chiuso sulla 5555 dopo un riavvio Android. Ripristinato via Tailscale:
+Debug wireless su Wi-Fi, nuovo pairing con codice, `adb tcpip 5555`, poi
+`s21-adb` connesso su IPv6 (procedura in
+[ADB_WIFI](docs/operations/ADB_WIFI.md)). Sul Galaxy la 2191 risultava già
+installata dall'utente; `dumpsys jobscheduler` mostra un solo job WorkManager
+del package `.dev`, coerente con la pulizia di Movimento. Il provider calendario
+espone 29 calendari: due account Outlook KCL sono sincronizzati, nessun
+account SLaM/NHS.
+La 192 elenca anche i calendari nascosti dal sistema, spenti di default; la 193
+non ripete i nomi uguali dei calendari di provenienza. `make check` superato
+(269 test). `make todo-test` ha installato via ADB la 2192 e la 2193 con dati
+conservati. Verificato con screenshot: Agenda in navigazione, 12 di 29
+calendari, eventi di oggi e domani, festività su due calendari unita in una
+riga con nome singolo, selettore con calendari KCL attivi e Google secondari
+spenti. Non ancora provati il pulsante Teams e l'apertura di un evento.
+
 ## Agenda unificata — build 191
 
 Nuova sezione Agenda Android in sola lettura sul calendario di sistema

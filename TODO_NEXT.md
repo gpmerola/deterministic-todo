@@ -4,9 +4,11 @@
 
 - [x] Agenda Android in sola lettura su calendari di sistema, duplicati uniti,
   link Teams/Zoom/Meet, calendari nascondibili; 2191 sul manifest rolling.
-- [ ] Sul Galaxy: in Outlook attivare **Sincronizza calendari** per ogni account
-  KCL/SLaM, poi verificare che compaiano in Agenda e che una riunione presente
-  su due account appaia una volta.
+- [x] Galaxy 2193 via ADB: Agenda, selettore e unione dei duplicati verificati;
+  i due account KCL Outlook sono visibili.
+- [ ] Account SLaM/NHS assente dal provider: aggiungerlo a Outlook con
+  **Sincronizza calendari**, oppure verificare se Intune lo blocca.
+- [ ] Provare pulsante Teams e apertura di un evento su una riunione reale.
 - [ ] Passo successivo: opzione esplicita per attività "Mostra in agenda"
   (colonna sincronizzata + migrazione Supabase approvata).
 
