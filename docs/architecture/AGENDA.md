@@ -28,10 +28,19 @@ quell'account non compare; non esiste un aggiramento lato app.
   `app_settings.agenda_calendar_choices`, una mappa `{id: mostrato}`. La build
   191 usava `agenda_hidden_calendars`, letta una volta come "nascosti". Gli ID
   sono locali al dispositivo e non vengono sincronizzati.
-- **Lettura su richiesta.** Nessun polling né worker: l'agenda interroga il
-  provider all'apertura, al ritorno in primo piano mentre è visibile, al
-  pull-to-refresh e quando si estende la finestra. La finestra iniziale è di 14
-  giorni da oggi e cresce di 14 alla volta.
+- **Viste.** Dalla build 194 la vista predefinita è **Mese**: griglie mensili
+  con lunedì come primo giorno, da 12 mesi indietro a 36 avanti, che scorrono in
+  verticale come in Google Calendar. Ogni cella mostra fino a tre eventi colorati
+  dal calendario, o due più «+N»; i giorni passati sono attenuati. Toccare un
+  giorno apre il dettaglio con orari, luoghi e pulsante riunione. **Oggi**
+  riporta al mese corrente. **Elenco** è la vista per giorni delle build
+  191–193. La scelta è salvata in `app_settings.agenda_view_mode`.
+- **Lettura su richiesta.** Nessun polling né worker. Nella vista Mese ogni mese
+  interroga il provider solo quando viene costruito sullo schermo, e il
+  risultato resta in memoria finché la vista non si ricarica. Si ricarica
+  all'apertura, al ritorno in primo piano mentre è visibile, al
+  pull-to-refresh e al cambio di calendari. L'Elenco parte da 14 giorni e cresce
+  di 14 alla volta.
 - **Calendari.** Sono elencati tutti, ordinati per account e nome. Una scelta
   esplicita in **Calendari** prevale; altrimenti vale la visibilità impostata
   nell'app calendario del telefono, quindi i calendari che il telefono nasconde
@@ -59,5 +68,6 @@ una colonna sincronizzata e una migrazione Supabase.
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
 - `lib/services/agenda_service.dart`: permessi, provider, calendari nascosti.
-- `lib/ui/views/agenda_view.dart`: vista, selettore calendari, etichette orarie.
+- `lib/ui/views/agenda_view.dart`: vista, Elenco, selettore calendari, etichette.
+- `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
 - `test/agenda_test.dart`: regressioni della logica e della vista.

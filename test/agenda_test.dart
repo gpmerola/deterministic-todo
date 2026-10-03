@@ -263,6 +263,7 @@ void main() {
         DateTime(2026, 10, 6, 22),
       ),
     ]);
+    await service.saveViewMode(AgendaViewMode.list);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -276,7 +277,7 @@ void main() {
     expect(find.text('09:00–10:00'), findsOneWidget);
     expect(find.text('Teams'), findsOneWidget);
     expect(find.text('Cena'), findsOneWidget);
-    expect(find.text('3 di 3 calendari'), findsOneWidget);
+    expect(find.text('3/3 calendari'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
     await tester.pumpAndSettle();
@@ -290,13 +291,75 @@ void main() {
     await tester.tap(find.text('Applica'));
     await tester.pumpAndSettle();
     expect(find.text('Cena'), findsNothing);
-    expect(find.text('2 di 3 calendari'), findsOneWidget);
+    expect(find.text('2/3 calendari'), findsOneWidget);
     expect(await service.calendarChoices(), {
       'kcl': true,
       'gmail': false,
       'slam': true,
     });
     expect(service.requestedCalendars.last, ['kcl', 'slam']);
+  });
+
+  testWidgets('la vista mese mostra la griglia e apre il giorno', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, [
+      event(
+        'k1',
+        'kcl',
+        'Supervisione',
+        DateTime(2026, 10, 5, 9),
+        DateTime(2026, 10, 5, 10),
+        description: 'https://teams.microsoft.com/l/meetup-join/abc',
+      ),
+      for (var hour = 8; hour < 13; hour++)
+        event(
+          'busy$hour',
+          'kcl',
+          'Clinica $hour',
+          DateTime(2026, 10, 7, hour),
+          DateTime(2026, 10, 7, hour, 30),
+        ),
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: service, today: first),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Ottobre 2026'), findsOneWidget);
+    expect(find.text('L'), findsOneWidget);
+    final monday = find.byKey(const ValueKey('agenda-day-2026-10-05'));
+    expect(
+      find.descendant(of: monday, matching: find.text('Supervisione')),
+      findsOneWidget,
+    );
+    // Five events, three slots: two chips and "+3".
+    final busy = find.byKey(const ValueKey('agenda-day-2026-10-07'));
+    expect(find.descendant(of: busy, matching: find.text('+3')), findsOne);
+    expect(
+      find.descendant(of: busy, matching: find.text('Clinica 8')),
+      findsOne,
+    );
+
+    await tester.tap(monday);
+    await tester.pumpAndSettle();
+    expect(find.text('09:00–10:00'), findsOneWidget);
+    expect(find.text('Teams'), findsOneWidget);
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.view_agenda_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('Oggi · Lunedì 5 ottobre'), findsOneWidget);
+    expect(await service.viewMode(), AgendaViewMode.list);
   });
 
   testWidgets('chiede il permesso senza leggere calendari', (tester) async {
@@ -317,7 +380,7 @@ void main() {
 
     await tester.tap(find.text('Consenti accesso al calendario'));
     await tester.pumpAndSettle();
-    expect(find.text('3 di 3 calendari'), findsOneWidget);
+    expect(find.text('3/3 calendari'), findsOneWidget);
   });
 }
 

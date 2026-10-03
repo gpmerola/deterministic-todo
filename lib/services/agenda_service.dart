@@ -7,6 +7,8 @@ import '../domain/agenda.dart';
 
 enum AgendaAccess { granted, askable, denied }
 
+enum AgendaViewMode { month, list }
+
 /// Read-only access to every calendar the Android system provider holds,
 /// including Outlook/Exchange accounts synced by their own apps. Events are
 /// read on demand and never stored, logged or synchronised.
@@ -16,6 +18,8 @@ class AgendaService {
 
   /// `{calendarId: shown}` chosen in Agenda; device-local, never synced.
   static const calendarChoicesKey = 'agenda_calendar_choices';
+
+  static const viewModeKey = 'agenda_view_mode';
 
   /// Build 191 stored only hidden IDs; read once as explicit "hidden" choices.
   static const legacyHiddenCalendarsKey = 'agenda_hidden_calendars';
@@ -132,5 +136,21 @@ class AgendaService {
             ),
           ),
         ),
+      );
+
+  /// Month grid unless the list was chosen explicitly.
+  Future<AgendaViewMode> viewMode() async {
+    final row = await (_database.select(
+      _database.appSettings,
+    )..where((setting) => setting.key.equals(viewModeKey))).getSingleOrNull();
+    return row?.value == AgendaViewMode.list.name
+        ? AgendaViewMode.list
+        : AgendaViewMode.month;
+  }
+
+  Future<void> saveViewMode(AgendaViewMode mode) => _database
+      .into(_database.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(key: viewModeKey, value: mode.name),
       );
 }

@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.45.0 (build 194) — Todo Test
+
+- Agenda ha una vista **Mese**, ora predefinita, simile a Google Calendar.
+  Griglie mensili dal lunedì scorrono in verticale da un anno indietro a tre
+  anni avanti. Ogni giorno mostra fino a tre eventi colorati per calendario,
+  o «+N»; toccandolo si apre il dettaglio. **Oggi** riporta al mese corrente e
+  il pulsante accanto torna all'**Elenco**. I mesi leggono il calendario solo
+  quando compaiono sullo schermo.
+
 ## 2.44.2 (build 193) — Todo Test
 
 - In Agenda un evento unito da calendari con lo stesso nome (per esempio

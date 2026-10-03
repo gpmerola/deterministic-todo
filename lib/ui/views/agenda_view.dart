@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
+import 'agenda_month_view.dart';
 
 /// Read-only agenda that merges every calendar the phone already syncs
 /// (Google, Outlook/Exchange work accounts…). Android only.
@@ -28,6 +29,11 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   Set<String> hidden = const {};
   List<AgendaDay> days = const [];
   int dayCount = AgendaView.pageDays;
+  AgendaViewMode mode = AgendaViewMode.month;
+
+  /// Bumped on every successful reload so month grids drop cached events.
+  int revision = 0;
+  final monthScroll = ScrollController();
   bool loading = true;
   bool failed = false;
   int _generation = 0;
@@ -54,6 +60,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    monthScroll.dispose();
     super.dispose();
   }
 
@@ -73,29 +80,24 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         });
         return;
       }
+      final nextMode = await widget.service.viewMode();
       final nextCalendars = await widget.service.calendars();
       final nextHidden = hiddenAgendaCalendars(
         nextCalendars,
         await widget.service.calendarChoices(),
       );
-      final start = widget.today.asLocalDate;
-      final end = widget.today.addDays(dayCount).asLocalDate;
-      final events = await widget.service.events(start, end, [
-        for (final calendar in nextCalendars)
-          if (!nextHidden.contains(calendar.id)) calendar.id,
-      ]);
+      // The month view reads each month itself; only the list needs a window.
+      final nextDays = nextMode == AgendaViewMode.list
+          ? await _readDays(nextCalendars, nextHidden, widget.today, dayCount)
+          : days;
       if (!mounted || generation != _generation) return;
       setState(() {
         access = nextAccess;
+        mode = nextMode;
         calendars = nextCalendars;
         hidden = nextHidden;
-        days = buildAgenda(
-          events: events,
-          calendars: nextCalendars,
-          hiddenCalendarIds: nextHidden,
-          first: widget.today,
-          days: dayCount,
-        );
+        days = nextDays;
+        revision++;
         loading = false;
       });
     } catch (_) {
@@ -105,6 +107,44 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         loading = false;
         failed = true;
       });
+    }
+  }
+
+  Future<List<AgendaDay>> _readDays(
+    List<AgendaCalendar> calendars,
+    Set<String> hidden,
+    CivilDate first,
+    int count,
+  ) async {
+    final events = await widget.service
+        .events(first.asLocalDate, first.addDays(count).asLocalDate, [
+          for (final calendar in calendars)
+            if (!hidden.contains(calendar.id)) calendar.id,
+        ]);
+    return buildAgenda(
+      events: events,
+      calendars: calendars,
+      hiddenCalendarIds: hidden,
+      first: first,
+      days: count,
+    );
+  }
+
+  Future<void> _setMode(AgendaViewMode next) async {
+    if (next == mode) return;
+    await widget.service.saveViewMode(next);
+    await _load();
+  }
+
+  void _scrollToToday() {
+    if (monthScroll.hasClients) {
+      unawaited(
+        monthScroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        ),
+      );
     }
   }
 
@@ -177,44 +217,75 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     final names = {
       for (final calendar in calendars) calendar.id: calendar.name,
     };
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.builder(
-        key: const PageStorageKey('agenda-list'),
-        padding: const EdgeInsets.only(bottom: 24),
-        itemCount: days.length + 2,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _AgendaHeader(
-              visible: calendars.length - hidden.length,
-              total: calendars.length,
-              loading: loading,
-              onChoose: _chooseCalendars,
-            );
-          }
-          if (index == days.length + 1) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: OutlinedButton(
-                key: const ValueKey('agenda-load-more'),
-                onPressed: () {
-                  dayCount += AgendaView.pageDays;
-                  unawaited(_load());
-                },
-                child: const Text('Mostra altri 14 giorni'),
-              ),
-            );
-          }
-          final day = days[index - 1];
-          return _AgendaDaySection(
-            day: day,
+    final header = _AgendaHeader(
+      visible: calendars.length - hidden.length,
+      total: calendars.length,
+      loading: loading,
+      mode: mode,
+      onMode: (next) => unawaited(_setMode(next)),
+      onToday: mode == AgendaViewMode.month ? _scrollToToday : null,
+      onChoose: _chooseCalendars,
+    );
+    Widget dayDetail(BuildContext context, AgendaDay day) => ListView(
+      shrinkWrap: true,
+      children: [
+        _AgendaDaySection(
+          day: day,
+          today: widget.today,
+          colors: colors,
+          names: names,
+          onOpen: (entry) {
+            Navigator.of(context).pop();
+            unawaited(_open(entry));
+          },
+        ),
+      ],
+    );
+    final body = mode == AgendaViewMode.month
+        ? AgendaMonthView(
             today: widget.today,
+            revision: revision,
+            controller: monthScroll,
             colors: colors,
-            names: names,
-            onOpen: _open,
+            loadDays: (first, count) =>
+                _readDays(calendars, hidden, first, count),
+            dayBuilder: dayDetail,
+          )
+        : ListView.builder(
+            key: const PageStorageKey('agenda-list'),
+            padding: const EdgeInsets.only(bottom: 24),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: days.length + 1,
+            itemBuilder: (context, index) {
+              if (index == days.length) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: OutlinedButton(
+                    key: const ValueKey('agenda-load-more'),
+                    onPressed: () {
+                      dayCount += AgendaView.pageDays;
+                      unawaited(_load());
+                    },
+                    child: const Text('Mostra altri 14 giorni'),
+                  ),
+                );
+              }
+              return _AgendaDaySection(
+                day: days[index],
+                today: widget.today,
+                colors: colors,
+                names: names,
+                onOpen: _open,
+              );
+            },
           );
-        },
-      ),
+    return Column(
+      children: [
+        header,
+        Expanded(
+          child: RefreshIndicator(onRefresh: _load, child: body),
+        ),
+      ],
     );
   }
 }
@@ -224,24 +295,56 @@ class _AgendaHeader extends StatelessWidget {
     required this.visible,
     required this.total,
     required this.loading,
+    required this.mode,
+    required this.onMode,
+    required this.onToday,
     required this.onChoose,
   });
 
   final int visible;
   final int total;
   final bool loading;
+  final AgendaViewMode mode;
+  final ValueChanged<AgendaViewMode> onMode;
+  final VoidCallback? onToday;
   final VoidCallback onChoose;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+    padding: const EdgeInsets.fromLTRB(12, 4, 4, 0),
     child: Row(
       children: [
+        SegmentedButton<AgendaViewMode>(
+          key: const ValueKey('agenda-mode'),
+          showSelectedIcon: false,
+          style: const ButtonStyle(visualDensity: VisualDensity.compact),
+          segments: const [
+            ButtonSegment(
+              value: AgendaViewMode.month,
+              icon: Icon(Icons.calendar_view_month, size: 18),
+              tooltip: 'Mese',
+            ),
+            ButtonSegment(
+              value: AgendaViewMode.list,
+              icon: Icon(Icons.view_agenda_outlined, size: 18),
+              tooltip: 'Elenco',
+            ),
+          ],
+          selected: {mode},
+          onSelectionChanged: (value) => onMode(value.single),
+        ),
+        if (onToday != null)
+          TextButton(
+            key: const ValueKey('agenda-today'),
+            onPressed: onToday,
+            child: const Text('Oggi'),
+          ),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             total == 0
                 ? 'Nessun calendario sul telefono'
-                : '$visible di $total calendari',
+                : '$visible/$total calendari',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

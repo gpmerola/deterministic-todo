@@ -99,7 +99,8 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 
 ## Agenda (Android)
 
-La sezione **Agenda** riunisce in una sola lista tutti i calendari che il
+La sezione **Agenda** riunisce, in una vista mensile come Google Calendar o in
+un elenco per giorni, tutti i calendari che il
 telefono già sincronizza: Google e gli account Microsoft 365 aggiunti all'app
 Outlook con **Sincronizza calendari** attivo. Todo non si collega agli account
 e non serve alcuna approvazione IT. L'agenda è di sola lettura: toccando un
