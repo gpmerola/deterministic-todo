@@ -2,6 +2,19 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Agenda veloce — build 196
+
+Causa della lentezza alla riapertura: la vista ripartiva da zero a ogni
+navigazione, e il plugin calendario eseguiva due query extra per evento
+(partecipanti, promemoria) trasferendo l'HTML completo degli inviti. Ora una
+query nativa `Instances` per intervallo (`AgendaChannel`) e cache in memoria
+con rilettura in background. `make check` superato (272 test) e
+`AgendaChannelTest` 2/2. Tutte le varianti Android compilano. `make todo-test`
+ha installato via ADB la 2196 con dati conservati. Sul Galaxy, uno screenshot
+250 ms dopo il tocco su Agenda, tornando da Oggi, mostra la griglia di ottobre
+già popolata; logcat senza errori. Condivisione SLaM verso KCL rifiutata da
+Outlook Web («couldn't be sent»); la pubblicazione consente solo libero/occupato.
+
 ## Agenda vista Mese — builds 194–195
 
 `make check` superato (270 test, 11 in `test/agenda_test.dart`, incluso un test

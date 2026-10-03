@@ -7,9 +7,10 @@
 - [x] Galaxy 2193 via ADB: Agenda, selettore e unione dei duplicati verificati;
   i due account KCL Outlook sono visibili.
 - [x] Vista Mese stile Google Calendar (194–195) verificata sul Galaxy.
-- [ ] SLaM: Outlook gestito da Intune accetta un solo account (KCL). Provare la
-  condivisione del calendario SLaM verso l'account KCL da Outlook Web; in
-  alternativa valutare la sottoscrizione ICS pubblicata.
+- [x] Riapertura istantanea e query nativa unica (196), verificate sul Galaxy.
+- [ ] SLaM: condivisione esterna bloccata e pubblicazione solo libero/occupato.
+  Proposto all'utente di abbonare l'ICS libero/occupato da Google Calendar.
+  Lettura ICS nell'app solo se l'aggiornamento di Google è troppo lento.
 - [ ] Provare pulsante Teams e apertura di un evento su una riunione reale.
 - [ ] Passo successivo: opzione esplicita per attività "Mostra in agenda"
   (colonna sincronizzata + migrazione Supabase approvata).
