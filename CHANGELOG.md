@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.44.2 (build 193) — Todo Test
+
+- In Agenda un evento unito da calendari con lo stesso nome (per esempio
+  "Holidays in Italy" su due account) mostra il nome una volta sola.
+
 ## 2.44.1 (build 192) — Todo Test
 
 - **Calendari** in Agenda elenca anche i calendari che l'app calendario del

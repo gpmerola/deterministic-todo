@@ -178,6 +178,17 @@ void main() {
     expect(agendaTimeLabel(days[0].entries.first, first), 'Tutto il giorno');
   });
 
+  test('non ripete i nomi dei calendari di provenienza', () {
+    expect(
+      agendaCalendarLabel(['Holidays in Italy', 'Holidays in Italy']),
+      'Holidays in Italy',
+    );
+    expect(
+      agendaCalendarLabel(['Calendario', '', 'Calendar']),
+      'Calendario · Calendar',
+    );
+  });
+
   test('riconosce Zoom e Meet e ignora testo senza link', () {
     MeetingLink? link(String text) => findMeetingLink(
       event('x', 'kcl', 't', DateTime(2026), DateTime(2026), location: text),

@@ -348,7 +348,7 @@ class AgendaEntryTile extends StatelessWidget {
     final subtitle = [
       if (entry.location != null && entry.location!.trim().isNotEmpty)
         entry.location!.trim(),
-      calendarNames.where((name) => name.isNotEmpty).join(' · '),
+      agendaCalendarLabel(calendarNames),
     ].where((part) => part.isNotEmpty).join('\n');
     final meeting = entry.meeting;
     return InkWell(
@@ -409,6 +409,11 @@ class AgendaEntryTile extends StatelessWidget {
     );
   }
 }
+
+/// Source calendars without repeats: two accounts often share a holiday
+/// calendar with the same name.
+String agendaCalendarLabel(List<String> names) =>
+    names.where((name) => name.isNotEmpty).toSet().join(' · ');
 
 /// "Tutto il giorno", "09:00–10:30", or the part inside [day] for events
 /// crossing midnight ("dalle 22:00", "fino 02:00").
