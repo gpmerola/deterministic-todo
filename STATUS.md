@@ -2,6 +2,15 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Spazio ai giorni e orario compatto — build 204
+
+`make check` superato (293 test, 34 in `test/agenda_test.dart`, compresi
+l'intestazione in un'unica riga con il menu Cerca/Impostazioni e
+`compactTime`). Per non disturbare l'utente, che stava usando il telefono, la
+2204 è stata pubblicata sul manifest rolling con `make todo-test-remote`,
+senza installazione ADB: l'utente aggiorna dall'app. Non ancora vista sul
+dispositivo.
+
 ## Attività in agenda, settimana, ripeti, ricerca — build 203
 
 `make check` superato (291 test, 32 in `test/agenda_test.dart`):
