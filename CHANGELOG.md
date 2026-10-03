@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.46.0 (build 197) — Todo Test
+
+- Filtri dell'Agenda in **Calendari**: **Nascondi inviti senza risposta**
+  toglie le riunioni mai accettate né rifiutate (gli eventi tratteggiati di
+  Outlook, come i broadcast). Un elenco di parole, per esempio «Live
+  Broadcast» o «Tentative», nasconde gli eventi che le contengono nel titolo.
+  I filtri restano solo sul telefono.
+- Toccare un giorno nella vista Mese apre una vista giorno come Google
+  Calendar: 24 ore in scala con i vuoti proporzionali, sovrapposizioni
+  affiancate, linea dell'ora attuale e scorrimento laterale tra i giorni.
+
 ## 2.45.2 (build 196) — Todo Test
 
 - Agenda più veloce. Gli eventi si leggono con una sola query nativa per

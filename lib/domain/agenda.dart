@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'task.dart';
 
 /// A calendar the Android system provider exposes (Google, Outlook/Exchange…).
@@ -43,6 +45,7 @@ final class AgendaSourceEvent {
     this.description,
     this.url,
     this.canceled = false,
+    this.unanswered = false,
   });
 
   final String instanceId;
@@ -57,6 +60,35 @@ final class AgendaSourceEvent {
   final String? description;
   final String? url;
   final bool canceled;
+
+  /// Invitation never accepted or declined (Outlook's dashed events).
+  final bool unanswered;
+}
+
+/// What the user chose to hide, on top of hidden calendars. Local only.
+final class AgendaFilter {
+  const AgendaFilter({
+    this.hideUnanswered = false,
+    this.hiddenWords = const [],
+  });
+
+  static const none = AgendaFilter();
+
+  final bool hideUnanswered;
+
+  /// Case-insensitive substrings of the title, e.g. "Live Broadcast".
+  final List<String> hiddenWords;
+
+  bool get isActive => hideUnanswered || hiddenWords.isNotEmpty;
+
+  bool hides(AgendaSourceEvent event) {
+    if (hideUnanswered && event.unanswered) return true;
+    final title = event.title.toLowerCase();
+    return hiddenWords.any(
+      (word) =>
+          word.trim().isNotEmpty && title.contains(word.trim().toLowerCase()),
+    );
+  }
 }
 
 /// An entry shown once even when the same meeting is in several calendars.
@@ -130,6 +162,7 @@ List<AgendaDay> buildAgenda({
   required Set<String> hiddenCalendarIds,
   required CivilDate first,
   required int days,
+  AgendaFilter filter = AgendaFilter.none,
 }) {
   final calendarOrder = {
     for (final (index, calendar) in calendars.indexed) calendar.id: index,
@@ -139,6 +172,7 @@ List<AgendaDay> buildAgenda({
           .where(
             (event) =>
                 !event.canceled &&
+                !filter.hides(event) &&
                 calendarOrder.containsKey(event.calendarId) &&
                 !hiddenCalendarIds.contains(event.calendarId),
           )
@@ -241,4 +275,98 @@ AgendaSourceEvent agendaEventFromRow(Map<Object?, Object?> row) =>
       location: row['location'] as String?,
       description: row['links'] as String?,
       canceled: row['canceled'] as bool? ?? false,
+      unanswered: row['unanswered'] as bool? ?? false,
     );
+
+/// An entry placed on a one-day timeline, in minutes from local midnight.
+final class TimelineBlock {
+  const TimelineBlock({
+    required this.entry,
+    required this.startMinute,
+    required this.endMinute,
+    required this.column,
+    required this.columns,
+  });
+
+  final AgendaEntry entry;
+  final int startMinute;
+  final int endMinute;
+
+  /// Side-by-side slot among overlapping blocks, 0-based, of [columns].
+  final int column;
+  final int columns;
+}
+
+/// Lays out the timed entries of [day] like a calendar day view: clipped to
+/// the day, at least [minMinutes] tall, overlapping ones in side-by-side
+/// columns. All-day entries are left to the caller.
+List<TimelineBlock> layoutDayTimeline(
+  List<AgendaEntry> entries,
+  CivilDate day, {
+  int minMinutes = 20,
+}) {
+  final dayStart = day.asLocalDate;
+  final dayEnd = day.addDays(1).asLocalDate;
+  // Wall-clock minutes, so a DST day still maps 00:00–24:00 to the grid.
+  int minuteOf(DateTime moment) {
+    if (!moment.isAfter(dayStart)) return 0;
+    if (!moment.isBefore(dayEnd)) return 24 * 60;
+    return moment.hour * 60 + moment.minute;
+  }
+
+  final placed =
+      [
+        for (final entry in entries)
+          if (!entry.allDay)
+            (
+              entry: entry,
+              start: minuteOf(entry.start),
+              end: minuteOf(entry.end),
+            ),
+      ]..sort((a, b) {
+        final byStart = a.start.compareTo(b.start);
+        return byStart != 0 ? byStart : b.end.compareTo(a.end);
+      });
+
+  final result = <TimelineBlock>[];
+  var cluster = <({AgendaEntry entry, int start, int end, int column})>[];
+  var clusterEnd = -1;
+  void flush() {
+    final columns = cluster.fold(
+      0,
+      (max, item) => item.column + 1 > max ? item.column + 1 : max,
+    );
+    for (final item in cluster) {
+      result.add(
+        TimelineBlock(
+          entry: item.entry,
+          startMinute: item.start,
+          endMinute: item.end,
+          column: item.column,
+          columns: columns,
+        ),
+      );
+    }
+    cluster = [];
+  }
+
+  for (final item in placed) {
+    final start = item.start.clamp(0, 24 * 60 - minMinutes);
+    final end = math.min(math.max(item.end, start + minMinutes), 24 * 60);
+    if (cluster.isNotEmpty && start >= clusterEnd) {
+      flush();
+      clusterEnd = -1;
+    }
+    // First column whose blocks have all ended by [start].
+    var column = 0;
+    while (cluster.any(
+      (other) => other.column == column && other.end > start,
+    )) {
+      column++;
+    }
+    cluster.add((entry: item.entry, start: start, end: end, column: column));
+    clusterEnd = math.max(clusterEnd, end);
+  }
+  if (cluster.isNotEmpty) flush();
+  return result;
+}

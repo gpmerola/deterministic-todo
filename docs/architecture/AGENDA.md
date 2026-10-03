@@ -59,6 +59,26 @@ quell'account non compare; non esiste un aggiramento lato app.
   intera) appare una volta. Il colore viene dal primo calendario nell'ordine
   sopra, e sotto il titolo sono elencati tutti i calendari di provenienza.
 - **Annullati.** Le occorrenze con stato `canceled` non sono mostrate.
+- **Filtri (build 197).** Si impostano in **Calendari** e sono salvati in
+  `app_settings.agenda_filter`, solo sul dispositivo. **Nascondi inviti senza
+  risposta** esclude le occorrenze con `SELF_ATTENDEE_STATUS = INVITED`, cioè
+  gli eventi tratteggiati di Outlook (broadcast e simili). Gli inviti accettati,
+  provvisori o creati da te restano. **Nascondi eventi che contengono…**
+  esclude i titoli che contengono una delle parole, senza distinguere le
+  maiuscole. Con il libero/occupato SLaM pubblicato su Google i blocchi senza
+  risposta hanno titolo «Tentative»: la parola «Tentative» li nasconde. I filtri
+  si applicano prima dell'unione dei duplicati; con un filtro attivo l'icona di
+  **Calendari** diventa un imbuto.
+- **Vista giorno (build 197).** Toccare un giorno nella vista Mese apre una
+  pagina con le 24 ore in scala (64 dp per ora), così i vuoti tra gli impegni
+  sono proporzionali. Gli eventi sovrapposti vanno in colonne affiancate, con
+  durata minima visibile di 20 minuti; gli eventi a cavallo della mezzanotte
+  sono tagliati al giorno; quelli di giornata intera stanno in alto. La pagina
+  si apre poco prima del primo impegno, oppure intorno all'ora attuale se il
+  giorno è vuoto. Oggi ha una linea dell'ora corrente. Scorrendo in orizzontale
+  si passa al giorno precedente o successivo. Un blocco di almeno un'ora mostra
+  «Partecipa · Teams/Zoom/Meet». Il calcolo è `layoutDayTimeline`, puro e
+  testato.
 - **Riunioni online.** Il primo link Teams (`teams.microsoft.com/l/meetup-join`,
   `teams.microsoft.com/meet`, `teams.live.com/meet`), Zoom (`*.zoom.us/j/`) o
   Google Meet trovato in URL, luogo o descrizione diventa un pulsante che apre
@@ -79,5 +99,6 @@ una colonna sincronizzata e una migrazione Supabase.
 - `lib/services/agenda_service.dart`: permessi, provider, calendari nascosti.
 - `lib/ui/views/agenda_view.dart`: vista, Elenco, selettore calendari, etichette.
 - `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
+- `lib/ui/views/agenda_day_view.dart`: vista giorno in scala.
 - `android/app/.../AgendaChannel.java`: query nativa e riduzione ai link.
 - `test/agenda_test.dart` e `AgendaChannelTest.java`: regressioni.

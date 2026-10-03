@@ -4,6 +4,7 @@ import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
+import 'package:deterministic_todo/ui/views/agenda_day_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -353,15 +354,220 @@ void main() {
 
     await tester.tap(monday);
     await tester.pumpAndSettle();
+    expect(find.text('Lunedì 5 ottobre 2026'), findsOneWidget);
     expect(find.text('09:00–10:00'), findsOneWidget);
-    expect(find.text('Teams'), findsOneWidget);
-    await tester.tapAt(const Offset(20, 20));
+    expect(find.text('Partecipa · Teams'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.view_agenda_outlined));
     await tester.pumpAndSettle();
     expect(find.text('Oggi · Lunedì 5 ottobre'), findsOneWidget);
     expect(await service.viewMode(), AgendaViewMode.list);
+  });
+
+  AgendaEntry entryAt(String id, int startHour, int startMinute, int minutes) {
+    final start = DateTime(2026, 10, 5, startHour, startMinute);
+    return AgendaEntry(
+      instanceId: id,
+      calendarIds: const ['kcl'],
+      title: id,
+      start: start,
+      end: start.add(Duration(minutes: minutes)),
+      allDay: false,
+    );
+  }
+
+  test('impagina la giornata in proporzione e affianca le sovrapposte', () {
+    final blocks = layoutDayTimeline([
+      entryAt('a', 9, 0, 60),
+      entryAt('b', 9, 30, 60),
+      entryAt('c', 10, 0, 30),
+      entryAt('d', 14, 0, 0),
+      AgendaEntry(
+        instanceId: 'night',
+        calendarIds: const ['kcl'],
+        title: 'night',
+        start: DateTime(2026, 10, 5, 23),
+        end: DateTime(2026, 10, 6, 2),
+        allDay: false,
+      ),
+      AgendaEntry(
+        instanceId: 'allday',
+        calendarIds: const ['kcl'],
+        title: 'allday',
+        start: DateTime(2026, 10, 5),
+        end: DateTime(2026, 10, 6),
+        allDay: true,
+      ),
+    ], first);
+    final byId = {for (final block in blocks) block.entry.instanceId: block};
+    expect(byId.keys, ['a', 'b', 'c', 'd', 'night']);
+    expect((byId['a']!.startMinute, byId['a']!.endMinute), (540, 600));
+    // a and b overlap; c starts when a ends and reuses its column.
+    expect(
+      (byId['a']!.column, byId['b']!.column, byId['c']!.column),
+      (0, 1, 0),
+    );
+    expect(byId['a']!.columns, 2);
+    expect(byId['c']!.columns, 2);
+    // Zero-length events still get a visible minimum height.
+    expect((byId['d']!.startMinute, byId['d']!.endMinute), (840, 860));
+    expect(byId['d']!.columns, 1);
+    // Crossing midnight is clipped to the day.
+    expect(
+      (byId['night']!.startMinute, byId['night']!.endMinute),
+      (1380, 1440),
+    );
+  });
+
+  test('filtra inviti senza risposta e parole, senza maiuscole', () {
+    final days = buildAgenda(
+      events: [
+        event(
+          'b',
+          'kcl',
+          'All Staff Live Broadcast',
+          DateTime(2026, 10, 5, 13, 30),
+          DateTime(2026, 10, 5, 14),
+        ),
+        AgendaSourceEvent(
+          instanceId: 't',
+          calendarId: 'kcl',
+          title: 'Tentative',
+          start: DateTime(2026, 10, 5, 9),
+          end: DateTime(2026, 10, 5, 10),
+          allDay: false,
+          unanswered: true,
+        ),
+        event(
+          'r',
+          'kcl',
+          'Ward round',
+          DateTime(2026, 10, 5, 11),
+          DateTime(2026, 10, 5, 12),
+        ),
+      ],
+      calendars: const [kcl],
+      hiddenCalendarIds: const {},
+      filter: const AgendaFilter(
+        hideUnanswered: true,
+        hiddenWords: ['live broadcast', '  '],
+      ),
+      first: first,
+      days: 1,
+    );
+    expect(days.single.entries.map((entry) => entry.title), ['Ward round']);
+    expect(const AgendaFilter(hiddenWords: ['x']).isActive, isTrue);
+    expect(AgendaFilter.none.isActive, isFalse);
+  });
+
+  test('ricorda i filtri solo in locale', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = AgendaService(db);
+    expect((await service.filter()).isActive, isFalse);
+    await service.saveFilter(
+      const AgendaFilter(hideUnanswered: true, hiddenWords: ['Live Broadcast']),
+    );
+    final restored = await AgendaService(db).filter();
+    expect(restored.hideUnanswered, isTrue);
+    expect(restored.hiddenWords, ['Live Broadcast']);
+  });
+
+  testWidgets('la vista giorno mostra i vuoti in proporzione', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final days = [
+      AgendaDay(first, [
+        entryAt('early', 9, 0, 30),
+        entryAt('late', 11, 0, 60),
+      ]),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AgendaDayPage(
+          initialDay: first,
+          today: first,
+          loadDays: (_, _) async => days,
+          peekDays: (_, _) => days,
+          colors: const {},
+          onOpen: (_) async {},
+          now: () => DateTime(2026, 10, 5, 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final early = tester.getTopLeft(
+      find.byKey(const ValueKey('agenda-block-early')),
+    );
+    final late = tester.getTopLeft(
+      find.byKey(const ValueKey('agenda-block-late')),
+    );
+    // Two hours apart on the clock: two hour-heights apart on screen.
+    expect(late.dy - early.dy, closeTo(2 * AgendaDayPage.hourHeight, 0.5));
+    final earlySize = tester.getSize(
+      find.byKey(const ValueKey('agenda-block-early')),
+    );
+    expect(earlySize.height, closeTo(AgendaDayPage.hourHeight / 2 - 2, 0.5));
+  });
+
+  testWidgets('il filtro si imposta dal selettore calendari', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, [
+      AgendaSourceEvent(
+        instanceId: 'u',
+        calendarId: 'kcl',
+        title: 'Tentative',
+        start: DateTime(2026, 10, 5, 9),
+        end: DateTime(2026, 10, 5, 10),
+        allDay: false,
+        unanswered: true,
+      ),
+      event(
+        'b',
+        'kcl',
+        'Live Broadcast: live from X',
+        DateTime(2026, 10, 5, 13),
+        DateTime(2026, 10, 5, 14),
+      ),
+      event(
+        'k',
+        'kcl',
+        'Supervisione',
+        DateTime(2026, 10, 5, 15),
+        DateTime(2026, 10, 5, 16),
+      ),
+    ]);
+    await service.saveViewMode(AgendaViewMode.list);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: service, today: first),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Tentative'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-hide-unanswered')));
+    await tester.enterText(
+      find.byKey(const ValueKey('agenda-hidden-word')),
+      'live broadcast',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Applica'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tentative'), findsNothing);
+    expect(find.text('Live Broadcast: live from X'), findsNothing);
+    expect(find.text('Supervisione'), findsOneWidget);
+    expect(find.byIcon(Icons.filter_alt), findsOneWidget);
+    expect((await service.filter()).hiddenWords, ['live broadcast']);
   });
 
   test('legge le righe native senza descrizioni complete', () {

@@ -15,7 +15,7 @@ class AgendaMonthView extends StatefulWidget {
     required this.loadDays,
     required this.peekDays,
     required this.colors,
-    required this.dayBuilder,
+    required this.onOpenDay,
     this.controller,
     super.key,
   });
@@ -32,8 +32,8 @@ class AgendaMonthView extends StatefulWidget {
   final List<AgendaDay>? Function(CivilDate first, int days) peekDays;
   final Map<String, Color?> colors;
 
-  /// Detail of one day, shown in a bottom sheet when a cell is tapped.
-  final Widget Function(BuildContext context, AgendaDay day) dayBuilder;
+  /// Opens the day view for a tapped cell.
+  final ValueChanged<CivilDate> onOpenDay;
   final ScrollController? controller;
 
   static const monthsBack = 12;
@@ -122,17 +122,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
       days: days ?? const [],
       colors: widget.colors,
       failed: _failed.contains(offset),
-      onDay: (day) => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (sheetContext) => ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.75,
-          ),
-          child: widget.dayBuilder(sheetContext, day),
-        ),
-      ),
+      onDay: (day) => widget.onOpenDay(day.date),
     );
   }
 

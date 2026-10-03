@@ -22,6 +22,9 @@ class AgendaService {
 
   static const viewModeKey = 'agenda_view_mode';
 
+  /// `{"hide_unanswered": bool, "words": [String]}`; device-local.
+  static const filterKey = 'agenda_filter';
+
   /// Build 191 stored only hidden IDs; read once as explicit "hidden" choices.
   static const legacyHiddenCalendarsKey = 'agenda_hidden_calendars';
 
@@ -35,6 +38,7 @@ class AgendaService {
   List<AgendaCalendar>? lastCalendars;
   Map<String, bool>? lastChoices;
   AgendaViewMode? lastMode;
+  AgendaFilter? lastFilter;
   final Map<String, List<AgendaSourceEvent>> _events = {};
   static const _maxCachedRanges = 64;
 
@@ -183,4 +187,43 @@ class AgendaService {
       .insertOnConflictUpdate(
         AppSettingsCompanion.insert(key: viewModeKey, value: mode.name),
       );
+
+  Future<AgendaFilter> filter() async {
+    final row = await (_database.select(
+      _database.appSettings,
+    )..where((setting) => setting.key.equals(filterKey))).getSingleOrNull();
+    var result = AgendaFilter.none;
+    if (row != null) {
+      try {
+        final decoded = jsonDecode(row.value) as Map;
+        result = AgendaFilter(
+          hideUnanswered: decoded['hide_unanswered'] as bool? ?? false,
+          hiddenWords: [
+            for (final word in decoded['words'] as List? ?? const [])
+              word as String,
+          ],
+        );
+      } on FormatException {
+        result = AgendaFilter.none;
+      } on TypeError {
+        result = AgendaFilter.none;
+      }
+    }
+    return lastFilter = result;
+  }
+
+  Future<void> saveFilter(AgendaFilter filter) {
+    lastFilter = filter;
+    return _database
+        .into(_database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: filterKey,
+            value: jsonEncode({
+              'hide_unanswered': filter.hideUnanswered,
+              'words': filter.hiddenWords,
+            }),
+          ),
+        );
+  }
 }

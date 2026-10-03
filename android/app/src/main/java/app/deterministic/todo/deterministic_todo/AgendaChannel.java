@@ -44,6 +44,7 @@ public final class AgendaChannel {
         CalendarContract.Instances.ALL_DAY,
         CalendarContract.Instances.STATUS,
         CalendarContract.Instances.RRULE,
+        CalendarContract.Instances.SELF_ATTENDEE_STATUS,
     };
 
     private AgendaChannel() {}
@@ -113,6 +114,9 @@ public final class AgendaChannel {
                 row.put("allDay", allDay);
                 row.put("canceled", !cursor.isNull(8)
                     && cursor.getInt(8) == CalendarContract.Events.STATUS_CANCELED);
+                // Invited and never answered: Outlook's dashed events.
+                row.put("unanswered", !cursor.isNull(10)
+                    && cursor.getInt(10) == CalendarContract.Attendees.ATTENDEE_STATUS_INVITED);
                 rows.add(row);
             }
         }

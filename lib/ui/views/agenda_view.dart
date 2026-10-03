@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
+import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 
 /// Read-only agenda that merges every calendar the phone already syncs
@@ -27,6 +28,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   AgendaAccess? access;
   List<AgendaCalendar> calendars = const [];
   Set<String> hidden = const {};
+  AgendaFilter filter = AgendaFilter.none;
   List<AgendaDay> days = const [];
   int dayCount = AgendaView.pageDays;
   AgendaViewMode mode = AgendaViewMode.month;
@@ -82,6 +84,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         return;
       }
       final nextMode = await widget.service.viewMode();
+      final nextFilter = await widget.service.filter();
       final nextCalendars = await widget.service.calendars();
       final nextHidden = hiddenAgendaCalendars(
         nextCalendars,
@@ -89,7 +92,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       );
       // The month view reads each month itself; only the list needs a window.
       final nextDays = nextMode == AgendaViewMode.list
-          ? await _readDays(nextCalendars, nextHidden, widget.today, dayCount)
+          ? await _readDays(
+              nextCalendars,
+              nextHidden,
+              nextFilter,
+              widget.today,
+              dayCount,
+            )
           : days;
       if (!mounted || generation != _generation) return;
       setState(() {
@@ -97,6 +106,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         mode = nextMode;
         calendars = nextCalendars;
         hidden = nextHidden;
+        filter = nextFilter;
         days = nextDays;
         revision++;
         loading = false;
@@ -120,6 +130,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     access = AgendaAccess.granted;
     calendars = cachedCalendars;
     hidden = hiddenAgendaCalendars(cachedCalendars, cachedChoices);
+    filter = service.lastFilter ?? AgendaFilter.none;
     mode = service.lastMode ?? AgendaViewMode.month;
     days = _peekDays(widget.today, dayCount) ?? const [];
   }
@@ -135,6 +146,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       events: events,
       calendars: calendars,
       hiddenCalendarIds: hidden,
+      filter: filter,
       first: first,
       days: count,
     );
@@ -143,6 +155,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   Future<List<AgendaDay>> _readDays(
     List<AgendaCalendar> calendars,
     Set<String> hidden,
+    AgendaFilter filter,
     CivilDate first,
     int count,
   ) async {
@@ -155,6 +168,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       events: events,
       calendars: calendars,
       hiddenCalendarIds: hidden,
+      filter: filter,
       first: first,
       days: count,
     );
@@ -187,18 +201,22 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 
   Future<void> _chooseCalendars() async {
-    final selection = await showModalBottomSheet<Set<String>>(
+    final selection = await showModalBottomSheet<AgendaPickerResult>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) =>
-          AgendaCalendarPicker(calendars: calendars, hidden: hidden),
+      builder: (_) => AgendaCalendarPicker(
+        calendars: calendars,
+        hidden: hidden,
+        filter: filter,
+      ),
     );
     if (selection == null) return;
     await widget.service.saveCalendarChoices({
       for (final calendar in calendars)
-        calendar.id: !selection.contains(calendar.id),
+        calendar.id: !selection.hidden.contains(calendar.id),
     });
+    await widget.service.saveFilter(selection.filter);
     await _load();
   }
 
@@ -252,24 +270,25 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       total: calendars.length,
       loading: loading,
       mode: mode,
+      filtered: filter.isActive,
       onMode: (next) => unawaited(_setMode(next)),
       onToday: mode == AgendaViewMode.month ? _scrollToToday : null,
       onChoose: _chooseCalendars,
     );
-    Widget dayDetail(BuildContext context, AgendaDay day) => ListView(
-      shrinkWrap: true,
-      children: [
-        _AgendaDaySection(
-          day: day,
-          today: widget.today,
-          colors: colors,
-          names: names,
-          onOpen: (entry) {
-            Navigator.of(context).pop();
-            unawaited(_open(entry));
-          },
+    void openDay(CivilDate day) => unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AgendaDayPage(
+            initialDay: day,
+            today: widget.today,
+            loadDays: (first, count) =>
+                _readDays(calendars, hidden, filter, first, count),
+            peekDays: _peekDays,
+            colors: colors,
+            onOpen: (entry) => widget.service.openEvent(entry.instanceId),
+          ),
         ),
-      ],
+      ),
     );
     final body = mode == AgendaViewMode.month
         ? AgendaMonthView(
@@ -278,9 +297,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             controller: monthScroll,
             colors: colors,
             loadDays: (first, count) =>
-                _readDays(calendars, hidden, first, count),
+                _readDays(calendars, hidden, filter, first, count),
             peekDays: _peekDays,
-            dayBuilder: dayDetail,
+            onOpenDay: openDay,
           )
         : ListView.builder(
             key: const PageStorageKey('agenda-list'),
@@ -327,6 +346,7 @@ class _AgendaHeader extends StatelessWidget {
     required this.total,
     required this.loading,
     required this.mode,
+    this.filtered = false,
     required this.onMode,
     required this.onToday,
     required this.onChoose,
@@ -336,6 +356,7 @@ class _AgendaHeader extends StatelessWidget {
   final int total;
   final bool loading;
   final AgendaViewMode mode;
+  final bool filtered;
   final ValueChanged<AgendaViewMode> onMode;
   final VoidCallback? onToday;
   final VoidCallback onChoose;
@@ -381,7 +402,7 @@ class _AgendaHeader extends StatelessWidget {
             child: TextButton.icon(
               key: const ValueKey('agenda-choose-calendars'),
               onPressed: total == 0 ? null : onChoose,
-              icon: const Icon(Icons.tune, size: 18),
+              icon: Icon(filtered ? Icons.filter_alt : Icons.tune, size: 18),
               // Count inside the button, ellipsised with large fonts.
               label: Text(
                 overflow: TextOverflow.ellipsis,
@@ -566,15 +587,23 @@ String agendaTimeLabel(AgendaEntry entry, CivilDate day) {
   return 'Tutto il giorno';
 }
 
+final class AgendaPickerResult {
+  const AgendaPickerResult(this.hidden, this.filter);
+  final Set<String> hidden;
+  final AgendaFilter filter;
+}
+
 class AgendaCalendarPicker extends StatefulWidget {
   const AgendaCalendarPicker({
     required this.calendars,
     required this.hidden,
+    this.filter = AgendaFilter.none,
     super.key,
   });
 
   final List<AgendaCalendar> calendars;
   final Set<String> hidden;
+  final AgendaFilter filter;
 
   @override
   State<AgendaCalendarPicker> createState() => _AgendaCalendarPickerState();
@@ -582,11 +611,85 @@ class AgendaCalendarPicker extends StatefulWidget {
 
 class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   late final Set<String> hidden = {...widget.hidden};
+  late bool hideUnanswered = widget.filter.hideUnanswered;
+  late final List<String> words = [...widget.filter.hiddenWords];
+  final wordInput = TextEditingController();
+
+  @override
+  void dispose() {
+    wordInput.dispose();
+    super.dispose();
+  }
+
+  void _addWord() {
+    final word = wordInput.text.trim();
+    if (word.isEmpty) return;
+    setState(() {
+      if (!words.any((w) => w.toLowerCase() == word.toLowerCase())) {
+        words.add(word);
+      }
+      wordInput.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final rows = <Widget>[];
+    final rows = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Text('Filtri', style: theme.textTheme.labelLarge),
+      ),
+      SwitchListTile(
+        key: const ValueKey('agenda-hide-unanswered'),
+        value: hideUnanswered,
+        title: const Text('Nascondi inviti senza risposta'),
+        subtitle: const Text(
+          'Riunioni a cui non hai accettato né rifiutato, come i broadcast',
+        ),
+        onChanged: (value) => setState(() => hideUnanswered = value),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('agenda-hidden-word'),
+                controller: wordInput,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _addWord(),
+                decoration: const InputDecoration(
+                  labelText: 'Nascondi eventi che contengono…',
+                  hintText: 'es. Live Broadcast',
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Aggiungi parola',
+              onPressed: _addWord,
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+      ),
+      if (words.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final word in words)
+                InputChip(
+                  label: Text(word),
+                  onDeleted: () => setState(() => words.remove(word)),
+                ),
+            ],
+          ),
+        ),
+      const Divider(height: 24),
+    ];
     String? account;
     for (final calendar in widget.calendars) {
       if (calendar.accountName != account) {
@@ -637,7 +740,20 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
               child: Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton(
-                  onPressed: () => Navigator.pop(context, hidden),
+                  onPressed: () {
+                    // A word typed but not yet added still counts.
+                    _addWord();
+                    Navigator.pop(
+                      context,
+                      AgendaPickerResult(
+                        hidden,
+                        AgendaFilter(
+                          hideUnanswered: hideUnanswered,
+                          hiddenWords: List.unmodifiable(words),
+                        ),
+                      ),
+                    );
+                  },
                   child: const Text('Applica'),
                 ),
               ),
