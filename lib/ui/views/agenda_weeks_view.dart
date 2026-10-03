@@ -45,7 +45,18 @@ class AgendaWeeksView extends StatefulWidget {
 }
 
 class _AgendaWeeksViewState extends State<AgendaWeeksView> {
+  /// Starts on the current fortnight when no controller is given.
+  late final PageController _ownController = PageController(
+    initialPage: AgendaWeeksView.pagesBack,
+  );
   final Map<int, List<AgendaDay>> _pages = {};
+
+  @override
+  void dispose() {
+    _ownController.dispose();
+    super.dispose();
+  }
+
   final Set<int> _loading = {};
   final Set<int> _failed = {};
   final Set<int> _stale = {};
@@ -99,7 +110,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
   @override
   Widget build(BuildContext context) => PageView.builder(
     key: const PageStorageKey('agenda-weeks'),
-    controller: widget.controller,
+    controller: widget.controller ?? _ownController,
     scrollDirection: Axis.vertical,
     itemCount: AgendaWeeksView.pagesBack + AgendaWeeksView.pagesAhead,
     itemBuilder: (context, page) {
@@ -257,7 +268,6 @@ class AgendaFortnight extends StatelessWidget {
                     for (final entry in entries.take(shown))
                       AgendaChip(
                         entry: entry,
-                        showTime: true,
                         color:
                             colors[entry.calendarIds.first] ??
                             theme.colorScheme.primary,

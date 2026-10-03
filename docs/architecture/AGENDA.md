@@ -66,6 +66,17 @@ quell'account non compare; non esiste un aggiramento lato app.
   diverso, il dettaglio aggiunge «Orario originale 13:00–14:00 Europe/Rome»,
   calcolato in Java. I nuovi eventi usano il fuso del sistema. Se Android non
   lo riconosce, l'interfaccia lo dice invece di indovinare.
+- **Settimana (build 203).** Sette colonne con le ore in scala (48 dp per
+  ora), come la vista giorno: i buchi liberi della settimana si vedono a
+  colpo d'occhio. Gli eventi di giornata intera e le attività stanno in una
+  fascia in alto (al massimo due righe, poi «+N»). Scorrendo in orizzontale si
+  cambia settimana, da un anno indietro a tre avanti. Toccando un evento si apre
+  il dettaglio, toccando l'intestazione di un giorno la vista giorno, toccando
+  uno spazio libero un nuovo evento alla mezz'ora toccata.
+- **Celle (build 203).** Nelle viste 2 settimane e Mese gli eventi di giornata
+  intera hanno lo sfondo del colore del calendario; quelli con orario hanno un
+  pallino colorato e il titolo, senza orario, così il titolo ha tutta la
+  larghezza. Le attività hanno una casella di spunta.
 - **2 settimane (build 201, predefinita).** Due settimane dal lunedì riempiono
   lo schermo, così ogni giorno ha spazio per più eventi, con l'ora d'inizio
   davanti al titolo. Scorrendo in verticale si passa alla quindicina
@@ -128,9 +139,40 @@ quell'account non compare; non esiste un aggiramento lato app.
   eventi a cavallo della mezzanotte mostrano «dalle 22:00» o «fino 02:00».
 - **Piattaforme.** Solo Android. Sul Web la sezione non è mostrata.
 
-Le attività Todo non compaiono ancora nell'agenda. Il passo successivo previsto
-è un'opzione esplicita per singola attività ("Mostra in agenda"), che richiede
-una colonna sincronizzata e una migrazione Supabase.
+## Attività Todo nell'agenda (build 203)
+
+Nel menu ⋮ dell'editor di un'attività (solo Android) si attiva **Mostra in
+Agenda**. L'attività compare nel giorno della sua data come voce di giornata
+intera, dopo gli eventi, con una casella di spunta (barrata se completata).
+Toccandola si apre l'editor. Per un'attività di una serie ricorrente il flag
+vale per l'intera serie (`series:<id>`), così ogni occorrenza compare. Senza
+data l'attività non compare finché non ne riceve una.
+
+Il flag è **solo locale**: `app_settings.agenda_task_links`, un elenco di
+`task:<id>` e `series:<id>`. L'Agenda esiste solo su Android, mentre una
+colonna sincronizzata avrebbe richiesto una migrazione Supabase e modifiche
+al codice di sincronizzazione. Viaggia con i backup; non passa da Supabase.
+
+## Ricorrenza nella creazione (build 203)
+
+Il modulo **Nuovo evento** ha **Ripeti**: non si ripete, ogni giorno, giorni
+feriali (lun–ven), ogni settimana nello stesso giorno, ogni mese nello stesso
+giorno, ogni anno nella stessa data. Si può aggiungere **Fino al**, con
+l'ultimo giorno incluso (UNTIL alla fine di quel giorno, in UTC). La regola
+passa al plugin come `RecurrenceRule` (`AgendaService.recurrenceRuleFor`).
+Modificando una serie esistente la regola resta quella attuale.
+
+## Ricerca unificata (build 203)
+
+Il comando universale (lente) mostra, dopo le attività, una sezione
+**Eventi**: titoli che contengono il testo, almeno 2 caratteri, nei calendari
+mostrati nell'Agenda, con i filtri applicati. L'intervallo va da un anno
+indietro a due avanti. È una sola query nativa (`instances` con
+`titleQuery`, `LIKE` con caratteri jolly protetti), al massimo 200 righe; poi
+si mostrano i 30 risultati più vicini, prima i prossimi e poi i passati più
+recenti. Toccando un risultato si apre lo stesso dettaglio dell'Agenda. Nulla
+viene salvato. I filtri della ricerca (Oggi, Senza data, …) riguardano solo
+le attività e nascondono la sezione Eventi.
 
 ## Codice e test
 
@@ -140,6 +182,10 @@ una colonna sincronizzata e una migrazione Supabase.
 - `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
 - `lib/ui/views/agenda_day_view.dart`: vista giorno in scala.
 - `lib/ui/views/agenda_weeks_view.dart`: vista a 2 settimane.
+- `lib/ui/views/agenda_week_view.dart`: vista settimana a colonne.
+- `lib/ui/views/agenda_event_flows.dart`: dettaglio, creazione, modifica ed
+  eliminazione condivisi da viste e ricerca.
+- `lib/services/agenda_tasks.dart`: flag locali «Mostra in agenda».
 - `lib/ui/views/agenda_event_sheet.dart` e `agenda_event_editor.dart`:
   dettaglio, creazione, modifica ed eliminazione.
 - `android/app/.../AgendaChannel.java`: query nativa e riduzione ai link.

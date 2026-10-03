@@ -31,6 +31,11 @@ public final class AgendaChannelTest {
         assertNull(AgendaChannel.eventZoneTimes(begin, end, null, london));
     }
 
+    @Test public void escapesLikeWildcards() {
+        assertEquals("100\\% sicuro\\_x\\\\y", AgendaChannel.likeEscape("100% sicuro_x\\y"));
+        assertEquals("Ward round", AgendaChannel.likeEscape("Ward round"));
+    }
+
     @Test public void deviceZoneIsIanaWithOffset() {
         var value = AgendaChannel.deviceZone(ZoneId.of("Europe/London"),
             java.time.Instant.parse("2026-10-03T12:00:00Z"));

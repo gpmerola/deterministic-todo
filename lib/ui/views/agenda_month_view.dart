@@ -322,8 +322,9 @@ class AgendaMonthGrid extends StatelessWidget {
   }
 }
 
-/// One event in a grid cell, coloured by its calendar; [showTime] prefixes
-/// the start time of timed events.
+/// One entry in a grid cell, Google Calendar style: all-day events are
+/// filled with their calendar colour, timed events are a coloured dot and
+/// the title (so the title gets the whole width), Todo tasks a checkbox.
 class AgendaChip extends StatelessWidget {
   const AgendaChip({
     required this.entry,
@@ -332,6 +333,7 @@ class AgendaChip extends StatelessWidget {
     super.key,
   });
 
+  /// Prefixes the start time of timed events (only where space allows).
   final bool showTime;
 
   final AgendaEntry entry;
@@ -339,23 +341,81 @@ class AgendaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = color.computeLuminance() > 0.5
-        ? Colors.black87
-        : Colors.white;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 1.5),
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-      decoration: BoxDecoration(
-        color: entry.allDay ? color : color.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(3),
+    final theme = Theme.of(context);
+    final title = entry.title.isEmpty ? '(senza titolo)' : entry.title;
+    const style = TextStyle(fontSize: 10, height: 1.2);
+    Widget text(String value, Color textColor, {bool strike = false}) => Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.clip,
+      softWrap: false,
+      style: style.copyWith(
+        color: textColor,
+        decoration: strike ? TextDecoration.lineThrough : null,
       ),
-      child: Text(
-        '${showTime && !entry.allDay ? '${DateFormat.Hm('it').format(entry.start)} ' : ''}'
-        '${entry.title.isEmpty ? '(senza titolo)' : entry.title}',
-        maxLines: 1,
-        overflow: TextOverflow.clip,
-        softWrap: false,
-        style: TextStyle(fontSize: 10, height: 1.2, color: onColor),
+    );
+    if (entry.isTask) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 0.5),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.primary, width: 0.8),
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              entry.completed
+                  ? Icons.check_box_outlined
+                  : Icons.check_box_outline_blank,
+              size: 10,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 1),
+            Expanded(
+              child: text(
+                title,
+                theme.colorScheme.onSurface,
+                strike: entry.completed,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (entry.allDay) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
+        child: text(
+          title,
+          color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 1.5, top: 1),
+      child: Row(
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            margin: const EdgeInsets.only(right: 2, left: 1),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: text(
+              showTime
+                  ? '${DateFormat.Hm('it').format(entry.start)} $title'
+                  : title,
+              theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
       ),
     );
   }

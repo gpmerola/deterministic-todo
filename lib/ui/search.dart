@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:intl/intl.dart';
+
 import '../data/local/database.dart';
 import '../data/task_repository.dart';
+import '../domain/agenda.dart';
 import '../domain/quick_add_parser.dart';
 import '../domain/task.dart';
 import 'app_section.dart';
@@ -16,7 +19,16 @@ class TaskSearchDelegate extends SearchDelegate<void> {
     required this.onNavigate,
     required this.onCreate,
     required this.tileBuilder,
+    this.searchEvents,
+    this.openEvent,
   });
+
+  /// Android only: Agenda events matching the text, shown after the tasks.
+  final Future<List<AgendaEntry>> Function(String text)? searchEvents;
+  final Future<void> Function(BuildContext context, AgendaEntry entry)?
+  openEvent;
+  String? _eventsKey;
+  Future<List<AgendaEntry>>? _events;
   final TaskRepository repository;
   final ValueChanged<AppSection> onNavigate;
   final Future<void> Function(String raw) onCreate;
@@ -103,6 +115,10 @@ class TaskSearchDelegate extends SearchDelegate<void> {
               return ListView(
                 children: [
                   for (final task in results) tileBuilder(task),
+                  if (searchEvents != null &&
+                      _filters.isEmpty &&
+                      !rawQuery.startsWith('#'))
+                    _eventResults(context, rawQuery),
                   if (results.length >= TaskRepository.searchLimit)
                     Padding(
                       padding: const EdgeInsets.all(16),
@@ -118,6 +134,52 @@ class TaskSearchDelegate extends SearchDelegate<void> {
           ),
         ),
       ],
+    );
+  }
+
+  /// One provider query per distinct text; filters are task-only.
+  Widget _eventResults(BuildContext context, String text) {
+    if (text.length < 2) return const SizedBox.shrink();
+    if (text != _eventsKey) {
+      _eventsKey = text;
+      _events = searchEvents!(text);
+    }
+    return FutureBuilder<List<AgendaEntry>>(
+      future: _events,
+      builder: (context, snapshot) {
+        final events = snapshot.data ?? const <AgendaEntry>[];
+        if (events.isEmpty) return const SizedBox.shrink();
+        final theme = Theme.of(context);
+        final day = DateFormat('EEE d MMM yyyy', 'it');
+        final clock = DateFormat.Hm('it');
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                'Eventi',
+                key: const ValueKey('search-events-header'),
+                style: theme.textTheme.titleSmall,
+              ),
+            ),
+            for (final event in events)
+              ListTile(
+                key: ValueKey('search-event-${event.instanceId}'),
+                leading: const Icon(Icons.event_outlined),
+                title: Text(
+                  event.title.isEmpty ? '(senza titolo)' : event.title,
+                ),
+                subtitle: Text(
+                  event.allDay
+                      ? day.format(event.start)
+                      : '${day.format(event.start)} · ${clock.format(event.start)}',
+                ),
+                onTap: () => openEvent?.call(context, event),
+              ),
+          ],
+        );
+      },
     );
   }
 

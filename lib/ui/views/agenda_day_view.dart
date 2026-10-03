@@ -269,12 +269,23 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                 for (final entry in allDay)
                   ActionChip(
                     visualDensity: VisualDensity.compact,
+                    avatar: entry.isTask
+                        ? Icon(
+                            entry.completed
+                                ? Icons.check_box_outlined
+                                : Icons.check_box_outline_blank,
+                            size: 18,
+                          )
+                        : null,
                     backgroundColor:
                         widget.colors[entry.calendarIds.first] ??
                         theme.colorScheme.primaryContainer,
                     label: Text(
                       entry.title.isEmpty ? '(senza titolo)' : entry.title,
                       style: TextStyle(
+                        decoration: entry.completed
+                            ? TextDecoration.lineThrough
+                            : null,
                         color: _onColor(
                           widget.colors[entry.calendarIds.first] ??
                               theme.colorScheme.primaryContainer,

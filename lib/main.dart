@@ -20,12 +20,14 @@ import 'data/local/database.dart';
 import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
+import 'domain/agenda.dart';
 import 'domain/link_syntax.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
 import 'services/agenda_service.dart';
+import 'services/agenda_tasks.dart';
 import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
@@ -50,6 +52,7 @@ import 'ui/shell/civil_day_clock.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
+import 'ui/views/agenda_event_flows.dart';
 import 'ui/views/agenda_view.dart';
 import 'ui/views/empty_view_label.dart';
 import 'ui/views/projects_view.dart';
@@ -487,6 +490,22 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (value != null) await _setDailyStepGoal(value);
     },
   );
+
+  /// Task editor for a task shown in the Agenda.
+  Future<void> _openTaskById(String id) async {
+    final db = widget.repository.db;
+    final task = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (task == null || !mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => TaskEditor(task: task, repository: widget.repository),
+    );
+  }
 
   Future<void> _setDailyStepGoal(int value) async {
     final goal = await RunTrackerService.setStepGoal(value);
@@ -1065,10 +1084,42 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
+  /// Agenda flows built from what the service already knows, so search can
+  /// open the same event detail as the Agenda.
+  AgendaEventFlows _agendaFlows() {
+    final calendars = agendaService.lastCalendars ?? const <AgendaCalendar>[];
+    return AgendaEventFlows(
+      service: agendaService,
+      calendars: calendars,
+      hidden: hiddenAgendaCalendars(
+        calendars,
+        agendaService.lastChoices ?? const {},
+      ),
+      zone: agendaService.lastZoneLabel,
+      onOpenTask: _openTaskById,
+    );
+  }
+
   Future<void> _showUniversalCommand() => showSearch<void>(
     context: context,
     delegate: TaskSearchDelegate(
       widget.repository,
+      searchEvents: widget.enablePlatformServices && isAndroidPlatform
+          ? (text) async {
+              try {
+                final results = await agendaService.searchEvents(
+                  text,
+                  DateTime.now(),
+                );
+                // Zone for the detail sheet, as in the Agenda.
+                await agendaService.deviceZoneLabel();
+                return results;
+              } catch (_) {
+                return const [];
+              }
+            }
+          : null,
+      openEvent: (context, entry) => _agendaFlows().show(context, entry),
       tileBuilder: (task) => TaskTile(
         key: ValueKey('search-${task.id}'),
         task: task,
@@ -1107,7 +1158,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
     }
     if (section == AppSection.agenda) {
-      return AgendaView(service: agendaService, today: dayClock.today);
+      return AgendaView(
+        service: agendaService,
+        today: dayClock.today,
+        onOpenTask: _openTaskById,
+      );
     }
     if (section == AppSection.projects) {
       return ProjectsView(

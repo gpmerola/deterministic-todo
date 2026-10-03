@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.49.0 (build 203) — Todo Test
+
+- **Attività nell'Agenda.** Nel menu ⋮ di un'attività, **Mostra in Agenda**
+  la fa comparire nel suo giorno, con una casella di spunta; per le serie
+  ricorrenti vale per tutte le occorrenze. Il flag resta solo sul telefono.
+- **Vista settimana** a colonne con le ore in scala: si vedono subito i buchi
+  liberi. Toccando uno spazio libero si crea un evento in quell'orario.
+- **Celle più leggibili** nelle viste 2 settimane e Mese: niente orario
+  davanti al titolo. Gli eventi con orario hanno un pallino colorato, quelli
+  di giornata intera lo sfondo pieno.
+- **Ripeti** nel modulo nuovo evento (ogni giorno, giorni feriali, ogni
+  settimana, mese o anno), con data di fine facoltativa.
+- **Ricerca unificata.** La lente trova anche gli eventi dei calendari
+  mostrati nell'Agenda, prima i prossimi; toccandoli si apre il dettaglio.
+
 ## 2.48.1 (build 202) — Todo Test
 
 - Il pulsante dei calendari mostra solo icona e conteggio («8/30»): con tre

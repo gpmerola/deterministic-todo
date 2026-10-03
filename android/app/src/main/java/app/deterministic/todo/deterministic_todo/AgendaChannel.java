@@ -66,6 +66,7 @@ public final class AgendaChannel {
                 Number start = call.argument("start");
                 Number end = call.argument("end");
                 List<String> calendarIds = call.argument("calendarIds");
+                String titleQuery = call.argument("titleQuery");
                 if (start == null || end == null || calendarIds == null) {
                     result.error("invalid_range", "Missing range", null);
                     return;
@@ -74,7 +75,7 @@ public final class AgendaChannel {
                 IO.execute(() -> {
                     try {
                         List<Map<String, Object>> rows =
-                            instances(app, start.longValue(), end.longValue(), calendarIds);
+                            instances(app, start.longValue(), end.longValue(), calendarIds, titleQuery);
                         main.post(() -> result.success(rows));
                     } catch (SecurityException denied) {
                         main.post(() -> result.error("permission_denied", "Calendar access denied", null));
@@ -85,7 +86,11 @@ public final class AgendaChannel {
             });
     }
 
-    static List<Map<String, Object>> instances(Context context, long start, long end, List<String> calendarIds) {
+    /** Title search keeps at most this many rows; Dart orders and trims. */
+    static final int MAX_SEARCH_ROWS = 200;
+
+    static List<Map<String, Object>> instances(Context context, long start, long end,
+                                               List<String> calendarIds, String titleQuery) {
         List<Map<String, Object>> rows = new ArrayList<>();
         if (calendarIds.isEmpty() || end <= start) return rows;
         ZoneId zone = ZoneId.systemDefault();
@@ -97,12 +102,18 @@ public final class AgendaChannel {
         ContentUris.appendId(uri, queryStart);
         ContentUris.appendId(uri, queryEnd);
         String placeholders = String.join(",", java.util.Collections.nCopies(calendarIds.size(), "?"));
+        String selection = CalendarContract.Instances.CALENDAR_ID + " IN (" + placeholders + ")";
+        List<String> args = new ArrayList<>(calendarIds);
+        boolean search = titleQuery != null && !titleQuery.trim().isEmpty();
+        if (search) {
+            selection += " AND " + CalendarContract.Instances.TITLE + " LIKE ? ESCAPE '\\'";
+            args.add("%" + likeEscape(titleQuery.trim()) + "%");
+        }
         try (Cursor cursor = context.getContentResolver().query(uri.build(), PROJECTION,
-                CalendarContract.Instances.CALENDAR_ID + " IN (" + placeholders + ")",
-                calendarIds.toArray(new String[0]),
+                selection, args.toArray(new String[0]),
                 CalendarContract.Instances.BEGIN + " ASC")) {
             if (cursor == null) return rows;
-            while (cursor.moveToNext()) {
+            while (cursor.moveToNext() && (!search || rows.size() < MAX_SEARCH_ROWS)) {
                 long eventId = cursor.getLong(0);
                 long begin = cursor.getLong(5);
                 long finish = cursor.isNull(6) ? begin : cursor.getLong(6);
@@ -158,6 +169,11 @@ public final class AgendaChannel {
         if (zone.getRules().getOffset(start).equals(device.getRules().getOffset(start))) return null;
         java.time.format.DateTimeFormatter clock = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
         return clock.format(start.atZone(zone)) + "–" + clock.format(Instant.ofEpochMilli(end).atZone(zone));
+    }
+
+    /** User text is matched literally inside LIKE. */
+    static String likeEscape(String text) {
+        return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     /** Only URLs, so invite bodies never cross the channel. */

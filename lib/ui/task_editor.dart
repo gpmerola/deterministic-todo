@@ -36,6 +36,10 @@ class _TaskEditorState extends State<TaskEditor> {
   late String? projectSectionId = widget.task.sectionId;
   late int priority = widget.task.priority;
   bool dateExplicitlyCleared = false;
+
+  /// Local "Mostra in agenda" flag; see AgendaTaskLinks.
+  bool showInAgenda = false;
+  late final agendaLinks = AgendaTaskLinks(widget.repository.db);
   bool saving = false;
   bool allowClose = false;
   late Task baseline = widget.task;
@@ -66,6 +70,13 @@ class _TaskEditorState extends State<TaskEditor> {
   @override
   void initState() {
     super.initState();
+    if (isAndroidPlatform) {
+      unawaited(
+        agendaLinks.isShown(widget.task).then((shown) {
+          if (mounted) setState(() => showInAgenda = shown);
+        }),
+      );
+    }
     title.addListener(_onEditorTextChanged);
     notes.addListener(_onEditorTextChanged);
     showDate.addListener(_onEditorTextChanged);
@@ -609,6 +620,7 @@ class _TaskEditorState extends State<TaskEditor> {
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               if (value == 'calendar') _saveAndExportToCalendar();
+              if (value == 'agenda') unawaited(_toggleAgenda());
               if (value == 'history') {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -625,6 +637,13 @@ class _TaskEditorState extends State<TaskEditor> {
                 value: 'history',
                 child: Text('Storico attività'),
               ),
+              if (isAndroidPlatform)
+                CheckedPopupMenuItem(
+                  key: const ValueKey('task-show-in-agenda'),
+                  value: 'agenda',
+                  checked: showInAgenda,
+                  child: const Text('Mostra in Agenda'),
+                ),
               if (isAndroidPlatform)
                 const PopupMenuItem(
                   value: 'calendar',
@@ -644,6 +663,26 @@ class _TaskEditorState extends State<TaskEditor> {
               icon: const Icon(Icons.keyboard_arrow_down),
             ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _toggleAgenda() async {
+    final next = !showInAgenda;
+    await agendaLinks.setShown(widget.task, next);
+    if (!mounted) return;
+    setState(() => showInAgenda = next);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          next && showDate.text.isEmpty
+              ? 'Compare nell\'Agenda quando avrà una data.'
+              : next
+              ? widget.task.seriesId != null
+                    ? 'Tutta la serie compare nell\'Agenda.'
+                    : 'L\'attività compare nell\'Agenda.'
+              : 'Tolta dall\'Agenda.',
+        ),
       ),
     );
   }

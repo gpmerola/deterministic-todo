@@ -1,11 +1,17 @@
 import 'dart:async';
 
 import 'package:deterministic_todo/data/local/database.dart';
+import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
+import 'package:deterministic_todo/services/agenda_tasks.dart';
+import 'package:deterministic_todo/ui/search.dart';
 import 'package:deterministic_todo/ui/views/agenda_day_view.dart';
+import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
+import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -681,6 +687,306 @@ void main() {
     expect((await service.filter()).hiddenWords, ['live broadcast']);
   });
 
+  test(
+    'le attività segnate compaiono come giornata intera, serie compresa',
+    () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = TaskRepository(db, deviceId: 'synthetic-device');
+      final links = AgendaTaskLinks(db);
+      final single = await repo.create(
+        'Rinnovo passaporto',
+        showDate: '2026-10-06',
+      );
+      final other = await repo.create('Non in agenda', showDate: '2026-10-06');
+      final gone = await repo.create('Cancellata', showDate: '2026-10-07');
+      Future<Task> load(String id) =>
+          (db.select(db.tasks)..where((t) => t.id.equals(id))).getSingle();
+      await links.setShown(await load(single), true);
+      await links.setShown(await load(gone), true);
+      await repo.softDelete(await load(gone));
+      // A recurring series is flagged once for every occurrence.
+      await db
+          .into(db.tasks)
+          .insert(
+            (await load(other)).copyWith(
+              id: 'occ-1',
+              title: 'Terapia',
+              seriesId: const Value('series-a'),
+              showDate: const Value('2026-10-08'),
+            ),
+          );
+      await db
+          .into(db.tasks)
+          .insert(
+            (await load(other)).copyWith(
+              id: 'occ-2',
+              title: 'Terapia',
+              seriesId: const Value('series-a'),
+              showDate: const Value('2026-10-15'),
+            ),
+          );
+      await links.setShown(await load('occ-1'), true);
+      expect(await links.isShown(await load('occ-2')), isTrue);
+      expect(await links.isShown(await load(other)), isFalse);
+
+      final tasks = await links.tasksBetween(first, 14);
+      expect([for (final t in tasks) '${t.date} ${t.title}']..sort(), [
+        '2026-10-06 Rinnovo passaporto',
+        '2026-10-08 Terapia',
+        '2026-10-15 Terapia',
+      ]);
+      final day = buildAgenda(
+        events: [
+          event(
+            'e',
+            'kcl',
+            'Clinica',
+            DateTime(2026, 10, 6, 9),
+            DateTime(2026, 10, 6, 10),
+          ),
+        ],
+        tasks: tasks,
+        calendars: const [kcl],
+        hiddenCalendarIds: const {},
+        first: first.addDays(1),
+        days: 1,
+      ).single;
+      expect(day.entries.map((e) => e.title), [
+        'Rinnovo passaporto',
+        'Clinica',
+      ]);
+      expect(day.entries.first.isTask, isTrue);
+      expect(day.entries.first.allDay, isTrue);
+
+      await links.setShown(await load(single), false);
+      expect(await links.tasksBetween(first.addDays(1), 1), isEmpty);
+    },
+  );
+
+  test('traduce la ripetizione in regola RRULE con fine inclusiva', () {
+    AgendaEventDraft draft(AgendaRepeat repeat, {CivilDate? until}) =>
+        AgendaEventDraft(
+          calendarId: 'g',
+          title: 'Corso',
+          start: DateTime(2026, 10, 5, 9),
+          end: DateTime(2026, 10, 5, 10),
+          repeat: repeat,
+          repeatUntil: until,
+        );
+    expect(AgendaService.recurrenceRuleFor(draft(AgendaRepeat.none)), isNull);
+    expect(
+      AgendaService.recurrenceRuleFor(
+        draft(AgendaRepeat.daily),
+      )!.toRruleString(),
+      'FREQ=DAILY',
+    );
+    final weekdays = AgendaService.recurrenceRuleFor(
+      draft(AgendaRepeat.weekdays, until: const CivilDate(2026, 12, 18)),
+    )!.toRruleString();
+    expect(weekdays, contains('FREQ=WEEKLY'));
+    expect(weekdays, contains('BYDAY=MO,TU,WE,TH,FR'));
+    expect(weekdays, contains('UNTIL='));
+    expect(
+      agendaRepeatLabel(AgendaRepeat.weekly, DateTime(2026, 10, 5)),
+      'Ogni settimana di lunedì',
+    );
+    expect(
+      agendaRepeatLabel(AgendaRepeat.yearly, DateTime(2026, 10, 5)),
+      'Ogni anno il 5 ottobre',
+    );
+    expect(
+      draft(AgendaRepeat.daily, until: const CivilDate(2026, 10, 1)).problem,
+      isNotNull,
+    );
+  });
+
+  testWidgets('il modulo crea un evento ricorrente', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    AgendaEventDraft? result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              result = await Navigator.of(context).push<AgendaEventDraft>(
+                MaterialPageRoute(
+                  builder: (_) => AgendaEventEditor(
+                    calendars: const [
+                      AgendaCalendar(
+                        id: 'g',
+                        name: 'Personale',
+                        accountName: 'me@example.com',
+                        writable: true,
+                      ),
+                    ],
+                    initialStart: DateTime(2026, 10, 5, 9),
+                    zoneLabel: 'Europe/London · UTC+1',
+                  ),
+                ),
+              );
+            },
+            child: const Text('apri'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('apri'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('agenda-event-title')),
+      'Corso',
+    );
+    await tester.tap(find.byKey(const ValueKey('agenda-event-repeat')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ogni settimana di lunedì').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Senza fine'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agenda-event-save')));
+    await tester.pumpAndSettle();
+    expect(result?.repeat, AgendaRepeat.weekly);
+    expect(result?.repeatUntil, isNull);
+  });
+
+  testWidgets('la vista settimana mette le ore in scala per colonna', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final created = <DateTime>[];
+    final days = buildAgenda(
+      events: [
+        event(
+          'a',
+          'kcl',
+          'A',
+          DateTime(2026, 10, 6, 9),
+          DateTime(2026, 10, 6, 10),
+        ),
+        event(
+          'b',
+          'kcl',
+          'B',
+          DateTime(2026, 10, 6, 11),
+          DateTime(2026, 10, 6, 12),
+        ),
+      ],
+      calendars: const [kcl],
+      hiddenCalendarIds: const {},
+      first: first,
+      days: 7,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaWeekView(
+            today: first,
+            revision: 0,
+            loadDays: (_, _) async => days,
+            peekDays: (_, _) => days,
+            colors: const {},
+            onOpenDay: (_) {},
+            onOpen: (_) async {},
+            onCreate: (start) async => created.add(start),
+            now: () => DateTime(2026, 10, 5, 8),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('5 – 11 ottobre 2026'), findsOneWidget);
+    final a = tester.getTopLeft(
+      find.byKey(const ValueKey('agenda-week-block-a')),
+    );
+    final b = tester.getTopLeft(
+      find.byKey(const ValueKey('agenda-week-block-b')),
+    );
+    expect(b.dy - a.dy, closeTo(2 * AgendaWeekView.hourHeight, 0.5));
+    expect(b.dx, a.dx);
+    // Tuesday 10:15 is free: creates at 10:00 on that column.
+    await tester.tapAt(a.translate(10, AgendaWeekView.hourHeight * 1.25));
+    await tester.pumpAndSettle();
+    expect(created, [DateTime(2026, 10, 6, 10)]);
+  });
+
+  test('la ricerca mette prima i prossimi, poi i passati più recenti', () {
+    AgendaEntry at(String id, DateTime start) => AgendaEntry(
+      instanceId: id,
+      calendarIds: const ['kcl'],
+      title: id,
+      start: start,
+      end: start.add(const Duration(hours: 1)),
+      allDay: false,
+    );
+    final now = DateTime(2026, 10, 5, 12);
+    final ordered = orderSearchResults(
+      [
+        at('old', DateTime(2026, 1, 1, 9)),
+        at('later', DateTime(2026, 12, 1, 9)),
+        at('recent', DateTime(2026, 10, 1, 9)),
+        at('soon', DateTime(2026, 10, 6, 9)),
+      ],
+      now,
+      limit: 3,
+    );
+    expect(ordered.map((e) => e.instanceId), ['soon', 'later', 'recent']);
+  });
+
+  testWidgets('la ricerca mostra anche gli eventi', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = TaskRepository(db, deviceId: 'synthetic-device');
+    final opened = <String>[];
+    final queries = <String>[];
+    final delegate = TaskSearchDelegate(
+      repo,
+      onNavigate: (_) {},
+      onCreate: (_) async {},
+      tileBuilder: (task) => ListTile(title: Text(task.title)),
+      searchEvents: (text) async {
+        queries.add(text);
+        return [
+          AgendaEntry(
+            instanceId: '5',
+            calendarIds: const ['kcl'],
+            title: 'Ward round',
+            start: DateTime(2026, 10, 6, 9),
+            end: DateTime(2026, 10, 6, 10),
+            allDay: false,
+          ),
+        ];
+      },
+      openEvent: (_, entry) async => opened.add(entry.instanceId),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () =>
+                showSearch<void>(context: context, delegate: delegate),
+            child: const Text('cerca'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('cerca'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'ward');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('search-events-header')), findsOneWidget);
+    expect(find.text('Ward round'), findsOneWidget);
+    await tester.tap(find.text('Ward round'));
+    await tester.pumpAndSettle();
+    expect(opened, ['5']);
+    expect(queries, ['ward']);
+    // Let Drift's stream timers settle before the test ends.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   test('mostra il fuso sempre come IANA con lo scarto da UTC', () {
     expect(zoneLabel('Europe/London', 3600), 'Europe/London · UTC+1');
     expect(zoneLabel('Europe/London', 0), 'Europe/London · UTC');
@@ -722,8 +1028,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
     expect(find.text('Europe/London · UTC+1'), findsOneWidget);
-    expect(find.text('09:00 Supervisione'), findsOneWidget);
-    expect(find.text('08:30 Ward round'), findsOneWidget);
+    expect(find.text('Supervisione'), findsOneWidget);
+    expect(find.text('Ward round'), findsOneWidget);
     expect(await service.viewMode(), AgendaViewMode.twoWeeks);
 
     await tester.tap(find.byKey(const ValueKey('agenda-day-2026-10-05')));

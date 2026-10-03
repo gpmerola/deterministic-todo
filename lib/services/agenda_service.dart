@@ -5,11 +5,13 @@ import 'package:flutter/services.dart';
 
 import '../data/local/database.dart';
 import '../domain/agenda.dart';
+import '../domain/task.dart' show CivilDate;
+import 'agenda_tasks.dart';
 
 enum AgendaAccess { granted, askable, denied }
 
 /// Two weeks is the default: more room per day than a month grid.
-enum AgendaViewMode { twoWeeks, month, list }
+enum AgendaViewMode { week, twoWeeks, month, list }
 
 /// Access to every calendar the Android system provider holds, including
 /// Outlook/Exchange accounts synced by their own apps. Events are read on
@@ -44,6 +46,8 @@ class AgendaService {
   AgendaFilter? lastFilter;
   String? lastZoneLabel;
   final Map<String, List<AgendaSourceEvent>> _events = {};
+  final Map<String, List<AgendaTaskItem>> _tasks = {};
+  late final taskLinks = AgendaTaskLinks(_database);
   static const _maxCachedRanges = 64;
 
   static String _rangeKey(DateTime start, DateTime end, List<String> ids) =>
@@ -253,6 +257,7 @@ class AgendaService {
       isAllDay: draft.allDay,
       location: _blankToNull(draft.location),
       description: _blankToNull(draft.notes),
+      recurrenceRule: recurrenceRuleFor(draft),
     );
     _events.clear();
     await _database
@@ -346,5 +351,89 @@ class AgendaService {
       await _calendar.deleteEvent(eventId: instanceId);
     }
     _events.clear();
+  }
+
+  /// Todo tasks flagged "Mostra in agenda" in [first, first + days).
+  Future<List<AgendaTaskItem>> tasks(CivilDate first, int days) async {
+    final result = await taskLinks.tasksBetween(first, days);
+    if (_tasks.length >= _maxCachedRanges) _tasks.clear();
+    return _tasks['$first|$days'] = result;
+  }
+
+  List<AgendaTaskItem>? cachedTasks(CivilDate first, int days) =>
+      _tasks['$first|$days'];
+
+  /// Plugin rule for a new event's repetition; the weekday or day of month
+  /// is implicit from the start, as Android's calendar expects.
+  static RecurrenceRule? recurrenceRuleFor(AgendaEventDraft draft) {
+    final until = draft.repeatUntil;
+    // Inclusive last day: the end of that civil day, in UTC as RRULE wants.
+    final end = until == null
+        ? null
+        : UntilEnd(
+            DateTime(until.year, until.month, until.day, 23, 59, 59).toUtc(),
+          );
+    return switch (draft.repeat) {
+      AgendaRepeat.none => null,
+      AgendaRepeat.daily => DailyRecurrence(end: end),
+      AgendaRepeat.weekdays => WeeklyRecurrence(
+        daysOfWeek: const [
+          DayOfWeek.monday,
+          DayOfWeek.tuesday,
+          DayOfWeek.wednesday,
+          DayOfWeek.thursday,
+          DayOfWeek.friday,
+        ],
+        end: end,
+      ),
+      AgendaRepeat.weekly => WeeklyRecurrence(end: end),
+      AgendaRepeat.monthly => MonthlyByDate(end: end),
+      AgendaRepeat.yearly => YearlyByDate(end: end),
+    };
+  }
+
+  /// Events whose title contains [text] in the calendars shown in Agenda
+  /// (filters applied), from a year ago to two years ahead. Empty without
+  /// calendar access. Nothing is stored.
+  Future<List<AgendaEntry>> searchEvents(String text, DateTime now) async {
+    final query = text.trim();
+    if (query.length < 2 || await access() != AgendaAccess.granted) {
+      return const [];
+    }
+    final calendarList = lastCalendars ?? await calendars();
+    final hidden = hiddenAgendaCalendars(
+      calendarList,
+      lastChoices ?? await calendarChoices(),
+    );
+    final ids = [
+      for (final calendar in calendarList)
+        if (!hidden.contains(calendar.id)) calendar.id,
+    ];
+    if (ids.isEmpty) return const [];
+    final rows =
+        await _channel.invokeListMethod<Map<Object?, Object?>>('instances', {
+          'start': DateTime(
+            now.year - 1,
+            now.month,
+            now.day,
+          ).millisecondsSinceEpoch,
+          'end': DateTime(
+            now.year + 2,
+            now.month,
+            now.day,
+          ).millisecondsSinceEpoch,
+          'calendarIds': ids,
+          'titleQuery': query,
+        }) ??
+        const [];
+    return orderSearchResults(
+      mergeAgendaEntries(
+        events: [for (final row in rows) agendaEventFromRow(row)],
+        calendars: calendarList,
+        hiddenCalendarIds: hidden,
+        filter: lastFilter ?? await filter(),
+      ),
+      now,
+    );
   }
 }

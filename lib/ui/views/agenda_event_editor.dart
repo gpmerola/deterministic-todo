@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/task.dart' show CivilDate;
 
 /// Full-screen form for a new phone calendar event. Returns the draft, or
 /// null when dismissed; the caller writes it.
@@ -53,6 +54,8 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
       : day;
   late TimeOfDay startTime = TimeOfDay.fromDateTime(_start);
   late TimeOfDay endTime = TimeOfDay.fromDateTime(_end);
+  AgendaRepeat repeat = AgendaRepeat.none;
+  DateTime? repeatUntil;
   String? error;
 
   @override
@@ -88,7 +91,22 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
       allDay: allDay,
       location: location.text,
       notes: notes.text,
+      repeat: widget.existing == null ? repeat : AgendaRepeat.none,
+      repeatUntil: repeat == AgendaRepeat.none || repeatUntil == null
+          ? null
+          : CivilDate.fromDateTime(repeatUntil!),
     );
+  }
+
+  Future<void> _pickRepeatUntil() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: repeatUntil ?? day.add(const Duration(days: 30)),
+      firstDate: day,
+      lastDate: DateTime(day.year + 10),
+      helpText: 'Ripeti fino al',
+    );
+    if (picked != null) setState(() => repeatUntil = picked);
   }
 
   void _save() {
@@ -242,6 +260,49 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
                   ),
             onTap: allDay ? () => _pickDay(last: true) : null,
           ),
+          if (widget.existing == null) ...[
+            DropdownButtonFormField<AgendaRepeat>(
+              key: const ValueKey('agenda-event-repeat'),
+              initialValue: repeat,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Ripeti',
+                prefixIcon: Icon(Icons.repeat),
+              ),
+              items: [
+                for (final option in AgendaRepeat.values)
+                  DropdownMenuItem(
+                    value: option,
+                    child: Text(
+                      agendaRepeatLabel(option, day),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (value) =>
+                  setState(() => repeat = value ?? AgendaRepeat.none),
+            ),
+            if (repeat != AgendaRepeat.none)
+              ListTile(
+                key: const ValueKey('agenda-event-repeat-until'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event_busy_outlined),
+                title: Text(
+                  repeatUntil == null
+                      ? 'Senza fine'
+                      : 'Fino al ${dayFormat.format(repeatUntil!)}',
+                ),
+                trailing: repeatUntil == null
+                    ? null
+                    : IconButton(
+                        tooltip: 'Senza fine',
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() => repeatUntil = null),
+                      ),
+                onTap: _pickRepeatUntil,
+              ),
+            const SizedBox(height: 8),
+          ],
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(

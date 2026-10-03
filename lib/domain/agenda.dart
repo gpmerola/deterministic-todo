@@ -29,6 +29,45 @@ final class AgendaCalendar {
   final bool isGooglePrimary;
 }
 
+/// Repetition offered when creating an event, like Google Calendar's menu.
+enum AgendaRepeat { none, daily, weekdays, weekly, monthly, yearly }
+
+/// Italian label for [repeat], anchored on the event's [start] day.
+String agendaRepeatLabel(AgendaRepeat repeat, DateTime start) {
+  const weekdays = [
+    'lunedì',
+    'martedì',
+    'mercoledì',
+    'giovedì',
+    'venerdì',
+    'sabato',
+    'domenica',
+  ];
+  const months = [
+    'gennaio',
+    'febbraio',
+    'marzo',
+    'aprile',
+    'maggio',
+    'giugno',
+    'luglio',
+    'agosto',
+    'settembre',
+    'ottobre',
+    'novembre',
+    'dicembre',
+  ];
+  return switch (repeat) {
+    AgendaRepeat.none => 'Non si ripete',
+    AgendaRepeat.daily => 'Ogni giorno',
+    AgendaRepeat.weekdays => 'Giorni feriali (lun–ven)',
+    AgendaRepeat.weekly => 'Ogni settimana di ${weekdays[start.weekday - 1]}',
+    AgendaRepeat.monthly => 'Ogni mese il giorno ${start.day}',
+    AgendaRepeat.yearly =>
+      'Ogni anno il ${start.day} ${months[start.month - 1]}',
+  };
+}
+
 /// An event typed in Agenda, before it is written to a phone calendar.
 final class AgendaEventDraft {
   const AgendaEventDraft({
@@ -39,7 +78,15 @@ final class AgendaEventDraft {
     this.allDay = false,
     this.location,
     this.notes,
+    this.repeat = AgendaRepeat.none,
+    this.repeatUntil,
   });
+
+  /// Only for new events; editing keeps the series rule.
+  final AgendaRepeat repeat;
+
+  /// Last civil day of the series (inclusive), or forever when null.
+  final CivilDate? repeatUntil;
 
   final String calendarId;
   final String title;
@@ -56,6 +103,13 @@ final class AgendaEventDraft {
     if (title.trim().isEmpty) return 'Inserisci un titolo.';
     if (calendarId.isEmpty) return 'Scegli un calendario.';
     if (!end.isAfter(start)) return 'La fine deve essere dopo l\'inizio.';
+    if (repeat != AgendaRepeat.none &&
+        repeatUntil != null &&
+        repeatUntil!.asLocalDate.isBefore(
+          DateTime(start.year, start.month, start.day),
+        )) {
+      return 'La ripetizione deve finire dopo il primo evento.';
+    }
     return null;
   }
 }
@@ -144,6 +198,21 @@ final class AgendaSourceEvent {
   final bool isOrganizer;
 }
 
+/// A Todo task flagged for the Agenda: dates only, so shown all day.
+final class AgendaTaskItem {
+  const AgendaTaskItem({
+    required this.id,
+    required this.title,
+    required this.date,
+    this.completed = false,
+  });
+
+  final String id;
+  final String title;
+  final CivilDate date;
+  final bool completed;
+}
+
 /// What the user chose to hide, on top of hidden calendars. Local only.
 final class AgendaFilter {
   const AgendaFilter({
@@ -184,7 +253,17 @@ final class AgendaEntry {
     this.timeZone,
     this.eventZoneTimes,
     this.isOrganizer = true,
+    this.taskId,
+    this.completed = false,
   });
+
+  /// Calendar id used for Todo tasks shown in the Agenda.
+  static const tasksCalendarId = 'todo-tasks';
+
+  /// Set for a Todo task flagged "Mostra in agenda" (never a phone event).
+  final String? taskId;
+  final bool completed;
+  bool get isTask => taskId != null;
 
   final String instanceId;
   final String? timeZone;
@@ -251,6 +330,29 @@ List<AgendaDay> buildAgenda({
   required CivilDate first,
   required int days,
   AgendaFilter filter = AgendaFilter.none,
+  List<AgendaTaskItem> tasks = const [],
+}) {
+  final entries = mergeAgendaEntries(
+    events: events,
+    calendars: calendars,
+    hiddenCalendarIds: hiddenCalendarIds,
+    filter: filter,
+    tasks: tasks,
+  );
+  return [
+    for (var index = 0; index < days; index++)
+      _day(first.addDays(index), entries),
+  ];
+}
+
+/// Visible, filtered, de-duplicated entries in display order, before they
+/// are split into days. Also used by the universal search.
+List<AgendaEntry> mergeAgendaEntries({
+  required List<AgendaSourceEvent> events,
+  required List<AgendaCalendar> calendars,
+  required Set<String> hiddenCalendarIds,
+  AgendaFilter filter = AgendaFilter.none,
+  List<AgendaTaskItem> tasks = const [],
 }) {
   final calendarOrder = {
     for (final (index, calendar) in calendars.indexed) calendar.id: index,
@@ -291,12 +393,39 @@ List<AgendaDay> buildAgenda({
     }
   }
 
-  final entries = merged.values.map((value) => value.freeze()).toList()
-    ..sort(_compareEntries);
-  return [
-    for (var index = 0; index < days; index++)
-      _day(first.addDays(index), entries),
-  ];
+  final entries = [
+    ...merged.values.map((value) => value.freeze()),
+    for (final task in tasks)
+      AgendaEntry(
+        instanceId: 'task:${task.id}',
+        calendarIds: const [AgendaEntry.tasksCalendarId],
+        title: task.title,
+        start: task.date.asLocalDate,
+        end: task.date.addDays(1).asLocalDate,
+        allDay: true,
+        taskId: task.id,
+        completed: task.completed,
+      ),
+  ]..sort(_compareEntries);
+  return entries;
+}
+
+/// Search results: upcoming first (soonest on top), then past ones (most
+/// recent on top), at most [limit].
+List<AgendaEntry> orderSearchResults(
+  List<AgendaEntry> entries,
+  DateTime now, {
+  int limit = 30,
+}) {
+  final upcoming = [
+    for (final entry in entries)
+      if (entry.end.isAfter(now)) entry,
+  ]..sort((a, b) => a.start.compareTo(b.start));
+  final past = [
+    for (final entry in entries)
+      if (!entry.end.isAfter(now)) entry,
+  ]..sort((a, b) => b.start.compareTo(a.start));
+  return [...upcoming, ...past].take(limit).toList();
 }
 
 AgendaDay _day(CivilDate date, List<AgendaEntry> entries) {
@@ -318,6 +447,8 @@ bool _overlaps(AgendaEntry entry, DateTime dayStart, DateTime dayEnd) {
 
 int _compareEntries(AgendaEntry a, AgendaEntry b) {
   if (a.allDay != b.allDay) return a.allDay ? -1 : 1;
+  // Calendar events first, then Todo tasks of the same day.
+  if (a.isTask != b.isTask) return a.isTask ? 1 : -1;
   for (final result in [
     a.start.compareTo(b.start),
     a.end.compareTo(b.end),
