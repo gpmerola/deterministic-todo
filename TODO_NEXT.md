@@ -1,5 +1,15 @@
 # TODO e handover
 
+## P1 — Agenda unificata, build 191
+
+- [x] Agenda Android in sola lettura su calendari di sistema, duplicati uniti,
+  link Teams/Zoom/Meet, calendari nascondibili; 2191 sul manifest rolling.
+- [ ] Sul Galaxy: in Outlook attivare **Sincronizza calendari** per ogni account
+  KCL/SLaM, poi verificare che compaiano in Agenda e che una riunione presente
+  su due account appaia una volta.
+- [ ] Passo successivo: opzione esplicita per attività "Mostra in agenda"
+  (colonna sincronizzata + migrazione Supabase approvata).
+
 ## P1 — Movimento archiviato, solo passi, build 190
 
 - [x] Tag/branch `archive/movimento-completo-b189` pubblicati; GPS, Bip U,

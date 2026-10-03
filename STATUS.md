@@ -2,6 +2,19 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Agenda unificata — build 191
+
+Nuova sezione Agenda Android in sola lettura sul calendario di sistema
+([contratto](docs/architecture/AGENDA.md)). `make check` superato con 266 test
+Flutter (7 nuovi in `test/agenda_test.dart`) e analisi pulita. ADB ancora
+rifiutato sulla porta 5555 (Tailscale raggiungibile, `adb tcpip` da riattivare
+dopo un probabile riavvio): `make todo-test` ha pubblicato la 2.44.0 /
+versionCode 2191 dal commit `81d0e9a`; Verify `37119595728` e Publish Todo Test
+Fast `37119592016` riusciti. Manifest finale: canale dev, SHA-256 coincidente
+con l'APK CI (22.921.303 byte), versionCode 2191. Non provata sul Galaxy:
+restano da verificare permesso, calendari Outlook visibili, duplicati e
+pulsante Teams. Comprende anche la 190, mai installata.
+
 ## Movimento archiviato, solo passi — build 190
 
 Su decisione dell'utente il modulo Movimento è ridotto al contapassi; il resto è
