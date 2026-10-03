@@ -97,6 +97,17 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - contapassi Android isolato: passi del telefono tramite la Recording API
   locale e obiettivo giornaliero, in un archivio Room separato.
 
+## Agenda (Android)
+
+La sezione **Agenda** riunisce in una sola lista tutti i calendari che il
+telefono già sincronizza: Google e gli account Microsoft 365 aggiunti all'app
+Outlook con **Sincronizza calendari** attivo. Todo non si collega agli account
+e non serve alcuna approvazione IT. L'agenda è di sola lettura: toccando un
+evento si apre il calendario del sistema, e Teams, Zoom e Meet hanno un pulsante
+per partecipare. Le riunioni duplicate su più account appaiono una volta e ogni
+calendario si può nascondere. Gli eventi non lasciano il telefono. Dettagli:
+[agenda unificata](docs/architecture/AGENDA.md).
+
 ## Passi (Android)
 
 L'anello nell'AppBar mostra i passi del giorno civile rispetto all'obiettivo

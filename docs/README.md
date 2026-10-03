@@ -14,6 +14,8 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
 
 - [Architettura applicativa](ARCHITETTURA.md): dominio Todo, persistenza,
   sincronizzazione, confini e invarianti.
+- [Agenda unificata](architecture/AGENDA.md): calendari di sistema Android
+  in sola lettura, duplicati, link riunioni, privacy.
 - [Movimento archiviato](archive/MOVIMENTO.md): cosa resta del modulo Android
   (solo passi), cosa è archiviato nel tag `archive/movimento-completo-b189` e
   come ripristinarlo. Documenti storici GPS/Amazfit in `archive/`.

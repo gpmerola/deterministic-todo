@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.44.0 (build 191) — Todo Test
+
+- Nuova sezione **Agenda** su Android: mostra insieme tutti i calendari
+  sincronizzati sul telefono, compresi gli account Outlook di lavoro (KCL, SLaM)
+  se l'app Outlook ha attivo **Sincronizza calendari**. Sola lettura, 14 giorni
+  alla volta. La stessa riunione presente su più account appare una volta.
+  Teams, Zoom e Meet hanno un pulsante per partecipare; toccando un evento lo si
+  apre nel calendario del telefono.
+- **Calendari** permette di nascondere singoli calendari. Gli eventi non vengono
+  salvati, registrati né sincronizzati. Contratto:
+  [agenda unificata](docs/architecture/AGENDA.md).
+
 ## 2.43.0 (build 190) — Todo Test
 
 - Movimento ridotto al solo contapassi. Sessioni GPS, Amazfit Bip U, Health

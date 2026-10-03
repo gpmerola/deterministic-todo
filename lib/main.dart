@@ -25,6 +25,7 @@ import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
+import 'services/agenda_service.dart';
 import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
@@ -49,6 +50,7 @@ import 'ui/shell/civil_day_clock.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
+import 'ui/views/agenda_view.dart';
 import 'ui/views/empty_view_label.dart';
 import 'ui/views/projects_view.dart';
 import 'ui/views/task_order.dart';
@@ -355,6 +357,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Stream<List<Task>>? viewStream;
   final updates = AppUpdateFlow();
   late final dayClock = CivilDayClock(now: widget.clock);
+  late final agendaService = AgendaService(widget.repository.db);
   Stream<List<Task>> _visibleTasks() {
     final today = dayClock.today;
     final start = selectedUpcomingDate == null
@@ -855,6 +858,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
+              if (widget.enablePlatformServices && isAndroidPlatform)
+                AppSection.agenda,
             ];
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -1018,6 +1023,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       !desktop &&
                           section != AppSection.settings &&
                           section != AppSection.projects &&
+                          section != AppSection.agenda &&
                           section != AppSection.completed
                       ? FloatingActionButton(
                           tooltip: 'Nuova attività',
@@ -1099,6 +1105,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         dailyStepGoal: dailyStepGoal,
         onDailyStepGoalChanged: _setDailyStepGoal,
       );
+    }
+    if (section == AppSection.agenda) {
+      return AgendaView(service: agendaService, today: dayClock.today);
     }
     if (section == AppSection.projects) {
       return ProjectsView(
