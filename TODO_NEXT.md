@@ -1,6 +1,20 @@
 # TODO e handover
 
-Aggiornato il 27 settembre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
+## P1 — Movimento archiviato, solo passi, build 190
+
+- [x] Tag/branch `archive/movimento-completo-b189` pubblicati; GPS, Bip U,
+  Health Connect, diagnostica e Drive tolti dal build; scheda sostituita dal
+  pannello sull'anello; pulizia una tantum dei lavori in background.
+- [x] Todo Test 2190 sul manifest rolling; CI verde. Dettagli in STATUS.
+- [ ] Installare la 2190 sul Galaxy e verificare: anello e pannello passi,
+  nessun job archiviato in `adb shell dumpsys jobscheduler` per il package
+  `.dev`, nessuna notifica GPS.
+- [ ] Eventuale: aggiungere `--split-debug-info` a `make todo-test` per non
+  spedire al telefono ~1,2 MB di simboli Dart.
+- [ ] Web non ripubblicata: nessuna modifica rilevante per il browser oltre
+  alla rimozione della scheda già nascosta sul Web.
+
+Aggiornato il 3 ottobre 2026. Leggere insieme ad `AGENTS.md` prima di modificare.
 
 ## P1 — Pianificazione, Inbox e shell, build 189
 

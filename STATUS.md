@@ -1,6 +1,25 @@
 # Stato corrente
 
-Aggiornato il 27 settembre 2026.
+Aggiornato il 3 ottobre 2026.
+
+## Movimento archiviato, solo passi — build 190
+
+Su decisione dell'utente il modulo Movimento è ridotto al contapassi; il resto è
+nel tag e branch `archive/movimento-completo-b189` (pubblicati su GitHub).
+Inventario e ripristino: [Movimento archiviato](docs/archive/MOVIMENTO.md).
+`make check` superato con 259 test Flutter e analisi pulita;
+`:runtracker:testDebugUnitTest` 8/8 (incluso `MovementArchiveCleanupTest`),
+test strumentati compilati ma non eseguiti (nessun dispositivo). ADB non
+raggiungibile (timeout IPv6 e IPv4 Tailscale): `make todo-test` ha pubblicato
+la 2.43.0 / versionCode 2190 dal commit `4d254da`; Verify `37117257311` e
+Publish Todo Test Fast `37117254810` riusciti. Manifest finale: canale dev,
+SHA-256 coincidente con l'APK, `apkanalyzer` conferma package `.dev`, versionCode
+2190 e assenza dei permessi posizione, Bluetooth, notifiche e Health Connect.
+APK arm64 CI 22.855.691 byte contro 23.141.568 della 189 (−286 KB; dex
+−600 KB non compresso). L'APK locale di `make todo-test` è più grande
+(24,1 MB) perché non usa `--split-debug-info`, a differenza della CI che lo
+sostituisce. Non ancora installata né provata sul Galaxy: da verificare la
+pulizia dei lavori archiviati, l'anello e il pannello passi.
 
 ## Pianificazione, Inbox e shell — build 189
 
