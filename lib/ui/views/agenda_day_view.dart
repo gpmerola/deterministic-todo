@@ -22,9 +22,13 @@ class AgendaDayPage extends StatefulWidget {
     required this.colors,
     required this.onOpen,
     required this.onCreate,
+    this.zoneLabel,
     this.now,
     super.key,
   });
+
+  /// Recognised device zone shown under the date; times are in it.
+  final String? zoneLabel;
 
   /// New event starting at the given time; completes once it is saved.
   final Future<void> Function(DateTime start) onCreate;
@@ -83,7 +87,17 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
     ).format(shown.asLocalDate);
     return Scaffold(
       appBar: AppBar(
-        title: Text(label[0].toUpperCase() + label.substring(1)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label[0].toUpperCase() + label.substring(1)),
+            Text(
+              widget.zoneLabel ?? 'Fuso orario non riconosciuto',
+              key: const ValueKey('agenda-day-zone'),
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
+        ),
         actions: [
           if (shown != widget.today)
             TextButton(

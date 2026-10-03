@@ -99,14 +99,18 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 
 ## Agenda (Android)
 
-La sezione **Agenda** riunisce, in una vista mensile come Google Calendar o in
-un elenco per giorni, tutti i calendari che il
+La sezione **Agenda** riunisce, in una vista a 2 settimane (predefinita),
+mensile come Google Calendar o in un elenco per giorni, tutti i calendari che il
 telefono già sincronizza: Google e gli account Microsoft 365 aggiunti all'app
 Outlook con **Sincronizza calendari** attivo. Todo non si collega agli account
-e non serve alcuna approvazione IT. L'agenda è di sola lettura: toccando un
-evento si apre il calendario del sistema, e Teams, Zoom e Meet hanno un pulsante
-per partecipare. Le riunioni duplicate su più account appaiono una volta e ogni
-calendario si può nascondere. Gli eventi non lasciano il telefono. Dettagli:
+e non serve alcuna approvazione IT. Si possono creare eventi e modificare o
+eliminare quelli che organizzi tu, sempre con un'azione esplicita. Toccando un
+evento si apre un dettaglio, e Teams, Zoom e Meet hanno un pulsante per
+partecipare. Il fuso orario riconosciuto (IANA, con lo scarto da UTC) è sempre
+visibile. Le riunioni duplicate su più account appaiono una volta, ogni
+calendario si può nascondere e gli inviti senza risposta o con certe parole si
+possono filtrare. Gli eventi passano solo dal calendario del telefono al suo
+account, mai da Todo o Supabase. Dettagli:
 [agenda unificata](docs/architecture/AGENDA.md).
 
 ## Passi (Android)

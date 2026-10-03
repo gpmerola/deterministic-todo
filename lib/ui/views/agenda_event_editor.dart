@@ -11,8 +11,17 @@ class AgendaEventEditor extends StatefulWidget {
     required this.initialStart,
     this.initialCalendarId,
     this.initialAllDay = false,
+    this.existing,
+    this.zoneLabel,
     super.key,
   });
+
+  /// When set the form edits this event: fields start from it and the
+  /// calendar cannot change (moving between accounts is not supported).
+  final AgendaEventDraft? existing;
+
+  /// Recognised device zone, e.g. `Europe/London · UTC+1`; times are in it.
+  final String? zoneLabel;
 
   /// Writable calendars only.
   final List<AgendaCalendar> calendars;
@@ -25,22 +34,25 @@ class AgendaEventEditor extends StatefulWidget {
 }
 
 class _AgendaEventEditorState extends State<AgendaEventEditor> {
-  final title = TextEditingController();
-  final location = TextEditingController();
-  final notes = TextEditingController();
+  late final title = TextEditingController(text: widget.existing?.title);
+  late final location = TextEditingController(text: widget.existing?.location);
+  late final notes = TextEditingController(text: widget.existing?.notes);
   late String calendarId =
-      widget.initialCalendarId ?? widget.calendars.firstOrNull?.id ?? '';
-  late bool allDay = widget.initialAllDay;
-  late DateTime day = DateTime(
-    widget.initialStart.year,
-    widget.initialStart.month,
-    widget.initialStart.day,
-  );
-  late DateTime lastDay = day;
-  late TimeOfDay startTime = TimeOfDay.fromDateTime(widget.initialStart);
-  late TimeOfDay endTime = TimeOfDay.fromDateTime(
-    widget.initialStart.add(const Duration(hours: 1)),
-  );
+      widget.existing?.calendarId ??
+      widget.initialCalendarId ??
+      widget.calendars.firstOrNull?.id ??
+      '';
+  late bool allDay = widget.existing?.allDay ?? widget.initialAllDay;
+  late final DateTime _start = widget.existing?.start ?? widget.initialStart;
+  late final DateTime _end =
+      widget.existing?.end ?? widget.initialStart.add(const Duration(hours: 1));
+  late DateTime day = DateTime(_start.year, _start.month, _start.day);
+  // All-day ends are exclusive midnights: the last day is the one before.
+  late DateTime lastDay = allDay
+      ? DateTime(_end.year, _end.month, _end.day - 1)
+      : day;
+  late TimeOfDay startTime = TimeOfDay.fromDateTime(_start);
+  late TimeOfDay endTime = TimeOfDay.fromDateTime(_end);
   String? error;
 
   @override
@@ -145,7 +157,9 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Nuovo evento'),
+        title: Text(
+          widget.existing == null ? 'Nuovo evento' : 'Modifica evento',
+        ),
         actions: [
           TextButton(
             key: const ValueKey('agenda-event-save'),
@@ -189,7 +203,9 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
                     ),
                   ),
               ],
-              onChanged: (value) => setState(() => calendarId = value ?? ''),
+              onChanged: widget.existing != null
+                  ? null
+                  : (value) => setState(() => calendarId = value ?? ''),
             ),
           SwitchListTile(
             key: const ValueKey('agenda-event-all-day'),
@@ -225,6 +241,24 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
                     child: Text(time(endTime)),
                   ),
             onTap: allDay ? () => _pickDay(last: true) : null,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.public, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    allDay
+                        ? 'Giornata intera: stessa data in ogni fuso'
+                        : 'Fuso orario: ${widget.zoneLabel ?? 'non riconosciuto'}',
+                    key: const ValueKey('agenda-event-zone'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
           ),
           TextField(
             controller: location,

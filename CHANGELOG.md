@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.48.0 (build 201) — Todo Test
+
+- **Modifica ed eliminazione** degli eventi. Toccando un evento si apre un
+  dettaglio con Modifica, Elimina, Partecipa e Apri nel calendario. Per un
+  evento ricorrente si sceglie solo questa occorrenza o tutta la serie.
+  L'eliminazione chiede sempre conferma. Gli inviti organizzati da altri
+  restano in sola lettura.
+- Nuova vista **2 settimane**, ora predefinita: più spazio per gli eventi, con
+  l'ora d'inizio davanti al titolo. Mese ed Elenco restano selezionabili.
+- **Fuso orario sempre visibile** come identificatore IANA con lo scarto da
+  UTC («Europe/London · UTC+1») nell'Agenda, nella vista giorno, nel dettaglio
+  e nel modulo evento. Per gli eventi creati in un fuso con scarto diverso, il
+  dettaglio mostra anche l'orario originale.
+
 ## 2.47.1 (build 200) — Todo Test
 
 - Il calendario proposto per un nuovo evento salta quelli nascosti

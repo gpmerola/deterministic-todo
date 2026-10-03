@@ -329,6 +329,7 @@ void main() {
           DateTime(2026, 10, 7, hour, 30),
         ),
     ]);
+    await service.saveViewMode(AgendaViewMode.month);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -680,6 +681,176 @@ void main() {
     expect((await service.filter()).hiddenWords, ['live broadcast']);
   });
 
+  test('mostra il fuso sempre come IANA con lo scarto da UTC', () {
+    expect(zoneLabel('Europe/London', 3600), 'Europe/London · UTC+1');
+    expect(zoneLabel('Europe/London', 0), 'Europe/London · UTC');
+    expect(zoneLabel('Asia/Kolkata', 19800), 'Asia/Kolkata · UTC+5:30');
+    expect(zoneLabel('America/New_York', -14400), 'America/New_York · UTC−4');
+  });
+
+  testWidgets('la vista a 2 settimane è predefinita e mostra il fuso', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, [
+      event(
+        'k1',
+        'kcl',
+        'Supervisione',
+        DateTime(2026, 10, 5, 9),
+        DateTime(2026, 10, 5, 10),
+      ),
+      event(
+        'k2',
+        'kcl',
+        'Ward round',
+        DateTime(2026, 10, 16, 8, 30),
+        DateTime(2026, 10, 16, 9),
+      ),
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: service, today: first),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
+    expect(find.text('Europe/London · UTC+1'), findsOneWidget);
+    expect(find.text('09:00 Supervisione'), findsOneWidget);
+    expect(find.text('08:30 Ward round'), findsOneWidget);
+    expect(await service.viewMode(), AgendaViewMode.twoWeeks);
+
+    await tester.tap(find.byKey(const ValueKey('agenda-day-2026-10-05')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('agenda-day-zone'))).data,
+      'Europe/London · UTC+1',
+    );
+  });
+
+  Future<_FakeAgendaService> listWith(
+    WidgetTester tester,
+    List<AgendaSourceEvent> events,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, events)..writableCalendars = true;
+    await service.saveViewMode(AgendaViewMode.list);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: service, today: first),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return service;
+  }
+
+  testWidgets('modifica un evento dal dettaglio', (tester) async {
+    final service = await listWith(tester, [
+      AgendaSourceEvent(
+        instanceId: '7',
+        calendarId: 'gmail',
+        title: 'Palestra',
+        start: DateTime(2026, 10, 5, 18),
+        end: DateTime(2026, 10, 5, 19),
+        allDay: false,
+        timeZone: 'Europe/Rome',
+        eventZoneTimes: '19:00–20:00',
+      ),
+    ]);
+    await tester.tap(find.text('Palestra'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Orario originale 19:00–20:00 Europe/Rome'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-edit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Modifica evento'), findsOneWidget);
+    expect(find.text('Note complete'), findsOneWidget);
+    expect(find.text('Fuso orario: Europe/London · UTC+1'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('agenda-event-title')),
+      'Palestra con Luca',
+    );
+    await tester.tap(find.byKey(const ValueKey('agenda-event-save')));
+    await tester.pumpAndSettle();
+    final (id, draft, series) = service.updates.single;
+    expect((id, series), ('7', false));
+    expect(draft.title, 'Palestra con Luca');
+    expect(draft.start, DateTime(2026, 10, 5, 18));
+    expect(draft.end, DateTime(2026, 10, 5, 19));
+    expect(find.text('Evento aggiornato.'), findsOneWidget);
+  });
+
+  testWidgets('elimina una serie solo dopo la scelta esplicita', (
+    tester,
+  ) async {
+    final service = await listWith(tester, [
+      AgendaSourceEvent(
+        instanceId: '9@1759654800000',
+        calendarId: 'gmail',
+        title: 'Corso',
+        start: DateTime(2026, 10, 5, 9),
+        end: DateTime(2026, 10, 5, 10),
+        allDay: false,
+      ),
+      AgendaSourceEvent(
+        instanceId: '10',
+        calendarId: 'gmail',
+        title: 'Cena',
+        start: DateTime(2026, 10, 5, 20),
+        end: DateTime(2026, 10, 5, 21),
+        allDay: false,
+      ),
+    ]);
+    await tester.tap(find.text('Corso'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-scope-series')));
+    await tester.pumpAndSettle();
+    expect(service.deletions, [('9@1759654800000', true)]);
+
+    await tester.tap(find.text('Cena'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annulla'));
+    await tester.pumpAndSettle();
+    expect(service.deletions, hasLength(1));
+  });
+
+  testWidgets('gli inviti altrui non si modificano', (tester) async {
+    await listWith(tester, [
+      AgendaSourceEvent(
+        instanceId: '11',
+        calendarId: 'gmail',
+        title: 'Riunione esterna',
+        start: DateTime(2026, 10, 5, 9),
+        end: DateTime(2026, 10, 5, 10),
+        allDay: false,
+        isOrganizer: false,
+      ),
+    ]);
+    await tester.tap(find.text('Riunione esterna'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('agenda-sheet-edit')), findsNothing);
+    expect(find.byKey(const ValueKey('agenda-sheet-delete')), findsNothing);
+    expect(find.textContaining('Invito di un altro organizzatore'), findsOne);
+  });
+
   test('legge le righe native senza descrizioni complete', () {
     final entry = agendaEventFromRow({
       'instanceId': '42@1759654800000',
@@ -691,8 +862,14 @@ void main() {
       'end': DateTime(2026, 10, 5, 10).millisecondsSinceEpoch,
       'allDay': false,
       'canceled': false,
+      'timeZone': 'Europe/Rome',
+      'eventZoneTimes': '10:00–11:00',
+      'organizer': false,
     });
     expect(entry.start, DateTime(2026, 10, 5, 9));
+    expect(entry.timeZone, 'Europe/Rome');
+    expect(entry.eventZoneTimes, '10:00–11:00');
+    expect(entry.isOrganizer, isFalse);
     expect(findMeetingLink(entry)?.provider, 'Teams');
     expect(
       agendaEventFromRow({
@@ -730,7 +907,7 @@ void main() {
     );
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(find.text('Supervisione'), findsOneWidget);
+    expect(find.textContaining('Supervisione'), findsOneWidget);
 
     // Leave Agenda, then come back while the provider is slow.
     await tester.pumpWidget(const SizedBox());
@@ -738,11 +915,11 @@ void main() {
     await tester.pumpWidget(app());
     final readsBefore = service.requestedCalendars.length;
     await tester.pump();
-    expect(find.text('Supervisione'), findsOneWidget);
+    expect(find.textContaining('Supervisione'), findsOneWidget);
 
     service.gate!.complete();
     await tester.pumpAndSettle();
-    expect(find.text('Supervisione'), findsOneWidget);
+    expect(find.textContaining('Supervisione'), findsOneWidget);
     // The visible months were read again in the background.
     expect(service.requestedCalendars.length, greaterThan(readsBefore));
   });
@@ -780,11 +957,42 @@ class _FakeAgendaService extends AgendaService {
   Future<AgendaAccess> access() async => currentAccess;
 
   @override
+  Future<String?> deviceZoneLabel() async =>
+      lastZoneLabel = 'Europe/London · UTC+1';
+
+  @override
   Future<AgendaAccess> requestAccess() async =>
       currentAccess = AgendaAccess.granted;
 
   bool writableCalendars = false;
   final createdDrafts = <AgendaEventDraft>[];
+  final updates = <(String, AgendaEventDraft, bool)>[];
+  final deletions = <(String, bool)>[];
+
+  @override
+  Future<AgendaEventDraft?> draftFor(String instanceId) async {
+    final event = source.firstWhere((e) => e.instanceId == instanceId);
+    return AgendaEventDraft(
+      calendarId: event.calendarId,
+      title: event.title,
+      start: event.start,
+      end: event.end,
+      allDay: event.allDay,
+      location: event.location,
+      notes: 'Note complete',
+    );
+  }
+
+  @override
+  Future<void> updateEvent(
+    String instanceId,
+    AgendaEventDraft draft, {
+    bool series = false,
+  }) async => updates.add((instanceId, draft, series));
+
+  @override
+  Future<void> deleteEvent(String instanceId, {bool series = false}) async =>
+      deletions.add((instanceId, series));
 
   @override
   Future<String> createEvent(AgendaEventDraft draft) async {

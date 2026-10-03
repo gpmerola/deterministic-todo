@@ -9,7 +9,9 @@ import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
 import 'agenda_day_view.dart';
 import 'agenda_event_editor.dart';
+import 'agenda_event_sheet.dart';
 import 'agenda_month_view.dart';
+import 'agenda_weeks_view.dart';
 
 /// Read-only agenda that merges every calendar the phone already syncs
 /// (Google, Outlook/Exchange work accounts…). Android only.
@@ -32,11 +34,15 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   AgendaFilter filter = AgendaFilter.none;
   List<AgendaDay> days = const [];
   int dayCount = AgendaView.pageDays;
-  AgendaViewMode mode = AgendaViewMode.month;
+  AgendaViewMode mode = AgendaViewMode.twoWeeks;
+
+  /// Recognised device zone, always shown; null only if Android cannot tell.
+  String? zone;
 
   /// Bumped on every successful reload so month grids drop cached events.
   int revision = 0;
   final monthScroll = ScrollController();
+  final weeksPage = PageController(initialPage: AgendaWeeksView.pagesBack);
   bool loading = true;
   bool failed = false;
   int _generation = 0;
@@ -65,6 +71,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     monthScroll.dispose();
+    weeksPage.dispose();
     super.dispose();
   }
 
@@ -84,6 +91,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         });
         return;
       }
+      final nextZone = await widget.service.deviceZoneLabel();
       final nextMode = await widget.service.viewMode();
       final nextFilter = await widget.service.filter();
       final nextCalendars = await widget.service.calendars();
@@ -105,6 +113,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       setState(() {
         access = nextAccess;
         mode = nextMode;
+        zone = nextZone;
         calendars = nextCalendars;
         hidden = nextHidden;
         filter = nextFilter;
@@ -132,7 +141,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     calendars = cachedCalendars;
     hidden = hiddenAgendaCalendars(cachedCalendars, cachedChoices);
     filter = service.lastFilter ?? AgendaFilter.none;
-    mode = service.lastMode ?? AgendaViewMode.month;
+    mode = service.lastMode ?? AgendaViewMode.twoWeeks;
+    zone = service.lastZoneLabel;
     days = _peekDays(widget.today, dayCount) ?? const [];
   }
 
@@ -196,6 +206,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           initialStart:
               start ?? DateTime(now.year, now.month, now.day, now.hour + 1),
           initialCalendarId: initialCalendar,
+          zoneLabel: zone,
         ),
       ),
     );
@@ -230,6 +241,15 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 
   void _scrollToToday() {
+    if (mode == AgendaViewMode.twoWeeks && weeksPage.hasClients) {
+      unawaited(
+        weeksPage.animateToPage(
+          AgendaWeeksView.pagesBack,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
     if (monthScroll.hasClients) {
       unawaited(
         monthScroll.animateTo(
@@ -269,16 +289,102 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     await _load();
   }
 
-  Future<void> _open(AgendaEntry entry) async {
-    try {
-      await widget.service.openEvent(entry.instanceId);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossibile aprire l\'evento.')),
-      );
+  AgendaCalendar? _calendarOf(AgendaEntry entry) =>
+      calendars.where((c) => c.id == entry.calendarIds.first).firstOrNull;
+
+  /// Editable here only in a writable calendar and when the user organises
+  /// it: changing someone else's invitation would be overwritten by its sync.
+  bool _editable(AgendaEntry entry) =>
+      (_calendarOf(entry)?.writable ?? false) && entry.isOrganizer;
+
+  /// Detail sheet of an occurrence, then the chosen action.
+  Future<void> _showEvent(AgendaEntry entry) async {
+    final calendar = _calendarOf(entry);
+    final action = await showAgendaEventSheet(
+      context,
+      entry: entry,
+      calendarName: calendar == null
+          ? ''
+          : calendar.accountName.isEmpty ||
+                calendar.accountName == calendar.name
+          ? calendar.name
+          : '${calendar.name} · ${calendar.accountName}',
+      editable: _editable(entry),
+      zoneLabel: zone,
+      color: _parseColor(calendar?.colorHex),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case AgendaEventAction.edit:
+        await _editEvent(entry);
+      case AgendaEventAction.delete:
+        await _deleteEvent(entry);
+      case AgendaEventAction.openInCalendar:
+        try {
+          await widget.service.openEvent(entry.instanceId);
+        } catch (_) {
+          _say('Impossibile aprire l\'evento.');
+        }
     }
     await _load();
+  }
+
+  void _say(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> _editEvent(AgendaEntry entry) async {
+    final series = entry.recurring
+        ? await askSeriesScope(context, delete: false)
+        : false;
+    if (series == null || !mounted) return;
+    final AgendaEventDraft? existing;
+    try {
+      existing = await widget.service.draftFor(entry.instanceId);
+    } catch (_) {
+      _say('Impossibile leggere l\'evento.');
+      return;
+    }
+    if (existing == null || !mounted) {
+      _say('L\'evento non esiste più.');
+      return;
+    }
+    final draft = await Navigator.of(context).push<AgendaEventDraft>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => AgendaEventEditor(
+          calendars: [?_calendarOf(entry)],
+          initialStart: existing!.start,
+          existing: existing,
+          zoneLabel: zone,
+        ),
+      ),
+    );
+    if (draft == null) return;
+    try {
+      await widget.service.updateEvent(entry.instanceId, draft, series: series);
+      _say(series ? 'Serie aggiornata.' : 'Evento aggiornato.');
+    } catch (_) {
+      // Not logged: the draft carries the user's text.
+      _say('Impossibile aggiornare l\'evento.');
+    }
+  }
+
+  Future<void> _deleteEvent(AgendaEntry entry) async {
+    final bool? series;
+    if (entry.recurring) {
+      series = await askSeriesScope(context, delete: true);
+    } else {
+      series = await confirmDelete(context, entry.title) ? false : null;
+    }
+    if (series == null) return;
+    try {
+      await widget.service.deleteEvent(entry.instanceId, series: series);
+      _say(series ? 'Serie eliminata.' : 'Evento eliminato.');
+    } catch (_) {
+      _say('Impossibile eliminare l\'evento.');
+    }
   }
 
   @override
@@ -321,7 +427,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       mode: mode,
       filtered: filter.isActive,
       onMode: (next) => unawaited(_setMode(next)),
-      onToday: mode == AgendaViewMode.month ? _scrollToToday : null,
+      onToday: mode == AgendaViewMode.list ? null : _scrollToToday,
+      zone: zone,
       onChoose: _chooseCalendars,
     );
     void openDay(CivilDate day) => unawaited(
@@ -334,13 +441,25 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                 _readDays(calendars, hidden, filter, first, count),
             peekDays: _peekDays,
             colors: colors,
-            onOpen: (entry) => widget.service.openEvent(entry.instanceId),
+            onOpen: _showEvent,
             onCreate: (start) => _createEvent(start: start),
+            zoneLabel: zone,
           ),
         ),
       ),
     );
-    final body = mode == AgendaViewMode.month
+    final body = mode == AgendaViewMode.twoWeeks
+        ? AgendaWeeksView(
+            today: widget.today,
+            revision: revision,
+            controller: weeksPage,
+            colors: colors,
+            loadDays: (first, count) =>
+                _readDays(calendars, hidden, filter, first, count),
+            peekDays: _peekDays,
+            onOpenDay: openDay,
+          )
+        : mode == AgendaViewMode.month
         ? AgendaMonthView(
             today: widget.today,
             revision: revision,
@@ -375,7 +494,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                 today: widget.today,
                 colors: colors,
                 names: names,
-                onOpen: _open,
+                onOpen: (entry) => unawaited(_showEvent(entry)),
               );
             },
           );
@@ -415,8 +534,10 @@ class _AgendaHeader extends StatelessWidget {
     required this.onMode,
     required this.onToday,
     required this.onChoose,
+    this.zone,
   });
 
+  final String? zone;
   final int visible;
   final int total;
   final bool loading;
@@ -427,7 +548,38 @@ class _AgendaHeader extends StatelessWidget {
   final VoidCallback onChoose;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _row(context),
+      // The recognised zone is always visible: every time shown is in it.
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 2),
+        child: Row(
+          children: [
+            Icon(
+              Icons.public,
+              size: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                zone ?? 'Fuso orario non riconosciuto',
+                key: const ValueKey('agenda-zone'),
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _row(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(12, 4, 4, 0),
     child: Row(
       children: [
@@ -436,6 +588,11 @@ class _AgendaHeader extends StatelessWidget {
           showSelectedIcon: false,
           style: const ButtonStyle(visualDensity: VisualDensity.compact),
           segments: const [
+            ButtonSegment(
+              value: AgendaViewMode.twoWeeks,
+              icon: Icon(Icons.view_week_outlined, size: 18),
+              tooltip: '2 settimane',
+            ),
             ButtonSegment(
               value: AgendaViewMode.month,
               icon: Icon(Icons.calendar_view_month, size: 18),

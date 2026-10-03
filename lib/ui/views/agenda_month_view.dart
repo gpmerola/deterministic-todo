@@ -129,7 +129,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      const _WeekdayHeader(),
+      const AgendaWeekdayHeader(),
       Expanded(
         child: CustomScrollView(
           key: const PageStorageKey('agenda-months'),
@@ -157,8 +157,8 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   );
 }
 
-class _WeekdayHeader extends StatelessWidget {
-  const _WeekdayHeader();
+class AgendaWeekdayHeader extends StatelessWidget {
+  const AgendaWeekdayHeader({super.key});
 
   static const _labels = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
 
@@ -301,7 +301,7 @@ class AgendaMonthGrid extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 for (final entry in entries.take(shown))
-                  _Chip(
+                  AgendaChip(
                     entry: entry,
                     color:
                         colors[entry.calendarIds.first] ??
@@ -322,8 +322,17 @@ class AgendaMonthGrid extends StatelessWidget {
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({required this.entry, required this.color});
+/// One event in a grid cell, coloured by its calendar; [showTime] prefixes
+/// the start time of timed events.
+class AgendaChip extends StatelessWidget {
+  const AgendaChip({
+    required this.entry,
+    required this.color,
+    this.showTime = false,
+    super.key,
+  });
+
+  final bool showTime;
 
   final AgendaEntry entry;
   final Color color;
@@ -341,7 +350,8 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
-        entry.title.isEmpty ? '(senza titolo)' : entry.title,
+        '${showTime && !entry.allDay ? '${DateFormat.Hm('it').format(entry.start)} ' : ''}'
+        '${entry.title.isEmpty ? '(senza titolo)' : entry.title}',
         maxLines: 1,
         overflow: TextOverflow.clip,
         softWrap: false,

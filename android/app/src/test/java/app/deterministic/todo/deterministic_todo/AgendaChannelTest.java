@@ -19,6 +19,25 @@ public final class AgendaChannelTest {
         assertNull(AgendaChannel.links(null));
     }
 
+    @Test public void showsOriginalTimesOnlyForAnotherOffset() {
+        ZoneId london = ZoneId.of("Europe/London");
+        long begin = java.time.ZonedDateTime.of(2026, 10, 22, 12, 0, 0, 0, london)
+            .toInstant().toEpochMilli();
+        long end = begin + 3_600_000;
+        assertEquals("13:00–14:00", AgendaChannel.eventZoneTimes(begin, end, "Europe/Rome", london));
+        assertNull(AgendaChannel.eventZoneTimes(begin, end, "Europe/London", london));
+        assertNull(AgendaChannel.eventZoneTimes(begin, end, "Europe/Lisbon", london));
+        assertNull(AgendaChannel.eventZoneTimes(begin, end, "Not/AZone", london));
+        assertNull(AgendaChannel.eventZoneTimes(begin, end, null, london));
+    }
+
+    @Test public void deviceZoneIsIanaWithOffset() {
+        var value = AgendaChannel.deviceZone(ZoneId.of("Europe/London"),
+            java.time.Instant.parse("2026-10-03T12:00:00Z"));
+        assertEquals("Europe/London", value.get("id"));
+        assertEquals(3600, value.get("offsetSeconds"));
+    }
+
     @Test public void allDayInstancesKeepTheirCivilDate() {
         ZoneId london = ZoneId.of("Europe/London");
         long utcMidnight = LocalDate.of(2026, 10, 5).atStartOfDay(ZoneOffset.UTC)

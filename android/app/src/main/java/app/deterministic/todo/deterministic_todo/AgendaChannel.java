@@ -45,6 +45,8 @@ public final class AgendaChannel {
         CalendarContract.Instances.STATUS,
         CalendarContract.Instances.RRULE,
         CalendarContract.Instances.SELF_ATTENDEE_STATUS,
+        CalendarContract.Instances.EVENT_TIMEZONE,
+        CalendarContract.Instances.IS_ORGANIZER,
     };
 
     private AgendaChannel() {}
@@ -53,6 +55,10 @@ public final class AgendaChannel {
         Context app = context.getApplicationContext();
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/agenda")
             .setMethodCallHandler((call, result) -> {
+                if (call.method.equals("deviceZone")) {
+                    result.success(deviceZone(ZoneId.systemDefault(), Instant.now()));
+                    return;
+                }
                 if (!call.method.equals("instances")) {
                     result.notImplemented();
                     return;
@@ -117,10 +123,41 @@ public final class AgendaChannel {
                 // Invited and never answered: Outlook's dashed events.
                 row.put("unanswered", !cursor.isNull(10)
                     && cursor.getInt(10) == CalendarContract.Attendees.ATTENDEE_STATUS_INVITED);
+                String eventZone = cursor.getString(11);
+                row.put("timeZone", eventZone);
+                // Unknown counts as organizer: local events have no attendees.
+                row.put("organizer", cursor.isNull(12) || cursor.getInt(12) == 1);
+                if (!allDay) row.put("eventZoneTimes", eventZoneTimes(begin, finish, eventZone, zone));
                 rows.add(row);
             }
         }
         return rows;
+    }
+
+    /** IANA id and current UTC offset, shown in the Agenda at all times. */
+    static Map<String, Object> deviceZone(ZoneId zone, Instant now) {
+        Map<String, Object> value = new HashMap<>();
+        value.put("id", zone.getId());
+        value.put("offsetSeconds", zone.getRules().getOffset(now).getTotalSeconds());
+        return value;
+    }
+
+    /**
+     * "13:00–14:00" in the event's own zone when it differs in offset from the
+     * device; null otherwise or when the zone id is not a valid IANA name.
+     */
+    static String eventZoneTimes(long begin, long end, String eventZone, ZoneId device) {
+        if (eventZone == null || eventZone.isEmpty()) return null;
+        ZoneId zone;
+        try {
+            zone = ZoneId.of(eventZone);
+        } catch (RuntimeException invalid) {
+            return null;
+        }
+        Instant start = Instant.ofEpochMilli(begin);
+        if (zone.getRules().getOffset(start).equals(device.getRules().getOffset(start))) return null;
+        java.time.format.DateTimeFormatter clock = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+        return clock.format(start.atZone(zone)) + "–" + clock.format(Instant.ofEpochMilli(end).atZone(zone));
     }
 
     /** Only URLs, so invite bodies never cross the channel. */

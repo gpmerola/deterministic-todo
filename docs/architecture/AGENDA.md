@@ -24,10 +24,19 @@ quell'account non compare; non esiste un aggiramento lato app.
 
 ## Contratto
 
-- **Lettura e creazione esplicita.** Todo non modifica né cancella eventi.
-  Toccare un evento lo apre nell'app calendario del sistema
-  (`showEventModal`), dove modifiche e cancellazioni restano responsabilità di
-  quell'app. Dalla build 199 si possono **creare** eventi: con il pulsante
+- **Scrittura solo esplicita.** Toccare un evento apre un dettaglio (build 201)
+  con orario, fuso, luogo, calendario, «Partecipa» e le azioni **Modifica**,
+  **Elimina** e **Apri nel calendario** (`showEventModal`). Modifica ed
+  eliminazione compaiono solo se il calendario è scrivibile e sei tu
+  l'organizzatore (`IS_ORGANIZER`). Gli inviti di altri si cambiano dal
+  calendario di chi li organizza, altrimenti la loro sincronizzazione
+  sovrascriverebbe la modifica. Per un evento ricorrente si sceglie **Solo
+  questa** occorrenza (`updateEvent`/`deleteEvent` con l'id d'istanza) o
+  **Tutta la serie** (`updateRecurring`/`deleteRecurring` con
+  `EventSpan.allEvents`: la serie si sposta dello stesso scarto
+  dell'occorrenza). L'eliminazione singola chiede conferma. Il modulo di
+  modifica rilegge l'evento completo con `getEvent`, note comprese, e non
+  permette di cambiare calendario. Dalla build 199 si possono **creare** eventi: con il pulsante
   **+** dell'Agenda o della vista giorno, oppure toccando uno spazio libero
   nella vista giorno, che preimposta la mezz'ora toccata. Il modulo chiede
   titolo, calendario, giornata intera o orari (un'ora di default), luogo e note
@@ -46,7 +55,24 @@ quell'account non compare; non esiste un aggiramento lato app.
   `app_settings.agenda_calendar_choices`, una mappa `{id: mostrato}`. La build
   191 usava `agenda_hidden_calendars`, letta una volta come "nascosti". Gli ID
   sono locali al dispositivo e non vengono sincronizzati.
-- **Viste.** Dalla build 194 la vista predefinita è **Mese**: griglie mensili
+- **Fuso orario (build 201).** Il fuso riconosciuto è sempre visibile come
+  identificatore IANA con lo scarto da UTC, per esempio «Europe/London ·
+  UTC+1». Compare sotto l'intestazione dell'Agenda, sotto la data della vista
+  giorno, nel dettaglio e nel modulo dell'evento. Lo fornisce
+  `AgendaChannel.deviceZone` (`ZoneId.systemDefault()`), mai abbreviazioni, e
+  viene riletto a ogni caricamento e al rientro in primo piano: in viaggio
+  segue il telefono. Tutti gli orari sono mostrati in quel fuso. Se il fuso
+  proprio dell'evento (`EVENT_TIMEZONE`) ha in quel momento uno scarto
+  diverso, il dettaglio aggiunge «Orario originale 13:00–14:00 Europe/Rome»,
+  calcolato in Java. I nuovi eventi usano il fuso del sistema. Se Android non
+  lo riconosce, l'interfaccia lo dice invece di indovinare.
+- **2 settimane (build 201, predefinita).** Due settimane dal lunedì riempiono
+  lo schermo, così ogni giorno ha spazio per più eventi, con l'ora d'inizio
+  davanti al titolo. Scorrendo in verticale si passa alla quindicina
+  successiva o precedente, fino a 6 mesi indietro e 3 anni avanti. Ogni giorno
+  mostra tutti gli eventi che ci stanno, oppure «+N». **Mese** ed **Elenco**
+  restano selezionabili; la scelta è salvata.
+- **Viste.** Dalla build 194 alla 200 la vista predefinita era **Mese**: griglie mensili
   con lunedì come primo giorno, da 12 mesi indietro a 36 avanti, che scorrono in
   verticale come in Google Calendar. Ogni cella mostra fino a tre eventi colorati
   dal calendario, o due più «+N»; i giorni passati sono attenuati. Toccare un
@@ -113,5 +139,8 @@ una colonna sincronizzata e una migrazione Supabase.
 - `lib/ui/views/agenda_view.dart`: vista, Elenco, selettore calendari, etichette.
 - `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
 - `lib/ui/views/agenda_day_view.dart`: vista giorno in scala.
+- `lib/ui/views/agenda_weeks_view.dart`: vista a 2 settimane.
+- `lib/ui/views/agenda_event_sheet.dart` e `agenda_event_editor.dart`:
+  dettaglio, creazione, modifica ed eliminazione.
 - `android/app/.../AgendaChannel.java`: query nativa e riduzione ai link.
 - `test/agenda_test.dart` e `AgendaChannelTest.java`: regressioni.

@@ -113,6 +113,9 @@ final class AgendaSourceEvent {
     this.url,
     this.canceled = false,
     this.unanswered = false,
+    this.timeZone,
+    this.eventZoneTimes,
+    this.isOrganizer = true,
   });
 
   final String instanceId;
@@ -130,6 +133,15 @@ final class AgendaSourceEvent {
 
   /// Invitation never accepted or declined (Outlook's dashed events).
   final bool unanswered;
+
+  /// The event's own IANA zone, as stored by its calendar.
+  final String? timeZone;
+
+  /// "13:00–14:00" in [timeZone] when its offset differs from the device.
+  final String? eventZoneTimes;
+
+  /// False for invitations organised by someone else: not editable here.
+  final bool isOrganizer;
 }
 
 /// What the user chose to hide, on top of hidden calendars. Local only.
@@ -169,9 +181,18 @@ final class AgendaEntry {
     required this.allDay,
     this.location,
     this.meeting,
+    this.timeZone,
+    this.eventZoneTimes,
+    this.isOrganizer = true,
   });
 
   final String instanceId;
+  final String? timeZone;
+  final String? eventZoneTimes;
+  final bool isOrganizer;
+
+  /// Occurrence of a recurring series (instance ids carry `@timestamp`).
+  bool get recurring => instanceId.contains('@');
 
   /// First is the calendar used for colour; the rest are duplicates merged in.
   final List<String> calendarIds;
@@ -326,6 +347,9 @@ final class _MutableEntry {
     allDay: source.allDay,
     location: source.location,
     meeting: meeting,
+    timeZone: source.timeZone,
+    eventZoneTimes: source.eventZoneTimes,
+    isOrganizer: source.isOrganizer,
   );
 }
 
@@ -343,7 +367,23 @@ AgendaSourceEvent agendaEventFromRow(Map<Object?, Object?> row) =>
       description: row['links'] as String?,
       canceled: row['canceled'] as bool? ?? false,
       unanswered: row['unanswered'] as bool? ?? false,
+      timeZone: row['timeZone'] as String?,
+      eventZoneTimes: row['eventZoneTimes'] as String?,
+      isOrganizer: row['organizer'] as bool? ?? true,
     );
+
+/// The device zone as the Agenda shows it: always the IANA id, never an
+/// abbreviation, with the current UTC offset.
+String zoneLabel(String ianaId, int offsetSeconds) {
+  final sign = offsetSeconds < 0 ? '−' : '+';
+  final minutes = offsetSeconds.abs() ~/ 60;
+  final hours = minutes ~/ 60;
+  final rest = minutes % 60;
+  final offset = minutes == 0
+      ? 'UTC'
+      : 'UTC$sign$hours${rest == 0 ? '' : ':${rest.toString().padLeft(2, '0')}'}';
+  return '$ianaId · $offset';
+}
 
 /// An entry placed on a one-day timeline, in minutes from local midnight.
 final class TimelineBlock {

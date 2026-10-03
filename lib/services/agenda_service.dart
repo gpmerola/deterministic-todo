@@ -8,11 +8,13 @@ import '../domain/agenda.dart';
 
 enum AgendaAccess { granted, askable, denied }
 
-enum AgendaViewMode { month, list }
+/// Two weeks is the default: more room per day than a month grid.
+enum AgendaViewMode { twoWeeks, month, list }
 
-/// Read-only access to every calendar the Android system provider holds,
-/// including Outlook/Exchange accounts synced by their own apps. Events are
-/// read on demand and never stored, logged or synchronised.
+/// Access to every calendar the Android system provider holds, including
+/// Outlook/Exchange accounts synced by their own apps. Events are read on
+/// demand and never stored, logged or synchronised; they are written only on
+/// an explicit create, edit or delete.
 class AgendaService {
   AgendaService(this._database, {DeviceCalendar? calendar})
     : _calendar = calendar ?? DeviceCalendar.instance;
@@ -40,6 +42,7 @@ class AgendaService {
   Map<String, bool>? lastChoices;
   AgendaViewMode? lastMode;
   AgendaFilter? lastFilter;
+  String? lastZoneLabel;
   final Map<String, List<AgendaSourceEvent>> _events = {};
   static const _maxCachedRanges = 64;
 
@@ -177,9 +180,10 @@ class AgendaService {
     final row = await (_database.select(
       _database.appSettings,
     )..where((setting) => setting.key.equals(viewModeKey))).getSingleOrNull();
-    return row?.value == AgendaViewMode.list.name
-        ? AgendaViewMode.list
-        : AgendaViewMode.month;
+    return AgendaViewMode.values.firstWhere(
+      (mode) => mode.name == row?.value,
+      orElse: () => AgendaViewMode.twoWeeks,
+    );
   }
 
   Future<void> saveViewMode(AgendaViewMode mode) {
@@ -264,4 +268,83 @@ class AgendaService {
 
   static String? _blankToNull(String? value) =>
       value == null || value.trim().isEmpty ? null : value.trim();
+
+  /// IANA id and offset of the phone's zone, e.g. `Europe/London · UTC+1`.
+  /// Null when the platform cannot tell: the UI says so instead of guessing.
+  Future<String?> deviceZoneLabel() async {
+    try {
+      final value = await _channel.invokeMapMethod<String, Object?>(
+        'deviceZone',
+      );
+      final id = value?['id'] as String?;
+      final offset = value?['offsetSeconds'] as int?;
+      if (id == null || offset == null) return null;
+      return lastZoneLabel = zoneLabel(id, offset);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  /// Full occurrence for the edit form, including notes the Agenda never
+  /// keeps in memory. Null when the event no longer exists.
+  Future<AgendaEventDraft?> draftFor(String instanceId) async {
+    final event = await _calendar.getEvent(instanceId);
+    if (event == null) return null;
+    return AgendaEventDraft(
+      calendarId: event.calendarId,
+      title: event.title,
+      start: event.startDate,
+      end: event.endDate,
+      allDay: event.isAllDay,
+      location: event.location,
+      notes: event.description,
+    );
+  }
+
+  /// Applies [draft] to one occurrence, or with [series] to every occurrence
+  /// (the series moves by the same wall-clock shift as this occurrence).
+  Future<void> updateEvent(
+    String instanceId,
+    AgendaEventDraft draft, {
+    bool series = false,
+  }) async {
+    Patch<String> patch(String? value) => _blankToNull(value) == null
+        ? const Patch.clear()
+        : Patch.set(_blankToNull(value)!);
+    if (series) {
+      await _calendar.updateRecurring(
+        instanceId,
+        EventSpan.allEvents,
+        title: draft.title.trim(),
+        start: draft.start,
+        duration: draft.end.difference(draft.start),
+        isAllDay: draft.allDay,
+        location: patch(draft.location),
+        description: patch(draft.notes),
+      );
+    } else {
+      await _calendar.updateEvent(
+        eventId: instanceId,
+        title: draft.title.trim(),
+        startDate: draft.start,
+        endDate: draft.end,
+        isAllDay: draft.allDay,
+        location: patch(draft.location),
+        description: patch(draft.notes),
+      );
+    }
+    _events.clear();
+  }
+
+  /// Deletes one occurrence, or with [series] the whole series.
+  Future<void> deleteEvent(String instanceId, {bool series = false}) async {
+    if (series) {
+      await _calendar.deleteRecurring(instanceId, EventSpan.allEvents);
+    } else {
+      await _calendar.deleteEvent(eventId: instanceId);
+    }
+    _events.clear();
+  }
 }
