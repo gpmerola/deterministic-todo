@@ -14,7 +14,11 @@ class AgendaService {
   AgendaService(this._database, {DeviceCalendar? calendar})
     : _calendar = calendar ?? DeviceCalendar.instance;
 
-  static const hiddenCalendarsKey = 'agenda_hidden_calendars';
+  /// `{calendarId: shown}` chosen in Agenda; device-local, never synced.
+  static const calendarChoicesKey = 'agenda_calendar_choices';
+
+  /// Build 191 stored only hidden IDs; read once as explicit "hidden" choices.
+  static const legacyHiddenCalendarsKey = 'agenda_hidden_calendars';
 
   final AppDatabase _database;
   final DeviceCalendar _calendar;
@@ -35,17 +39,18 @@ class AgendaService {
 
   Future<void> openSystemSettings() => _calendar.openAppSettings();
 
-  /// Calendars the system marks visible, grouped by account then name.
+  /// Every calendar on the phone, grouped by account then name. Calendars
+  /// hidden in the phone's calendar app are listed too, off by default.
   Future<List<AgendaCalendar>> calendars() async {
     final result = [
       for (final calendar in await _calendar.listCalendars())
-        if (!calendar.hidden)
-          AgendaCalendar(
-            id: calendar.id,
-            name: calendar.name,
-            accountName: calendar.accountName ?? '',
-            colorHex: calendar.colorHex,
-          ),
+        AgendaCalendar(
+          id: calendar.id,
+          name: calendar.name,
+          accountName: calendar.accountName ?? '',
+          colorHex: calendar.colorHex,
+          visibleBySystem: !calendar.hidden,
+        ),
     ];
     result.sort((a, b) {
       final byAccount = a.accountName.compareTo(b.accountName);
@@ -88,14 +93,27 @@ class AgendaService {
   Future<void> openEvent(String instanceId) =>
       _calendar.showEventModal(instanceId);
 
-  Future<Set<String>> hiddenCalendarIds() async {
-    final row =
-        await (_database.select(_database.appSettings)
-              ..where((setting) => setting.key.equals(hiddenCalendarsKey)))
-            .getSingleOrNull();
-    if (row == null) return {};
+  Future<Map<String, bool>> calendarChoices() async {
+    final rows =
+        await (_database.select(_database.appSettings)..where(
+              (setting) => setting.key.isIn([
+                calendarChoicesKey,
+                legacyHiddenCalendarsKey,
+              ]),
+            ))
+            .get();
+    final values = {for (final row in rows) row.key: row.value};
     try {
-      return {for (final id in jsonDecode(row.value) as List) id as String};
+      final current = values[calendarChoicesKey];
+      if (current != null) {
+        return {
+          for (final entry in (jsonDecode(current) as Map).entries)
+            entry.key as String: entry.value as bool,
+        };
+      }
+      final legacy = values[legacyHiddenCalendarsKey];
+      if (legacy == null) return {};
+      return {for (final id in jsonDecode(legacy) as List) id as String: false};
     } on FormatException {
       return {};
     } on TypeError {
@@ -103,12 +121,16 @@ class AgendaService {
     }
   }
 
-  Future<void> setHiddenCalendarIds(Set<String> ids) => _database
+  Future<void> saveCalendarChoices(Map<String, bool> choices) => _database
       .into(_database.appSettings)
       .insertOnConflictUpdate(
         AppSettingsCompanion.insert(
-          key: hiddenCalendarsKey,
-          value: jsonEncode(ids.toList()..sort()),
+          key: calendarChoicesKey,
+          value: jsonEncode(
+            Map.fromEntries(
+              choices.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+            ),
+          ),
         ),
       );
 }

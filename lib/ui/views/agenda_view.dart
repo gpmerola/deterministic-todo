@@ -74,7 +74,10 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         return;
       }
       final nextCalendars = await widget.service.calendars();
-      final nextHidden = await widget.service.hiddenCalendarIds();
+      final nextHidden = hiddenAgendaCalendars(
+        nextCalendars,
+        await widget.service.calendarChoices(),
+      );
       final start = widget.today.asLocalDate;
       final end = widget.today.addDays(dayCount).asLocalDate;
       final events = await widget.service.events(start, end, [
@@ -122,7 +125,10 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           AgendaCalendarPicker(calendars: calendars, hidden: hidden),
     );
     if (selection == null) return;
-    await widget.service.setHiddenCalendarIds(selection);
+    await widget.service.saveCalendarChoices({
+      for (final calendar in calendars)
+        calendar.id: !selection.contains(calendar.id),
+    });
     await _load();
   }
 

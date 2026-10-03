@@ -24,15 +24,18 @@ quell'account non compare; non esiste un aggiramento lato app.
   modifiche restano responsabilità di quell'app.
 - **Solo locale.** Eventi, titoli, luoghi e descrizioni non vengono salvati in
   SQLite, nei log, nei backup o su Supabase: possono contenere dati clinici. È
-  salvato soltanto, in `app_settings.agenda_hidden_calendars`, l'elenco degli ID
-  dei calendari nascosti. Gli ID sono locali al dispositivo e non vengono
-  sincronizzati.
+  salvata soltanto la scelta dei calendari in
+  `app_settings.agenda_calendar_choices`, una mappa `{id: mostrato}`. La build
+  191 usava `agenda_hidden_calendars`, letta una volta come "nascosti". Gli ID
+  sono locali al dispositivo e non vengono sincronizzati.
 - **Lettura su richiesta.** Nessun polling né worker: l'agenda interroga il
   provider all'apertura, al ritorno in primo piano mentre è visibile, al
   pull-to-refresh e quando si estende la finestra. La finestra iniziale è di 14
   giorni da oggi e cresce di 14 alla volta.
-- **Calendari.** Sono elencati quelli che il sistema marca visibili, ordinati per
-  account e nome; ognuno si può nascondere da **Calendari**.
+- **Calendari.** Sono elencati tutti, ordinati per account e nome. Una scelta
+  esplicita in **Calendari** prevale; altrimenti vale la visibilità impostata
+  nell'app calendario del telefono, quindi i calendari che il telefono nasconde
+  (festività, account secondari) partono spenti ma si possono accendere.
 - **Duplicati.** Lo stesso evento presente in più calendari (titolo uguale senza
   distinzione di maiuscole e spazi finali, stesso inizio, fine e flag giornata
   intera) appare una volta. Il colore viene dal primo calendario nell'ordine

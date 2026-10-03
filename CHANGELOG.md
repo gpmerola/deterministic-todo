@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.44.1 (build 192) — Todo Test
+
+- **Calendari** in Agenda elenca anche i calendari che l'app calendario del
+  telefono nasconde (per esempio account Google secondari o festività): partono
+  spenti e si possono accendere. Nella 191 erano esclusi e non selezionabili.
+
 ## 2.44.0 (build 191) — Todo Test
 
 - Nuova sezione **Agenda** su Android: mostra insieme tutti i calendari

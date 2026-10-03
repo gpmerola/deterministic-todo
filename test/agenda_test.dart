@@ -191,15 +191,45 @@ void main() {
     expect(link('Riunione di Microsoft Teams'), isNull);
   });
 
-  test('ricorda i calendari nascosti solo in locale', () async {
+  test('i calendari nascosti dal telefono restano attivabili', () {
+    const systemHidden = AgendaCalendar(
+      id: 'unifi',
+      name: 'unifi',
+      accountName: 'me@example.it',
+      visibleBySystem: false,
+    );
+    const calendars = [kcl, systemHidden];
+    expect(hiddenAgendaCalendars(calendars, const {}), {'unifi'});
+    expect(
+      hiddenAgendaCalendars(calendars, const {'unifi': true, 'kcl': false}),
+      {'kcl'},
+    );
+  });
+
+  test('ricorda le scelte dei calendari solo in locale', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final service = AgendaService(db);
-    expect(await service.hiddenCalendarIds(), isEmpty);
-    await service.setHiddenCalendarIds({'slam', 'gmail'});
-    expect(await service.hiddenCalendarIds(), {'slam', 'gmail'});
-    await service.setHiddenCalendarIds({});
-    expect(await service.hiddenCalendarIds(), isEmpty);
+    expect(await service.calendarChoices(), isEmpty);
+    await service.saveCalendarChoices({'slam': false, 'unifi': true});
+    expect(await service.calendarChoices(), {'slam': false, 'unifi': true});
+  });
+
+  test('legge come nascosti i calendari scelti con la build 191', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db
+        .into(db.appSettings)
+        .insert(
+          AppSettingsCompanion.insert(
+            key: AgendaService.legacyHiddenCalendarsKey,
+            value: '["gmail"]',
+          ),
+        );
+    final service = AgendaService(db);
+    expect(await service.calendarChoices(), {'gmail': false});
+    await service.saveCalendarChoices({'gmail': true});
+    expect(await service.calendarChoices(), {'gmail': true});
   });
 
   testWidgets('mostra gli eventi uniti e filtra i calendari', (tester) async {
@@ -250,7 +280,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Cena'), findsNothing);
     expect(find.text('2 di 3 calendari'), findsOneWidget);
-    expect(await service.hiddenCalendarIds(), {'gmail'});
+    expect(await service.calendarChoices(), {
+      'kcl': true,
+      'gmail': false,
+      'slam': true,
+    });
     expect(service.requestedCalendars.last, ['kcl', 'slam']);
   });
 

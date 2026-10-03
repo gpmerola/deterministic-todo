@@ -7,13 +7,27 @@ final class AgendaCalendar {
     required this.name,
     required this.accountName,
     this.colorHex,
+    this.visibleBySystem = true,
   });
 
   final String id;
   final String name;
   final String accountName;
   final String? colorHex;
+
+  /// Whether the phone's calendar app shows it; only the default in Agenda.
+  final bool visibleBySystem;
 }
+
+/// Calendars left out of the agenda: an explicit choice wins, otherwise the
+/// phone's own visibility setting.
+Set<String> hiddenAgendaCalendars(
+  List<AgendaCalendar> calendars,
+  Map<String, bool> choices,
+) => {
+  for (final calendar in calendars)
+    if (!(choices[calendar.id] ?? calendar.visibleBySystem)) calendar.id,
+};
 
 /// One occurrence read from the system provider. Never persisted or synced:
 /// work calendars may contain clinical details.
