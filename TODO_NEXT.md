@@ -6,8 +6,10 @@
   link Teams/Zoom/Meet, calendari nascondibili; 2191 sul manifest rolling.
 - [x] Galaxy 2193 via ADB: Agenda, selettore e unione dei duplicati verificati;
   i due account KCL Outlook sono visibili.
-- [ ] Account SLaM/NHS assente dal provider: aggiungerlo a Outlook con
-  **Sincronizza calendari**, oppure verificare se Intune lo blocca.
+- [x] Vista Mese stile Google Calendar (194–195) verificata sul Galaxy.
+- [ ] SLaM: Outlook gestito da Intune accetta un solo account (KCL). Provare la
+  condivisione del calendario SLaM verso l'account KCL da Outlook Web; in
+  alternativa valutare la sottoscrizione ICS pubblicata.
 - [ ] Provare pulsante Teams e apertura di un evento su una riunione reale.
 - [ ] Passo successivo: opzione esplicita per attività "Mostra in agenda"
   (colonna sincronizzata + migrazione Supabase approvata).

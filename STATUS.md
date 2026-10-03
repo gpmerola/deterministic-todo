@@ -2,6 +2,19 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Agenda vista Mese — builds 194–195
+
+`make check` superato (270 test, 11 in `test/agenda_test.dart`, incluso un test
+della griglia a 1080×2400). `make todo-test` ha installato via ADB la 2194 e la
+2195 con dati conservati. Verificato con screenshot sul Galaxy: vista Mese
+predefinita con griglia dal lunedì, oggi evidenziato, eventi colorati per
+calendario e «+N»; scorrimento fino a dicembre; il dettaglio di un giorno di
+novembre mostra orari e il pulsante Teams riconosciuto su riunioni KCL. La 195
+corregge l'intestazione, che con la 194 andava a capo («12/29 calendari»).
+Pulsante Teams e apertura evento non ancora toccati.
+L'account SLaM non si può aggiungere a Outlook: l'app è gestita da Intune con
+l'account KCL e accetta un solo account gestito (schermata dell'utente).
+
 ## ADB ripristinato e Agenda collaudata — builds 192–193
 
 ADB era chiuso sulla 5555 dopo un riavvio Android. Ripristinato via Tailscale:
