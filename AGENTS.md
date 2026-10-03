@@ -90,6 +90,12 @@ esplicita dell’utente; non aggiungere MAC, codici di pairing o credenziali.
 
 ## Modulo movimento e Amazfit
 
+Dalla build 190 resta attivo solo il conteggio quotidiano dei passi del
+telefono; GPS, Amazfit, Health Connect e diagnostica sono archiviati nel tag
+`archive/movimento-completo-b189` (`docs/archive/MOVIMENTO.md`). Non
+reintrodurli senza una decisione esplicita dell'utente; le regole sotto valgono
+per il contapassi e per un eventuale ripristino.
+
 - Il codice salute/movimento deve restare confinato in `android/runtracker` e
   nel suo sottile canale Flutter. Non mescolare database, permessi, log o sync
   con il dominio Todo o Supabase.

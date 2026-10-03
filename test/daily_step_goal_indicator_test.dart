@@ -7,7 +7,7 @@ void main() {
   test('aggiorna il totale visibile senza polling aggressivo', () {
     expect(
       RunTrackerService.foregroundRefreshInterval,
-      const Duration(seconds: 30),
+      const Duration(minutes: 1),
     );
   });
 

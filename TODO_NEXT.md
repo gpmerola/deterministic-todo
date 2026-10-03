@@ -133,9 +133,13 @@ Esiti e limiti correnti: [STATUS](STATUS.md). Movimento escluso da questo task.
 - [ ] Osservare una mattina reale conservando le nuove revisioni. Stato delle verifiche in [STATUS](STATUS.md), contratto in
   [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
-## P0 — Movimento autonomo, solo telefono
+## Archiviato — Movimento autonomo, solo telefono
 
-Riscontri e piano canonico: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+Superato dalla build 190: resta solo il contapassi
+([Movimento archiviato](docs/archive/MOVIMENTO.md)). Le voci aperte qui e i
+collaudi Bip U, Drive e confronto Fit sotto non sono più applicabili.
+
+Riscontri e piano canonico: [MOVEMENT_AUTONOMY](docs/archive/MOVEMENT_AUTONOMY.md).
 
 - [x] Build 173: lettura ADB locale dei minuti per confronti su intervalli
   espliciti; contratto e limiti in MOVEMENT_AUTONOMY, collaudo in STATUS.
@@ -188,7 +192,7 @@ non duplicare qui i dettagli tecnici.
   che **Svuota cestino** rimuova definitivamente task, progetti e sezioni dopo
   aver sincronizzato tutti i dispositivi.
 
-- [ ] Lasciare invariato il collaudo Movimento iniziato con la build 153 e
+- [-] Superato dalla build 190 (Movimento archiviato). Lasciare invariato il collaudo Movimento iniziato con la build 153 e
   proseguito sulla 154: aprire la nuova build una volta e non usare upload
   manuali. Verificare almeno due aggiornamenti automatici alternati di
   `diagnostics_last_7_days_{a,b}.json`; un errore SAF riconciliato deve

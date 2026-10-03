@@ -6,10 +6,9 @@ usano la stessa interfaccia dal browser.
 
 Distribuito con licenza [MIT](LICENSE).
 
-Movimento: il [piano di autonomia da Google Fit](docs/architecture/MOVEMENT_AUTONOMY.md)
-documenta raccolta passiva, distanza camminata/corsa e calorie. La build 170
-introduce raccolta locale in background, import idempotente, profilo personale
-e distanza quotidiana che integra i segmenti GPS senza duplicarli.
+Passi: dalla build 190 Android conserva solo il conteggio quotidiano dei passi
+del telefono; GPS, Amazfit, Health Connect e diagnostica Movimento sono
+[archiviati](docs/archive/MOVIMENTO.md) per ridurre peso e consumo di batteria.
 
 Dalla build 172 la sincronizzazione applica solo i campi modificati e impedisce
 che il cambio di giorno ripubblichi copie vecchie. **Impostazioni → Dati e
@@ -35,8 +34,7 @@ successive. Cronologia e ricevute restano protette; dettagli nel
 ## Piattaforme
 
 - **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite
-  il manifest pubblico e APK separati per CPU. Il minimo API 26 deriva dal
-  client stabile Health Connect usato dal modulo Movimento.
+  il manifest pubblico e APK separati per CPU (minimo API 26).
 - **Browser desktop:** web app Flutter pubblicata su GitHub Pages. Usa la stessa
   struttura minimale di Android con un adattamento per mouse, tastiera e
   schermi larghi; conserva un database SQLite locale persistente e si
@@ -96,146 +94,27 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - backup JSON versionato con attività, progetti, sezioni e preferenze Todo;
   ripristino atomico e compatibilità con il formato precedente; export CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
-- modulo Android isolato **Movimento** con passi del telefono tramite la
-  Recording API locale, distanza e calorie attive stimate, sessioni GPS, archivio Room
-  separato ed export GPX.
+- contapassi Android isolato: passi del telefono tramite la Recording API
+  locale e obiettivo giornaliero, in un archivio Room separato.
 
-## Movimento e corsa (Android)
+## Passi (Android)
 
-La sezione principale **Movimento**, accanto a **Progetti**, usa la Recording
-API locale di Play Services con il permesso attività fisica. Raccoglie i passi
-anche fuori dal processo Todo e importa in Room i minuti completi, senza
-account/app Google Fit o Health Connect. Import ogni tre ore, differibile da
-Android, e al massimo ogni minuto mentre l'app è visibile; la UI legge subito
-il database locale. Prima dell'attivazione non viene ricostruita una cronologia
-inesistente e gli intervalli mancanti restano dichiarati. Riepilogo,
-avvio/stop e upload vivono in una pagina
-integrata nella stessa navigazione, senza aprire una schermata Android
-intermedia. La logica salute resta nel modulo nativo separato.
+L'anello nell'AppBar mostra i passi del giorno civile rispetto all'obiettivo
+(10.000 se non impostato, da 1.000 a 100.000). Toccandolo si apre un pannello
+con il totale, lo stato della raccolta, il pulsante per concedere il permesso
+**Attività fisica** quando manca e la modifica dell'obiettivo, disponibile anche
+in **Impostazioni**.
 
-Durante una sessione i passi sono letti anche direttamente dal contatore
-hardware Android e mostrati come **Passi sessione · sensore telefono**. Il
-valore continua ad aggiornarsi a schermo spento insieme al servizio GPS e resta
-distinto dal totale giornaliero locale telefono+Amazfit.
+I passi vengono dalla Recording API locale di Play Services, senza account,
+GPS, Bluetooth o servizi in primo piano. Android importa i minuti completi ogni
+3 ore in background; con l'app visibile l'anello si aggiorna una volta al
+minuto. I dati restano sul dispositivo nel database `run_tracker.sqlite`,
+separato dal dominio Todo e mai sincronizzato con Supabase.
 
-Nelle camminate, quando il contatore hardware è disponibile, gli intervalli
-GPS senza nuovi passi restano nella diagnostica ma non incrementano la
-distanza. Alla ripartenza il primo passo riabilita il collegamento GPS
-plausibile; corsa e dispositivi senza sensore conservano il filtro GPS come
-fallback.
-
-La distanza quotidiana classifica i minuti locali tramite Activity Recognition
-e usa passi distinti per camminata/corsa. I segmenti GPS accettati sostituiscono
-la stima dello stesso intervallo; non vengono aggiunti due volte. **Peso e
-lunghezza del passo** permette di personalizzare i parametri, solo sul
-dispositivo. Le calorie restano stime attive basate su peso, distanza e tipo di
-movimento, senza metabolismo a riposo o correzione per pendenza. Il confronto
-diagnostico Fit/Drive è opzionale e separato dal conteggio locale.
-Nei soli report di riferimento,
-i blocchi Fit che attraversano più stati vengono ripartiti per il tempo
-effettivamente sovrapposto. Veicolo e bicicletta vengono marcati solo quando
-dominano almeno l'80% del blocco; se il sensore registra passi mentre
-Activity Recognition segnala `STILL`, i passi prevalgono e la quota resta
-visibile come incerta.
-Le falcate partono da fallback dichiarati e vengono calibrate con la mediana
-solo dopo tre sessioni GPS lunghe e plausibili dello stesso tipo. Una sessione
-entra nella calibrazione soltanto quando almeno l'80% dei passi osservati in
-finestre di 30 secondi ha una cadenza coerente con camminata o corsa; una corsa
-intervallata da lunghi tratti camminati resta utile alla diagnostica ma non
-altera la falcata. Dopo un riaggancio GPS il primo fix coerente stabilizza il
-nuovo riferimento senza aggiungere distanza. Non sono
-misure cliniche né equivalenti a Google Fit finché il confronto reale non è
-stato validato sul Galaxy S21.
-
-Da **Movimento** si avvia una traccia GPS del
-telefono. Una notifica persistente mantiene la registrazione attiva anche a
-schermo spento e consente di terminarla. La schermata mostra durata, distanza,
-passo medio e accuratezza corrente.
-
-Alla fine della sessione l'app attende la sincronizzazione, legge da Health
-Connect i record attribuiti a Google Fit nello stesso intervallo e mostra
-distanza, passi, calorie attive e scarto. Il confronto viene inoltre aggiunto
-automaticamente al JSON diagnostico su Drive. Il comando manuale resta negli
-strumenti avanzati come recupero. Google Fit deve aver condiviso quei dati con
-Health Connect; i valori assenti restano esplicitamente non disponibili.
-Il confronto usa un job Android persistente con timeout e retry: Movimento può
-essere chiusa dopo lo stop e mostra l'esito alla riapertura. Health Connect
-richiede un consenso distinto per questa lettura in background; l'app lo
-richiede solo sui dispositivi che supportano la funzione. Stato e tentativi
-restano nel JSON Drive anche quando il confronto non riesce. Dopo il consenso,
-un tentativo immediato in primo piano recupera anche l'ultima sessione rimasta
-in attesa.
-
-Ogni sessione mantiene inoltre in `01 Sessions` un solo report canonico
-`*_three_way.json`. Le finestre UTC di un minuto affiancano passi e distanza
-Todo Test ai campioni Bip U; i valori Google Fit disponibili a risoluzione di
-sessione sono riportati nei totali, con differenze assolute e percentuali fra
-le fonti. Il report viene aggiornato dopo il confronto Fit, dopo un nuovo
-backfill Bip pertinente e ogni ora per le 15 sessioni più recenti. Include la
-timeline sanitaria Bip richiesta per il collaudo, ma mai coordinate, chiave,
-MAC, pacchetti BLE o contenuti Todo.
-
-Il test passivo di sette giorni non richiede sessioni manuali. Durante il
-debugging crea su Drive uno snapshot cumulativo della giornata corrente circa
-un minuto dopo l'avvio e poi ogni ora, confrontando stima Todo e valori Google
-Fit disponibili in Health Connect. GPS e BLE restano spenti; il report finale
-del giorno precedente viene conservato separatamente. Ogni snapshot schema 7
-include una timeline UTC al minuto che allinea Todo, Google Fit e i campioni
-Bip U già importati. Segmenti automatici raggruppano cammino, corsa e pause e
-registrano copertura, ritardi delle sorgenti, configurazione esatta e risorse;
-consentono di isolare a posteriori un intervallo breve senza aumentare il
-polling o tenere il GPS acceso.
-Dalla build 140 i file diagnostici immutabili vengono prima scritti e
-verificati con un nome parziale e diventano visibili col nome definitivo solo
-al termine; eventuali placeholder da 0 byte vengono recuperati al retry. CPU e
-rete sono normalizzate per ora, PSS include il delta e lo stato Bip distingue
-campioni correnti, obsoleti o assenti. L'assenza non avvia BLE implicitamente.
-Per anticipare un controllo, `Carica ora tutti i dati di test` produce file
-manuali univoci e comprende snapshot passivo, segmenti intensivi pendenti,
-diagnostica applicativa e report unificato senza fermare il monitor.
-
-Su Android l'AppBar mostra in tutte le schermate un anello compatto con i passi
-del giorno e il progresso verso l'obiettivo. Il target predefinito di 10.000
-passi è modificabile nelle Impostazioni; giorno e reset derivano dal contatore
-hardware persistito e dal fuso locale. I campioni Bip U importati sono usati
-con la regola conservativa `max(telefono, Amazfit)`, mai sommati; Google Fit
-resta una sorgente indipendente di confronto.
-
-Quando l'app è visibile tenta l'importazione Bip U al massimo ogni 15 minuti.
-Un job Android prova inoltre ogni tre ore, in modo differibile e con batteria
-non bassa: la cadenza non è un orario esatto perché Android può posticiparla.
-Ogni collegamento è limitato a 90 secondi e viene chiuso dopo il trasferimento;
-non esistono connessioni BLE o notifiche persistenti tra un tentativo e l'altro.
-
-Il modulo conserva localmente in `run_tracker.sqlite` tutti i campioni: quelli
-validi alimentano la distanza, quelli esclusi conservano il motivo
-(`poor_accuracy`, `implausible_speed_jump`, `gps_zigzag`, rumore da fermo o
-timestamp non valido). L'export GPX include la traccia accettata e i punti
-scartati come waypoint diagnostici. Questi dati non entrano nel database Todo,
-nei backup Todo o nella sincronizzazione Supabase.
-
-Per i collaudi ripetuti selezionare una sola volta **Collega cartella Google
-Drive per i test** e scegliere `Deterministic Todo Movement Tests`. Al termine
-di ogni sessione l’app crea automaticamente due file omonimi: GPX e JSON
-diagnostico completo. La schermata mostra l'esito della scrittura e permette di
-riesportare idempotentemente l'ultima attività se il provider era temporaneamente
-indisponibile. Il provider Drive gestisce la sincronizzazione; l’app non contiene
-credenziali Google. I file includono dati personali di posizione e non devono
-essere resi pubblici o versionati.
-
-Il test passivo opzionale dura sette giorni e genera automaticamente un audit
-per ogni giornata civile completata. Usa un solo job periodico a basso consumo:
-non mantiene GPS, BLE o un servizio foreground e può funzionare con l'app
-chiusa. Terminarlo e riavviarlo estende la finestra senza cancellare gli audit
-già caricati.
-
-La chiave Huami viene cifrata con Android Keystore e non entra in log o
-repository. La sincronizzazione Bip U autenticata conserva localmente i
-campioni di un minuto senza cancellarli dall'orologio: riparte dall'ultimo
-campione con un'ora di sovrapposizione idempotente e recupera fino a sette
-giorni quando l'orologio è rimasto scollegato. Batteria, battito live limitato
-e import storico sono stati validati sul dispositivo reale. Non sono presenti
-funzioni di aggiornamento firmware.
+Il vecchio modulo **Movimento** (sessioni GPS, Amazfit Bip U, Health Connect,
+distanza e calorie stimate, export Drive) è archiviato nel tag
+`archive/movimento-completo-b189`; contenuto, dati conservati e ripristino in
+[Movimento archiviato](docs/archive/MOVIMENTO.md).
 
 ## Import e reimport Todoist
 
@@ -306,11 +185,8 @@ nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
 senza aggiungere indicatori alla home. Dalla build 154 conserva nell'apertura
 corrente anche fase e ora dell'ultimo problema Todo, retry, recupero e ultimo
 successo, senza mostrare o registrare contenuto delle attività.
-Durante la fase di debugging, Android aggiorna un bundle diagnostico rolling
-di 7 giorni circa un minuto dopo l'avvio e quindi ogni 3 ore quando è disponibile
-una rete. Il comando manuale usa lo stesso flusso. Due slot Drive alternati
-proteggono dalle scritture interrotte; il job non attiva GPS o BLE e non elimina
-mai file su Drive.
+Il bundle diagnostico rolling su Drive, configurato dalla scheda Movimento, è
+archiviato dalla build 190: la diagnostica Todo resta locale e leggibile via ADB.
 Priorità, date e ricorrenze hanno anche descrizioni accessibili indipendenti
 dal colore; l'app rispetta testo di sistema, alto contrasto e navigazione da
 tastiera. Sul Web SQLite WebAssembly e il worker Drift vengono precaricati,
@@ -385,7 +261,7 @@ Struttura canonica:
   Android e web;
 - `web/`: shell browser e asset SQLite WebAssembly;
 - `android/`: client Android;
-- `android/runtracker/`: modulo corsa nativo, database Room, GPS, GPX e BLE;
+- `android/runtracker/`: contapassi nativo (Recording API) e database Room;
 - `supabase/migrations/`: schema remoto e RLS;
 - `tools/launchers/`: utilità Android opzionali.
 

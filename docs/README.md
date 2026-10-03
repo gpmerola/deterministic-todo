@@ -14,14 +14,14 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
 
 - [Architettura applicativa](ARCHITETTURA.md): dominio Todo, persistenza,
   sincronizzazione, confini e invarianti.
-- [Run tracker e Bip U](architecture/RUN_TRACKER_BIP_U.md): architettura del
-  modulo Android Movimento e roadmap Amazfit.
+- [Movimento archiviato](archive/MOVIMENTO.md): cosa resta del modulo Android
+  (solo passi), cosa è archiviato nel tag `archive/movimento-completo-b189` e
+  come ripristinarlo. Documenti storici GPS/Amazfit in `archive/`.
 
-Gli hotspot noti sono `lib/data/sync/sync_service.dart` e
-`android/runtracker/.../RunTrackerActivity.java`; dalla build 189 viste,
+L'hotspot noto è `lib/data/sync/sync_service.dart`; dalla build 189 viste,
 ricerca, composer e aggiornamenti sono stati estratti da `lib/main.dart`
-([struttura della shell](architecture/TODO_PLANNING_MODEL.md#struttura-della-shell)). La loro dimensione è debito
-tecnico registrato, non autorizzazione a dividerli durante un fix non correlato.
+([struttura della shell](architecture/TODO_PLANNING_MODEL.md#struttura-della-shell)). La sua dimensione è debito
+tecnico registrato, non autorizzazione a dividerlo durante un fix non correlato.
 Ogni estrazione futura deve preservare test e comportamento pubblico.
 
 ## Operazioni
@@ -31,7 +31,6 @@ Ogni estrazione futura deve preservare test e comportamento pubblico.
 - [ADB Wi-Fi/Tailscale e diagnostica Movimento](operations/ADB_WIFI.md)
 - [Web](operations/WEB.md)
 - [Backup e recovery](operations/BACKUP_RECOVERY.md)
-- [Bip U su Samsung](operations/BIP_U_SAMSUNG.md)
 - [Performance e aggiornamenti Android](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md)
 
 ## Evidenze

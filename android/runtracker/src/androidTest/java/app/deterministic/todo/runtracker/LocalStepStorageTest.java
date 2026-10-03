@@ -46,18 +46,6 @@ public class LocalStepStorageTest {
         assertEquals(240_000, db.runs().localStepState().importedThroughMillis);
     }
 
-    @Test public void intervalReadIncludesPartialFirstMinuteWithoutChangingStoredData() {
-        db.runs().insertLocalStepState(new LocalStepState());
-        db.runs().importLocalStepMinutes(List.of(minute(60_000, 100), minute(120_000, 90)), 180_000);
-        var range = new LocalStepIntervalReport.Range(90_000, 180_000);
-        var rows = db.runInTransaction(() -> LocalStepIntervalReport.build(range,
-            db.runs().localStepMinutes(range.firstMinute(), range.end()), List.of(),
-            new MovementProfile(70, .7, 1.1)));
-        assertEquals(2, rows.size());
-        assertEquals(50, rows.get(0).proratedSteps(), .0001);
-        assertEquals(190, db.runs().localSteps(0, 180_000));
-        assertEquals(180_000, db.runs().localStepState().importedThroughMillis);
-    }
 
     @Test public void failedBatchRollsBackRowsAndImportCursor() {
         db.runs().insertLocalStepState(new LocalStepState());
@@ -72,7 +60,8 @@ public class LocalStepStorageTest {
     }
 
     @Test public void migrationFromV4PreservesSessionAndDailySubtotal() {
-        long id = db.runs().start(60_000, "walk");
+        RunSession session = new RunSession(); session.startedAtMillis = 60_000;
+        session.activityType = "walk"; long id = db.runs().insertSession(session);
         DailyMovement day = new DailyMovement(); day.day = "2026-01-01";
         day.zoneId = "UTC"; day.steps = 123; db.runs().upsertDailyMovement(day);
         db.close();
@@ -91,18 +80,5 @@ public class LocalStepStorageTest {
         assertEquals(0, db.runs().dailyMovement("2026-01-01", "UTC").modelVersion);
         db.runs().insertLocalStepState(new LocalStepState());
         assertNotNull(db.runs().localStepState());
-    }
-
-    @Test public void gpsDayQueryIncludesBoundaryAnchors() {
-        long id = db.runs().start(30_000, "walk");
-        for (long time : new long[]{30_000, 50_000, 90_000, 130_000, 150_000}) {
-            TrackPoint point = new TrackPoint(); point.sessionId = id;
-            point.timestampMillis = time; point.accepted = true;
-            db.runs().insertPoint(point);
-        }
-        var points = db.runs().acceptedPointsForDay(id, 60_000, 120_000);
-        assertEquals(3, points.size());
-        assertEquals(50_000, points.get(0).timestampMillis);
-        assertEquals(130_000, points.get(2).timestampMillis);
     }
 }

@@ -154,6 +154,10 @@ wireless sono documentati in
 garantisce una sessione sempre connessa: IP e porta vanno trattati come valori
 effimeri e mai salvati nel repository.
 
+> **Archiviato dalla build 190.** Test passivo, diagnostica Drive, GPS e Bip U
+> non sono più nell'app: vedi [Movimento archiviato](archive/MOVIMENTO.md). Le
+> sezioni seguenti restano come cronologia.
+
 Il test passivo Movimento è temporaneo e auto-scade dopo sette giorni. Dalla
 2.25.5 usa un solo `PeriodicWorkRequest` ogni ora: legge da Health Connect la
 giornata corrente e crea un file immutabile
@@ -296,7 +300,7 @@ versione/build, schema log e un identificatore casuale valido soltanto per
 l'apertura corrente. La raccolta è event-driven e non mantiene servizi o
 polling aggiuntivi.
 
-Dalla 2.33.0 WorkManager costruisce lo stesso bundle rolling di 7 giorni sia
+Fino alla build 189 (bundle Drive archiviato con Movimento), dalla 2.33.0 WorkManager costruiva lo stesso bundle rolling di 7 giorni sia
 automaticamente (avvio e ogni 3 ore) sia su comando manuale. Drive contiene due
 soli slot alternati, `diagnostics_last_7_days_a.json` e `_b.json`, così una
 scrittura interrotta non invalida l'ultima copia buona. Non esiste cancellazione
@@ -309,8 +313,8 @@ batteria. Browser ed esportazione manuale restano invariati.
 Per evitare la latenza Play durante lo sviluppo, dalla 2.26.0 il flavor `dev`
 usa package `.dev` e nome **Todo Test**. Convive con Play e si aggiorna con
 `adb install -r` usando la firma diretta stabile. I sandbox non condividono
-dati, login, Keystore o permessi. Prima di attivare Movimento sul flavor test
-occorre fermarne la raccolta nel client Play. Runbook:
+dati, login, Keystore o permessi. Il contapassi usa un abbonamento Recording
+API per package: tenerlo attivo in un solo client. Runbook:
 [`operations/ANDROID_DEV_CHANNEL.md`](operations/ANDROID_DEV_CHANNEL.md).
 
 1. Il client scarica il piccolo `manifest.json` pubblico.

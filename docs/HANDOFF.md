@@ -1,5 +1,13 @@
 # Handoff tecnico e di prodotto
 
+**Movimento archiviato dalla build 190.** Su decisione dell'utente
+(3 ottobre 2026) Android conserva solo il conteggio quotidiano dei passi del
+telefono. GPS, Amazfit, Health Connect, diagnostica passiva/intensiva, Drive,
+distanza e calorie sono nel tag `archive/movimento-completo-b189`; inventario,
+dati conservati e ripristino in [Movimento archiviato](archive/MOVIMENTO.md).
+Le sezioni Movimento sotto sono storiche: non riprenderne gli obiettivi senza
+una nuova decisione esplicita.
+
 Per stato, viste, Inbox, ricerca e struttura della shell dalla build 189
 leggere [pianificazione e viste](architecture/TODO_PLANNING_MODEL.md).
 
@@ -30,7 +38,7 @@ di precisione/copertura e batteria; non confonderla con la sottoscrizione API
 o i test sintetici già riusciti. Stato della consegna in STATUS.
 
 Il riferimento per riscontri, decisioni e incrementi verso l'autonomia da Fit
-è [MOVEMENT_AUTONOMY](architecture/MOVEMENT_AUTONOMY.md). Prevale sulle proposte
+è [MOVEMENT_AUTONOMY](archive/MOVEMENT_AUTONOMY.md). Prevale sulle proposte
 storiche sottostanti per questo percorso. La build 169 corregge la perdita
 del subtotale al ritorno a giorno/fuso già osservato e rende esplicito lo stato
 di attribuzione del contatore. Raccolta continua, classificazione locale e
@@ -50,7 +58,8 @@ SQLite locale è sempre la fonte immediata dell’interfaccia e Supabase è una
 replica personale opzionale. Il prodotto è volutamente minimale, senza
 analytics, collaborazione o dipendenza dalla rete per l’uso ordinario.
 
-Il prossimo obiettivo prioritario è ampliare il modulo Android isolato per:
+Obiettivo storico, superato dall'archiviazione della build 190. Il modulo
+Android isolato doveva:
 
 1. contare i passi quotidiani;
 2. calcolare la distanza percorsa camminando e correndo;

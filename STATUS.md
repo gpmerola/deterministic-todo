@@ -418,7 +418,7 @@ migrazione; i client vecchi mantengono il vecchio merge finché non aggiornati.
 
 Implementata lettura ADB riservata alla shell su Todo Test, senza raccolte
 aggiuntive o upload. Contratto, confini temporali e limiti della ricalcolazione:
-[MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+[MOVEMENT_AUTONOMY](docs/archive/MOVEMENT_AUTONOMY.md).
 Verifiche superate: `make check` (analisi Flutter, 171 test Flutter, 10 test
 strumenti e link), 159 test JVM e 5 test strumentali sul Galaxy con database
 sintetici. Il lint Android conserva 38 errori/fatali preesistenti, nessuno nei
@@ -474,7 +474,7 @@ sintetico sopra non prova la sincronizzazione con un account cloud.
 Implementati Recording API locale senza account/app Fit, import periodico
 Room 5, classificazione camminata/corsa, integrazione GPS senza somma doppia e
 profilo personale peso/passo. Algoritmo, limiti e procedura:
-[MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+[MOVEMENT_AUTONOMY](docs/archive/MOVEMENT_AUTONOMY.md).
 
 Verifiche: `make check` superato (analisi Flutter, 153 test app, 10 test
 strumenti, link documentali), 155 test JVM, quattro test strumentali sul Galaxy
@@ -506,7 +506,7 @@ temporale Amazfit restano successive alla validazione del solo telefono.
 
 ## Build 169 — Basi del conteggio Movimento autonomo
 
-Implementazione e riscontri: [MOVEMENT_AUTONOMY](docs/architecture/MOVEMENT_AUTONOMY.md).
+Implementazione e riscontri: [MOVEMENT_AUTONOMY](docs/archive/MOVEMENT_AUTONOMY.md).
 Correzione conservativa dei subtotali giorno/fuso e della prima lettura dal
 boot odierno; stato tecnico ADB esplicito. `make check` superato: analisi
 Flutter, 152 test app, 10 test strumenti e collegamenti documentali. Superati

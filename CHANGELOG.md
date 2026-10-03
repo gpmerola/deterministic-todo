@@ -2,6 +2,26 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.43.0 (build 190) — Todo Test
+
+- Movimento ridotto al solo contapassi. Sessioni GPS, Amazfit Bip U, Health
+  Connect, distanza e calorie stimate, audit passivo, diagnostica intensiva ed
+  export Drive sono archiviati nel tag `archive/movimento-completo-b189`, non
+  cancellati: [Movimento archiviato](docs/archive/MOVIMENTO.md).
+- La scheda **Movimento** non c'è più. Toccando l'anello passi si apre un
+  pannello con totale, obiettivo, stato della raccolta e, se manca, il permesso
+  Attività fisica. L'obiettivo resta modificabile anche in Impostazioni.
+- Al primo avvio la build annulla una sola volta i lavori in background
+  archiviati (sync Bluetooth ogni 3 ore, upload Drive ogni 3 ore e all'avvio,
+  audit orario) e l'iscrizione al riconoscimento attività. I dati già salvati
+  sul telefono restano intatti.
+- Rimossi i permessi posizione, servizio in primo piano, Bluetooth, notifiche e
+  Health Connect, e le librerie Health Connect, Play Services Location e
+  coroutine Kotlin.
+- Il totale dei passi si aggiorna una volta al minuto con l'app visibile, il
+  ritmo massimo dell'import Android, invece che ogni 30 secondi. Il totale non
+  somma più i campioni Bip U.
+
 ## 2.42.0 (build 189) — Todo Test
 
 - La pianificazione dipende solo dalla data. Un'attività riaperta con data

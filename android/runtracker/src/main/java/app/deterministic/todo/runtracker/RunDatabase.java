@@ -8,6 +8,10 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
+/**
+ * Schema unchanged since the movement archive: GPS sessions, Bip U samples and
+ * daily estimates stay on disk untouched; only step tables are still written.
+ */
 @Database(entities = {RunSession.class, TrackPoint.class, DailyMovement.class,
     BipUActivitySample.class, LocalStepMinute.class, LocalStepState.class}, version = 5, exportSchema = false)
 public abstract class RunDatabase extends RoomDatabase {

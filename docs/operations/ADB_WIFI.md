@@ -170,6 +170,10 @@ devices** oppure disattivare completamente Wireless debugging.
 
 ## Stato passivo Movimento nelle build release
 
+> **Archiviato dalla build 190:** il provider `movement_debug` non esiste più.
+> Codice nel tag `archive/movimento-completo-b189`, vedi
+> [Movimento archiviato](../archive/MOVIMENTO.md). Sezione storica.
+
 Dalla build 114 l'ultimo tentativo orario è leggibile senza aprire l'app e
 senza abilitare `run-as`:
 

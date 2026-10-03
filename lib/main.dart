@@ -39,8 +39,8 @@ import 'ui/activity_history_view.dart';
 import 'ui/app_section.dart';
 import 'ui/app_undo.dart';
 import 'ui/daily_step_goal_indicator.dart';
+import 'ui/daily_steps_sheet.dart';
 import 'ui/link_text_editing_controller.dart';
-import 'ui/movement_view.dart';
 import 'ui/priority_color.dart';
 import 'ui/quick_add_sheet.dart';
 import 'ui/search.dart';
@@ -471,6 +471,20 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _showDailySteps() => showDailyStepsSheet(
+    context,
+    progress: dailyMovement,
+    goal: dailyStepGoal,
+    enableSteps: () async {
+      await RunTrackerService.requestStepPermission();
+      await _refreshDailyMovement();
+    },
+    editGoal: () async {
+      final value = await showStepGoalDialog(context, dailyStepGoal);
+      if (value != null) await _setDailyStepGoal(value);
+    },
+  );
+
   Future<void> _setDailyStepGoal(int value) async {
     final goal = await RunTrackerService.setStepGoal(value);
     if (!mounted) return;
@@ -841,8 +855,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
-              if (widget.enablePlatformServices && isAndroidPlatform)
-                AppSection.movement,
             ];
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -949,7 +961,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             key: const ValueKey('daily-step-goal'),
                             steps: dailyMovement?.steps ?? 0,
                             goal: dailyStepGoal,
-                            onTap: () => _navigateTo(AppSection.movement),
+                            onTap: _showDailySteps,
                           ),
                         ),
                       if (widget.syncService != null)
@@ -1006,7 +1018,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       !desktop &&
                           section != AppSection.settings &&
                           section != AppSection.projects &&
-                          section != AppSection.movement &&
                           section != AppSection.completed
                       ? FloatingActionButton(
                           tooltip: 'Nuova attività',
@@ -1106,13 +1117,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           repository: widget.repository,
           highlightRemote: recentlySyncedTaskIds.contains(task.id),
         ),
-      );
-    }
-    if (section == AppSection.movement) {
-      return MovementView(
-        dailyMovement: dailyMovement,
-        stepGoal: dailyStepGoal,
-        refreshDailyMovement: _refreshDailyMovement,
       );
     }
     final today = dayClock.today;

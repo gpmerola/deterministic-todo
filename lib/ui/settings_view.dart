@@ -21,37 +21,7 @@ class SettingsView extends StatelessWidget {
   final SyncService? syncService;
 
   Future<void> _editDailyStepGoal(BuildContext context) async {
-    final controller = TextEditingController(text: '$dailyStepGoal');
-    final value = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Obiettivo passi giornaliero'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
-            labelText: 'Passi',
-            helperText: 'Da 1.000 a 100.000',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final parsed = int.tryParse(controller.text);
-              if (parsed != null) Navigator.pop(dialogContext, parsed);
-            },
-            child: const Text('Salva'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
+    final value = await showStepGoalDialog(context, dailyStepGoal);
     if (value != null) await onDailyStepGoalChanged(value);
   }
 

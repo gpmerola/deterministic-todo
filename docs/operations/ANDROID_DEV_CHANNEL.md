@@ -11,9 +11,10 @@ Android.
 | sviluppo quotidiano | **Todo Test** | `app.deterministic.todo.deterministic_todo.dev` | firma diretta stabile; `adb install -r` | **unico client attivo** |
 | fallback stabile | **Deterministic Todo** | `app.deterministic.todo.deterministic_todo` | Google Play App Signing; Play Store | installato ma `disabled-user` |
 
-Dal 21 agosto 2026 Todo Test è l'unica app da aprire e l'unica autorizzata a
-eseguire monitor passivo, diagnostica intensiva, GPS, Health Connect, Drive e
-Bip U. La build Play non va disinstallata: conserva database, configurazione e
+Dal 21 agosto 2026 Todo Test è l'unica app da aprire. Dalla build 190 l'unica
+raccolta Movimento rimasta è il conteggio passi; monitor passivo, diagnostica
+intensiva, GPS, Health Connect, Drive e Bip U sono
+[archiviati](../archive/MOVIMENTO.md) e le sezioni che li citano sono storiche. La build Play non va disinstallata: conserva database, configurazione e
 Keystore storici ed è un rollback recuperabile.
 
 ## Scopo
