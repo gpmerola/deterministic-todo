@@ -227,3 +227,18 @@ final class _MutableEntry {
     meeting: meeting,
   );
 }
+
+/// Row from the native `instances` query. `links` holds only meeting URLs
+/// extracted from the description on Android.
+AgendaSourceEvent agendaEventFromRow(Map<Object?, Object?> row) =>
+    AgendaSourceEvent(
+      instanceId: row['instanceId']! as String,
+      calendarId: row['calendarId']! as String,
+      title: row['title'] as String? ?? '',
+      start: DateTime.fromMillisecondsSinceEpoch(row['start']! as int),
+      end: DateTime.fromMillisecondsSinceEpoch(row['end']! as int),
+      allDay: row['allDay'] as bool? ?? false,
+      location: row['location'] as String?,
+      description: row['links'] as String?,
+      canceled: row['canceled'] as bool? ?? false,
+    );

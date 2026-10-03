@@ -42,6 +42,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _seedFromMemory();
     unawaited(_load());
   }
 
@@ -108,6 +109,35 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         failed = true;
       });
     }
+  }
+
+  /// Paints the last session results at once; [_load] then revalidates.
+  void _seedFromMemory() {
+    final service = widget.service;
+    final cachedCalendars = service.lastCalendars;
+    final cachedChoices = service.lastChoices;
+    if (cachedCalendars == null || cachedChoices == null) return;
+    access = AgendaAccess.granted;
+    calendars = cachedCalendars;
+    hidden = hiddenAgendaCalendars(cachedCalendars, cachedChoices);
+    mode = service.lastMode ?? AgendaViewMode.month;
+    days = _peekDays(widget.today, dayCount) ?? const [];
+  }
+
+  List<AgendaDay>? _peekDays(CivilDate first, int count) {
+    final events = widget.service
+        .cachedEvents(first.asLocalDate, first.addDays(count).asLocalDate, [
+          for (final calendar in calendars)
+            if (!hidden.contains(calendar.id)) calendar.id,
+        ]);
+    if (events == null) return null;
+    return buildAgenda(
+      events: events,
+      calendars: calendars,
+      hiddenCalendarIds: hidden,
+      first: first,
+      days: count,
+    );
   }
 
   Future<List<AgendaDay>> _readDays(
@@ -249,6 +279,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, first, count),
+            peekDays: _peekDays,
             dayBuilder: dayDetail,
           )
         : ListView.builder(

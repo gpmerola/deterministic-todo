@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:device_calendar_plus/device_calendar_plus.dart';
+import 'package:flutter/services.dart';
 
 import '../data/local/database.dart';
 import '../domain/agenda.dart';
@@ -26,6 +27,27 @@ class AgendaService {
 
   final AppDatabase _database;
   final DeviceCalendar _calendar;
+
+  static const _channel = MethodChannel('app.deterministic.todo/agenda');
+
+  /// Last results, kept in memory only so reopening Agenda paints at once and
+  /// then revalidates. Never written to disk.
+  List<AgendaCalendar>? lastCalendars;
+  Map<String, bool>? lastChoices;
+  AgendaViewMode? lastMode;
+  final Map<String, List<AgendaSourceEvent>> _events = {};
+  static const _maxCachedRanges = 64;
+
+  static String _rangeKey(DateTime start, DateTime end, List<String> ids) =>
+      '${start.millisecondsSinceEpoch}|${end.millisecondsSinceEpoch}|'
+      '${ids.join(',')}';
+
+  /// Events of a range read earlier in this session, if any.
+  List<AgendaSourceEvent>? cachedEvents(
+    DateTime start,
+    DateTime end,
+    List<String> calendarIds,
+  ) => _events[_rangeKey(start, end, calendarIds)];
 
   Future<AgendaAccess> access() async =>
       switch (await _calendar.hasPermissions()) {
@@ -62,42 +84,38 @@ class AgendaService {
       final byName = a.name.compareTo(b.name);
       return byName != 0 ? byName : a.id.compareTo(b.id);
     });
-    return result;
+    return lastCalendars = result;
   }
 
+  /// One provider query per range through [AgendaChannel]; descriptions are
+  /// reduced natively to meeting URLs.
   Future<List<AgendaSourceEvent>> events(
     DateTime start,
     DateTime end,
     List<String> calendarIds,
   ) async {
     if (calendarIds.isEmpty) return const [];
-    final events = await _calendar.listEvents(
-      start,
-      end,
-      calendarIds: calendarIds,
-    );
-    return [
-      for (final event in events)
-        AgendaSourceEvent(
-          instanceId: event.instanceId,
-          calendarId: event.calendarId,
-          title: event.title,
-          start: event.startDate,
-          end: event.endDate,
-          allDay: event.isAllDay,
-          location: event.location,
-          description: event.description,
-          url: event.url,
-          canceled: event.status == EventStatus.canceled,
-        ),
-    ];
+    final rows =
+        await _channel.invokeListMethod<Map<Object?, Object?>>('instances', {
+          'start': start.millisecondsSinceEpoch,
+          'end': end.millisecondsSinceEpoch,
+          'calendarIds': calendarIds,
+        }) ??
+        const [];
+    final result = [for (final row in rows) agendaEventFromRow(row)];
+    if (_events.length >= _maxCachedRanges) _events.clear();
+    _events[_rangeKey(start, end, calendarIds)] = result;
+    return result;
   }
 
   /// Opens the occurrence in the phone's own calendar app.
   Future<void> openEvent(String instanceId) =>
       _calendar.showEventModal(instanceId);
 
-  Future<Map<String, bool>> calendarChoices() async {
+  Future<Map<String, bool>> calendarChoices() async =>
+      lastChoices = await _readChoices();
+
+  Future<Map<String, bool>> _readChoices() async {
     final rows =
         await (_database.select(_database.appSettings)..where(
               (setting) => setting.key.isIn([
@@ -125,7 +143,12 @@ class AgendaService {
     }
   }
 
-  Future<void> saveCalendarChoices(Map<String, bool> choices) => _database
+  Future<void> saveCalendarChoices(Map<String, bool> choices) {
+    lastChoices = Map.of(choices);
+    return _saveChoices(choices);
+  }
+
+  Future<void> _saveChoices(Map<String, bool> choices) => _database
       .into(_database.appSettings)
       .insertOnConflictUpdate(
         AppSettingsCompanion.insert(
@@ -139,7 +162,9 @@ class AgendaService {
       );
 
   /// Month grid unless the list was chosen explicitly.
-  Future<AgendaViewMode> viewMode() async {
+  Future<AgendaViewMode> viewMode() async => lastMode = await _readMode();
+
+  Future<AgendaViewMode> _readMode() async {
     final row = await (_database.select(
       _database.appSettings,
     )..where((setting) => setting.key.equals(viewModeKey))).getSingleOrNull();
@@ -148,7 +173,12 @@ class AgendaService {
         : AgendaViewMode.month;
   }
 
-  Future<void> saveViewMode(AgendaViewMode mode) => _database
+  Future<void> saveViewMode(AgendaViewMode mode) {
+    lastMode = mode;
+    return _saveMode(mode);
+  }
+
+  Future<void> _saveMode(AgendaViewMode mode) => _database
       .into(_database.appSettings)
       .insertOnConflictUpdate(
         AppSettingsCompanion.insert(key: viewModeKey, value: mode.name),

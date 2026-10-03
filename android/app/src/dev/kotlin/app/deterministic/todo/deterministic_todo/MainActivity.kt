@@ -10,5 +10,6 @@ class MainActivity : FlutterActivity() {
             RunTrackerChannel.register(this, flutterEngine)
         }
         RuntimeMetricsChannel.register(flutterEngine)
+        AgendaChannel.register(this, flutterEngine)
     }
 }

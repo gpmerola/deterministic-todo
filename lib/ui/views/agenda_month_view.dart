@@ -13,6 +13,7 @@ class AgendaMonthView extends StatefulWidget {
     required this.today,
     required this.revision,
     required this.loadDays,
+    required this.peekDays,
     required this.colors,
     required this.dayBuilder,
     this.controller,
@@ -25,6 +26,10 @@ class AgendaMonthView extends StatefulWidget {
   /// cached months are then dropped.
   final int revision;
   final Future<List<AgendaDay>> Function(CivilDate first, int days) loadDays;
+
+  /// Same days from this session's memory cache, or null; shown at once while
+  /// [loadDays] revalidates.
+  final List<AgendaDay>? Function(CivilDate first, int days) peekDays;
   final Map<String, Color?> colors;
 
   /// Detail of one day, shown in a bottom sheet when a cell is tapped.
@@ -44,15 +49,25 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   final Map<int, List<AgendaDay>> _months = {};
   final Set<int> _loading = {};
   final Set<int> _failed = {};
+
+  /// Months shown from an older revision until their refetch completes, so a
+  /// reload never blanks the grid.
+  final Set<int> _stale = {};
   int _generation = 0;
 
   @override
   void didUpdateWidget(covariant AgendaMonthView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.revision != widget.revision ||
-        oldWidget.today != widget.today) {
+    if (oldWidget.today != widget.today) {
+      // Offsets are relative to today: nothing cached still lines up.
       _generation++;
       _months.clear();
+      _stale.clear();
+      _loading.clear();
+      _failed.clear();
+    } else if (oldWidget.revision != widget.revision) {
+      _generation++;
+      _stale.addAll(_months.keys);
       _loading.clear();
       _failed.clear();
     }
@@ -72,6 +87,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
       if (!mounted || generation != _generation) return;
       setState(() {
         _months[offset] = result;
+        _stale.remove(offset);
         _loading.remove(offset);
       });
     } catch (_) {
@@ -84,8 +100,17 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   }
 
   Widget _month(BuildContext context, int offset) {
-    final days = _months[offset];
-    if (days == null && !_failed.contains(offset)) {
+    var days = _months[offset];
+    if (days == null) {
+      final first = _firstOf(offset);
+      days = widget.peekDays(
+        first,
+        DateTime(first.year, first.month + 1, 0).day,
+      );
+      if (days != null) _months[offset] = days;
+    }
+    final needsFetch = days == null || _stale.contains(offset);
+    if (needsFetch && !_failed.contains(offset)) {
       // Fetch after this frame; the cell grid renders empty meanwhile.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_fetch(offset));

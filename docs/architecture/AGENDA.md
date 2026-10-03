@@ -8,8 +8,13 @@ dall'NHS e dalle università.
 
 ## Fonte dei dati
 
-L'agenda legge il **calendario di sistema Android** (`CalendarContract`) tramite
-il plugin `device_calendar_plus`, già usato per l'esportazione. Vi compaiono
+L'agenda legge il **calendario di sistema Android** (`CalendarContract`). Il
+plugin `device_calendar_plus`, già usato per l'esportazione, gestisce permesso,
+elenco calendari e apertura degli eventi. Dalla build 196 gli eventi arrivano da
+`AgendaChannel`, nativo: una sola query `Instances` per intervallo, con solo le
+colonne necessarie. Il plugin eseguiva due query extra per ogni evento
+(partecipanti e promemoria) e trasferiva le descrizioni HTML complete degli
+inviti. Le descrizioni sono ridotte in Java ai soli URL Teams, Zoom e Meet. Vi compaiono
 tutti gli account che il telefono sincronizza: Google e qualsiasi account
 Exchange o Outlook per cui l'app Outlook ha attivo **Sincronizza calendari**.
 Todo non autentica nessun account e non contatta Microsoft o Google.
@@ -35,6 +40,10 @@ quell'account non compare; non esiste un aggiramento lato app.
   giorno apre il dettaglio con orari, luoghi e pulsante riunione. **Oggi**
   riporta al mese corrente. **Elenco** è la vista per giorni delle build
   191–193. La scelta è salvata in `app_settings.agenda_view_mode`.
+- **Cache in memoria.** Calendari, scelte, vista e intervalli letti restano in
+  memoria per la sessione dell'app (al massimo 64 intervalli, mai su disco).
+  Riaprendo l'Agenda la vista li mostra subito e li rilegge in background; un
+  mese già visibile non si svuota durante la rilettura.
 - **Lettura su richiesta.** Nessun polling né worker. Nella vista Mese ogni mese
   interroga il provider solo quando viene costruito sullo schermo, e il
   risultato resta in memoria finché la vista non si ricarica. Si ricarica
@@ -70,4 +79,5 @@ una colonna sincronizzata e una migrazione Supabase.
 - `lib/services/agenda_service.dart`: permessi, provider, calendari nascosti.
 - `lib/ui/views/agenda_view.dart`: vista, Elenco, selettore calendari, etichette.
 - `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
-- `test/agenda_test.dart`: regressioni della logica e della vista.
+- `android/app/.../AgendaChannel.java`: query nativa e riduzione ai link.
+- `test/agenda_test.dart` e `AgendaChannelTest.java`: regressioni.

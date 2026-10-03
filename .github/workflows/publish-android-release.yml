@@ -147,7 +147,7 @@ jobs:
             --dart-define=DISTRIBUTION_CHANNEL=play \
             --dart-define-from-file=supabase/config.json
           cd android
-          ./gradlew :runtracker:testDebugUnitTest
+          ./gradlew :runtracker:testDebugUnitTest :app:testPlayReleaseUnitTest
         env:
           ANDROID_KEYSTORE_PATH: release-key.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

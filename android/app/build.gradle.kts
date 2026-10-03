@@ -71,6 +71,8 @@ dependencies {
     implementation(project(":runtracker"))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     "playImplementation"("com.google.android.play:app-update:2.1.0")
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 kotlin {

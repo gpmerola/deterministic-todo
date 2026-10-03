@@ -24,6 +24,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         RunTrackerChannel.register(this, flutterEngine)
         RuntimeMetricsChannel.register(flutterEngine)
+        AgendaChannel.register(this, flutterEngine)
         updateManager = AppUpdateManagerFactory.create(this)
         updateManager.registerListener(installListener)
         MethodChannel(

@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.45.2 (build 196) — Todo Test
+
+- Agenda più veloce. Gli eventi si leggono con una sola query nativa per
+  intervallo; il plugin ne faceva due in più per ogni evento e trasferiva
+  l'intero testo HTML degli inviti. Riaprendo l'Agenda i dati già letti
+  compaiono subito e si aggiornano in background, senza svuotare la griglia.
+
 ## 2.45.1 (build 195) — Todo Test
 
 - Il conteggio dei calendari attivi è dentro il pulsante **Calendari**

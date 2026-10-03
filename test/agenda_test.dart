@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/task.dart';
@@ -362,6 +364,73 @@ void main() {
     expect(await service.viewMode(), AgendaViewMode.list);
   });
 
+  test('legge le righe native senza descrizioni complete', () {
+    final entry = agendaEventFromRow({
+      'instanceId': '42@1759654800000',
+      'calendarId': 'kcl',
+      'title': 'Supervisione',
+      'location': null,
+      'links': 'https://teams.microsoft.com/l/meetup-join/abc',
+      'start': DateTime(2026, 10, 5, 9).millisecondsSinceEpoch,
+      'end': DateTime(2026, 10, 5, 10).millisecondsSinceEpoch,
+      'allDay': false,
+      'canceled': false,
+    });
+    expect(entry.start, DateTime(2026, 10, 5, 9));
+    expect(findMeetingLink(entry)?.provider, 'Teams');
+    expect(
+      agendaEventFromRow({
+        'instanceId': '1',
+        'calendarId': 'kcl',
+        'title': null,
+        'start': 0,
+        'end': 0,
+      }).title,
+      '',
+    );
+  });
+
+  testWidgets('riaprendo mostra subito i dati e poi li aggiorna', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, [
+      event(
+        'k1',
+        'kcl',
+        'Supervisione',
+        DateTime(2026, 10, 5, 9),
+        DateTime(2026, 10, 5, 10),
+      ),
+    ]);
+    Widget app() => MaterialApp(
+      home: Scaffold(
+        body: AgendaView(service: service, today: first),
+      ),
+    );
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    expect(find.text('Supervisione'), findsOneWidget);
+
+    // Leave Agenda, then come back while the provider is slow.
+    await tester.pumpWidget(const SizedBox());
+    service.gate = Completer<void>();
+    await tester.pumpWidget(app());
+    final readsBefore = service.requestedCalendars.length;
+    await tester.pump();
+    expect(find.text('Supervisione'), findsOneWidget);
+
+    service.gate!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Supervisione'), findsOneWidget);
+    // The visible months were read again in the background.
+    expect(service.requestedCalendars.length, greaterThan(readsBefore));
+  });
+
   testWidgets('chiede il permesso senza leggere calendari', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -398,8 +467,20 @@ class _FakeAgendaService extends AgendaService {
   Future<AgendaAccess> requestAccess() async =>
       currentAccess = AgendaAccess.granted;
 
+  /// When set, provider reads wait for it: simulates a slow provider.
+  Completer<void>? gate;
+  final _memory = <String, List<AgendaSourceEvent>>{};
+
   @override
-  Future<List<AgendaCalendar>> calendars() async => const [kcl, personal, slam];
+  Future<List<AgendaCalendar>> calendars() async =>
+      lastCalendars = const [kcl, personal, slam];
+
+  @override
+  List<AgendaSourceEvent>? cachedEvents(
+    DateTime start,
+    DateTime end,
+    List<String> calendarIds,
+  ) => _memory['$start|$end|$calendarIds'];
 
   @override
   Future<List<AgendaSourceEvent>> events(
@@ -408,7 +489,8 @@ class _FakeAgendaService extends AgendaService {
     List<String> calendarIds,
   ) async {
     requestedCalendars.add(calendarIds);
-    return [
+    await gate?.future;
+    return _memory['$start|$end|$calendarIds'] = [
       for (final event in source)
         if (calendarIds.contains(event.calendarId) &&
             event.start.isBefore(end) &&
