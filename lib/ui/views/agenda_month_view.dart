@@ -168,7 +168,7 @@ class AgendaWeekdayHeader extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       child: Row(
         children: [
           for (final label in _labels)
@@ -214,7 +214,7 @@ class AgendaMonthGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
           child: Text(
             '${title[0].toUpperCase()}${title.substring(1)}'
             '${failed ? ' · impossibile leggere i calendari' : ''}',
@@ -303,6 +303,7 @@ class AgendaMonthGrid extends StatelessWidget {
                 for (final entry in entries.take(shown))
                   AgendaChip(
                     entry: entry,
+                    showTime: true,
                     color:
                         colors[entry.calendarIds.first] ??
                         theme.colorScheme.primary,
@@ -321,6 +322,11 @@ class AgendaMonthGrid extends StatelessWidget {
     );
   }
 }
+
+/// "9" on the hour, otherwise "16:30": the shortest readable start.
+String compactTime(DateTime moment) => moment.minute == 0
+    ? '${moment.hour}'
+    : '${moment.hour}:${moment.minute.toString().padLeft(2, '0')}';
 
 /// One entry in a grid cell, Google Calendar style: all-day events are
 /// filled with their calendar colour, timed events are a coloured dot and
@@ -408,11 +414,27 @@ class AgendaChip extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           Expanded(
-            child: text(
-              showTime
-                  ? '${DateFormat.Hm('it').format(entry.start)} $title'
-                  : title,
-              theme.colorScheme.onSurface,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  // Compact start time ("9", "16:30") at a glance, muted
+                  // and smaller so the title keeps most of the width.
+                  if (showTime)
+                    TextSpan(
+                      text: '${compactTime(entry.start)} ',
+                      style: TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  TextSpan(text: title),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: style.copyWith(color: theme.colorScheme.onSurface),
             ),
           ),
         ],

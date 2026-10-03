@@ -9,6 +9,7 @@ import 'package:deterministic_todo/services/agenda_tasks.dart';
 import 'package:deterministic_todo/ui/search.dart';
 import 'package:deterministic_todo/ui/views/agenda_day_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
+import 'package:deterministic_todo/ui/views/agenda_month_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
 import 'package:drift/drift.dart' show Value;
@@ -348,14 +349,14 @@ void main() {
     expect(find.text('L'), findsOneWidget);
     final monday = find.byKey(const ValueKey('agenda-day-2026-10-05'));
     expect(
-      find.descendant(of: monday, matching: find.text('Supervisione')),
+      find.descendant(of: monday, matching: find.text('9 Supervisione')),
       findsOneWidget,
     );
     // Five events, three slots: two chips and "+3".
     final busy = find.byKey(const ValueKey('agenda-day-2026-10-07'));
     expect(find.descendant(of: busy, matching: find.text('+3')), findsOne);
     expect(
-      find.descendant(of: busy, matching: find.text('Clinica 8')),
+      find.descendant(of: busy, matching: find.text('8 Clinica 8')),
       findsOne,
     );
 
@@ -367,7 +368,9 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.view_agenda_outlined));
+    await tester.tap(find.byKey(const ValueKey('agenda-mode')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-mode-list')));
     await tester.pumpAndSettle();
     expect(find.text('Oggi · Lunedì 5 ottobre'), findsOneWidget);
     expect(await service.viewMode(), AgendaViewMode.list);
@@ -987,6 +990,51 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  test('orario compatto nelle celle', () {
+    expect(compactTime(DateTime(2026, 10, 5, 9)), '9');
+    expect(compactTime(DateTime(2026, 10, 5, 16, 30)), '16:30');
+    expect(compactTime(DateTime(2026, 10, 5, 8, 5)), '8:05');
+  });
+
+  testWidgets('senza barra superiore cerca e impostazioni restano nel menu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, const []);
+    var searched = 0;
+    var settings = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(
+            service: service,
+            today: first,
+            onSearch: () => searched++,
+            onSettings: () => settings++,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Zone, mode, today and calendars share one row above the days.
+    final zone = tester.getTopLeft(find.byKey(const ValueKey('agenda-zone')));
+    final mode = tester.getTopLeft(find.byKey(const ValueKey('agenda-mode')));
+    expect((zone.dy - mode.dy).abs(), lessThan(24));
+    await tester.tap(find.byKey(const ValueKey('agenda-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cerca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Impostazioni'));
+    await tester.pumpAndSettle();
+    expect((searched, settings), (1, 1));
+  });
+
   test('mostra il fuso sempre come IANA con lo scarto da UTC', () {
     expect(zoneLabel('Europe/London', 3600), 'Europe/London · UTC+1');
     expect(zoneLabel('Europe/London', 0), 'Europe/London · UTC');
@@ -1028,8 +1076,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
     expect(find.text('Europe/London · UTC+1'), findsOneWidget);
-    expect(find.text('Supervisione'), findsOneWidget);
-    expect(find.text('Ward round'), findsOneWidget);
+    expect(find.text('9 Supervisione'), findsOneWidget);
+    expect(find.text('8:30 Ward round'), findsOneWidget);
     expect(await service.viewMode(), AgendaViewMode.twoWeeks);
 
     await tester.tap(find.byKey(const ValueKey('agenda-day-2026-10-05')));

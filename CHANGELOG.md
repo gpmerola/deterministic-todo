@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.50.0 (build 204) — Todo Test
+
+- Più spazio ai giorni nell'Agenda. La barra superiore dell'app è nascosta e
+  vista, Oggi, fuso orario e calendari stanno in un'unica riga compatta, con
+  Cerca e Impostazioni nel menu ⋮. Date e intestazioni sono più piccole.
+- Torna l'orario a colpo d'occhio nelle celle, in forma compatta e attenuata
+  («9 Supervisione», «16:30 Follow-up»), senza togliere spazio al titolo.
+
 ## 2.49.0 (build 203) — Todo Test
 
 - **Attività nell'Agenda.** Nel menu ⋮ di un'attività, **Mostra in Agenda**

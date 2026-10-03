@@ -73,10 +73,17 @@ quell'account non compare; non esiste un aggiramento lato app.
   cambia settimana, da un anno indietro a tre avanti. Toccando un evento si apre
   il dettaglio, toccando l'intestazione di un giorno la vista giorno, toccando
   uno spazio libero un nuovo evento alla mezz'ora toccata.
-- **Celle (build 203).** Nelle viste 2 settimane e Mese gli eventi di giornata
+- **Spazio ai giorni (build 204).** Nell'Agenda la barra superiore dell'app
+  (anello passi, sincronizzazione, ricerca, impostazioni) è nascosta. Sopra i
+  giorni resta una sola riga di 40 dp con il menu della vista (Settimana,
+  2 settimane, Mese, Elenco), **Oggi**, il fuso riconosciuto, i calendari
+  (icona e conteggio) e **⋮** con Cerca e Impostazioni. Intervalli di date e
+  giorni della settimana usano caratteri e margini più piccoli.
+- **Celle (build 203; orario dalla 204).** Nelle viste 2 settimane e Mese gli eventi di giornata
   intera hanno lo sfondo del colore del calendario; quelli con orario hanno un
-  pallino colorato e il titolo, senza orario, così il titolo ha tutta la
-  larghezza. Le attività hanno una casella di spunta.
+  pallino colorato, l'ora d'inizio compatta, più piccola e attenuata («9»,
+  «16:30»: `compactTime`), e il titolo. Le attività hanno una casella di
+  spunta.
 - **2 settimane (build 201, predefinita).** Due settimane dal lunedì riempiono
   lo schermo, così ogni giorno ha spazio per più eventi, con l'ora d'inizio
   davanti al titolo. Scorrendo in verticale si passa alla quindicina

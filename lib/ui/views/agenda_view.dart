@@ -20,10 +20,17 @@ class AgendaView extends StatefulWidget {
     required this.service,
     required this.today,
     this.onOpenTask,
+    this.onSearch,
+    this.onSettings,
     super.key,
   });
 
   final AgendaService service;
+
+  /// The shell's search and settings, offered here because the app bar is
+  /// hidden in Agenda.
+  final VoidCallback? onSearch;
+  final VoidCallback? onSettings;
 
   /// Opens a Todo task shown in the Agenda; the shell owns the task editor.
   final Future<void> Function(String taskId)? onOpenTask;
@@ -322,6 +329,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       onToday: mode == AgendaViewMode.list ? null : _scrollToToday,
       zone: zone,
       onChoose: _chooseCalendars,
+      onSearch: widget.onSearch,
+      onSettings: widget.onSettings,
     );
     void openDay(CivilDate day) => unawaited(
       Navigator.of(context).push(
@@ -429,6 +438,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 }
 
+/// One compact row: view mode, today, recognised zone, calendars and the
+/// shell's search/settings (the app bar is hidden in Agenda to give the days
+/// more room).
 class _AgendaHeader extends StatelessWidget {
   const _AgendaHeader({
     required this.visible,
@@ -440,6 +452,8 @@ class _AgendaHeader extends StatelessWidget {
     required this.onToday,
     required this.onChoose,
     this.zone,
+    this.onSearch,
+    this.onSettings,
   });
 
   final String? zone;
@@ -451,101 +465,120 @@ class _AgendaHeader extends StatelessWidget {
   final ValueChanged<AgendaViewMode> onMode;
   final VoidCallback? onToday;
   final VoidCallback onChoose;
+  final VoidCallback? onSearch;
+  final VoidCallback? onSettings;
+
+  static const _modes = {
+    AgendaViewMode.week: (Icons.view_column_outlined, 'Settimana'),
+    AgendaViewMode.twoWeeks: (Icons.view_week_outlined, '2 settimane'),
+    AgendaViewMode.month: (Icons.calendar_view_month, 'Mese'),
+    AgendaViewMode.list: (Icons.view_agenda_outlined, 'Elenco'),
+  };
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      _row(context),
-      // The recognised zone is always visible: every time shown is in it.
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 2),
-        child: Row(
-          children: [
-            Icon(
-              Icons.public,
-              size: 14,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                zone ?? 'Fuso orario non riconosciuto',
-                key: const ValueKey('agenda-zone'),
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return SizedBox(
+      height: 40,
+      child: Row(
+        children: [
+          PopupMenuButton<AgendaViewMode>(
+            key: const ValueKey('agenda-mode'),
+            tooltip: 'Vista: ${_modes[mode]!.$2}',
+            initialValue: mode,
+            onSelected: onMode,
+            icon: Icon(_modes[mode]!.$1),
+            itemBuilder: (_) => [
+              for (final entry in _modes.entries)
+                PopupMenuItem(
+                  key: ValueKey('agenda-mode-${entry.key.name}'),
+                  value: entry.key,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(entry.value.$1),
+                    title: Text(entry.value.$2),
+                  ),
                 ),
-              ),
+            ],
+          ),
+          if (onToday != null)
+            IconButton(
+              key: const ValueKey('agenda-today'),
+              tooltip: 'Oggi',
+              onPressed: onToday,
+              icon: const Icon(Icons.today_outlined),
             ),
-          ],
-        ),
+          Expanded(
+            // The recognised zone stays visible: every time shown is in it.
+            child: Row(
+              children: [
+                Icon(Icons.public, size: 14, color: muted),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    zone ?? 'Fuso orario non riconosciuto',
+                    key: const ValueKey('agenda-zone'),
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(color: muted),
+                  ),
+                ),
+                if (loading) ...[
+                  const SizedBox(width: 6),
+                  const SizedBox.square(
+                    dimension: 12,
+                    child: CircularProgressIndicator(strokeWidth: 1.5),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TextButton.icon(
+            key: const ValueKey('agenda-choose-calendars'),
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+            ),
+            onPressed: total == 0 ? null : onChoose,
+            icon: Icon(filtered ? Icons.filter_alt : Icons.tune, size: 18),
+            label: Text(
+              total == 0 ? '0' : '$visible/$total',
+              semanticsLabel: 'Calendari: $visible di $total',
+            ),
+          ),
+          if (onSearch != null || onSettings != null)
+            PopupMenuButton<String>(
+              key: const ValueKey('agenda-more'),
+              tooltip: 'Altro',
+              onSelected: (value) {
+                if (value == 'search') onSearch?.call();
+                if (value == 'settings') onSettings?.call();
+              },
+              itemBuilder: (_) => [
+                if (onSearch != null)
+                  const PopupMenuItem(
+                    value: 'search',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.search_rounded),
+                      title: Text('Cerca'),
+                    ),
+                  ),
+                if (onSettings != null)
+                  const PopupMenuItem(
+                    value: 'settings',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.settings_outlined),
+                      title: Text('Impostazioni'),
+                    ),
+                  ),
+              ],
+            ),
+        ],
       ),
-    ],
-  );
-
-  Widget _row(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(12, 4, 4, 0),
-    child: Row(
-      children: [
-        SegmentedButton<AgendaViewMode>(
-          key: const ValueKey('agenda-mode'),
-          showSelectedIcon: false,
-          style: const ButtonStyle(visualDensity: VisualDensity.compact),
-          segments: const [
-            ButtonSegment(
-              value: AgendaViewMode.week,
-              icon: Icon(Icons.view_column_outlined, size: 18),
-              tooltip: 'Settimana',
-            ),
-            ButtonSegment(
-              value: AgendaViewMode.twoWeeks,
-              icon: Icon(Icons.view_week_outlined, size: 18),
-              tooltip: '2 settimane',
-            ),
-            ButtonSegment(
-              value: AgendaViewMode.month,
-              icon: Icon(Icons.calendar_view_month, size: 18),
-              tooltip: 'Mese',
-            ),
-            ButtonSegment(
-              value: AgendaViewMode.list,
-              icon: Icon(Icons.view_agenda_outlined, size: 18),
-              tooltip: 'Elenco',
-            ),
-          ],
-          selected: {mode},
-          onSelectionChanged: (value) => onMode(value.single),
-        ),
-        if (onToday != null)
-          TextButton(
-            key: const ValueKey('agenda-today'),
-            onPressed: onToday,
-            child: const Text('Oggi'),
-          ),
-        if (loading)
-          const SizedBox.square(
-            dimension: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              key: const ValueKey('agenda-choose-calendars'),
-              onPressed: total == 0 ? null : onChoose,
-              icon: Icon(filtered ? Icons.filter_alt : Icons.tune, size: 18),
-              // Only the count: with three view modes a word was cut off.
-              label: Text(
-                total == 0 ? '0' : '$visible/$total',
-                semanticsLabel: 'Calendari: $visible di $total',
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+    );
+  }
 }
 
 class _AgendaDaySection extends StatelessWidget {

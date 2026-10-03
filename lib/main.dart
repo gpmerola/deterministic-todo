@@ -952,61 +952,72 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                   ),
                 );
                 return Scaffold(
-                  appBar: AppBar(
-                    leadingWidth: desktop ? 80 : null,
-                    leading:
-                        desktop &&
-                            section != AppSection.settings &&
-                            section != AppSection.completed
-                        ? const SizedBox.shrink()
-                        : section == AppSection.settings ||
-                              section == AppSection.completed
-                        ? IconButton(
-                            tooltip: 'Indietro',
-                            onPressed: _handleBack,
-                            icon: const Icon(Icons.arrow_back),
-                          )
-                        : null,
-                    title: AnimatedSwitcher(
-                      key: const ValueKey('appbar-title-motion'),
-                      duration: _microMotion,
-                      transitionBuilder: (child, animation) =>
-                          FadeTransition(opacity: animation, child: child),
-                      child: Text(
-                        section.label,
-                        key: ValueKey('appbar-title-${section.name}'),
-                      ),
-                    ),
-                    actions: [
-                      if (widget.enablePlatformServices && isAndroidPlatform)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: DailyStepGoalIndicator(
-                            key: const ValueKey('daily-step-goal'),
-                            steps: dailyMovement?.steps ?? 0,
-                            goal: dailyStepGoal,
-                            onTap: _showDailySteps,
+                  // Agenda gives its whole height to the days; search and
+                  // settings move into its own header menu.
+                  appBar: section == AppSection.agenda
+                      ? null
+                      : AppBar(
+                          leadingWidth: desktop ? 80 : null,
+                          leading:
+                              desktop &&
+                                  section != AppSection.settings &&
+                                  section != AppSection.completed
+                              ? const SizedBox.shrink()
+                              : section == AppSection.settings ||
+                                    section == AppSection.completed
+                              ? IconButton(
+                                  tooltip: 'Indietro',
+                                  onPressed: _handleBack,
+                                  icon: const Icon(Icons.arrow_back),
+                                )
+                              : null,
+                          title: AnimatedSwitcher(
+                            key: const ValueKey('appbar-title-motion'),
+                            duration: _microMotion,
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                ),
+                            child: Text(
+                              section.label,
+                              key: ValueKey('appbar-title-${section.name}'),
+                            ),
                           ),
+                          actions: [
+                            if (widget.enablePlatformServices &&
+                                isAndroidPlatform)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                child: DailyStepGoalIndicator(
+                                  key: const ValueKey('daily-step-goal'),
+                                  steps: dailyMovement?.steps ?? 0,
+                                  goal: dailyStepGoal,
+                                  onTap: _showDailySteps,
+                                ),
+                              ),
+                            if (widget.syncService != null)
+                              SyncStatusAction(
+                                service: widget.syncService!,
+                                repository: widget.repository,
+                              ),
+                            if (section != AppSection.settings) ...[
+                              IconButton(
+                                tooltip: 'Comando universale',
+                                onPressed: _showUniversalCommand,
+                                icon: const Icon(Icons.search_rounded),
+                              ),
+                              IconButton(
+                                tooltip: 'Impostazioni',
+                                onPressed: () =>
+                                    _navigateTo(AppSection.settings),
+                                icon: const Icon(Icons.settings_outlined),
+                              ),
+                            ],
+                          ],
                         ),
-                      if (widget.syncService != null)
-                        SyncStatusAction(
-                          service: widget.syncService!,
-                          repository: widget.repository,
-                        ),
-                      if (section != AppSection.settings) ...[
-                        IconButton(
-                          tooltip: 'Comando universale',
-                          onPressed: _showUniversalCommand,
-                          icon: const Icon(Icons.search_rounded),
-                        ),
-                        IconButton(
-                          tooltip: 'Impostazioni',
-                          onPressed: () => _navigateTo(AppSection.settings),
-                          icon: const Icon(Icons.settings_outlined),
-                        ),
-                      ],
-                    ],
-                  ),
                   body: desktop
                       ? Row(
                           children: [
@@ -1158,10 +1169,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
     }
     if (section == AppSection.agenda) {
-      return AgendaView(
-        service: agendaService,
-        today: dayClock.today,
-        onOpenTask: _openTaskById,
+      return SafeArea(
+        bottom: false,
+        child: AgendaView(
+          service: agendaService,
+          today: dayClock.today,
+          onOpenTask: _openTaskById,
+          onSearch: _showUniversalCommand,
+          onSettings: () => _navigateTo(AppSection.settings),
+        ),
       );
     }
     if (section == AppSection.projects) {

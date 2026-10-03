@@ -149,7 +149,8 @@ class AgendaFortnight extends StatelessWidget {
     super.key,
   });
 
-  static const chipHeight = 18.0;
+  /// Height of one dot-and-title row (10 px text plus spacing).
+  static const chipHeight = 15.0;
 
   final CivilDate first;
   final CivilDate today;
@@ -171,11 +172,11 @@ class AgendaFortnight extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
           child: Text(
             '$range${failed ? ' · impossibile leggere i calendari' : ''}',
             key: const ValueKey('agenda-fortnight-range'),
-            style: theme.textTheme.titleMedium,
+            style: theme.textTheme.titleSmall,
           ),
         ),
         const AgendaWeekdayHeader(),
@@ -235,7 +236,7 @@ class AgendaFortnight extends StatelessWidget {
                 // Every chip that fits; the last slot becomes "+N" if needed.
                 final slots = math.max(
                   0,
-                  ((constraints.maxHeight - 26) / chipHeight).floor(),
+                  ((constraints.maxHeight - 22) / chipHeight).floor(),
                 );
                 final shown = entries.length > slots
                     ? math.max(0, slots - 1)
@@ -245,14 +246,14 @@ class AgendaFortnight extends StatelessWidget {
                   children: [
                     Center(
                       child: Container(
-                        height: 22,
-                        constraints: const BoxConstraints(minWidth: 22),
+                        height: 19,
+                        constraints: const BoxConstraints(minWidth: 19),
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         alignment: Alignment.center,
                         decoration: isToday
                             ? BoxDecoration(
                                 color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(11),
+                                borderRadius: BorderRadius.circular(10),
                               )
                             : null,
                         child: Text(
@@ -264,10 +265,11 @@ class AgendaFortnight extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     for (final entry in entries.take(shown))
                       AgendaChip(
                         entry: entry,
+                        showTime: true,
                         color:
                             colors[entry.calendarIds.first] ??
                             theme.colorScheme.primary,

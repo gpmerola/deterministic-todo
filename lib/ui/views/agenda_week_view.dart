@@ -210,11 +210,11 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
           child: Text(
             title,
             key: const ValueKey('agenda-week-range'),
-            style: theme.textTheme.titleMedium,
+            style: theme.textTheme.titleSmall,
           ),
         ),
         Row(
