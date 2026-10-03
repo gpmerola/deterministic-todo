@@ -625,10 +625,10 @@ class _AgendaHeader extends StatelessWidget {
               key: const ValueKey('agenda-choose-calendars'),
               onPressed: total == 0 ? null : onChoose,
               icon: Icon(filtered ? Icons.filter_alt : Icons.tune, size: 18),
-              // Count inside the button, ellipsised with large fonts.
+              // Only the count: with three view modes a word was cut off.
               label: Text(
-                overflow: TextOverflow.ellipsis,
-                total == 0 ? 'Nessun calendario' : 'Calendari $visible/$total',
+                total == 0 ? '0' : '$visible/$total',
+                semanticsLabel: 'Calendari: $visible di $total',
               ),
             ),
           ),

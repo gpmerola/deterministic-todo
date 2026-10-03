@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.48.1 (build 202) — Todo Test
+
+- Il pulsante dei calendari mostra solo icona e conteggio («8/30»): con tre
+  viste la parola «Calendari» veniva tagliata.
+
 ## 2.48.0 (build 201) — Todo Test
 
 - **Modifica ed eliminazione** degli eventi. Toccando un evento si apre un
