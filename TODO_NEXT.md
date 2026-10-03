@@ -13,6 +13,12 @@
 - [ ] Verificare a video titolo e margine inferiore della vista giorno (198).
 - [x] Creazione eventi (199–200): modulo verificato sul Galaxy, salvataggio
   coperto da test; primo salvataggio reale lasciato all'utente.
+- [x] Modifica/eliminazione (occorrenza o serie), vista 2 settimane
+  predefinita e fuso IANA sempre visibile: 201–202, verificati sul Galaxy.
+- [ ] Prima modifica reale di un evento da parte dell'utente: controllare
+  che la sincronizzazione Google/Outlook la carichi senza duplicati.
+- [ ] Possibile: scegliere un fuso diverso alla creazione (oggi si usa
+  sempre quello del telefono).
 - [ ] Valutare unione heydoc/Semble (stesso inizio, titoli diversi) solo se
   l'utente vuole tenerli entrambi visibili.
 - [ ] SLaM: condivisione esterna bloccata e pubblicazione solo libero/occupato.

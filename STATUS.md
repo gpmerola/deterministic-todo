@@ -2,6 +2,20 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Modifica, vista 2 settimane e fuso — builds 201–202
+
+`make check` superato (285 test, 26 in `test/agenda_test.dart`);
+`AgendaChannelTest` 4/4 (fuso del dispositivo, orario originale nel fuso
+dell'evento). Le varianti dev, play e direct compilano. Installate via ADB la
+2201 e la 2202, logcat senza crash. Sul Galaxy: vista 2 settimane predefinita
+con «Europe/London · UTC+1» visibile; vista giorno con data intera e fuso;
+dettaglio dell'evento ricorrente Google «PDP CPD» con Modifica ed Elimina.
+Dettaglio della riunione KCL «Case based discussions» anch'esso modificabile:
+il provider la registra con l'utente come organizzatore (`organizer` =
+account, `isOrganizer=1`), mentre «TNG Meeting» (`isOrganizer=0`) non lo è.
+Nessuna modifica né eliminazione reale eseguita sul dispositivo; flussi
+coperti dai test. La 202 riduce il pulsante calendari a icona e conteggio.
+
 ## Creazione eventi e confronto con Google — builds 199–200
 
 `make check` superato (280 test, 21 in `test/agenda_test.dart`). Installate via
