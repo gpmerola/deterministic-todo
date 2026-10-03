@@ -47,7 +47,7 @@ void main() {
       await repository.updateDetails(
         task,
         title: task.title,
-        dueDate: '2026-08-04',
+        showDate: '2026-08-04',
       );
       task = await (database.select(
         database.tasks,
@@ -73,7 +73,7 @@ void main() {
           title: any(named: 'title'),
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),
-          isAllDay: any(named: 'isAllDay'),
+          isAllDay: true,
           description: any(named: 'description'),
           timeZone: any(named: 'timeZone'),
         ),
@@ -85,7 +85,7 @@ void main() {
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),
           description: any(named: 'description'),
-          isAllDay: any(named: 'isAllDay'),
+          isAllDay: true,
           timeZone: any(named: 'timeZone'),
         ),
       ).thenAnswer((_) async {});

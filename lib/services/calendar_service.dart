@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 
 import '../data/local/database.dart';
 import '../domain/task.dart';
-import 'device_time_zone_service.dart';
+import 'platform_runtime_native.dart'
+    if (dart.library.js_interop) 'platform_runtime_web.dart';
 
 class CalendarExportResult {
   const CalendarExportResult({
@@ -20,7 +20,7 @@ class CalendarExportResult {
 class CalendarService {
   CalendarService(this._database, {DeviceCalendar? calendar, bool? isAndroid})
     : _calendar = calendar ?? DeviceCalendar.instance,
-      _isAndroid = isAndroid ?? Platform.isAndroid;
+      _isAndroid = isAndroid ?? isAndroidPlatform;
 
   final AppDatabase _database;
   final DeviceCalendar _calendar;
@@ -30,10 +30,10 @@ class CalendarService {
     if (!_isAndroid) {
       throw UnsupportedError('Calendario disponibile solo su Android');
     }
-    final dateText = task.dueDate ?? task.showDate;
+    final dateText = task.showDate;
     if (dateText == null) {
       throw const FormatException(
-        'Imposta “Mostra il” o “Scade il” prima di aggiungere al calendario.',
+        'Imposta una data prima di aggiungere al calendario.',
       );
     }
     final permission = await _calendar.requestPermissions();
@@ -52,22 +52,8 @@ class CalendarService {
     }
     final target = calendars.first;
     final date = CivilDate.parse(dateText);
-    final isAllDay = task.timeMinutes == null;
-    final start = isAllDay
-        ? DateTime(date.year, date.month, date.day)
-        : DateTime(
-            date.year,
-            date.month,
-            date.day,
-            task.timeMinutes! ~/ 60,
-            task.timeMinutes! % 60,
-          );
-    final end = isAllDay
-        ? DateTime(date.year, date.month, date.day + 1)
-        : start.add(const Duration(minutes: 30));
-    final zone = isAllDay
-        ? null
-        : task.timeZone ?? await DeviceTimeZoneService.currentIana();
+    final start = DateTime(date.year, date.month, date.day);
+    final end = DateTime(date.year, date.month, date.day + 1);
     final description = [
       if (task.notes != null) task.notes!,
       'Origine: Attività deterministiche (${task.id})',
@@ -88,8 +74,8 @@ class CalendarService {
         description: Patch.set(description),
         startDate: start,
         endDate: end,
-        isAllDay: isAllDay,
-        timeZone: zone,
+        isAllDay: true,
+        timeZone: null,
       );
     } else {
       eventId = await _calendar.createEvent(
@@ -98,8 +84,8 @@ class CalendarService {
         description: description,
         startDate: start,
         endDate: end,
-        isAllDay: isAllDay,
-        timeZone: zone,
+        isAllDay: true,
+        timeZone: null,
       );
       calendarName = target.name;
       await _database
