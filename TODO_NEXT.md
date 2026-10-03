@@ -8,6 +8,9 @@
   i due account KCL Outlook sono visibili.
 - [x] Vista Mese stile Google Calendar (194–195) verificata sul Galaxy.
 - [x] Riapertura istantanea e query nativa unica (196), verificate sul Galaxy.
+- [x] SLaM libero/occupato abbonato su Google e sincronizzato sul telefono.
+- [x] Filtri (inviti senza risposta, parole) e vista giorno in scala: 197–198.
+- [ ] Verificare a video titolo e margine inferiore della vista giorno (198).
 - [ ] SLaM: condivisione esterna bloccata e pubblicazione solo libero/occupato.
   Proposto all'utente di abbonare l'ICS libero/occupato da Google Calendar.
   Lettura ICS nell'app solo se l'aggiornamento di Google è troppo lento.

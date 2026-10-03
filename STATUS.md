@@ -2,6 +2,19 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Filtri e vista giorno — builds 197–198
+
+`make check` superato (277 test, 18 in `test/agenda_test.dart`): impaginazione
+della giornata, filtri, persistenza e vista giorno in scala. `AgendaChannelTest`
+verde. `make todo-test` ha installato via ADB la 2197 e la 2198 (logcat senza
+crash). Sul Galaxy con la 2197: vista giorno del 6 ottobre con vuoti
+proporzionali, due riunioni delle 11:00 affiancate e «Partecipa · Teams». La
+198 accorcia il titolo, prima tagliato, e aggiunge il margine della barra di
+navigazione; non verificata a video perché il telefono si è bloccato. I filtri
+non sono ancora stati impostati sul dispositivo. L'utente ha attivato il
+calendario SLAM: dopo un intervento ADB su `sync_events`, il telefono ha
+scaricato 35 eventi (34 «Tentative», 1 «Busy»).
+
 ## Agenda veloce — build 196
 
 Causa della lentezza alla riapertura: la vista ripartiva da zero a ogni
