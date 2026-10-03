@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.46.1 (build 198) — Todo Test
+
+- Vista giorno: il titolo omette l'anno corrente, perché la data completa
+  veniva tagliata, e le ultime ore non finiscono più sotto la barra di
+  navigazione.
+
 ## 2.46.0 (build 197) — Todo Test
 
 - Filtri dell'Agenda in **Calendari**: **Nascondi inviti senza risposta**

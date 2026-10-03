@@ -69,8 +69,9 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
 
   @override
   Widget build(BuildContext context) {
+    // The year only when it differs: the full date is cut off on phones.
     final label = DateFormat(
-      'EEEE d MMMM yyyy',
+      shown.year == widget.today.year ? 'EEEE d MMMM' : 'EEEE d MMMM yyyy',
       'it',
     ).format(shown.asLocalDate);
     return Scaffold(
@@ -230,6 +231,10 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
             child: SingleChildScrollView(
               controller: scroll,
               physics: const AlwaysScrollableScrollPhysics(),
+              // Edge-to-edge: keep 23:00–24:00 above the navigation bar.
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewPaddingOf(context).bottom + 8,
+              ),
               child: SizedBox(
                 height: 24 * AgendaDayPage.hourHeight,
                 child: LayoutBuilder(
