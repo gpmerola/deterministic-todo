@@ -277,7 +277,7 @@ void main() {
     expect(find.text('09:00–10:00'), findsOneWidget);
     expect(find.text('Teams'), findsOneWidget);
     expect(find.text('Cena'), findsOneWidget);
-    expect(find.text('3/3 calendari'), findsOneWidget);
+    expect(find.text('Calendari 3/3'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
     await tester.pumpAndSettle();
@@ -291,7 +291,7 @@ void main() {
     await tester.tap(find.text('Applica'));
     await tester.pumpAndSettle();
     expect(find.text('Cena'), findsNothing);
-    expect(find.text('2/3 calendari'), findsOneWidget);
+    expect(find.text('Calendari 2/3'), findsOneWidget);
     expect(await service.calendarChoices(), {
       'kcl': true,
       'gmail': false,
@@ -380,7 +380,7 @@ void main() {
 
     await tester.tap(find.text('Consenti accesso al calendario'));
     await tester.pumpAndSettle();
-    expect(find.text('3/3 calendari'), findsOneWidget);
+    expect(find.text('Calendari 3/3'), findsOneWidget);
   });
 }
 

@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.45.1 (build 195) — Todo Test
+
+- Il conteggio dei calendari attivi è dentro il pulsante **Calendari**
+  («Calendari 12/29»): come testo separato andava a capo sul telefono.
+
 ## 2.45.0 (build 194) — Todo Test
 
 - Agenda ha una vista **Mese**, ora predefinita, simile a Google Calendar.

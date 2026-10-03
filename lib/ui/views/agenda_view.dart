@@ -339,27 +339,25 @@ class _AgendaHeader extends StatelessWidget {
             onPressed: onToday,
             child: const Text('Oggi'),
           ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            total == 0
-                ? 'Nessun calendario sul telefono'
-                : '$visible/$total calendari',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
         if (loading)
           const SizedBox.square(
             dimension: 16,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-        TextButton.icon(
-          key: const ValueKey('agenda-choose-calendars'),
-          onPressed: total == 0 ? null : onChoose,
-          icon: const Icon(Icons.tune, size: 18),
-          label: const Text('Calendari'),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              key: const ValueKey('agenda-choose-calendars'),
+              onPressed: total == 0 ? null : onChoose,
+              icon: const Icon(Icons.tune, size: 18),
+              // Count inside the button, ellipsised with large fonts.
+              label: Text(
+                overflow: TextOverflow.ellipsis,
+                total == 0 ? 'Nessun calendario' : 'Calendari $visible/$total',
+              ),
+            ),
+          ),
         ),
       ],
     ),
