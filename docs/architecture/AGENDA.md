@@ -24,9 +24,20 @@ quell'account non compare; non esiste un aggiramento lato app.
 
 ## Contratto
 
-- **Sola lettura.** Todo non crea, modifica né cancella eventi di terzi. Toccare
-  un evento lo apre nell'app calendario del sistema (`showEventModal`), dove le
-  modifiche restano responsabilità di quell'app.
+- **Lettura e creazione esplicita.** Todo non modifica né cancella eventi.
+  Toccare un evento lo apre nell'app calendario del sistema
+  (`showEventModal`), dove modifiche e cancellazioni restano responsabilità di
+  quell'app. Dalla build 199 si possono **creare** eventi: con il pulsante
+  **+** dell'Agenda o della vista giorno, oppure toccando uno spazio libero
+  nella vista giorno, che preimposta la mezz'ora toccata. Il modulo chiede
+  titolo, calendario, giornata intera o orari (un'ora di default), luogo e note
+  facoltativi. L'evento è scritto nel calendario scelto con il plugin
+  (`createEvent`) e con il fuso IANA del sistema; lo carica online la
+  sincronizzazione dell'account (Google o Outlook). Sono proposti solo i
+  calendari modificabili. Quello preselezionato è l'ultimo usato
+  (`app_settings.agenda_last_event_calendar`, locale), altrimenti il primario
+  Google, come per l'esportazione delle attività, altrimenti il primo
+  modificabile. Gli eventi creati non entrano in SQLite Todo né in Supabase.
 - **Solo locale.** Eventi, titoli, luoghi e descrizioni non vengono salvati in
   SQLite, nei log, nei backup o su Supabase: possono contenere dati clinici. È
   salvata soltanto la scelta dei calendari in

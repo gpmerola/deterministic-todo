@@ -21,9 +21,13 @@ class AgendaDayPage extends StatefulWidget {
     required this.peekDays,
     required this.colors,
     required this.onOpen,
+    required this.onCreate,
     this.now,
     super.key,
   });
+
+  /// New event starting at the given time; completes once it is saved.
+  final Future<void> Function(DateTime start) onCreate;
 
   final CivilDate initialDay;
   final CivilDate today;
@@ -45,6 +49,9 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
   static const _origin = 10000;
   late final PageController pages = PageController(initialPage: _origin);
   late CivilDate shown = widget.initialDay;
+
+  /// Bumped after a creation from the button, so pages reread their day.
+  int _refresh = 0;
 
   CivilDate _dayAt(int index) => widget.initialDay.addDays(index - _origin);
 
@@ -90,15 +97,34 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
         controller: pages,
         onPageChanged: (index) => setState(() => shown = _dayAt(index)),
         itemBuilder: (context, index) => AgendaDayTimeline(
-          key: ValueKey('agenda-timeline-${_dayAt(index)}'),
+          key: ValueKey('agenda-timeline-${_dayAt(index)}-$_refresh'),
           day: _dayAt(index),
           today: widget.today,
           loadDays: widget.loadDays,
           peekDays: widget.peekDays,
           colors: widget.colors,
           onOpen: widget.onOpen,
+          onCreate: widget.onCreate,
           now: widget.now ?? DateTime.now,
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        key: const ValueKey('agenda-day-new-event'),
+        tooltip: 'Nuovo evento',
+        onPressed: () {
+          final now = (widget.now ?? DateTime.now)();
+          final hour = shown == widget.today ? now.hour + 1 : 9;
+          unawaited(
+            widget
+                .onCreate(
+                  DateTime(shown.year, shown.month, shown.day, hour.clamp(0, 23)),
+                )
+                .then((_) {
+                  if (mounted) setState(() => _refresh++);
+                }),
+          );
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -112,10 +138,12 @@ class AgendaDayTimeline extends StatefulWidget {
     required this.peekDays,
     required this.colors,
     required this.onOpen,
+    required this.onCreate,
     required this.now,
     super.key,
   });
 
+  final Future<void> Function(DateTime start) onCreate;
   final CivilDate day;
   final CivilDate today;
   final AgendaDaysLoader loadDays;
@@ -165,6 +193,21 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
         );
       }
     }
+    await _load();
+  }
+
+  Future<void> _createAt(double dy) async {
+    final minutes = (dy / AgendaDayPage.hourHeight * 60).floor();
+    final slot = (minutes ~/ 30 * 30).clamp(0, 23 * 60 + 30);
+    await widget.onCreate(
+      DateTime(
+        widget.day.year,
+        widget.day.month,
+        widget.day.day,
+        slot ~/ 60,
+        slot % 60,
+      ),
+    );
     await _load();
   }
 
@@ -240,6 +283,16 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                 child: LayoutBuilder(
                   builder: (context, constraints) => Stack(
                     children: [
+                      // Tapping free time creates an event there, rounded
+                      // down to the half hour, like Google Calendar.
+                      Positioned.fill(
+                        child: GestureDetector(
+                          key: const ValueKey('agenda-day-free-time'),
+                          behavior: HitTestBehavior.opaque,
+                          onTapUp: (details) =>
+                              unawaited(_createAt(details.localPosition.dy)),
+                        ),
+                      ),
                       for (var hour = 0; hour < 24; hour++)
                         ..._hourRow(context, hour, constraints.maxWidth),
                       for (final block in blocks)

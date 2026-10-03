@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.47.0 (build 199) — Todo Test
+
+- Creazione di eventi dall'Agenda: pulsante **+**, oppure tocco su uno spazio
+  libero della vista giorno, che parte dalla mezz'ora toccata. Si scelgono
+  titolo, calendario (di default l'ultimo usato o il Google principale),
+  giornata intera o orari, luogo e note. L'evento va nel calendario del
+  telefono e si sincronizza con il suo account.
+
 ## 2.46.1 (build 198) — Todo Test
 
 - Vista giorno: il titolo omette l'anno corrente, perché la data completa

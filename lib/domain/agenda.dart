@@ -10,6 +10,8 @@ final class AgendaCalendar {
     required this.accountName,
     this.colorHex,
     this.visibleBySystem = true,
+    this.writable = false,
+    this.isGooglePrimary = false,
   });
 
   final String id;
@@ -19,6 +21,59 @@ final class AgendaCalendar {
 
   /// Whether the phone's calendar app shows it; only the default in Agenda.
   final bool visibleBySystem;
+
+  /// New events can be saved into it (not a subscription or holidays).
+  final bool writable;
+
+  /// The Google account's own calendar: the default target, as for exports.
+  final bool isGooglePrimary;
+}
+
+/// An event typed in Agenda, before it is written to a phone calendar.
+final class AgendaEventDraft {
+  const AgendaEventDraft({
+    required this.calendarId,
+    required this.title,
+    required this.start,
+    required this.end,
+    this.allDay = false,
+    this.location,
+    this.notes,
+  });
+
+  final String calendarId;
+  final String title;
+  final DateTime start;
+
+  /// Exclusive; for all-day drafts the midnight after the last day.
+  final DateTime end;
+  final bool allDay;
+  final String? location;
+  final String? notes;
+
+  /// Italian message for the first problem, or null when it can be saved.
+  String? get problem {
+    if (title.trim().isEmpty) return 'Inserisci un titolo.';
+    if (calendarId.isEmpty) return 'Scegli un calendario.';
+    if (!end.isAfter(start)) return 'La fine deve essere dopo l\'inizio.';
+    return null;
+  }
+}
+
+/// Calendar preselected for a new event: the last one used if still
+/// writable, else the Google primary calendar, else the first writable one.
+String? defaultEventCalendar(List<AgendaCalendar> calendars, String? lastUsed) {
+  final writable = [
+    for (final calendar in calendars)
+      if (calendar.writable) calendar,
+  ];
+  for (final calendar in writable) {
+    if (calendar.id == lastUsed) return calendar.id;
+  }
+  for (final calendar in writable) {
+    if (calendar.isGooglePrimary) return calendar.id;
+  }
+  return writable.firstOrNull?.id;
 }
 
 /// Calendars left out of the agenda: an explicit choice wins, otherwise the

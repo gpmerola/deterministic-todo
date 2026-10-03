@@ -8,6 +8,7 @@ import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
 import 'agenda_day_view.dart';
+import 'agenda_event_editor.dart';
 import 'agenda_month_view.dart';
 
 /// Read-only agenda that merges every calendar the phone already syncs
@@ -174,6 +175,53 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     );
   }
 
+  /// Opens the form and writes the event into the chosen phone calendar.
+  Future<void> _createEvent({DateTime? start}) async {
+    final writable = [
+      for (final calendar in calendars)
+        if (calendar.writable) calendar,
+    ];
+    final initialCalendar = defaultEventCalendar(
+      calendars,
+      await widget.service.lastEventCalendar(),
+    );
+    if (!mounted) return;
+    final now = DateTime.now();
+    final draft = await Navigator.of(context).push<AgendaEventDraft>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => AgendaEventEditor(
+          calendars: writable,
+          initialStart:
+              start ?? DateTime(now.year, now.month, now.day, now.hour + 1),
+          initialCalendarId: initialCalendar,
+        ),
+      ),
+    );
+    if (draft == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
+    try {
+      await widget.service.createEvent(draft);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            hidden.contains(draft.calendarId)
+                ? 'Evento salvato in ${target?.name ?? 'calendario'}, '
+                      'nascosto nell\'Agenda.'
+                : 'Evento salvato in ${target?.name ?? 'calendario'}.',
+          ),
+        ),
+      );
+    } catch (_) {
+      // Not logged: the draft carries the user's text.
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Impossibile salvare l\'evento.')),
+      );
+    }
+    await _load();
+  }
+
   Future<void> _setMode(AgendaViewMode next) async {
     if (next == mode) return;
     await widget.service.saveViewMode(next);
@@ -286,6 +334,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             colors: colors,
             onOpen: (entry) => widget.service.openEvent(entry.instanceId),
+            onCreate: (start) => _createEvent(start: start),
           ),
         ),
       ),
@@ -329,11 +378,26 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
               );
             },
           );
-    return Column(
+    return Stack(
       children: [
-        header,
-        Expanded(
-          child: RefreshIndicator(onRefresh: _load, child: body),
+        Column(
+          children: [
+            header,
+            Expanded(
+              child: RefreshIndicator(onRefresh: _load, child: body),
+            ),
+          ],
+        ),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            key: const ValueKey('agenda-new-event'),
+            heroTag: 'agenda-new-event',
+            tooltip: 'Nuovo evento',
+            onPressed: () => unawaited(_createEvent()),
+            child: const Icon(Icons.add),
+          ),
         ),
       ],
     );

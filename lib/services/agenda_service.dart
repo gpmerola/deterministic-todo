@@ -21,6 +21,7 @@ class AgendaService {
   static const calendarChoicesKey = 'agenda_calendar_choices';
 
   static const viewModeKey = 'agenda_view_mode';
+  static const lastEventCalendarKey = 'agenda_last_event_calendar';
 
   /// `{"hide_unanswered": bool, "words": [String]}`; device-local.
   static const filterKey = 'agenda_filter';
@@ -80,6 +81,10 @@ class AgendaService {
           accountName: calendar.accountName ?? '',
           colorHex: calendar.colorHex,
           visibleBySystem: !calendar.hidden,
+          writable: !calendar.readOnly,
+          isGooglePrimary:
+              calendar.isPrimary &&
+              (calendar.accountType?.contains('google') ?? false),
         ),
     ];
     result.sort((a, b) {
@@ -226,4 +231,37 @@ class AgendaService {
           ),
         );
   }
+
+  Future<String?> lastEventCalendar() async =>
+      (await (_database.select(_database.appSettings)
+                ..where((setting) => setting.key.equals(lastEventCalendarKey)))
+              .getSingleOrNull())
+          ?.value;
+
+  /// Writes [draft] into its phone calendar with the system IANA time zone;
+  /// the account's own sync uploads it. Returns the new event id.
+  Future<String> createEvent(AgendaEventDraft draft) async {
+    final id = await _calendar.createEvent(
+      calendarId: draft.calendarId,
+      title: draft.title.trim(),
+      startDate: draft.start,
+      endDate: draft.end,
+      isAllDay: draft.allDay,
+      location: _blankToNull(draft.location),
+      description: _blankToNull(draft.notes),
+    );
+    _events.clear();
+    await _database
+        .into(_database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: lastEventCalendarKey,
+            value: draft.calendarId,
+          ),
+        );
+    return id;
+  }
+
+  static String? _blankToNull(String? value) =>
+      value == null || value.trim().isEmpty ? null : value.trim();
 }

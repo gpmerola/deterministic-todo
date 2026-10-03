@@ -476,6 +476,7 @@ void main() {
   });
 
   testWidgets('la vista giorno mostra i vuoti in proporzione', (tester) async {
+    final created = <DateTime>[];
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.reset);
@@ -494,6 +495,7 @@ void main() {
           peekDays: (_, _) => days,
           colors: const {},
           onOpen: (_) async {},
+          onCreate: (start) async => created.add(start),
           now: () => DateTime(2026, 10, 5, 10),
         ),
       ),
@@ -511,6 +513,90 @@ void main() {
       find.byKey(const ValueKey('agenda-block-early')),
     );
     expect(earlySize.height, closeTo(AgendaDayPage.hourHeight / 2 - 2, 0.5));
+
+    // Free time between the meetings creates an event at that half hour.
+    await tester.tapAt(
+      early.translate(
+        40,
+        AgendaDayPage.hourHeight * 1.25, // 10:15 → slot 10:00
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(created, [DateTime(2026, 10, 5, 10)]);
+  });
+
+  test('sceglie il calendario per i nuovi eventi', () {
+    const google = AgendaCalendar(
+      id: 'g',
+      name: 'me',
+      accountName: 'me@gmail.com',
+      writable: true,
+      isGooglePrimary: true,
+    );
+    const outlook = AgendaCalendar(
+      id: 'o',
+      name: 'Calendario',
+      accountName: 'k@kcl.ac.uk',
+      writable: true,
+    );
+    const holidays = AgendaCalendar(
+      id: 'h',
+      name: 'Holidays',
+      accountName: 'me@gmail.com',
+    );
+    expect(defaultEventCalendar([holidays, outlook, google], null), 'g');
+    expect(defaultEventCalendar([holidays, outlook, google], 'o'), 'o');
+    expect(defaultEventCalendar([holidays, outlook, google], 'h'), 'g');
+    expect(defaultEventCalendar([holidays, outlook], null), 'o');
+    expect(defaultEventCalendar([holidays], null), isNull);
+  });
+
+  test('una bozza senza titolo o con fine prima dell inizio non si salva', () {
+    final start = DateTime(2026, 10, 5, 9);
+    AgendaEventDraft draft(String title, DateTime end) =>
+        AgendaEventDraft(calendarId: 'g', title: title, start: start, end: end);
+    expect(draft(' ', start.add(const Duration(hours: 1))).problem, isNotNull);
+    expect(draft('Visita', start).problem, isNotNull);
+    expect(
+      draft('Visita', start.add(const Duration(hours: 1))).problem,
+      isNull,
+    );
+  });
+
+  testWidgets('il pulsante + crea un evento nel calendario Google', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, const [])..writableCalendars = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: service, today: first),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-new-event')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-event-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Inserisci un titolo.'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('agenda-event-title')),
+      'Palestra',
+    );
+    await tester.tap(find.byKey(const ValueKey('agenda-event-save')));
+    await tester.pumpAndSettle();
+    final draft = service.createdDrafts.single;
+    expect(draft.title, 'Palestra');
+    expect(draft.calendarId, 'gmail');
+    expect(draft.end.difference(draft.start), const Duration(hours: 1));
+    expect(find.text('Evento salvato in Personale.'), findsOneWidget);
   });
 
   testWidgets('il filtro si imposta dal selettore calendari', (tester) async {
@@ -673,13 +759,34 @@ class _FakeAgendaService extends AgendaService {
   Future<AgendaAccess> requestAccess() async =>
       currentAccess = AgendaAccess.granted;
 
+  bool writableCalendars = false;
+  final createdDrafts = <AgendaEventDraft>[];
+
+  @override
+  Future<String> createEvent(AgendaEventDraft draft) async {
+    createdDrafts.add(draft);
+    return 'new';
+  }
+
   /// When set, provider reads wait for it: simulates a slow provider.
   Completer<void>? gate;
   final _memory = <String, List<AgendaSourceEvent>>{};
 
   @override
   Future<List<AgendaCalendar>> calendars() async =>
-      lastCalendars = const [kcl, personal, slam];
+      lastCalendars = writableCalendars
+      ? const [
+          kcl,
+          AgendaCalendar(
+            id: 'gmail',
+            name: 'Personale',
+            accountName: 'me@example.com',
+            writable: true,
+            isGooglePrimary: true,
+          ),
+          slam,
+        ]
+      : const [kcl, personal, slam];
 
   @override
   List<AgendaSourceEvent>? cachedEvents(
