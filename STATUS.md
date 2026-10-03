@@ -2,6 +2,22 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Creazione eventi e confronto con Google — builds 199–200
+
+`make check` superato (280 test, 21 in `test/agenda_test.dart`). Installate via
+ADB la 2199 e la 2200. Sul Galaxy il modulo **Nuovo evento** si apre dal **+**
+e si chiude senza salvare; nessun evento di prova scritto nei calendari reali.
+Con la 2199 il calendario proposto era `dr.merolagp@gmail.com`, nascosto
+nell'Agenda; dalla 2200 si propone un primario mostrato (verificato).
+Confronto di 3 mesi (3/10/2026–3/1/2027) tra API Google dell'account
+`sennar.pierp@gmail.com` e provider del telefono: coincidono il primario (28
+eventi più 1 di giornata intera del 2/10, incluso dall'allargamento UTC),
+Semble (19), heydoc (20) e SLAM (3). Todoist: 1.398 occorrenze sul telefono;
+la sola prima pagina API (250) copre fino al 22/10, confronto completo non
+fatto. Differenze attese dell'Agenda: duplicati con stesso titolo e orario
+uniti (PDP 6/12, festività ripetute tra account); heydoc e Semble sono le
+stesse visite con titoli e durate diversi, quindi non vengono uniti.
+
 ## Filtri e vista giorno — builds 197–198
 
 `make check` superato (277 test, 18 in `test/agenda_test.dart`): impaginazione

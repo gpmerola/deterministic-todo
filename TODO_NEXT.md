@@ -11,6 +11,10 @@
 - [x] SLaM libero/occupato abbonato su Google e sincronizzato sul telefono.
 - [x] Filtri (inviti senza risposta, parole) e vista giorno in scala: 197–198.
 - [ ] Verificare a video titolo e margine inferiore della vista giorno (198).
+- [x] Creazione eventi (199–200): modulo verificato sul Galaxy, salvataggio
+  coperto da test; primo salvataggio reale lasciato all'utente.
+- [ ] Valutare unione heydoc/Semble (stesso inizio, titoli diversi) solo se
+  l'utente vuole tenerli entrambi visibili.
 - [ ] SLaM: condivisione esterna bloccata e pubblicazione solo libero/occupato.
   Proposto all'utente di abbonare l'ICS libero/occupato da Google Calendar.
   Lettura ICS nell'app solo se l'aggiornamento di Google è troppo lento.
