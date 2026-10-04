@@ -2,6 +2,14 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Oggi + agenda, attività collegate, annulla ✨ — build 211
+
+`make check` superato (310 test): striscia di Oggi, «Preparare» dal
+dettaglio, giorni lavorativi, nomi brevi, esportazione nel calendario
+principale. L'annulla di ✨ non ha un test automatico (usa repository e
+plugin calendario dalla shell). 2211 pubblicata con `make todo-test-remote`,
+senza ADB. Non ancora vista sul dispositivo.
+
 ## Calendario dell'assistente verificato — builds 209–210
 
 Sul Galaxy (2209): il calendario Google «✨ Assistente» creato dall'utente è
