@@ -33,8 +33,10 @@ class AgendaPhoneSync {
   final AgendaRequestProcessor processor;
   final AgendaMirror mirror;
 
-  /// App start and resume: throttled by the processor and the mirror.
+  /// App start and resume: throttled by the processor and the mirror. Also
+  /// re-arms the jobs, which a signed-out background run cancels.
   Future<void> foreground() async {
+    if (client.auth.currentSession != null) await _schedule();
     final handled = await processor.processIfStale();
     if (handled > 0) {
       await mirror.upload();
@@ -64,6 +66,10 @@ class AgendaPhoneSync {
       if (call.method != 'run') throw MissingPluginException();
       return background(call.arguments as String? ?? 'periodic');
     });
+    await _schedule();
+  }
+
+  Future<void> _schedule() async {
     try {
       await channel.invokeMethod<void>('scheduleBackground');
     } on MissingPluginException {

@@ -294,9 +294,26 @@ sincronizzazione.
 una sola sessione Supabase e nessun doppio rinnovo del token. Altrimenti
 parte un motore headless (`agendaBackgroundMain`), che:
 
-- apre lo stesso database e la sessione salvata, senza timer di refresh e
-  senza deep link;
+- apre lo stesso database e la sessione salvata, senza deep link;
+- attende il recupero della sessione, perché `Supabase.initialize` non lo
+  attende;
+- se la sessione è scaduta la rinnova e, prima di chiudersi, salva la
+  sessione corrente;
 - fa un solo giro e viene distrutto, al più tardi dopo 90 secondi.
+
+**Sessione: regola di sicurezza (dalla 217).** Il motore headless usa
+`BackgroundSessionStorage`, che non cancella mai la sessione salvata.
+
+Il difetto nelle build 213–216: il motore partiva con
+`autoRefreshToken: false`. Con una sessione scaduta (app non aperta da più
+di un'ora), gotrue faceva il logout locale e supabase_flutter cancellava la
+sessione dal telefono, quindi l'utente doveva rifare il login. Segnalato
+dall'utente il 4 ottobre 2026; regressione in
+`test/background_session_test.dart`.
+
+Ora, se il rinnovo non riesce, il giro risponde `retry` e lascia la
+sessione all'app, l'unica che può uscire davvero dall'account. Dopo un
+nuovo login i job si riattivano a ogni apertura.
 
 **Esiti.** Dart risponde `done` (si memorizza l'impronta), `retry` oppure
 `stop` (nessun accesso o nessun permesso calendario): con `stop` i job

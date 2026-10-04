@@ -2,6 +2,25 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Incidente: logout dal telefono — build 213–216, corretto nella 217
+
+L'utente ha dovuto rifare il login a Supabase sul Galaxy. Causa: il motore
+headless dell'Agenda partiva con `autoRefreshToken: false`. Il giro delle
+19:09 UTC è partito più di un'ora dopo l'ultima apertura; con la sessione
+scaduta, `GoTrueClient.recoverSession` ha fatto il logout locale e
+`SupabaseAuth` ha cancellato la sessione da `SecureSupabaseStorage`.
+
+`auth.refresh_tokens` non mostra rinnovi nelle ultime 10 ore: niente
+rotazione di token, solo cancellazione locale.
+
+Correzione nella 217:
+- `BackgroundSessionStorage` non cancella mai la sessione;
+- refresh consentito e attesa del recupero della sessione;
+- salvataggio della sessione prima di chiudere il motore;
+- riprogrammazione dei job a ogni apertura.
+
+Regressione in `test/background_session_test.dart`.
+
 ## Prova reale del job in background — 4 ottobre 2026
 
 Telefono raffreddato (stato termico 1), app chiusa (in primo piano

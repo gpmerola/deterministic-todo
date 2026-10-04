@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.56.4 (build 217) — Todo Test
+
+- **Correzione urgente: niente più logout dal telefono.** Dalla 213 il
+  lavoro in background dell'Agenda, partito più di un'ora dopo l'ultima
+  apertura di Todo, trovava la sessione Supabase scaduta e la cancellava:
+  al rientro l'app chiedeva di nuovo il login. Ora il background rinnova la
+  sessione e la salva, e non può mai cancellarla; solo l'app vera può
+  uscire dall'account. I job si riattivano da soli a ogni apertura dopo un
+  nuovo login.
+
 ## 2.56.3 (build 216) — Todo Test
 
 - Lavoro in background dell'Agenda più robusto. Se il caricamento
