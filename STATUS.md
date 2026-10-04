@@ -19,8 +19,16 @@ Non ancora fatto:
 - la migrazione `202610050001_agenda_requests.sql` attende l'approvazione
   dell'utente. Senza di essa il telefono ignora la coda in silenzio e il Web
   resta in lettura con avviso d'errore al salvataggio;
-- la release Web della 213 attende `PUBBLICA`;
 - sul dispositivo vanno verificati il job a trigger e il motore headless.
+
+Web 2.56.0+213 pubblicata dopo conferma `PUBBLICA` dal commit `0743df3`: run
+`37213680721` riuscito, `release-info.json` pubblico verificato.
+
+Galaxy 2213: job 7301 (trigger `content://com.android.calendar`) e 7302
+(orario, persistente) programmati dall'app. Le esecuzioni forzate con
+`cmd jobscheduler run -f` sono rinviate da Android: «Restricted due to:
+thermal» (telefono caldo, hotspot attivo). È un comportamento corretto, non
+un errore dell'app; l'esecuzione reale resta da verificare.
 
 ## Agenda sul Web in sola lettura — build 212
 
