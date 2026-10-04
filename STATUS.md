@@ -2,6 +2,15 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Calendario dell'assistente verificato — builds 209–210
+
+Sul Galaxy (2209): il calendario Google «✨ Assistente» creato dall'utente è
+presente nel provider (id 39, visibile, sincronizzato, scrivibile) e attivo
+nell'Agenda. Nel pannello Calendari: «Nuovi eventi in» =
+`sennar.pierp@gmail.com`, «Eventi creati da ✨ in» = «✨ Assistente»;
+heydoc spento e Semble acceso. La 210 corregge solo l'etichetta del primo
+menu, che citava ancora l'assistente. `make check` superato.
+
 ## Prova reale dell'assistente con DeepSeek — builds 207–208
 
 L'utente ha inserito una chiave DeepSeek sul Galaxy. Prove via ADB, solo

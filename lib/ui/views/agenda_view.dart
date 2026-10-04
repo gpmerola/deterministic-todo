@@ -870,7 +870,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                 : null,
             isExpanded: true,
             decoration: const InputDecoration(
-              labelText: 'Nuovi eventi in (+ e ✨ assistente)',
+              labelText: 'Nuovi eventi in (+)',
             ),
             items: [
               for (final calendar in writable)

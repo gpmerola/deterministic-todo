@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.53.1 (build 210) — Todo Test
+
+- Etichetta corretta in Agenda › Calendari: «Nuovi eventi in (+)». Gli eventi
+  dell'assistente seguono «Eventi creati da ✨ in».
+
 ## 2.53.0 (build 209) — Todo Test
 
 - Agenda › Calendari › **Eventi creati da ✨ in**: un calendario separato per
