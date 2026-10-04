@@ -63,6 +63,19 @@ Se c'è un evento collegato, le note riportano anche «Collegata a: <evento>».
 Il marcatore si vede in Todo, sul Web e in Google o Outlook. Per eliminare
 gli elementi o abbandonare la funzione basta cercare «✨».
 
+**Prova reale con DeepSeek** (build 207, via ADB, nessun elemento creato):
+
+- la riunione TNG di giovedì è collegata all'evento vero e l'attività cade il
+  giorno lavorativo prima;
+- «dopo la riunione PRADA di venerdì» trova l'evento e il progetto «Ricerca e
+  backlog KCL»;
+- «domani alle 9 per mezzora» diventa un evento 09:00–09:30;
+- il congresso dal 12 al 14 novembre diventa un evento di giornata intera;
+- due richieste nella stessa nota diventano due attività.
+
+L'unico errore, una data inventata per un'attività senza data, è corretto
+nelle istruzioni dalla build 208.
+
 ## Conservazione della chiave
 
 - La chiave e il fornitore scelto stanno in `flutter_secure_storage`, cioè

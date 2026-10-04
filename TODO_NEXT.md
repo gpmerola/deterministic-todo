@@ -4,8 +4,10 @@
 
 - [x] Chiave API DeepSeek/Claude nel Keystore, verifica senza contenuti.
 - [x] Prima funzione: ✨ Scrivi o detta con DeepSeek (build 206), test verdi.
-- [ ] Prova reale con la chiave dell'utente su 10–20 note tipiche; correggere
-  le istruzioni dove sbaglia date o tipo (attività/evento).
+- [x] Prova reale su 9 note (builds 206–208): troncamento e date inventate
+  corretti; nessun elemento creato durante le prove.
+- [ ] L'utente sceglie «Nuovi eventi in» e prova una creazione reale (✨ visibile
+  in Todo e in Google).
 - [ ] Se l'utente non gradisce: cercare «✨» per rimuovere gli elementi creati.
 
 ## P1 — Agenda unificata, build 191

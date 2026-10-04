@@ -2,6 +2,28 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Prova reale dell'assistente con DeepSeek — builds 207–208
+
+L'utente ha inserito una chiave DeepSeek sul Galaxy. Prove via ADB, solo
+Interpreta: nessun «Crea», quindi nessun elemento scritto.
+
+Con la 2206:
+- 3 note su 4 interpretate correttamente;
+- la nota con due richieste falliva sempre con «risposta non comprensibile».
+  Il ragionamento di `deepseek-flash`, attivo di default, troncava il json.
+
+La 2207 (`thinking: disabled`, `max_tokens` 4096, messaggio per risposta
+troncata) l'ha risolta:
+- due attività ven 9 e lun 12 ott;
+- PRADA collegata all'evento reale e al progetto giusto;
+- supervisione 09:00–09:30.
+
+Unico errore residuo: data inventata per «comprare latte». La 2208 lo corregge
+nelle istruzioni, verificato: «Senza data». Nella 2208 anche riunione più
+attività del giorno prima, con nota sull'ambiguità di «giovedì prossimo».
+`make check` 304 test. Il calendario predefinito resta da scegliere
+all'utente (Agenda › Calendari › Nuovi eventi in).
+
 ## ✨ Scrivi o detta e scorrimento laterale — build 206
 
 `make check` superato (302 test). `test/ai_capture_test.dart` copre:
