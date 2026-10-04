@@ -89,9 +89,10 @@ scaduto con `gh run rerun RUN_ID --job JOB_ID` sul solo job deploy Web.
 Controllare l'esito del job e l'identità HTTPS pubblica, non soltanto il dispatch.
 
 Per una nuova pubblicazione soltanto Web usare `publish-web.yml`, conferma
-`PUBBLICA` e branch autorizzato. Il workflow introdotto per il recovery della
-180 conserva guardie esplicite 2.40.2/180: prima di una versione diversa queste
-vanno aggiornate o sostituite con la validazione della versione canonica.
+`PUBBLICA` e branch autorizzato. Il workflow legge versione e build da
+`pubspec.yaml`, rifiuta una build non maggiore di quella pubblicata in
+`release-info.json` e verifica l'identità pubblica con gli stessi valori:
+non servono più guardie fisse per ogni versione.
 Non rilanciare l'intera release coordinata se Play ha già accettato il numero
 versione: `Version code ... has already been used` segnala un duplicato,
 non credenziali errate. Le email “Run failed” descrivono l'esito complessivo;

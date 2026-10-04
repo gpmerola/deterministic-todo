@@ -1,5 +1,15 @@
 # TODO e handover
 
+## P1 — Agenda sul Web, build 212
+
+- [x] Copia dell'Agenda su Supabase (RPC unica, RLS, sola lettura sul Web).
+- [x] Migrazione `202610040001_agenda_mirror` applicata e verificata.
+- [ ] Web 212 pubblicata dopo `PUBBLICA`: verificare `release-info.json`.
+- [ ] Dopo l'aggiornamento del Galaxy alla 2212: prima copia caricata
+  (`agenda_snapshots`) e Agenda visibile sul Web con «Copia dal telefono».
+- [ ] Facoltativo: creazione/modifica dal Web tramite coda eseguita dal
+  telefono.
+
 ## P1 — Assistente AI, build 205
 
 - [x] Chiave API DeepSeek/Claude nel Keystore, verifica senza contenuti.

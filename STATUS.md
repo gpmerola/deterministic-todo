@@ -1,6 +1,23 @@
 # Stato corrente
 
-Aggiornato il 3 ottobre 2026.
+Aggiornato il 4 ottobre 2026.
+
+## Agenda sul Web in sola lettura — build 212
+
+`make check` e `make check-sql` superati (314 test Flutter, PGlite per la
+nuova RPC). 2212 pubblicata con `make todo-test-remote`.
+
+Migrazione `202610040001_agenda_mirror.sql` (SHA-256
+`3e3f5390377376e1e8031ba473ca69ca45c8696d78f8917fd6c257ad23fc1e74`) applicata
+il 4 ottobre 2026 dal SQL Editor, dopo approvazione dell'utente. Verifica
+post-applicazione: RLS attiva su entrambe le tabelle, 2 policy, `authenticated`
+legge ma non scrive, `anon` non legge, RPC `security definer` eseguibile solo
+da `authenticated`.
+
+Web: `publish-web.yml` non ha più le guardie fisse 2.42.0/189; legge la
+versione da `pubspec.yaml`, richiede una build maggiore di quella online e
+verifica l'identità pubblica con gli stessi valori. Pubblicazione 212 avviata
+dopo conferma `PUBBLICA`; esito nella sezione successiva quando verificato.
 
 ## Oggi + agenda, attività collegate, annulla ✨ — build 211
 
