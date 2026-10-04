@@ -349,6 +349,9 @@ class _AiCapturePageState extends State<AiCapturePage> {
               Card(
                 key: ValueKey('ai-proposal-$index'),
                 child: CheckboxListTile(
+                  // Checkbox left, title full width, edit right.
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: const EdgeInsets.only(left: 4, right: 4),
                   value: selected.contains(index),
                   onChanged: busy
                       ? null
@@ -362,21 +365,12 @@ class _AiCapturePageState extends State<AiCapturePage> {
                     onPressed: busy ? null : () => _edit(index),
                     icon: const Icon(Icons.edit_outlined),
                   ),
-                  title: Row(
-                    children: [
-                      Icon(
-                        item.kind == AiProposalKind.task
-                            ? Icons.check_box_outline_blank
-                            : Icons.event,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(child: Text(markAiTitle(item.title))),
-                    ],
-                  ),
+                  title: Text(markAiTitle(item.title)),
                   subtitle: Text(
                     [
-                      item.kind == AiProposalKind.task ? 'Attività' : 'Evento',
+                      item.kind == AiProposalKind.task
+                          ? '☐ Attività'
+                          : '📅 Evento',
                       _when(item),
                       ?_where(item),
                       if (item.location != null) item.location!,

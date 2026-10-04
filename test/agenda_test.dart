@@ -57,6 +57,8 @@ AgendaSourceEvent event(
   location: location,
 );
 
+final picked = <String?>[];
+
 void main() {
   setUpAll(() => initializeDateFormatting('it'));
   const first = CivilDate(2026, 10, 5);
@@ -1001,6 +1003,59 @@ void main() {
     // Let Drift's stream timers settle before the test ends.
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('si sceglie il calendario dei nuovi eventi', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              final result = await showModalBottomSheet<AgendaPickerResult>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => const AgendaCalendarPicker(
+                  calendars: [
+                    AgendaCalendar(
+                      id: 'op',
+                      name: 'op',
+                      accountName: 'op',
+                      writable: true,
+                      isGooglePrimary: true,
+                    ),
+                    AgendaCalendar(
+                      id: 'me',
+                      name: 'Personale',
+                      accountName: 'me@example.com',
+                      writable: true,
+                      isGooglePrimary: true,
+                    ),
+                  ],
+                  hidden: {},
+                  eventCalendarId: 'op',
+                ),
+              );
+              picked.add(result?.eventCalendarId);
+            },
+            child: const Text('apri'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('apri'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('agenda-event-calendar-default')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Personale · me@example.com').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Applica'));
+    await tester.pumpAndSettle();
+    expect(picked, ['me']);
   });
 
   test('orario compatto nelle celle', () {

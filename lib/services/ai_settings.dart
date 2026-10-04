@@ -118,7 +118,7 @@ class AiSettings {
   }
 }
 
-enum AiFailure { noKey, rejected, unreachable, badResponse }
+enum AiFailure { noKey, rejected, unreachable, badResponse, truncated }
 
 class AiException implements Exception {
   const AiException(this.failure);
@@ -132,6 +132,8 @@ class AiException implements Exception {
       'Servizio AI non raggiungibile: controlla la rete e riprova.',
     AiFailure.badResponse =>
       'Risposta dell\'AI non comprensibile: riprova o riformula.',
+    AiFailure.truncated =>
+      'Risposta troppo lunga e interrotta: dividi la nota in parti più brevi.',
   };
 }
 
@@ -139,6 +141,9 @@ class AiException implements Exception {
 /// never logged or stored; the caller shows the result for confirmation.
 String? _deepseekText(Map<String, Object?> decoded) {
   final choice = (decoded['choices'] as List).first as Map<String, Object?>;
+  if (choice['finish_reason'] == 'length') {
+    throw const AiException(AiFailure.truncated);
+  }
   final message = choice['message'] as Map<String, Object?>;
   return message['content'] as String?;
 }
@@ -180,7 +185,11 @@ class AiClient {
                     {'role': 'user', 'content': user},
                   ],
                   'response_format': {'type': 'json_object'},
-                  'max_tokens': 2048,
+                  // Thinking is on by default for deepseek-flash and its
+                  // reasoning ran out of tokens on two-item notes (build
+                  // 206), truncating the json. Off: faster and cheaper.
+                  'thinking': {'type': 'disabled'},
+                  'max_tokens': 4096,
                   'stream': false,
                 }),
               )
@@ -195,7 +204,7 @@ class AiClient {
                 },
                 body: jsonEncode({
                   'model': claudeModel,
-                  'max_tokens': 2048,
+                  'max_tokens': 4096,
                   'system': system,
                   'messages': [
                     {'role': 'user', 'content': user},
@@ -214,6 +223,8 @@ class AiClient {
           jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, Object?>;
       final text = switch (provider) {
         AiProvider.deepseek => _deepseekText(decoded),
+        AiProvider.anthropic when decoded['stop_reason'] == 'max_tokens' =>
+          throw const AiException(AiFailure.truncated),
         AiProvider.anthropic => [
           for (final block in decoded['content'] as List)
             if ((block as Map)['type'] == 'text') block['text'] as String,

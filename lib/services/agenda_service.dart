@@ -438,4 +438,15 @@ class AgendaService {
       now,
     );
   }
+
+  /// Explicit choice of the calendar for new events (Agenda › Calendari);
+  /// the same key also remembers the last calendar used.
+  Future<void> saveEventCalendar(String calendarId) => _database
+      .into(_database.appSettings)
+      .insertOnConflictUpdate(
+        AppSettingsCompanion.insert(
+          key: lastEventCalendarKey,
+          value: calendarId,
+        ),
+      );
 }

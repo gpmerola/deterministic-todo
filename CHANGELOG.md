@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.52.1 (build 207) — Todo Test
+
+- ✨ Assistente: le note con più richieste («chiamare il commercialista entro
+  venerdì e mandare email a Felicia lunedì») fallivano. Il ragionamento di
+  DeepSeek, attivo di default, esauriva la risposta. Ora è disattivato: più
+  veloce ed economico. Se una risposta viene comunque interrotta, un
+  messaggio chiede di dividere la nota.
+- Proposte più leggibili: casella a sinistra, titolo intero, matita a destra.
+- Agenda › Calendari › **Nuovi eventi in**: scegli il calendario per gli
+  eventi creati con + e con l'assistente.
+
 ## 2.52.0 (build 206) — Todo Test
 
 - **✨ Scrivi o detta.** Una nota scritta o dettata diventa attività ed eventi

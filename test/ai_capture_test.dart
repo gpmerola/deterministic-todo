@@ -132,6 +132,9 @@ void main() {
       expect(requests.single.headers['Authorization'], 'Bearer sk-1');
       expect(body['model'], 'deepseek-flash');
       expect(body['response_format'], {'type': 'json_object'});
+      // Reasoning ran out of tokens on longer notes: off, more room.
+      expect(body['thinking'], {'type': 'disabled'});
+      expect(body['max_tokens'], 4096);
       expect((body['messages'] as List).first, {
         'role': 'system',
         'content': 's',
@@ -182,6 +185,34 @@ void main() {
           ),
         );
       },
+    );
+  });
+
+  test('una risposta troncata ha un messaggio dedicato', () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final settings = AiSettings();
+    await settings.save(AiProvider.deepseek, 'sk-1');
+    final client = AiClient(
+      settings,
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'finish_reason': 'length',
+                'message': {'content': '{"items":[{"type":"ta'},
+              },
+            ],
+          }),
+          200,
+        ),
+      ),
+    );
+    await expectLater(
+      client.completeJson(system: 's', user: 'u'),
+      throwsA(
+        isA<AiException>().having((e) => e.failure, 'f', AiFailure.truncated),
+      ),
     );
   });
 

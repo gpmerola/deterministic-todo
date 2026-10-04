@@ -271,6 +271,12 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 
   Future<void> _chooseCalendars() async {
+    final eventCalendar = defaultEventCalendar(
+      calendars,
+      await widget.service.lastEventCalendar(),
+      hidden: hidden,
+    );
+    if (!mounted) return;
     final selection = await showModalBottomSheet<AgendaPickerResult>(
       context: context,
       showDragHandle: true,
@@ -279,9 +285,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         calendars: calendars,
         hidden: hidden,
         filter: filter,
+        eventCalendarId: eventCalendar,
       ),
     );
     if (selection == null) return;
+    if (selection.eventCalendarId != null) {
+      await widget.service.saveEventCalendar(selection.eventCalendarId!);
+    }
     await widget.service.saveCalendarChoices({
       for (final calendar in calendars)
         calendar.id: !selection.hidden.contains(calendar.id),
@@ -778,9 +788,12 @@ String agendaTimeLabel(AgendaEntry entry, CivilDate day) {
 }
 
 final class AgendaPickerResult {
-  const AgendaPickerResult(this.hidden, this.filter);
+  const AgendaPickerResult(this.hidden, this.filter, {this.eventCalendarId});
   final Set<String> hidden;
   final AgendaFilter filter;
+
+  /// Calendar for new events (+ and ✨ assistant).
+  final String? eventCalendarId;
 }
 
 class AgendaCalendarPicker extends StatefulWidget {
@@ -788,12 +801,14 @@ class AgendaCalendarPicker extends StatefulWidget {
     required this.calendars,
     required this.hidden,
     this.filter = AgendaFilter.none,
+    this.eventCalendarId,
     super.key,
   });
 
   final List<AgendaCalendar> calendars;
   final Set<String> hidden;
   final AgendaFilter filter;
+  final String? eventCalendarId;
 
   @override
   State<AgendaCalendarPicker> createState() => _AgendaCalendarPickerState();
@@ -802,6 +817,7 @@ class AgendaCalendarPicker extends StatefulWidget {
 class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   late final Set<String> hidden = {...widget.hidden};
   late bool hideUnanswered = widget.filter.hideUnanswered;
+  late String? eventCalendarId = widget.eventCalendarId;
   late final List<String> words = [...widget.filter.hiddenWords];
   final wordInput = TextEditingController();
 
@@ -825,7 +841,39 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final writable = [
+      for (final calendar in widget.calendars)
+        if (calendar.writable) calendar,
+    ];
     final rows = <Widget>[
+      if (writable.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: DropdownButtonFormField<String>(
+            key: const ValueKey('agenda-event-calendar-default'),
+            initialValue: writable.any((c) => c.id == eventCalendarId)
+                ? eventCalendarId
+                : null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Nuovi eventi in (+ e ✨ assistente)',
+            ),
+            items: [
+              for (final calendar in writable)
+                DropdownMenuItem(
+                  value: calendar.id,
+                  child: Text(
+                    calendar.accountName.isEmpty ||
+                            calendar.accountName == calendar.name
+                        ? calendar.name
+                        : '${calendar.name} · ${calendar.accountName}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: (value) => setState(() => eventCalendarId = value),
+          ),
+        ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: Text('Filtri', style: theme.textTheme.labelLarge),
@@ -942,6 +990,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                           hideUnanswered: hideUnanswered,
                           hiddenWords: List.unmodifiable(words),
                         ),
+                        eventCalendarId: eventCalendarId,
                       ),
                     );
                   },

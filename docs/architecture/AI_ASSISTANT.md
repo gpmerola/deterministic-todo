@@ -14,7 +14,11 @@ come «preparare slide per la riunione TNG di giovedì; visita Maudsley martedì
 15–16». **Interpreta** invia una sola richiesta:
 
 - DeepSeek: `POST https://api.deepseek.com/chat/completions`, modello
-  `deepseek-flash`, `response_format: json_object`;
+  `deepseek-flash`, `response_format: json_object`. Dalla build 207 anche
+  `thinking: disabled` e `max_tokens: 4096`. Il ragionamento è attivo di
+  default e nella prova reale della 206 esauriva i token sulle note con due
+  richieste, troncando il json. `finish_reason: length` (`stop_reason:
+  max_tokens` per Claude) mostra un messaggio dedicato: «dividi la nota»;
 - Claude: `POST https://api.anthropic.com/v1/messages`, modello
   `claude-haiku-4-5`.
 
@@ -41,7 +45,8 @@ gli elementi:
 - di tipo sconosciuto.
 
 Un progetto sconosciuto diventa «nessun progetto», un calendario sconosciuto
-diventa quello predefinito. Al massimo 10 elementi. Le attività hanno solo
+diventa quello predefinito. Il predefinito si sceglie in Agenda › Calendari ›
+«Nuovi eventi in» (build 207); vale anche per il **+**. Al massimo 10 elementi. Le attività hanno solo
 la data; gli eventi durano 60 minuti se manca la fine.
 
 Nella revisione ogni proposta si può deselezionare o modificare: titolo e
