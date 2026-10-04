@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show QueryRow;
+import 'package:drift/drift.dart' show OrderingTerm, QueryRow;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
@@ -21,6 +21,7 @@ import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
 import 'domain/agenda.dart';
+import 'domain/ai_capture.dart';
 import 'domain/link_syntax.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
@@ -40,6 +41,7 @@ import 'services/platform_runtime_native.dart'
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
 import 'ui/activity_history_view.dart';
+import 'ui/ai_capture_page.dart';
 import 'ui/ai_settings_view.dart';
 import 'ui/app_section.dart';
 import 'ui/app_undo.dart';
@@ -1006,6 +1008,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 repository: widget.repository,
                               ),
                             if (section != AppSection.settings) ...[
+                              if (widget.enablePlatformServices &&
+                                  isAndroidPlatform)
+                                IconButton(
+                                  key: const ValueKey('ai-capture-open'),
+                                  tooltip: 'Assistente: scrivi o detta',
+                                  onPressed: _openAiCapture,
+                                  icon: const Icon(Icons.auto_awesome),
+                                ),
                               IconButton(
                                 tooltip: 'Comando universale',
                                 onPressed: _showUniversalCommand,
@@ -1103,6 +1113,144 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
+  /// What the assistant may use: today, zone, projects, writable calendars
+  /// shown in Agenda and their next 14 days of events (filters applied).
+  Future<AiCaptureContext> _aiContext() async {
+    final now = DateTime.now();
+    final db = widget.repository.db;
+    final projects =
+        await (db.select(db.projects)
+              ..where((p) => p.isArchived.equals(false))
+              ..orderBy([(p) => OrderingTerm(expression: p.position)]))
+            .get();
+    final zone = await agendaService.deviceZoneLabel();
+    var calendars = const <({String id, String name})>[];
+    String? defaultCalendar;
+    var upcoming =
+        const <({String title, DateTime start, DateTime end, bool allDay})>[];
+    if (await agendaService.access() == AgendaAccess.granted) {
+      final all = await agendaService.calendars();
+      final hidden = hiddenAgendaCalendars(
+        all,
+        await agendaService.calendarChoices(),
+      );
+      calendars = [
+        for (final calendar in all)
+          if (calendar.writable && !hidden.contains(calendar.id))
+            (id: calendar.id, name: calendar.name),
+      ];
+      defaultCalendar = defaultEventCalendar(
+        all,
+        await agendaService.lastEventCalendar(),
+        hidden: hidden,
+      );
+      final today = DateTime(now.year, now.month, now.day);
+      final events = await agendaService.events(
+        today,
+        today.add(const Duration(days: 14)),
+        [
+          for (final calendar in all)
+            if (!hidden.contains(calendar.id)) calendar.id,
+        ],
+      );
+      upcoming = [
+        for (final entry in mergeAgendaEntries(
+          events: events,
+          calendars: all,
+          hiddenCalendarIds: hidden,
+          filter: await agendaService.filter(),
+        ).take(80))
+          (
+            title: entry.title,
+            start: entry.start,
+            end: entry.end,
+            allDay: entry.allDay,
+          ),
+      ];
+    }
+    return AiCaptureContext(
+      now: now,
+      zoneLabel: zone,
+      projects: [for (final p in projects) (id: p.id, name: p.name)],
+      calendars: calendars,
+      defaultCalendarId: defaultCalendar,
+      upcoming: upcoming,
+    );
+  }
+
+  /// Writes confirmed proposals with the ✨ marker; dated tasks are also
+  /// shown in the Agenda so the link between list and calendar is visible.
+  Future<int> _createAiProposals(List<AiProposal> items) async {
+    final db = widget.repository.db;
+    final links = AgendaTaskLinks(db);
+    var created = 0;
+    for (final item in items) {
+      if (item.kind == AiProposalKind.task) {
+        final id = await widget.repository.create(
+          markAiTitle(item.title),
+          showDate: item.date?.toString(),
+          projectId: item.projectId,
+          notes: item.storedNotes(),
+        );
+        if (item.date != null) {
+          final task = await (db.select(
+            db.tasks,
+          )..where((t) => t.id.equals(id))).getSingle();
+          await links.setShown(task, true);
+        }
+      } else {
+        await agendaService.createEvent(
+          AgendaEventDraft(
+            calendarId: item.calendarId!,
+            title: markAiTitle(item.title),
+            start: item.start!,
+            end: item.end!,
+            allDay: item.allDay,
+            location: item.location,
+            notes: item.storedNotes(),
+          ),
+        );
+      }
+      created++;
+    }
+    return created;
+  }
+
+  Future<void> _openAiCapture() async {
+    final settings = AiSettings();
+    final config = await settings.read();
+    if (!mounted) return;
+    if (!config.hasKey) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Configura prima la chiave in Impostazioni → Assistente AI.',
+          ),
+        ),
+      );
+      return;
+    }
+    final created = await Navigator.of(context).push<int>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => AiCapturePage(
+          client: AiClient(settings),
+          providerLabel: config.provider.label,
+          loadContext: _aiContext,
+          create: _createAiProposals,
+        ),
+      ),
+    );
+    if (created == null || created == 0 || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          created == 1 ? 'Creato 1 elemento ✨' : 'Creati $created elementi ✨',
+        ),
+      ),
+    );
+  }
+
   /// Agenda flows built from what the service already knows, so search can
   /// open the same event detail as the Agenda.
   AgendaEventFlows _agendaFlows() {
@@ -1184,6 +1332,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           today: dayClock.today,
           onOpenTask: _openTaskById,
           onSearch: _showUniversalCommand,
+          onCapture: _openAiCapture,
           onSettings: () => _navigateTo(AppSection.settings),
         ),
       );

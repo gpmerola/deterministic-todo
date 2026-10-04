@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.52.0 (build 206) — Todo Test
+
+- **✨ Scrivi o detta.** Una nota scritta o dettata diventa attività ed eventi
+  con l'AI scelta (DeepSeek, oppure Claude). Il modello conosce oggi, i
+  progetti, i calendari e gli eventi dei prossimi 14 giorni, così «prima
+  della riunione di giovedì» trova la riunione giusta. Si rivede tutto prima
+  di creare. Gli elementi creati iniziano con **✨**, visibile anche su Google
+  e sul Web, e le attività datate compaiono anche nell'Agenda.
+- Mese e 2 settimane si sfogliano di lato invece che in verticale.
+
 ## 2.51.0 (build 205) — Todo Test
 
 - Agenda: il **mese intero** torna la vista predefinita e ora riempie lo

@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
-/// LLM providers the user can configure. No feature uses them yet: this only
-/// stores and checks a key so later features can ask before sending data.
+/// LLM providers the user can configure. Used only by explicit actions
+/// (the assistant capture), never in the background.
 enum AiProvider {
   deepseek(
     label: 'DeepSeek',
@@ -111,6 +112,125 @@ class AiSettings {
       return AiKeyCheck.unreachable;
     } on Object {
       return AiKeyCheck.unreachable;
+    } finally {
+      if (_client == null) client.close();
+    }
+  }
+}
+
+enum AiFailure { noKey, rejected, unreachable, badResponse }
+
+class AiException implements Exception {
+  const AiException(this.failure);
+  final AiFailure failure;
+
+  String get message => switch (failure) {
+    AiFailure.noKey =>
+      'Configura la chiave API in Impostazioni → Assistente AI.',
+    AiFailure.rejected => 'Il fornitore ha rifiutato la chiave API.',
+    AiFailure.unreachable =>
+      'Servizio AI non raggiungibile: controlla la rete e riprova.',
+    AiFailure.badResponse =>
+      'Risposta dell\'AI non comprensibile: riprova o riformula.',
+  };
+}
+
+/// One explicit request to the configured provider. Prompts and replies are
+/// never logged or stored; the caller shows the result for confirmation.
+String? _deepseekText(Map<String, Object?> decoded) {
+  final choice = (decoded['choices'] as List).first as Map<String, Object?>;
+  final message = choice['message'] as Map<String, Object?>;
+  return message['content'] as String?;
+}
+
+class AiClient {
+  AiClient(this.settings, {http.Client? client})
+    : _client = client; // ignore: prefer_initializing_formals
+
+  final AiSettings settings;
+  final http.Client? _client;
+
+  static const deepseekModel = 'deepseek-flash';
+  static const claudeModel = 'claude-haiku-4-5';
+  static const timeout = Duration(seconds: 45);
+
+  Future<String> completeJson({
+    required String system,
+    required String user,
+  }) async {
+    final key = await settings.apiKey();
+    if (key == null || key.isEmpty) throw const AiException(AiFailure.noKey);
+    final provider = (await settings.read()).provider;
+    final client = _client ?? http.Client();
+    try {
+      final http.Response response;
+      switch (provider) {
+        case AiProvider.deepseek:
+          response = await client
+              .post(
+                Uri.parse('https://api.deepseek.com/chat/completions'),
+                headers: {
+                  ...provider.headers(key),
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({
+                  'model': deepseekModel,
+                  'messages': [
+                    {'role': 'system', 'content': system},
+                    {'role': 'user', 'content': user},
+                  ],
+                  'response_format': {'type': 'json_object'},
+                  'max_tokens': 2048,
+                  'stream': false,
+                }),
+              )
+              .timeout(timeout);
+        case AiProvider.anthropic:
+          response = await client
+              .post(
+                Uri.parse('https://api.anthropic.com/v1/messages'),
+                headers: {
+                  ...provider.headers(key),
+                  'content-type': 'application/json',
+                },
+                body: jsonEncode({
+                  'model': claudeModel,
+                  'max_tokens': 2048,
+                  'system': system,
+                  'messages': [
+                    {'role': 'user', 'content': user},
+                  ],
+                }),
+              )
+              .timeout(timeout);
+      }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw const AiException(AiFailure.rejected);
+      }
+      if (response.statusCode != 200) {
+        throw const AiException(AiFailure.unreachable);
+      }
+      final decoded =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, Object?>;
+      final text = switch (provider) {
+        AiProvider.deepseek => _deepseekText(decoded),
+        AiProvider.anthropic => [
+          for (final block in decoded['content'] as List)
+            if ((block as Map)['type'] == 'text') block['text'] as String,
+        ].join(),
+      };
+      if (text == null || text.trim().isEmpty) {
+        throw const AiException(AiFailure.badResponse);
+      }
+      return text;
+    } on AiException {
+      rethrow;
+    } on TimeoutException {
+      throw const AiException(AiFailure.unreachable);
+    } on http.ClientException {
+      throw const AiException(AiFailure.unreachable);
+    } on Object {
+      throw const AiException(AiFailure.badResponse);
     } finally {
       if (_client == null) client.close();
     }

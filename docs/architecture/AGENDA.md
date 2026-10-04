@@ -76,8 +76,9 @@ quell'account non compare; non esiste un aggiramento lato app.
 - **Mese a schermo intero (build 205, predefinito).** Ogni mese occupa tutta
   l'altezza: le righe (5 o 6 settimane, dal lunedì) si dividono lo spazio e
   ogni giorno mostra tutte le voci che ci stanno, poi «+N». I giorni dei mesi
-  vicini completano le settimane, attenuati. Scorrendo in verticale si cambia
-  mese, da un anno indietro a tre avanti. La preferenza della vista ha una
+  vicini completano le settimane, attenuati. Dalla build 206 si cambia mese
+  scorrendo di lato, come in Settimana e Giorno; lo stesso vale per la vista
+  2 settimane. L'intervallo va da un anno indietro a tre avanti. La preferenza della vista ha una
   nuova chiave (`agenda_view_mode_v2`), così una scelta «2 settimane» salvata
   in precedenza non sostituisce il nuovo predefinito. Nell'Agenda la barra di
   navigazione in basso è più bassa (56 dp, etichetta solo sulla voce

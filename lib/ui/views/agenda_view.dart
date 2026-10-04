@@ -22,8 +22,12 @@ class AgendaView extends StatefulWidget {
     this.onOpenTask,
     this.onSearch,
     this.onSettings,
+    this.onCapture,
     super.key,
   });
+
+  /// Opens the ✨ assistant; the Agenda reloads afterwards.
+  final Future<void> Function()? onCapture;
 
   final AgendaService service;
 
@@ -331,6 +335,12 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       onChoose: _chooseCalendars,
       onSearch: widget.onSearch,
       onSettings: widget.onSettings,
+      onCapture: widget.onCapture == null
+          ? null
+          : () async {
+              await widget.onCapture!();
+              await _load();
+            },
     );
     void openDay(CivilDate day) => unawaited(
       Navigator.of(context).push(
@@ -454,8 +464,10 @@ class _AgendaHeader extends StatelessWidget {
     this.zone,
     this.onSearch,
     this.onSettings,
+    this.onCapture,
   });
 
+  final VoidCallback? onCapture;
   final String? zone;
   final int visible;
   final int total;
@@ -533,6 +545,14 @@ class _AgendaHeader extends StatelessWidget {
               ],
             ),
           ),
+          if (onCapture != null)
+            IconButton(
+              key: const ValueKey('agenda-ai-capture'),
+              tooltip: 'Assistente: scrivi o detta',
+              visualDensity: VisualDensity.compact,
+              onPressed: onCapture,
+              icon: const Icon(Icons.auto_awesome),
+            ),
           TextButton.icon(
             key: const ValueKey('agenda-choose-calendars'),
             style: TextButton.styleFrom(

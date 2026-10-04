@@ -14,7 +14,7 @@ CivilDate mondayOf(CivilDate day) =>
     day.addDays(-(day.asLocalDate.weekday - DateTime.monday));
 
 /// Default Agenda view: two weeks per screen, so each day has room for
-/// several events with their start time. Swipe up or down for the next or
+/// several events with their start time. Swipe sideways for the next or
 /// previous fortnight; each page reads the provider only when built.
 class AgendaWeeksView extends StatefulWidget {
   const AgendaWeeksView({
@@ -111,7 +111,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
   Widget build(BuildContext context) => PageView.builder(
     key: const PageStorageKey('agenda-weeks'),
     controller: widget.controller ?? _ownController,
-    scrollDirection: Axis.vertical,
+    // Sideways, like the week and day views (build 206).
     itemCount: AgendaWeeksView.pagesBack + AgendaWeeksView.pagesAhead,
     itemBuilder: (context, page) {
       final first = _firstOf(page);

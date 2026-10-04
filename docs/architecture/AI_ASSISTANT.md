@@ -1,9 +1,62 @@
 # Assistente AI: chiave API e regole sui dati
 
 Dalla build 205 le Impostazioni Android hanno **Assistente AI**, dove salvare
-la chiave API di un fornitore LLM: DeepSeek oppure Anthropic (Claude). Per ora
-**nessuna funzione usa la chiave**. Questo documento fissa le regole che le
-funzioni future dovranno rispettare.
+la chiave API di un fornitore LLM: DeepSeek, scelto dall'utente, oppure
+Anthropic (Claude). Dalla build 206 la usa una sola funzione, **✨ Scrivi o
+detta**. L'utente ha dichiarato che i suoi calendari non contengono dati di
+pazienti e ha accettato l'invio a DeepSeek.
+
+## ✨ Scrivi o detta (build 206)
+
+Pulsante ✨ nella barra in alto (Oggi, Prossime, Progetti) e nella riga
+dell'Agenda. Si scrive o si detta, con il microfono della tastiera, una nota
+come «preparare slide per la riunione TNG di giovedì; visita Maudsley martedì
+15–16». **Interpreta** invia una sola richiesta:
+
+- DeepSeek: `POST https://api.deepseek.com/chat/completions`, modello
+  `deepseek-flash`, `response_format: json_object`;
+- Claude: `POST https://api.anthropic.com/v1/messages`, modello
+  `claude-haiku-4-5`.
+
+Timeout 45 secondi, nessun registro di prompt e risposte.
+
+Contenuto inviato (`aiCaptureUserPrompt`):
+
+- data e ora correnti e fuso IANA;
+- nomi dei progetti non archiviati;
+- nomi dei calendari scrivibili mostrati nell'Agenda;
+- titoli e orari degli eventi dei prossimi 14 giorni nei calendari mostrati,
+  con i filtri applicati, al massimo 80;
+- la nota.
+
+Gli elementi sono numerati (`P1`, `C1`, `E1`), così la risposta li cita senza
+copiare nomi o identificativi.
+
+La risposta json viene validata (`parseAiCapture`). Si scartano, contandoli,
+gli elementi:
+
+- senza titolo;
+- con date illeggibili, la fine prima dell'inizio, o più di un giorno nel
+  passato o più di tre anni nel futuro;
+- di tipo sconosciuto.
+
+Un progetto sconosciuto diventa «nessun progetto», un calendario sconosciuto
+diventa quello predefinito. Al massimo 10 elementi. Le attività hanno solo
+la data; gli eventi durano 60 minuti se manca la fine.
+
+Nella revisione ogni proposta si può deselezionare o modificare: titolo e
+data per le attività, il modulo evento precompilato per gli eventi. **Crea**
+scrive solo quelle selezionate:
+
+- le **attività** con `TaskRepository.create`. Quelle con data sono segnate
+  «Mostra in agenda» (flag locale), così compaiono subito nel calendario;
+- gli **eventi** nel calendario scelto, con il fuso del sistema.
+
+**Marcatore.** Ogni elemento creato ha il titolo che inizia con «✨ »
+(`aiMarker`) e note che finiscono con «Creato con l'assistente AI di Todo.».
+Se c'è un evento collegato, le note riportano anche «Collegata a: <evento>».
+Il marcatore si vede in Todo, sul Web e in Google o Outlook. Per eliminare
+gli elementi o abbandonare la funzione basta cercare «✨».
 
 ## Conservazione della chiave
 
@@ -32,13 +85,11 @@ nessun contenuto (attività, eventi, testo). Esiti:
 
 Gli errori non vengono registrati, perché la chiave è negli header.
 
-## Regole per le funzioni future
+## Regole per le funzioni
 
 - Nessuna richiesta automatica o in background: ogni invio parte da
-  un'azione esplicita e mostra prima cosa verrà inviato.
-- Gli eventi del calendario, che possono contenere dati clinici, non si
-  inviano senza consenso esplicito per quella richiesta. Preferire titoli
-  Todo scritti dall'utente.
+  un'azione esplicita, e la pagina dice cosa verrà inviato.
+- Nulla si crea senza la conferma della revisione.
 - Prompt e risposte non si registrano nei log e non si sincronizzano.
 - La scelta del fornitore conta per la privacy. DeepSeek elabora i dati in
   Cina secondo la propria informativa; Anthropic non usa per

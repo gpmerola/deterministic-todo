@@ -13,9 +13,14 @@ class AgendaEventEditor extends StatefulWidget {
     this.initialCalendarId,
     this.initialAllDay = false,
     this.existing,
+    this.prefill,
     this.zoneLabel,
     super.key,
   });
+
+  /// Creation form pre-filled from a proposal (e.g. the AI assistant); the
+  /// calendar stays selectable, unlike [existing].
+  final AgendaEventDraft? prefill;
 
   /// When set the form edits this event: fields start from it and the
   /// calendar cannot change (moving between accounts is not supported).
@@ -35,18 +40,21 @@ class AgendaEventEditor extends StatefulWidget {
 }
 
 class _AgendaEventEditorState extends State<AgendaEventEditor> {
-  late final title = TextEditingController(text: widget.existing?.title);
-  late final location = TextEditingController(text: widget.existing?.location);
-  late final notes = TextEditingController(text: widget.existing?.notes);
+  /// Edited event, or a proposal to start a new one from.
+  AgendaEventDraft? get _seed => widget.existing ?? widget.prefill;
+
+  late final title = TextEditingController(text: _seed?.title);
+  late final location = TextEditingController(text: _seed?.location);
+  late final notes = TextEditingController(text: _seed?.notes);
   late String calendarId =
-      widget.existing?.calendarId ??
+      _seed?.calendarId ??
       widget.initialCalendarId ??
       widget.calendars.firstOrNull?.id ??
       '';
-  late bool allDay = widget.existing?.allDay ?? widget.initialAllDay;
-  late final DateTime _start = widget.existing?.start ?? widget.initialStart;
+  late bool allDay = _seed?.allDay ?? widget.initialAllDay;
+  late final DateTime _start = _seed?.start ?? widget.initialStart;
   late final DateTime _end =
-      widget.existing?.end ?? widget.initialStart.add(const Duration(hours: 1));
+      _seed?.end ?? widget.initialStart.add(const Duration(hours: 1));
   late DateTime day = DateTime(_start.year, _start.month, _start.day);
   // All-day ends are exclusive midnights: the last day is the one before.
   late DateTime lastDay = allDay

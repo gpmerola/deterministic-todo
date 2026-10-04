@@ -9,7 +9,7 @@ import 'agenda_weeks_view.dart' show AgendaDayCell;
 
 /// One whole month per screen, Monday first, like Google Calendar's month
 /// view: rows share the available height so each day shows as many entries
-/// as fit. Swipe up or down for the next or previous month. Days of the
+/// as fit. Swipe sideways for the next or previous month. Days of the
 /// neighbouring months complete the weeks, dimmed. Each month reads the
 /// provider only when built.
 class AgendaMonthView extends StatefulWidget {
@@ -129,7 +129,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   Widget build(BuildContext context) => PageView.builder(
     key: const PageStorageKey('agenda-months'),
     controller: widget.controller ?? _ownController,
-    scrollDirection: Axis.vertical,
+    // Sideways, like the week and day views (build 206).
     itemCount: AgendaMonthView.monthsBack + AgendaMonthView.monthsAhead,
     itemBuilder: (context, page) {
       final month = _monthOf(page);
