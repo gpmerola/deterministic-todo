@@ -11,8 +11,8 @@
   la misura automatica era falsata da una scheda nascosta.
 - [x] Web 215: ordine della coda (214), «In attesa ·», predefiniti dal telefono
   e «Fuso…» durante il caricamento.
-- [ ] Dopo l'aggiornamento del Galaxy alla 2215, verificare che la copia
-  contenga `main`/`ai` e che il + sul Web proponga il calendario giusto.
+- [x] Galaxy 2215: la copia contiene `main`/`ai`; il + sul Web propone
+  `sennar.pierp@gmail.com`.
 - [ ] Galaxy 2213: `dumpsys jobscheduler` mostra i job 7301/7302;
   `cmd jobscheduler run -f` del job 7302 con app chiusa (motore headless);
   modifica nel calendario → copia aggiornata senza aprire Todo.

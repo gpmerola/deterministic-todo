@@ -2,6 +2,21 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Verifica finale build 215 — 4 ottobre 2026
+
+**Galaxy:**
+- 2215 installata;
+- copia caricata alle 16:44 UTC con 271 eventi, `main` =
+  `sennar.pierp@gmail.com`, `ai` = «✨ Assistente»;
+- nessuna richiesta aperta o fallita.
+
+**Web 215:** il + propone `sennar.pierp@gmail.com`, come il telefono. Il
+modulo è stato chiuso senza salvare.
+
+**Non verificato:** l'esecuzione spontanea dei job 7301/7302 e il motore
+headless. Il telefono resta in stato termico 3 (severo) e Android rinvia
+anche le esecuzioni forzate («Restricted due to: thermal»).
+
 ## Build 215 — Web e Todo Test pubblicati
 
 - `make check` superato: 343 test Flutter, SQL e documentazione.
