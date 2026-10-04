@@ -2,6 +2,19 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## ✨ Scrivi o detta e scorrimento laterale — build 206
+
+`make check` superato (302 test). `test/ai_capture_test.dart` copre:
+- validazione della risposta, con 4 elementi scartati su 8;
+- formato delle richieste a DeepSeek (json mode, `deepseek-flash`) e a Claude;
+- assenza di richieste senza chiave;
+- flusso revisione → creazione solo degli elementi selezionati.
+
+Nessuna chiamata reale al fornitore eseguita: serve la chiave dell'utente.
+2206 pubblicata con `make todo-test-remote`, senza ADB. Da provare con
+l'utente: inserimento chiave DeepSeek, una nota reale, creazione con ✨ e
+comparsa in Agenda e in Google.
+
 ## Mese a schermo intero e chiave AI — build 205
 
 `make check` superato (296 test, tra cui `test/ai_settings_test.dart` e il mese

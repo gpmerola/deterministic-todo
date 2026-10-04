@@ -3,8 +3,10 @@
 ## P1 — Assistente AI, build 205
 
 - [x] Chiave API DeepSeek/Claude nel Keystore, verifica senza contenuti.
-- [ ] Scegliere con l'utente la prima funzione AI e il fornitore in base ai
-  dati coinvolti (vedi `docs/architecture/AI_ASSISTANT.md`).
+- [x] Prima funzione: ✨ Scrivi o detta con DeepSeek (build 206), test verdi.
+- [ ] Prova reale con la chiave dell'utente su 10–20 note tipiche; correggere
+  le istruzioni dove sbaglia date o tipo (attività/evento).
+- [ ] Se l'utente non gradisce: cercare «✨» per rimuovere gli elementi creati.
 
 ## P1 — Agenda unificata, build 191
 
