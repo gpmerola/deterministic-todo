@@ -2,6 +2,13 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Build 215 — Web e Todo Test pubblicati
+
+- `make check` superato: 343 test Flutter, SQL e documentazione.
+- Todo Test 2215 pubblicata dalla CI rapida sul commit `74d560c`.
+- Web 2.56.2+215 pubblicata dopo conferma `PUBBLICA`: run `37216741025`,
+  build e deploy riusciti, `release-info.json` pubblico verificato.
+
 ## Prova reale Web → telefono — 4 ottobre 2026
 
 Eseguita su richiesta dell'utente, con evento sintetico «Prova Web (da
