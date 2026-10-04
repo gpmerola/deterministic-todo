@@ -112,7 +112,8 @@ final class AiCaptureResult {
 }
 
 /// System prompt: rules and the JSON shape (DeepSeek's JSON mode requires
-/// the word "json" and an example).
+/// the word "json" and an example). The no-invented-date rule was added
+/// after a real test on build 207 dated "comprare latte" to tomorrow.
 String aiCaptureSystemPrompt() => '''
 You turn a short note written or dictated by the user (usually Italian) into
 tasks for a to-do list and/or events for a calendar. Reply with json only.
@@ -122,6 +123,8 @@ Rules:
   "chiamare", "inviare", deadlines like "entro venerdì").
 - An event has a start and end time (or is all-day). Use an event for
   appointments, meetings, visits, or anything with a clock time or a place.
+- If the note gives no date or deadline, a task gets "date": null. Never
+  invent a date.
 - Resolve relative dates ("domani", "giovedì", "tra due settimane") from TODAY.
   Weeks start on Monday. A weekday name means the next such day (today counts
   only if the time has not passed).

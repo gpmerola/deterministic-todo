@@ -58,6 +58,7 @@ void main() {
     expect(prompt, contains('E1: Thu 2026-10-08 15:30-16:30 | TNG Meeting'));
     expect(prompt, endsWith('NOTE:\nslide per giovedì'));
     expect(aiCaptureSystemPrompt(), contains('json'));
+    expect(aiCaptureSystemPrompt(), contains('Never\n  invent a date'));
   });
 
   test('valida la risposta e scarta ciò che non torna', () {

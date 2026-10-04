@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.52.2 (build 208) — Todo Test
+
+- ✨ Assistente: un'attività senza data detta resta senza data. Nella prova
+  reale «comprare latte» riceveva la data di domani.
+
 ## 2.52.1 (build 207) — Todo Test
 
 - ✨ Assistente: le note con più richieste («chiamare il commercialista entro
