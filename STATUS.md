@@ -2,6 +2,26 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Agenda dal Web, background, sovrapposizioni, ricerca — build 213
+
+`make check` superato:
+
+- 341 test Flutter;
+- PGlite per la coda (`agenda_requests.mjs`) e catena completa delle
+  migrazioni (`safe_purge.mjs`);
+- 8 test JVM per `AgendaChannel` e `AgendaBackground`.
+
+2213 pubblicata con `make todo-test-remote` (commit `38e1c53`), senza ADB per
+non disturbare il telefono in uso.
+
+Non ancora fatto:
+
+- la migrazione `202610050001_agenda_requests.sql` attende l'approvazione
+  dell'utente. Senza di essa il telefono ignora la coda in silenzio e il Web
+  resta in lettura con avviso d'errore al salvataggio;
+- la release Web della 213 attende `PUBBLICA`;
+- sul dispositivo vanno verificati il job a trigger e il motore headless.
+
 ## Agenda sul Web in sola lettura — build 212
 
 `make check` e `make check-sql` superati (314 test Flutter, PGlite per la

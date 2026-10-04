@@ -1,5 +1,18 @@
 # TODO e handover
 
+## P1 — Agenda dal Web e background, build 213
+
+- [x] Coda Web→telefono, job in background, sovrapposizioni, ricerca senza
+  accenti; `make check` verde; 2213 su manifest rolling.
+- [ ] Applicare `202610050001_agenda_requests.sql` dopo approvazione.
+- [ ] Web 213 dopo `PUBBLICA`; verificare creazione ⏳ → applicata dal
+  telefono → copia aggiornata.
+- [ ] Galaxy 2213: `dumpsys jobscheduler` mostra i job 7301/7302;
+  `cmd jobscheduler run -f` del job 7302 con app chiusa (motore headless);
+  modifica nel calendario → copia aggiornata senza aprire Todo.
+- [ ] Osservare un giorno di batteria: il job a trigger deve fermarsi
+  all'impronta quando non cambia nulla.
+
 ## P1 — Agenda sul Web, build 212
 
 - [x] Copia dell'Agenda su Supabase (RPC unica, RLS, sola lettura sul Web).
