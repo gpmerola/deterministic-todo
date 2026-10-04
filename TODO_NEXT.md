@@ -15,10 +15,9 @@
   `sennar.pierp@gmail.com`.
 - [x] Job a trigger e motore headless verificati con app chiusa: creazione
   su Google → copia aggiornata senza aprire Todo (STATUS).
-- [ ] Galaxy 2217 dopo nuovo login: lasciare Todo chiuso più di un'ora,
-  cambiare il calendario e verificare che la copia si aggiorni e che la
-  sessione resti valida (nessun nuovo login). Verificare anche il nuovo
-  tentativo (job 7303) se la rete cade.
+- [x] Galaxy 2217: sessione scaduta rinnovata in background (token ruotato
+  e attivo), copia aggiornata senza aprire Todo.
+- [ ] Conferma dell'utente: nessuna richiesta di login all'apertura.
 - [ ] Osservare un giorno di batteria: il job a trigger deve fermarsi
   all'impronta quando non cambia nulla.
 

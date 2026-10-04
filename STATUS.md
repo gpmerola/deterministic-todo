@@ -2,6 +2,21 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Verifica 2217: sessione scaduta rinnovata in background — 4 ottobre 2026
+
+- Nuovo login sul Galaxy alle 19:26 UTC, poi Todo Test lasciato chiuso.
+- Evento sintetico su Google alle 20:21 UTC. La sincronizzazione è
+  arrivata tardi per rete debole e calore; nel frattempo il job 7303 di
+  nuovo tentativo risultava programmato.
+- Alle 21:10 UTC Android avvia il processo solo come servizio, senza
+  attività. Il token del login (19:26) viene ruotato alle 21:10:08, con
+  sessione scaduta da oltre un'ora: il nuovo token resta attivo e non
+  revocato. La copia caricata alle 21:10:10 contiene l'evento.
+- Evento di prova eliminato da Google.
+
+Resta da confermare con l'utente che l'app non chieda il login alla
+prossima apertura.
+
 ## Incidente: logout dal telefono — build 213–216, corretto nella 217
 
 L'utente ha dovuto rifare il login a Supabase sul Galaxy. Causa: il motore
