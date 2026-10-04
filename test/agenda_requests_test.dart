@@ -156,6 +156,32 @@ void main() {
       expect(pendingRequestId('1'), isNull);
     });
 
+    test('changes apply in queue order whatever the row order', () {
+      AgendaRequest rename(String id, String title, int minute) =>
+          AgendaRequest(
+            id: id,
+            kind: AgendaRequestKind.update,
+            status: AgendaRequestStatus.pending,
+            createdAt: DateTime.utc(2026, 10, 5, 8, minute),
+            instanceKey: '1',
+            payload: agendaRequestPayload(
+              AgendaEventDraft(
+                calendarId: 'cal',
+                title: title,
+                start: DateTime(2026, 10, 6, 9),
+                end: DateTime(2026, 10, 6, 10),
+              ),
+              create: false,
+            ),
+          );
+      // PostgREST returned them newest first (build 213 web test).
+      final result = applyAgendaRequests(
+        [_event('1')],
+        [rename('b', 'Seconda', 2), rename('a', 'Prima', 1)],
+      );
+      expect(result.single.title, '⏳ Seconda');
+    });
+
     test('a series deletion hides every mirrored occurrence', () {
       final result = applyAgendaRequests(
         [_event('7@1'), _event('7@2', day: 13), _event('8@1')],

@@ -2,6 +2,32 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Prova reale Web → telefono — 4 ottobre 2026
+
+Eseguita su richiesta dell'utente, con evento sintetico «Prova Web (da
+eliminare)» nel calendario «✨ Assistente».
+
+**Creazione:**
+- dal Web l'evento compare subito come ⏳ con «1 in attesa»;
+- il job orario forzato è rinviato da Android per temperatura, quindi
+  l'app è stata aperta via ADB;
+- richiesta presa e applicata in 0,2 s; evento nel provider (calendar_id 39,
+  18:00 `Europe/London`); nuova copia caricata;
+- sul Web l'evento appare senza ⏳.
+
+**Eliminazione:** dal Web l'evento sparisce subito. Al ritorno dell'app la
+richiesta è `done` in 0,8 s e l'evento non è più nel provider.
+
+**Difetti osservati:**
+1. PostgREST ordina in modo decrescente per default: la coda arrivava dalla
+   più recente. Corretto nella 214 con test.
+2. Sul Web ⏳ è apparso come quadratino al primo disegno: font emoji non
+   ancora caricato.
+3. Sul Web il primo caricamento dell'Agenda tarda circa 10 s, anche se le
+   richieste Supabase durano circa 200 ms. Nel frattempo mostra «Fuso non
+   riconosciuto».
+4. Sul Web «Nuovi eventi in» non segue la scelta fatta sul telefono.
+
 ## Agenda dal Web, background, sovrapposizioni, ricerca — build 213
 
 `make check` superato:

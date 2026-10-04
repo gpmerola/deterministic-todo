@@ -78,7 +78,7 @@ class WebAgendaService extends AgendaService {
       final rows = await client
           .from('agenda_requests')
           .select()
-          .order('created_at')
+          .order('created_at', ascending: true)
           .limit(200);
       _requests = [for (final row in rows) AgendaRequest.fromRow(row)];
     } catch (_) {
@@ -166,7 +166,7 @@ class WebAgendaService extends AgendaService {
         .select()
         .lt('starts_at', end.toUtc().toIso8601String())
         .gt('ends_at', start.toUtc().toIso8601String())
-        .order('starts_at');
+        .order('starts_at', ascending: true);
     final wanted = calendarIds.toSet();
     return [
       for (final event in applyAgendaRequests([
@@ -191,7 +191,7 @@ class WebAgendaService extends AgendaService {
         .from('agenda_events')
         .select()
         .ilike('title', '%${likePrefilter(needle)}%')
-        .order('starts_at')
+        .order('starts_at', ascending: true)
         .limit(400);
     final calendarList = lastCalendars ?? await calendars();
     return orderSearchResults(
@@ -255,9 +255,16 @@ class WebAgendaService extends AgendaService {
   AgendaRequest? _requestFor(String instanceId) {
     final id = pendingRequestId(instanceId);
     if (id != null) return _requests.where((r) => r.id == id).firstOrNull;
-    return _overlay.reversed
+    // The latest queued change wins.
+    return _overlay
         .where((r) => r.instanceKey == instanceId)
-        .firstOrNull;
+        .fold<AgendaRequest?>(
+          null,
+          (latest, r) =>
+              latest == null || !r.createdAt.isBefore(latest.createdAt)
+              ? r
+              : latest,
+        );
   }
 
   @override
@@ -378,7 +385,13 @@ List<AgendaSourceEvent> applyAgendaRequests(
 ) {
   String seriesOf(String key) => key.split('@').first;
   var result = List.of(events);
-  for (final request in requests) {
+  // Queue order, whatever order the rows arrived in.
+  final ordered = List.of(requests)
+    ..sort((a, b) {
+      final byTime = a.createdAt.compareTo(b.createdAt);
+      return byTime != 0 ? byTime : a.id.compareTo(b.id);
+    });
+  for (final request in ordered) {
     final key = request.instanceKey;
     switch (request.kind) {
       case AgendaRequestKind.create:

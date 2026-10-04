@@ -6,8 +6,12 @@
   accenti; `make check` verde; 2213 su manifest rolling.
 - [x] `202610050001_agenda_requests.sql` applicata e verificata.
 - [x] Web 213 pubblicata e verificata.
-- [ ] Dopo la migrazione: verificare creazione ⏳ → applicata dal telefono →
-  copia aggiornata.
+- [x] Prova reale creazione + eliminazione Web → telefono riuscita.
+- [ ] Web: capire perché l'Agenda impiega circa 10 s prima di interrogare
+  Supabase, che risponde in circa 200 ms (STATUS, difetto 3).
+- [ ] Web: «Nuovi eventi in» uguale al telefono (copiare la scelta).
+- [ ] Web: ⏳ come quadratino al primo disegno; valutare un'icona.
+- [ ] Web 214 (ordine coda) dopo `PUBBLICA`.
 - [ ] Galaxy 2213: `dumpsys jobscheduler` mostra i job 7301/7302;
   `cmd jobscheduler run -f` del job 7302 con app chiusa (motore headless);
   modifica nel calendario → copia aggiornata senza aprire Todo.

@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.56.1 (build 214) — Todo Test
+
+- Web Agenda: più modifiche in coda sullo stesso evento si mostrano
+  nell'ordine giusto. Supabase restituiva le richieste dalla più recente,
+  difetto trovato nella prova reale della 213.
+
 ## 2.56.0 (build 213) — Todo Test
 
 - **Agenda dal Web: crea, modifica, elimina.** Il Web mette la richiesta in
