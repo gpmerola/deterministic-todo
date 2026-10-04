@@ -487,6 +487,17 @@ void main() {
     expect(AgendaFilter.none.isActive, isFalse);
   });
 
+  test('il calendario dell assistente si sceglie e si azzera', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = AgendaService(db);
+    expect(await service.aiEventCalendar(), isNull);
+    await service.saveAiEventCalendar('ai-cal');
+    expect(await service.aiEventCalendar(), 'ai-cal');
+    await service.saveAiEventCalendar(null);
+    expect(await service.aiEventCalendar(), isNull);
+  });
+
   test('ricorda i filtri solo in locale', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
@@ -1038,7 +1049,9 @@ void main() {
                   eventCalendarId: 'op',
                 ),
               );
-              picked.add(result?.eventCalendarId);
+              picked
+                ..add(result?.eventCalendarId)
+                ..add(result?.aiEventCalendarId);
             },
             child: const Text('apri'),
           ),
@@ -1053,9 +1066,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Personale · me@example.com').last);
     await tester.pumpAndSettle();
+    // A separate calendar for ✨ events, distinct from the + one.
+    await tester.tap(find.byKey(const ValueKey('agenda-ai-event-calendar')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('op').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Applica'));
     await tester.pumpAndSettle();
-    expect(picked, ['me']);
+    expect(picked, ['me', 'op']);
   });
 
   test('orario compatto nelle celle', () {

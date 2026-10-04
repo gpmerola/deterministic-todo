@@ -1139,11 +1139,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           if (calendar.writable && !hidden.contains(calendar.id))
             (id: calendar.id, name: calendar.name),
       ];
-      defaultCalendar = defaultEventCalendar(
-        all,
-        await agendaService.lastEventCalendar(),
-        hidden: hidden,
-      );
+      // A separate ✨ calendar, if chosen and still writable, wins.
+      final aiCalendar = await agendaService.aiEventCalendar();
+      defaultCalendar = calendars.any((c) => c.id == aiCalendar)
+          ? aiCalendar
+          : defaultEventCalendar(
+              all,
+              await agendaService.lastEventCalendar(),
+              hidden: hidden,
+            );
       final today = DateTime(now.year, now.month, now.day);
       final events = await agendaService.events(
         today,

@@ -29,6 +29,9 @@ class AgendaService {
   static const viewModeKey = 'agenda_view_mode_v2';
   static const lastEventCalendarKey = 'agenda_last_event_calendar';
 
+  /// Optional separate calendar for events created by the ✨ assistant.
+  static const aiEventCalendarKey = 'agenda_ai_event_calendar';
+
   /// `{"hide_unanswered": bool, "words": [String]}`; device-local.
   static const filterKey = 'agenda_filter';
 
@@ -449,4 +452,28 @@ class AgendaService {
           value: calendarId,
         ),
       );
+
+  /// Calendar chosen for ✨ assistant events, or null to use the same as +.
+  Future<String?> aiEventCalendar() async =>
+      (await (_database.select(_database.appSettings)
+                ..where((setting) => setting.key.equals(aiEventCalendarKey)))
+              .getSingleOrNull())
+          ?.value;
+
+  Future<void> saveAiEventCalendar(String? calendarId) async {
+    if (calendarId == null) {
+      await (_database.delete(
+        _database.appSettings,
+      )..where((setting) => setting.key.equals(aiEventCalendarKey))).go();
+      return;
+    }
+    await _database
+        .into(_database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: aiEventCalendarKey,
+            value: calendarId,
+          ),
+        );
+  }
 }

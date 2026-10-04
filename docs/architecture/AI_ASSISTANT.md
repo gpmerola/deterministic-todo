@@ -46,7 +46,12 @@ gli elementi:
 
 Un progetto sconosciuto diventa «nessun progetto», un calendario sconosciuto
 diventa quello predefinito. Il predefinito si sceglie in Agenda › Calendari ›
-«Nuovi eventi in» (build 207); vale anche per il **+**. Al massimo 10 elementi. Le attività hanno solo
+«Nuovi eventi in» (build 207), che vale anche per il **+**. Dalla build 209
+«Eventi creati da ✨ in» (`app_settings.agenda_ai_event_calendar`) indica un
+calendario separato solo per l'assistente. Il consiglio è un calendario Google
+dedicato, creato da calendar.google.com: ha un colore suo, si nasconde con un
+interruttore e si elimina in blocco. Senza scelta, o se quel calendario non è
+più scrivibile e mostrato, vale «Nuovi eventi in». Al massimo 10 elementi. Le attività hanno solo
 la data; gli eventi durano 60 minuti se manca la fine.
 
 Nella revisione ogni proposta si può deselezionare o modificare: titolo e

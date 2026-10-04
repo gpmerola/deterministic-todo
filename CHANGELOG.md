@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.53.0 (build 209) — Todo Test
+
+- Agenda › Calendari › **Eventi creati da ✨ in**: un calendario separato per
+  gli eventi dell'assistente, per esempio un calendario Google dedicato da
+  nascondere o eliminare in blocco. Il **+** continua a usare «Nuovi eventi
+  in».
+
 ## 2.52.2 (build 208) — Todo Test
 
 - ✨ Assistente: un'attività senza data detta resta senza data. Nella prova

@@ -276,6 +276,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       await widget.service.lastEventCalendar(),
       hidden: hidden,
     );
+    final aiCalendar = await widget.service.aiEventCalendar();
     if (!mounted) return;
     final selection = await showModalBottomSheet<AgendaPickerResult>(
       context: context,
@@ -286,9 +287,11 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         hidden: hidden,
         filter: filter,
         eventCalendarId: eventCalendar,
+        aiEventCalendarId: aiCalendar,
       ),
     );
     if (selection == null) return;
+    await widget.service.saveAiEventCalendar(selection.aiEventCalendarId);
     if (selection.eventCalendarId != null) {
       await widget.service.saveEventCalendar(selection.eventCalendarId!);
     }
@@ -788,7 +791,15 @@ String agendaTimeLabel(AgendaEntry entry, CivilDate day) {
 }
 
 final class AgendaPickerResult {
-  const AgendaPickerResult(this.hidden, this.filter, {this.eventCalendarId});
+  const AgendaPickerResult(
+    this.hidden,
+    this.filter, {
+    this.eventCalendarId,
+    this.aiEventCalendarId,
+  });
+
+  /// Separate calendar for ✨ events; null means "same as new events".
+  final String? aiEventCalendarId;
   final Set<String> hidden;
   final AgendaFilter filter;
 
@@ -802,9 +813,11 @@ class AgendaCalendarPicker extends StatefulWidget {
     required this.hidden,
     this.filter = AgendaFilter.none,
     this.eventCalendarId,
+    this.aiEventCalendarId,
     super.key,
   });
 
+  final String? aiEventCalendarId;
   final List<AgendaCalendar> calendars;
   final Set<String> hidden;
   final AgendaFilter filter;
@@ -818,6 +831,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   late final Set<String> hidden = {...widget.hidden};
   late bool hideUnanswered = widget.filter.hideUnanswered;
   late String? eventCalendarId = widget.eventCalendarId;
+  late String? aiEventCalendarId = widget.aiEventCalendarId;
   late final List<String> words = [...widget.filter.hiddenWords];
   final wordInput = TextEditingController();
 
@@ -872,6 +886,38 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                 ),
             ],
             onChanged: (value) => setState(() => eventCalendarId = value),
+          ),
+        ),
+      if (writable.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: DropdownButtonFormField<String?>(
+            key: const ValueKey('agenda-ai-event-calendar'),
+            initialValue: writable.any((c) => c.id == aiEventCalendarId)
+                ? aiEventCalendarId
+                : null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Eventi creati da ✨ in',
+            ),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('Come i nuovi eventi'),
+              ),
+              for (final calendar in writable)
+                DropdownMenuItem<String?>(
+                  value: calendar.id,
+                  child: Text(
+                    calendar.accountName.isEmpty ||
+                            calendar.accountName == calendar.name
+                        ? calendar.name
+                        : '${calendar.name} · ${calendar.accountName}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: (value) => setState(() => aiEventCalendarId = value),
           ),
         ),
       Padding(
@@ -991,6 +1037,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                           hiddenWords: List.unmodifiable(words),
                         ),
                         eventCalendarId: eventCalendarId,
+                        aiEventCalendarId: aiEventCalendarId,
                       ),
                     );
                   },
