@@ -21,12 +21,15 @@ richiesta è `done` in 0,8 s e l'evento non è più nel provider.
 **Difetti osservati:**
 1. PostgREST ordina in modo decrescente per default: la coda arrivava dalla
    più recente. Corretto nella 214 con test.
-2. Sul Web ⏳ è apparso come quadratino al primo disegno: font emoji non
-   ancora caricato.
-3. Sul Web il primo caricamento dell'Agenda tarda circa 10 s, anche se le
-   richieste Supabase durano circa 200 ms. Nel frattempo mostra «Fuso non
-   riconosciuto».
-4. Sul Web «Nuovi eventi in» non segue la scelta fatta sul telefono.
+2. Sul Web ⏳ è apparso come quadratino al primo disegno, perché il font
+   emoji non era ancora caricato. Nella 215 il segno è il testo «In attesa ·».
+3. Lentezza del Web non confermata. La scheda di Chrome automatizzata era
+   `visibilityState: hidden`: con la finestra non visibile Chrome sospende
+   il disegno e rallenta i timer, e nessun long task è stato misurato. Va
+   verificata in una finestra visibile. Reale invece «Fuso non
+   riconosciuto» durante il caricamento: nella 215 mostra «Fuso…».
+4. Sul Web «Nuovi eventi in» non seguiva il telefono: nella 215 la copia
+   segnala `main` e `ai`.
 
 ## Agenda dal Web, background, sovrapposizioni, ricerca — build 213
 

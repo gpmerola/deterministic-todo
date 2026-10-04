@@ -87,6 +87,31 @@ void main() {
     );
   });
 
+  test('la copia segna «Nuovi eventi in» e il calendario ✨', () {
+    const other = AgendaCalendar(
+      id: 'ai',
+      name: '✨ Assistente',
+      accountName: 'me@example.com',
+      writable: true,
+    );
+    final payload = buildAgendaMirror(
+      days: const [],
+      calendars: const [calendar, other],
+      first: first,
+      count: 1,
+      deviceId: 'device',
+      zoneLabel: null,
+      taskLinks: const {},
+      mainCalendarId: 'cal',
+      aiCalendarId: 'ai',
+    );
+    final rows = payload['calendars']! as List<Map<String, Object?>>;
+    expect(rows.first['main'], isTrue);
+    expect(rows.first.containsKey('ai'), isFalse);
+    expect(rows.last['ai'], isTrue);
+    expect(rows.last.containsKey('main'), isFalse);
+  });
+
   test('sul Web le righe tornano eventi, giornate intere comprese', () {
     final timed = WebAgendaService.fromRow({
       'instance_key': 'e1',

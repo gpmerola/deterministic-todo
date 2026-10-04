@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.56.2 (build 215) — Todo Test
+
+- Le modifiche in coda sul Web sono marcate «In attesa ·» invece di ⏳, che
+  poteva apparire come un quadratino finché il font emoji non era caricato.
+- Sul Web «Nuovi eventi in» e il calendario per ✨ seguono la scelta fatta
+  sul telefono (la copia li segnala); una scelta fatta nel browser resta
+  prioritaria.
+- Durante il primo caricamento l'Agenda mostra «Fuso…», non più «Fuso non
+  riconosciuto».
+
 ## 2.56.1 (build 214) — Todo Test
 
 - Web Agenda: più modifiche in coda sullo stesso evento si mostrano

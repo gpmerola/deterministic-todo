@@ -656,7 +656,8 @@ class _AgendaHeader extends StatelessWidget {
                   child: Text(
                     [
                       zone == null
-                          ? 'Fuso non riconosciuto'
+                          // Not yet known while the first load runs.
+                          ? (loading ? 'Fuso…' : 'Fuso non riconosciuto')
                           : shortZoneLabel(zone!),
                       ?mirror,
                     ].join(' · '),

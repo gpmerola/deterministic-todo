@@ -172,7 +172,9 @@ Supabase, dichiarando che non contengono dati di pazienti.
   giornata intera anche come date civili), link della riunione, fuso
   dell'evento e orario originale;
 - per ogni calendario anche se è scrivibile (`writable`, dalla 213), così il
-  Web offre la modifica solo dove il telefono può scrivere;
+  Web offre la modifica solo dove il telefono può scrivere. Dalla 215
+  la copia segna anche `main` («Nuovi eventi in») e `ai` (calendario ✨):
+  sul Web sono i predefiniti, salvo una scelta fatta nel browser;
 - le chiavi «Mostra in agenda» delle attività. Le attività stesse arrivano al
   Web dalla normale sincronizzazione.
 
@@ -256,9 +258,11 @@ Subito dopo, il telefono carica una nuova copia.
 **Web:**
 
 - finché la copia non riflette la richiesta, il Web mostra l'effetto
-  previsto con ⏳ (`applyAgendaRequests`): nuovi eventi aggiunti, modifiche
+  previsto marcato «In attesa ·» (`applyAgendaRequests`, in ordine di
+  creazione qualunque sia l'ordine delle righe; fino alla 214 era ⏳):
+  nuovi eventi aggiunti, modifiche
   già applicate, eliminazioni nascoste;
-- un evento ⏳ ancora in coda si può modificare o eliminare, cioè ritirare;
+- un evento «In attesa» ancora in coda si può modificare o eliminare, cioè ritirare;
 - le richieste rifiutate compaiono con l'icona rossa nell'intestazione, con
   il motivo. «Ignora» toglie solo l'avviso.
 

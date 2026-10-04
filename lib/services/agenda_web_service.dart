@@ -9,13 +9,15 @@ import 'agenda_service.dart';
 import 'platform_runtime_native.dart'
     if (dart.library.js_interop) 'platform_runtime_web.dart';
 
-/// Marks web changes the phone has not applied yet.
-const agendaPendingMarker = '⏳ ';
+/// Marks web changes the phone has not applied yet. Plain text: an emoji
+/// (⏳ until build 214) showed as an empty box while the web emoji font
+/// was still loading.
+const agendaPendingMarker = 'In attesa · ';
 
 /// Web Agenda: reads the copy the phone mirrors to Supabase
 /// (`agenda_snapshots`, `agenda_events`). Changes are queued in
 /// `agenda_requests` and applied by the phone, the only one that can write
-/// its calendars; until then they are shown with ⏳. Times are shown in the
+/// its calendars; until then they are marked «In attesa». Times are shown in the
 /// browser's zone; all-day events keep their civil dates.
 class WebAgendaService extends AgendaService {
   WebAgendaService(super.database, this.client);
@@ -120,6 +122,24 @@ class WebAgendaService extends AgendaService {
           ),
     ];
   }
+
+  String? _mirroredCalendar(String flag) {
+    final rows = _snapshot?['calendars'];
+    for (final row in rows is List ? rows : const []) {
+      if (row is Map && row[flag] == true) return row['key'] as String?;
+    }
+    return null;
+  }
+
+  /// A choice made in this browser wins; otherwise the phone's
+  /// «Nuovi eventi in» (mirrored from build 214).
+  @override
+  Future<String?> lastEventCalendar() async =>
+      await super.lastEventCalendar() ?? _mirroredCalendar('main');
+
+  @override
+  Future<String?> aiEventCalendar() async =>
+      await super.aiEventCalendar() ?? _mirroredCalendar('ai');
 
   @override
   Future<String?> deviceZoneLabel() async {
@@ -377,7 +397,7 @@ String? pendingRequestId(String instanceId) =>
 
 /// The mirrored events as they will be once the phone applies [requests]
 /// (in queue order): deletions hidden, edits shown, creations added, all
-/// changed ones marked with ⏳. A series change applies to every mirrored
+/// changed ones marked «In attesa». A series change applies to every mirrored
 /// occurrence of that series; times move only for the occurrence edited.
 List<AgendaSourceEvent> applyAgendaRequests(
   List<AgendaSourceEvent> events,

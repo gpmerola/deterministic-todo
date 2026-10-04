@@ -138,7 +138,7 @@ void main() {
   });
 
   group('web preview of queued changes', () {
-    test('creations appear with ⏳, deletions disappear', () {
+    test('creations appear «In attesa», deletions disappear', () {
       final result = applyAgendaRequests(
         [_event('1'), _event('2', title: 'Pranzo')],
         [
@@ -151,7 +151,7 @@ void main() {
         ],
       );
       expect(result.map((e) => e.instanceId), ['1', 'req:new']);
-      expect(result.last.title, '⏳ Visita');
+      expect(result.last.title, 'In attesa · Visita');
       expect(pendingRequestId(result.last.instanceId), 'new');
       expect(pendingRequestId('1'), isNull);
     });
@@ -179,7 +179,7 @@ void main() {
         [_event('1')],
         [rename('b', 'Seconda', 2), rename('a', 'Prima', 1)],
       );
-      expect(result.single.title, '⏳ Seconda');
+      expect(result.single.title, 'In attesa · Seconda');
     });
 
     test('a series deletion hides every mirrored occurrence', () {
@@ -208,9 +208,9 @@ void main() {
           ),
         ],
       );
-      expect(result.first.title, '⏳ Supervisione');
+      expect(result.first.title, 'In attesa · Supervisione');
       expect(result.first.start, DateTime(2026, 10, 6, 11));
-      expect(result.last.title, '⏳ Supervisione');
+      expect(result.last.title, 'In attesa · Supervisione');
       expect(result.last.start, DateTime(2026, 10, 13, 9));
     });
   });

@@ -18,6 +18,8 @@ Map<String, Object?> buildAgendaMirror({
   required String deviceId,
   required String? zoneLabel,
   required Set<String> taskLinks,
+  String? mainCalendarId,
+  String? aiCalendarId,
 }) {
   final seen = <String>{};
   final events = <Map<String, Object?>>[];
@@ -60,6 +62,9 @@ Map<String, Object?> buildAgendaMirror({
           'color': calendar.colorHex,
           // The web offers editing only where the phone can write.
           'writable': calendar.writable,
+          // «Nuovi eventi in» and the ✨ calendar, as defaults on the web.
+          if (calendar.id == mainCalendarId) 'main': true,
+          if (calendar.id == aiCalendarId) 'ai': true,
         },
     ],
     'task_links': taskLinks.toList()..sort(),
@@ -115,6 +120,8 @@ class AgendaMirror {
         deviceId: deviceId,
         zoneLabel: await service.deviceZoneLabel(),
         taskLinks: await service.taskLinks.keys(),
+        mainCalendarId: await service.lastEventCalendar(),
+        aiCalendarId: await service.aiEventCalendar(),
       );
       await client.rpc(
         'replace_agenda_snapshot_v1',
