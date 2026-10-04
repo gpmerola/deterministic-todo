@@ -2,6 +2,15 @@
 
 Aggiornato il 3 ottobre 2026.
 
+## Mese a schermo intero e chiave AI — build 205
+
+`make check` superato (296 test, tra cui `test/ai_settings_test.dart` e il mese
+a tutta altezza con i giorni dei mesi vicini). La 2205 è pubblicata sul
+manifest rolling con `make todo-test-remote`, senza ADB, per non interrompere
+l'utente. Nessuna chiamata a un LLM nel codice: solo salvataggio della chiave
+e verifica con GET dell'elenco modelli, senza contenuti. Non ancora vista sul
+dispositivo.
+
 ## Spazio ai giorni e orario compatto — build 204
 
 `make check` superato (293 test, 34 in `test/agenda_test.dart`, compresi

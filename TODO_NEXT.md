@@ -1,5 +1,11 @@
 # TODO e handover
 
+## P1 — Assistente AI, build 205
+
+- [x] Chiave API DeepSeek/Claude nel Keystore, verifica senza contenuti.
+- [ ] Scegliere con l'utente la prima funzione AI e il fornitore in base ai
+  dati coinvolti (vedi `docs/architecture/AI_ASSISTANT.md`).
+
 ## P1 — Agenda unificata, build 191
 
 - [x] Agenda Android in sola lettura su calendari di sistema, duplicati uniti,
