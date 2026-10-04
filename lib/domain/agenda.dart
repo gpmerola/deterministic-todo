@@ -608,3 +608,55 @@ List<TimelineBlock> layoutDayTimeline(
   if (cluster.isNotEmpty) flush();
   return result;
 }
+
+/// "London · UTC+1" from "Europe/London · UTC+1": the city part of the IANA
+/// id, for the narrow Agenda header (the full label stays in details).
+String shortZoneLabel(String label) {
+  final parts = label.split(' · ');
+  final city = parts.first.split('/').last.replaceAll('_', ' ');
+  return [city, ...parts.skip(1)].join(' · ');
+}
+
+/// "sennar.pierp" from "sennar.pierp@gmail.com"; other names unchanged.
+String shortCalendarName(String name) {
+  final at = name.indexOf('@');
+  return at > 0 ? name.substring(0, at) : name;
+}
+
+/// Working day before [date] (Friday for a Monday): when to prepare.
+CivilDate previousWorkingDay(CivilDate date) {
+  var day = date.addDays(-1);
+  while (day.asLocalDate.weekday > DateTime.friday) {
+    day = day.addDays(-1);
+  }
+  return day;
+}
+
+/// Working day after [date] (Monday for a Friday): when to follow up.
+CivilDate nextWorkingDay(CivilDate date) {
+  var day = date.addDays(1);
+  while (day.asLocalDate.weekday > DateTime.friday) {
+    day = day.addDays(1);
+  }
+  return day;
+}
+
+/// A task to prepare for, or follow up on, [event]: title, date and the
+/// link written in its notes. Deterministic, no AI involved.
+({String title, CivilDate date, String notes}) linkedTaskFor(
+  AgendaEntry event, {
+  required bool followUp,
+  required String eventLabel,
+}) {
+  final first = CivilDate.fromDateTime(event.start);
+  // All-day ends are exclusive midnights: the last day is the one before.
+  final last = CivilDate.fromDateTime(
+    event.allDay ? event.end.subtract(const Duration(days: 1)) : event.end,
+  );
+  final title = event.title.trim().isEmpty ? 'evento' : event.title.trim();
+  return (
+    title: followUp ? 'Follow-up: $title' : 'Preparare: $title',
+    date: followUp ? nextWorkingDay(last) : previousWorkingDay(first),
+    notes: 'Collegata a: $eventLabel',
+  );
+}

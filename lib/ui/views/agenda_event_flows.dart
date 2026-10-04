@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
 import 'agenda_event_editor.dart';
 import 'agenda_event_sheet.dart';
@@ -28,7 +30,13 @@ class AgendaEventFlows {
     required this.hidden,
     required this.zone,
     this.onOpenTask,
+    this.onCreateTask,
   });
+
+  /// Creates a Todo task (title, date, notes) shown in the Agenda; the shell
+  /// owns the repository.
+  final Future<void> Function(String title, CivilDate date, String notes)?
+  onCreateTask;
 
   final AgendaService service;
   final List<AgendaCalendar> calendars;
@@ -72,6 +80,7 @@ class AgendaEventFlows {
       editable: editable(entry),
       zoneLabel: zone,
       color: parseCalendarColor(calendar?.colorHex),
+      canCreateTasks: onCreateTask != null,
     );
     if (!context.mounted || action == null) return;
     switch (action) {
@@ -79,6 +88,30 @@ class AgendaEventFlows {
         await edit(context, entry);
       case AgendaEventAction.delete:
         await delete(context, entry);
+      case AgendaEventAction.prepareTask:
+      case AgendaEventAction.followUpTask:
+        final followUp = action == AgendaEventAction.followUpTask;
+        final label = DateFormat(
+          entry.allDay ? 'EEE d MMM' : 'EEE d MMM HH:mm',
+          'it',
+        ).format(entry.start);
+        final task = linkedTaskFor(
+          entry,
+          followUp: followUp,
+          eventLabel: '${entry.title} · $label',
+        );
+        try {
+          await onCreateTask!(task.title, task.date, task.notes);
+          if (context.mounted) {
+            _say(
+              context,
+              '«${task.title}» per '
+              '${DateFormat('EEE d MMM', 'it').format(task.date.asLocalDate)}.',
+            );
+          }
+        } catch (_) {
+          if (context.mounted) _say(context, 'Impossibile creare l\'attività.');
+        }
       case AgendaEventAction.openInCalendar:
         try {
           await service.openEvent(entry.instanceId);

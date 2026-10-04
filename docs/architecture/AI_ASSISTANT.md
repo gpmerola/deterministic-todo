@@ -62,6 +62,11 @@ scrive solo quelle selezionate:
   «Mostra in agenda» (flag locale), così compaiono subito nel calendario;
 - gli **eventi** nel calendario scelto, con il fuso del sistema.
 
+Dopo **Crea**, il messaggio di conferma ha **Annulla** per 8 secondi (build
+211): le attività di quella creazione vanno nel cestino, quindi sono
+recuperabili, e gli eventi vengono eliminati dal calendario. Nelle proposte il
+calendario appare come pallino colorato e nome breve («sennar.pierp»).
+
 **Marcatore.** Ogni elemento creato ha il titolo che inizia con «✨ »
 (`aiMarker`) e note che finiscono con «Creato con l'assistente AI di Todo.».
 Se c'è un evento collegato, le note riportano anche «Collegata a: <evento>».

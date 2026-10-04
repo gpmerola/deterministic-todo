@@ -12,6 +12,7 @@ import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
 import 'package:deterministic_todo/ui/views/agenda_month_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
+import 'package:deterministic_todo/ui/views/today_agenda_strip.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -1076,6 +1077,156 @@ void main() {
     expect(picked, ['me', 'op']);
   });
 
+  test('fuso e nomi brevi per l intestazione e le proposte', () {
+    expect(shortZoneLabel('Europe/London · UTC+1'), 'London · UTC+1');
+    expect(
+      shortZoneLabel('America/Argentina/Buenos_Aires · UTC−3'),
+      'Buenos Aires · UTC−3',
+    );
+    expect(shortCalendarName('sennar.pierp@gmail.com'), 'sennar.pierp');
+    expect(shortCalendarName('✨ Assistente'), '✨ Assistente');
+  });
+
+  test('attività collegate: giorno lavorativo prima e dopo', () {
+    // Monday meeting: prepare on Friday; follow up on Tuesday.
+    final monday = AgendaEntry(
+      instanceId: 'm',
+      calendarIds: const ['kcl'],
+      title: 'TNG Meeting',
+      start: DateTime(2026, 10, 12, 11),
+      end: DateTime(2026, 10, 12, 12),
+      allDay: false,
+    );
+    final prep = linkedTaskFor(
+      monday,
+      followUp: false,
+      eventLabel: 'TNG · lun',
+    );
+    expect(prep.title, 'Preparare: TNG Meeting');
+    expect(prep.date, const CivilDate(2026, 10, 9));
+    expect(prep.notes, 'Collegata a: TNG · lun');
+    expect(
+      linkedTaskFor(monday, followUp: true, eventLabel: '').date,
+      const CivilDate(2026, 10, 13),
+    );
+    // All-day Thu–Fri congress: follow-up on the next Monday.
+    final congress = AgendaEntry(
+      instanceId: 'c',
+      calendarIds: const ['kcl'],
+      title: 'Congresso',
+      start: DateTime(2026, 11, 12),
+      end: DateTime(2026, 11, 14),
+      allDay: true,
+    );
+    expect(
+      linkedTaskFor(congress, followUp: true, eventLabel: '').date,
+      const CivilDate(2026, 11, 16),
+    );
+  });
+
+  testWidgets('Preparare dal dettaglio crea l attività collegata', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, [
+      event(
+        'k',
+        'kcl',
+        'TNG Meeting',
+        DateTime(2026, 10, 8, 15, 30),
+        DateTime(2026, 10, 8, 16, 30),
+      ),
+    ]);
+    await service.saveViewMode(AgendaViewMode.list);
+    final created = <(String, CivilDate, String)>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(
+            service: service,
+            today: first,
+            onCreateTask: (title, date, notes) async =>
+                created.add((title, date, notes)),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('TNG Meeting'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-prepare')));
+    await tester.pumpAndSettle();
+    expect(created.single.$1, 'Preparare: TNG Meeting');
+    expect(created.single.$2, const CivilDate(2026, 10, 7));
+    expect(created.single.$3, 'Collegata a: TNG Meeting · gio 8 ott 15:30');
+  });
+
+  testWidgets('la striscia di Oggi mostra solo gli impegni che restano', (
+    tester,
+  ) async {
+    final entries = [
+      AgendaEntry(
+        instanceId: 'past',
+        calendarIds: const ['kcl'],
+        title: 'Già fatta',
+        start: DateTime(2026, 10, 5, 8),
+        end: DateTime(2026, 10, 5, 9),
+        allDay: false,
+      ),
+      AgendaEntry(
+        instanceId: 'next',
+        calendarIds: const ['kcl'],
+        title: 'TNG',
+        start: DateTime(2026, 10, 5, 11),
+        end: DateTime(2026, 10, 5, 12),
+        allDay: false,
+      ),
+      AgendaEntry(
+        instanceId: 'holiday',
+        calendarIds: const ['kcl'],
+        title: 'Festa',
+        start: DateTime(2026, 10, 5),
+        end: DateTime(2026, 10, 6),
+        allDay: true,
+      ),
+      AgendaEntry(
+        instanceId: 'task:x',
+        calendarIds: const [AgendaEntry.tasksCalendarId],
+        title: 'Attività',
+        start: DateTime(2026, 10, 5),
+        end: DateTime(2026, 10, 6),
+        allDay: true,
+        taskId: 'x',
+      ),
+    ];
+    var opened = 0;
+    Future<void> pump(List<AgendaEntry> list) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TodayAgendaStrip(
+            key: UniqueKey(),
+            dayKey: '2026-10-05',
+            loadEntries: () async => list,
+            onOpen: () => opened++,
+            now: () => DateTime(2026, 10, 5, 10),
+          ),
+        ),
+      ),
+    );
+    await pump(entries);
+    await tester.pumpAndSettle();
+    expect(find.text('11:00 TNG · 1 tutto il giorno'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('today-agenda-strip')));
+    expect(opened, 1);
+    await pump(const []);
+    await tester.pumpAndSettle();
+    expect(find.text('Nessun altro impegno oggi'), findsOneWidget);
+  });
+
   test('orario compatto nelle celle', () {
     expect(compactTime(DateTime(2026, 10, 5, 9)), '9');
     expect(compactTime(DateTime(2026, 10, 5, 16, 30)), '16:30');
@@ -1167,7 +1318,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('agenda-mode-twoWeeks')));
     await tester.pumpAndSettle();
     expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
-    expect(find.text('Europe/London · UTC+1'), findsOneWidget);
+    expect(find.text('London · UTC+1'), findsOneWidget);
     expect(find.text('9 Supervisione'), findsOneWidget);
     expect(find.text('8:30 Ward round'), findsOneWidget);
     expect(await service.viewMode(), AgendaViewMode.twoWeeks);

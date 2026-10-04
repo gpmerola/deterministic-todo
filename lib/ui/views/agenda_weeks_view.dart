@@ -234,11 +234,16 @@ class AgendaDayCell extends StatelessWidget {
         ? DateFormat('d MMM', 'it').format(date.asLocalDate)
         : '${date.day}';
     final dim = outside ? 0.35 : (date.compareTo(today) < 0 ? 0.6 : 1.0);
+    final weekend = date.asLocalDate.weekday >= DateTime.saturday;
     return InkWell(
       key: ValueKey('agenda-day-$date'),
       onTap: () => onDay(date),
       child: DecoratedBox(
         decoration: BoxDecoration(
+          // Light weekend tint to find your way around the grid faster.
+          color: weekend
+              ? theme.colorScheme.onSurface.withValues(alpha: 0.04)
+              : null,
           border: Border(
             top: BorderSide(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),

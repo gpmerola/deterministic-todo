@@ -6,7 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 
-enum AgendaEventAction { edit, delete, openInCalendar }
+enum AgendaEventAction {
+  edit,
+  delete,
+  openInCalendar,
+  prepareTask,
+  followUpTask,
+}
 
 /// Google Calendar-like detail of one occurrence. Returns the chosen action.
 Future<AgendaEventAction?> showAgendaEventSheet(
@@ -16,6 +22,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   required bool editable,
   required String? zoneLabel,
   Color? color,
+  bool canCreateTasks = false,
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
   showDragHandle: true,
@@ -26,6 +33,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     editable: editable,
     zoneLabel: zoneLabel,
     color: color,
+    canCreateTasks: canCreateTasks,
   ),
 );
 
@@ -36,8 +44,12 @@ class AgendaEventSheet extends StatelessWidget {
     required this.editable,
     required this.zoneLabel,
     this.color,
+    this.canCreateTasks = false,
     super.key,
   });
+
+  /// Shows "Preparare" / "Follow-up": linked Todo tasks before and after.
+  final bool canCreateTasks;
 
   final AgendaEntry entry;
   final String calendarName;
@@ -150,6 +162,22 @@ class AgendaEventSheet extends StatelessWidget {
                         Navigator.pop(context, AgendaEventAction.delete),
                     icon: const Icon(Icons.delete_outline),
                     label: const Text('Elimina'),
+                  ),
+                if (canCreateTasks)
+                  OutlinedButton.icon(
+                    key: const ValueKey('agenda-sheet-prepare'),
+                    onPressed: () =>
+                        Navigator.pop(context, AgendaEventAction.prepareTask),
+                    icon: const Icon(Icons.playlist_add),
+                    label: const Text('Preparare (giorno prima)'),
+                  ),
+                if (canCreateTasks)
+                  OutlinedButton.icon(
+                    key: const ValueKey('agenda-sheet-follow-up'),
+                    onPressed: () =>
+                        Navigator.pop(context, AgendaEventAction.followUpTask),
+                    icon: const Icon(Icons.playlist_add_check),
+                    label: const Text('Follow-up (giorno dopo)'),
                   ),
                 TextButton(
                   onPressed: () =>

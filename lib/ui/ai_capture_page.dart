@@ -18,8 +18,12 @@ class AiCapturePage extends StatefulWidget {
     required this.providerLabel,
     required this.loadContext,
     required this.create,
+    this.calendarColors = const {},
     super.key,
   });
+
+  /// Colours of the phone calendars, for the proposal cards.
+  final Map<String, Color?> calendarColors;
 
   final AiClient client;
   final String providerLabel;
@@ -275,7 +279,7 @@ class _AiCapturePageState extends State<AiCapturePage> {
     }
     return ctx.calendars
         .where((c) => c.id == item.calendarId)
-        .map((c) => c.name)
+        .map((c) => shortCalendarName(c.name))
         .firstOrNull;
   }
 
@@ -366,16 +370,39 @@ class _AiCapturePageState extends State<AiCapturePage> {
                     icon: const Icon(Icons.edit_outlined),
                   ),
                   title: Text(markAiTitle(item.title)),
-                  subtitle: Text(
-                    [
-                      item.kind == AiProposalKind.task
-                          ? '☐ Attività'
-                          : '📅 Evento',
-                      _when(item),
-                      ?_where(item),
-                      if (item.location != null) item.location!,
-                      if (item.relatedEvent != null) 'per ${item.relatedEvent}',
-                    ].join(' · '),
+                  subtitle: Text.rich(
+                    TextSpan(
+                      children: [
+                        // Calendar colour dot before its short name.
+                        if (item.kind == AiProposalKind.event)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              margin: const EdgeInsets.only(right: 4),
+                              decoration: BoxDecoration(
+                                color:
+                                    widget.calendarColors[item.calendarId] ??
+                                    theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        TextSpan(
+                          text: [
+                            item.kind == AiProposalKind.task
+                                ? '☐ Attività'
+                                : 'Evento',
+                            _when(item),
+                            ?_where(item),
+                            if (item.location != null) item.location!,
+                            if (item.relatedEvent != null)
+                              'per ${item.relatedEvent}',
+                          ].join(' · '),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

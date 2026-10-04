@@ -156,6 +156,35 @@ quell'account non compare; non esiste un aggiramento lato app.
   eventi a cavallo della mezzanotte mostrano «dalle 22:00» o «fino 02:00».
 - **Piattaforme.** Solo Android. Sul Web la sezione non è mostrata.
 
+## Calendario e lista più vicini (build 211)
+
+- **Oggi** ha in cima una riga con gli impegni che restano della giornata:
+  fino a tre con orario, «+N» e quanti sono di giornata intera.
+  - Le attività segnate sono escluse, perché sono già nella lista.
+  - La riga si rilegge all'apertura, al ritorno in primo piano e a mezzanotte,
+    senza timer.
+  - Toccandola si apre la vista giorno, con dettaglio, creazione e modifica
+    come nell'Agenda (`AgendaService.agendaDays`).
+- Il dettaglio di un evento ha **Preparare (giorno prima)** e **Follow-up
+  (giorno dopo)**: un'attività «Preparare: <titolo>» o «Follow-up: <titolo>»,
+  con note «Collegata a: <titolo · giorno ora>».
+  - La data è il giorno lavorativo prima dell'inizio, o dopo la fine (per
+    gli eventi di giornata intera, l'ultimo giorno).
+  - L'attività è segnata «Mostra in agenda». Calcolo deterministico
+    (`linkedTaskFor`), senza AI.
+- **Calendario principale.** «Nuovi eventi in» cambia solo per scelta
+  esplicita. Fino alla 210 ogni creazione lo spostava sull'ultimo calendario
+  usato, quindi un evento ✨ portava anche il **+** su «✨ Assistente».
+  «Aggiungi a Google Calendar» dall'editor di un'attività usa lo stesso
+  calendario (`mainCalendarKey`) invece del primo primario Google in ordine
+  alfabetico. Nessun indirizzo è scritto nel codice: la scelta resta sul
+  telefono.
+- **Leggibilità.**
+  - Nell'intestazione il fuso è abbreviato («London · UTC+1», il nome IANA
+    completo resta nel dettaglio e nella vista giorno).
+  - Il menu della vista mostra icona, nome breve e freccia («Mese ▾»).
+  - Sabato e domenica hanno una tinta leggera nelle griglie.
+
 ## Attività Todo nell'agenda (build 203)
 
 Nel menu ⋮ dell'editor di un'attività (solo Android) si attiva **Mostra in

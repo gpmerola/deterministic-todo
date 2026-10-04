@@ -20,6 +20,7 @@ class AgendaView extends StatefulWidget {
     required this.service,
     required this.today,
     this.onOpenTask,
+    this.onCreateTask,
     this.onSearch,
     this.onSettings,
     this.onCapture,
@@ -38,6 +39,10 @@ class AgendaView extends StatefulWidget {
 
   /// Opens a Todo task shown in the Agenda; the shell owns the task editor.
   final Future<void> Function(String taskId)? onOpenTask;
+
+  /// Creates a linked Todo task from an event (Preparare / Follow-up).
+  final Future<void> Function(String title, CivilDate date, String notes)?
+  onCreateTask;
   final CivilDate today;
 
   static const pageDays = 14;
@@ -214,6 +219,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     hidden: hidden,
     zone: zone,
     onOpenTask: widget.onOpenTask,
+    onCreateTask: widget.onCreateTask,
   );
 
   Future<void> _createEvent({DateTime? start}) async {
@@ -494,10 +500,14 @@ class _AgendaHeader extends StatelessWidget {
   final VoidCallback? onSettings;
 
   static const _modes = {
-    AgendaViewMode.week: (Icons.view_column_outlined, 'Settimana'),
-    AgendaViewMode.twoWeeks: (Icons.view_week_outlined, '2 settimane'),
-    AgendaViewMode.month: (Icons.calendar_view_month, 'Mese'),
-    AgendaViewMode.list: (Icons.view_agenda_outlined, 'Elenco'),
+    AgendaViewMode.week: (Icons.view_column_outlined, 'Settimana', 'Sett.'),
+    AgendaViewMode.twoWeeks: (
+      Icons.view_week_outlined,
+      '2 settimane',
+      '2 sett.',
+    ),
+    AgendaViewMode.month: (Icons.calendar_view_month, 'Mese', 'Mese'),
+    AgendaViewMode.list: (Icons.view_agenda_outlined, 'Elenco', 'Elenco'),
   };
 
   @override
@@ -513,7 +523,19 @@ class _AgendaHeader extends StatelessWidget {
             tooltip: 'Vista: ${_modes[mode]!.$2}',
             initialValue: mode,
             onSelected: onMode,
-            icon: Icon(_modes[mode]!.$1),
+            // Word plus arrow: the bare grid icon did not say it opens views.
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(_modes[mode]!.$1, size: 20),
+                  const SizedBox(width: 4),
+                  Text(_modes[mode]!.$3, style: theme.textTheme.labelLarge),
+                  const Icon(Icons.arrow_drop_down, size: 18),
+                ],
+              ),
+            ),
             itemBuilder: (_) => [
               for (final entry in _modes.entries)
                 PopupMenuItem(
@@ -542,7 +564,9 @@ class _AgendaHeader extends StatelessWidget {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                    zone ?? 'Fuso orario non riconosciuto',
+                    zone == null
+                        ? 'Fuso non riconosciuto'
+                        : shortZoneLabel(zone!),
                     key: const ValueKey('agenda-zone'),
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelSmall?.copyWith(color: muted),
@@ -869,9 +893,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                 ? eventCalendarId
                 : null,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Nuovi eventi in (+)',
-            ),
+            decoration: const InputDecoration(labelText: 'Nuovi eventi in (+)'),
             items: [
               for (final calendar in writable)
                 DropdownMenuItem(

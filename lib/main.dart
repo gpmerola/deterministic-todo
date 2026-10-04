@@ -56,11 +56,13 @@ import 'ui/shell/civil_day_clock.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
+import 'ui/views/agenda_day_view.dart';
 import 'ui/views/agenda_event_flows.dart';
 import 'ui/views/agenda_view.dart';
 import 'ui/views/empty_view_label.dart';
 import 'ui/views/projects_view.dart';
 import 'ui/views/task_order.dart';
+import 'ui/views/today_agenda_strip.dart';
 import 'ui/views/today_view.dart';
 import 'ui/views/upcoming_view.dart';
 
@@ -1184,9 +1186,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   /// Writes confirmed proposals with the ✨ marker; dated tasks are also
   /// shown in the Agenda so the link between list and calendar is visible.
+  /// Items written by the last ✨ creation, for its Annulla action.
+  ({List<String> tasks, List<String> events}) _lastAiCreated = (
+    tasks: const [],
+    events: const [],
+  );
+
   Future<int> _createAiProposals(List<AiProposal> items) async {
     final db = widget.repository.db;
     final links = AgendaTaskLinks(db);
+    final taskIds = <String>[];
+    final eventIds = <String>[];
+    _lastAiCreated = (tasks: taskIds, events: eventIds);
     var created = 0;
     for (final item in items) {
       if (item.kind == AiProposalKind.task) {
@@ -1196,6 +1207,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           projectId: item.projectId,
           notes: item.storedNotes(),
         );
+        taskIds.add(id);
         if (item.date != null) {
           final task = await (db.select(
             db.tasks,
@@ -1203,7 +1215,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           await links.setShown(task, true);
         }
       } else {
-        await agendaService.createEvent(
+        final eventId = await agendaService.createEvent(
           AgendaEventDraft(
             calendarId: item.calendarId!,
             title: markAiTitle(item.title),
@@ -1214,6 +1226,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             notes: item.storedNotes(),
           ),
         );
+        eventIds.add(eventId);
       }
       created++;
     }
@@ -1234,6 +1247,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
       return;
     }
+    // Calendar colours for the proposal cards, even before Agenda opened.
+    if (agendaService.lastCalendars == null &&
+        await agendaService.access() == AgendaAccess.granted) {
+      await agendaService.calendars();
+    }
+    if (!mounted) return;
     final created = await Navigator.of(context).push<int>(
       MaterialPageRoute(
         fullscreenDialog: true,
@@ -1242,14 +1261,59 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           providerLabel: config.provider.label,
           loadContext: _aiContext,
           create: _createAiProposals,
+          calendarColors: {
+            for (final calendar
+                in agendaService.lastCalendars ?? const <AgendaCalendar>[])
+              calendar.id: parseCalendarColor(calendar.colorHex),
+          },
         ),
       ),
     );
     if (created == null || created == 0 || !mounted) return;
+    final batch = _lastAiCreated;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text(
+          created == 1 ? 'Creato 1 elemento ✨' : 'Creati $created elementi ✨',
+        ),
+        action: SnackBarAction(
+          label: 'Annulla',
+          onPressed: () => unawaited(_undoAiCreation(batch)),
+        ),
+      ),
+    );
+  }
+
+  /// Removes one ✨ batch: tasks go to the trash (recoverable), events are
+  /// deleted from their calendar.
+  Future<void> _undoAiCreation(
+    ({List<String> tasks, List<String> events}) batch,
+  ) async {
+    final db = widget.repository.db;
+    var failed = 0;
+    for (final id in batch.tasks) {
+      final task = await (db.select(
+        db.tasks,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (task != null && task.deletedAt == null) {
+        await widget.repository.softDelete(task);
+      }
+    }
+    for (final id in batch.events) {
+      try {
+        await agendaService.deleteEvent(id);
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          created == 1 ? 'Creato 1 elemento ✨' : 'Creati $created elementi ✨',
+          failed == 0
+              ? 'Creazione ✨ annullata. Le attività sono nel cestino.'
+              : 'Annullato in parte: $failed eventi da togliere a mano.',
         ),
       ),
     );
@@ -1268,7 +1332,27 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ),
       zone: agendaService.lastZoneLabel,
       onOpenTask: _openTaskById,
+      onCreateTask: _createLinkedTask,
     );
+  }
+
+  /// "Preparare" / "Follow-up" from an event: a dated task, also shown in
+  /// the Agenda so it sits next to the meeting.
+  Future<void> _createLinkedTask(
+    String title,
+    CivilDate date,
+    String notes,
+  ) async {
+    final db = widget.repository.db;
+    final id = await widget.repository.create(
+      title,
+      showDate: date.toString(),
+      notes: notes,
+    );
+    final task = await (db.select(
+      db.tasks,
+    )..where((t) => t.id.equals(id))).getSingle();
+    await AgendaTaskLinks(db).setShown(task, true);
   }
 
   Future<void> _showUniversalCommand() => showSearch<void>(
@@ -1335,6 +1419,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           service: agendaService,
           today: dayClock.today,
           onOpenTask: _openTaskById,
+          onCreateTask: _createLinkedTask,
           onSearch: _showUniversalCommand,
           onCapture: _openAiCapture,
           onSettings: () => _navigateTo(AppSection.settings),
@@ -1405,7 +1490,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ],
       );
     }
-    return AnimatedSwitcher(
+    final list = AnimatedSwitcher(
       key: ValueKey('task-state-motion-${section.name}'),
       duration: _microMotion,
       switchInCurve: Curves.easeOut,
@@ -1430,6 +1515,48 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               itemBuilder: (context, index) => _taskTile(visible[index]),
             ),
     );
+    if (section != AppSection.today ||
+        !widget.enablePlatformServices ||
+        !isAndroidPlatform) {
+      return list;
+    }
+    // Today's remaining appointments above the tasks: one look for both.
+    return Column(
+      children: [
+        TodayAgendaStrip(
+          dayKey: today.toString(),
+          loadEntries: () async =>
+              (await agendaService.agendaDays(today, 1)).single.entries,
+          onOpen: () => unawaited(_openAgendaDay(today)),
+        ),
+        Expanded(child: list),
+      ],
+    );
+  }
+
+  /// Day view of the Agenda opened from elsewhere (Today strip).
+  Future<void> _openAgendaDay(CivilDate day) async {
+    await agendaService.deviceZoneLabel();
+    if (!mounted) return;
+    final flows = _agendaFlows();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (pageContext) => AgendaDayPage(
+          initialDay: day,
+          today: dayClock.today,
+          loadDays: agendaService.agendaDays,
+          peekDays: (_, _) => null,
+          colors: {
+            for (final calendar in flows.calendars)
+              calendar.id: parseCalendarColor(calendar.colorHex),
+          },
+          onOpen: (entry) => flows.show(pageContext, entry),
+          onCreate: (start) => flows.create(pageContext, start: start),
+          zoneLabel: agendaService.lastZoneLabel,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   Widget _taskTile(Task task) => TaskTile(

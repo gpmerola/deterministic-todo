@@ -17,6 +17,9 @@ class CalendarExportResult {
   final String eventId;
 }
 
+/// Same key as AgendaService.lastEventCalendarKey ("Nuovi eventi in").
+const mainCalendarKey = 'agenda_last_event_calendar';
+
 class CalendarService {
   CalendarService(this._database, {DeviceCalendar? calendar, bool? isAndroid})
     : _calendar = calendar ?? DeviceCalendar.instance,
@@ -40,11 +43,21 @@ class CalendarService {
     if (permission != CalendarPermissionStatus.granted) {
       throw const FormatException('Permesso calendario non concesso.');
     }
-    final calendars =
-        (await _calendar.listCalendars())
-            .where((calendar) => !calendar.readOnly && !calendar.hidden)
-            .toList()
-          ..sort(_calendarPreference);
+    final writable = (await _calendar.listCalendars())
+        .where((calendar) => !calendar.readOnly)
+        .toList();
+    // The main calendar chosen in Agenda › Calendari wins, so every export
+    // lands in the same account; otherwise the old preference.
+    final chosenId =
+        (await (_database.select(_database.appSettings)
+                  ..where((setting) => setting.key.equals(mainCalendarKey)))
+                .getSingleOrNull())
+            ?.value;
+    final chosen = writable.where((c) => c.id == chosenId).toList();
+    final calendars = chosen.isNotEmpty
+        ? chosen
+        : (writable.where((calendar) => !calendar.hidden).toList()
+            ..sort(_calendarPreference));
     if (calendars.isEmpty) {
       throw const FormatException(
         'Nessun calendario modificabile disponibile.',

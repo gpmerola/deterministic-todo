@@ -27,6 +27,9 @@ class AgendaService {
   /// Renamed in build 205 when Month became the default again, so a stored
   /// two-week choice from earlier builds does not override it once.
   static const viewModeKey = 'agenda_view_mode_v2';
+
+  /// The user's main calendar ("Nuovi eventi in"), used by + and by task
+  /// exports; set only explicitly.
   static const lastEventCalendarKey = 'agenda_last_event_calendar';
 
   /// Optional separate calendar for events created by the ✨ assistant.
@@ -265,14 +268,9 @@ class AgendaService {
       recurrenceRule: recurrenceRuleFor(draft),
     );
     _events.clear();
-    await _database
-        .into(_database.appSettings)
-        .insertOnConflictUpdate(
-          AppSettingsCompanion.insert(
-            key: lastEventCalendarKey,
-            value: draft.calendarId,
-          ),
-        );
+    // The default calendar changes only by explicit choice (Agenda ›
+    // Calendari): remembering the last one used let an assistant event move
+    // + and exports to "✨ Assistente" (build 211).
     return id;
   }
 
@@ -475,5 +473,35 @@ class AgendaService {
             value: calendarId,
           ),
         );
+  }
+
+  /// Agenda days outside the Agenda view (Today strip, day page from Today):
+  /// calendars shown, filters and flagged tasks, as the Agenda shows them.
+  /// Empty without calendar access.
+  Future<List<AgendaDay>> agendaDays(CivilDate first, int count) async {
+    if (await access() != AgendaAccess.granted) {
+      return [
+        for (var i = 0; i < count; i++) AgendaDay(first.addDays(i), const []),
+      ];
+    }
+    final calendarList = lastCalendars ?? await calendars();
+    final hidden = hiddenAgendaCalendars(
+      calendarList,
+      lastChoices ?? await calendarChoices(),
+    );
+    final found =
+        await events(first.asLocalDate, first.addDays(count).asLocalDate, [
+          for (final calendar in calendarList)
+            if (!hidden.contains(calendar.id)) calendar.id,
+        ]);
+    return buildAgenda(
+      events: found,
+      tasks: await tasks(first, count),
+      calendars: calendarList,
+      hiddenCalendarIds: hidden,
+      filter: lastFilter ?? await filter(),
+      first: first,
+      days: count,
+    );
   }
 }

@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.54.0 (build 211) — Todo Test
+
+- **Oggi** mostra in cima gli impegni che restano della giornata («11:00 TNG ·
+  14:00 PRADA · +2»); toccandoli si apre la vista giorno.
+- Dal dettaglio di un evento: **Preparare** (giorno lavorativo prima) e
+  **Follow-up** (giorno dopo) creano un'attività collegata, visibile anche
+  nell'Agenda.
+- ✨ Assistente: **Annulla** dopo la creazione toglie tutto ciò che ha appena
+  creato. Nelle proposte il calendario appare come pallino colorato e nome
+  breve.
+- Il calendario principale («Nuovi eventi in») non cambia più da solo dopo
+  una creazione, e «Aggiungi a Google Calendar» dalle attività usa quello.
+- Leggibilità dell'Agenda: fuso corto («London · UTC+1»), menu della vista con
+  il nome («Mese ▾»), weekend leggermente ombreggiati.
+
 ## 2.53.1 (build 210) — Todo Test
 
 - Etichetta corretta in Agenda › Calendari: «Nuovi eventi in (+)». Gli eventi
