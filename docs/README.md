@@ -14,6 +14,8 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
 
 - [Architettura applicativa](ARCHITETTURA.md): dominio Todo, persistenza,
   sincronizzazione, confini e invarianti.
+- [Assistente AI](architecture/AI_ASSISTANT.md): chiave API nel Keystore,
+  verifica senza contenuti, regole per le funzioni future.
 - [Agenda unificata](architecture/AGENDA.md): calendari di sistema Android
   in sola lettura, duplicati, link riunioni, privacy.
 - [Movimento archiviato](archive/MOVIMENTO.md): cosa resta del modulo Android

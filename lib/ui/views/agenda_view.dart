@@ -49,14 +49,14 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   AgendaFilter filter = AgendaFilter.none;
   List<AgendaDay> days = const [];
   int dayCount = AgendaView.pageDays;
-  AgendaViewMode mode = AgendaViewMode.twoWeeks;
+  AgendaViewMode mode = AgendaViewMode.month;
 
   /// Recognised device zone, always shown; null only if Android cannot tell.
   String? zone;
 
   /// Bumped on every successful reload so month grids drop cached events.
   int revision = 0;
-  final monthScroll = ScrollController();
+  final monthPage = PageController(initialPage: AgendaMonthView.monthsBack);
   final weeksPage = PageController(initialPage: AgendaWeeksView.pagesBack);
   final weekPage = PageController(initialPage: AgendaWeekView.weeksBack);
   bool loading = true;
@@ -86,7 +86,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    monthScroll.dispose();
+    monthPage.dispose();
     weeksPage.dispose();
     weekPage.dispose();
     super.dispose();
@@ -158,7 +158,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     calendars = cachedCalendars;
     hidden = hiddenAgendaCalendars(cachedCalendars, cachedChoices);
     filter = service.lastFilter ?? AgendaFilter.none;
-    mode = service.lastMode ?? AgendaViewMode.twoWeeks;
+    mode = service.lastMode ?? AgendaViewMode.month;
     zone = service.lastZoneLabel;
     days = _peekDays(widget.today, dayCount) ?? const [];
   }
@@ -247,10 +247,10 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         ),
       );
     }
-    if (monthScroll.hasClients) {
+    if (mode == AgendaViewMode.month && monthPage.hasClients) {
       unawaited(
-        monthScroll.animateTo(
-          0,
+        monthPage.animateToPage(
+          AgendaMonthView.monthsBack,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
         ),
@@ -377,7 +377,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         ? AgendaMonthView(
             today: widget.today,
             revision: revision,
-            controller: monthScroll,
+            controller: monthPage,
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -425,7 +425,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         Positioned(
           right: 16,
           bottom: 16,
-          child: FloatingActionButton(
+          child: FloatingActionButton.small(
             key: const ValueKey('agenda-new-event'),
             heroTag: 'agenda-new-event',
             tooltip: 'Nuovo evento',
@@ -480,7 +480,7 @@ class _AgendaHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     return SizedBox(
-      height: 40,
+      height: 36,
       child: Row(
         children: [
           PopupMenuButton<AgendaViewMode>(

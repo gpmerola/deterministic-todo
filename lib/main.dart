@@ -28,6 +28,7 @@ import 'domain/task.dart';
 import 'domain/task_planning.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
+import 'services/ai_settings.dart';
 import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
@@ -39,6 +40,7 @@ import 'services/platform_runtime_native.dart'
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
 import 'ui/activity_history_view.dart';
+import 'ui/ai_settings_view.dart';
 import 'ui/app_section.dart';
 import 'ui/app_undo.dart';
 import 'ui/daily_step_goal_indicator.dart';
@@ -1070,7 +1072,13 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           heightFactor: 1,
                           child: SizedBox(
                             width: 720,
+                            // Lower bar in Agenda: more height for the days.
                             child: NavigationBar(
+                              height: section == AppSection.agenda ? 56 : null,
+                              labelBehavior: section == AppSection.agenda
+                                  ? NavigationDestinationLabelBehavior
+                                        .onlyShowSelected
+                                  : null,
                               selectedIndex: primarySections
                                   .indexOf(section)
                                   .clamp(0, primarySections.length - 1),

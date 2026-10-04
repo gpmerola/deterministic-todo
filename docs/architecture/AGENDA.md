@@ -73,6 +73,15 @@ quell'account non compare; non esiste un aggiramento lato app.
   cambia settimana, da un anno indietro a tre avanti. Toccando un evento si apre
   il dettaglio, toccando l'intestazione di un giorno la vista giorno, toccando
   uno spazio libero un nuovo evento alla mezz'ora toccata.
+- **Mese a schermo intero (build 205, predefinito).** Ogni mese occupa tutta
+  l'altezza: le righe (5 o 6 settimane, dal lunedì) si dividono lo spazio e
+  ogni giorno mostra tutte le voci che ci stanno, poi «+N». I giorni dei mesi
+  vicini completano le settimane, attenuati. Scorrendo in verticale si cambia
+  mese, da un anno indietro a tre avanti. La preferenza della vista ha una
+  nuova chiave (`agenda_view_mode_v2`), così una scelta «2 settimane» salvata
+  in precedenza non sostituisce il nuovo predefinito. Nell'Agenda la barra di
+  navigazione in basso è più bassa (56 dp, etichetta solo sulla voce
+  attiva), il **+** è piccolo e la riga in alto misura 36 dp.
 - **Spazio ai giorni (build 204).** Nell'Agenda la barra superiore dell'app
   (anello passi, sincronizzazione, ricerca, impostazioni) è nascosta. Sopra i
   giorni resta una sola riga di 40 dp con il menu della vista (Settimana,

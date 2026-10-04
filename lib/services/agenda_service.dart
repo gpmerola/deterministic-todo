@@ -10,7 +10,7 @@ import 'agenda_tasks.dart';
 
 enum AgendaAccess { granted, askable, denied }
 
-/// Two weeks is the default: more room per day than a month grid.
+/// A whole month per screen is the default (build 205); the choice is kept.
 enum AgendaViewMode { week, twoWeeks, month, list }
 
 /// Access to every calendar the Android system provider holds, including
@@ -24,7 +24,9 @@ class AgendaService {
   /// `{calendarId: shown}` chosen in Agenda; device-local, never synced.
   static const calendarChoicesKey = 'agenda_calendar_choices';
 
-  static const viewModeKey = 'agenda_view_mode';
+  /// Renamed in build 205 when Month became the default again, so a stored
+  /// two-week choice from earlier builds does not override it once.
+  static const viewModeKey = 'agenda_view_mode_v2';
   static const lastEventCalendarKey = 'agenda_last_event_calendar';
 
   /// `{"hide_unanswered": bool, "words": [String]}`; device-local.
@@ -186,7 +188,7 @@ class AgendaService {
     )..where((setting) => setting.key.equals(viewModeKey))).getSingleOrNull();
     return AgendaViewMode.values.firstWhere(
       (mode) => mode.name == row?.value,
-      orElse: () => AgendaViewMode.twoWeeks,
+      orElse: () => AgendaViewMode.month,
     );
   }
 

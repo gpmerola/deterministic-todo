@@ -149,9 +149,6 @@ class AgendaFortnight extends StatelessWidget {
     super.key,
   });
 
-  /// Height of one dot-and-title row (10 px text plus spacing).
-  static const chipHeight = 15.0;
-
   final CivilDate first;
   final CivilDate today;
   final List<AgendaDay> days;
@@ -187,10 +184,14 @@ class AgendaFortnight extends StatelessWidget {
               children: [
                 for (var column = 0; column < 7; column++)
                   Expanded(
-                    child: _cell(
-                      context,
-                      first.addDays(week * 7 + column),
-                      byDate,
+                    child: AgendaDayCell(
+                      date: first.addDays(week * 7 + column),
+                      today: today,
+                      entries:
+                          byDate[first.addDays(week * 7 + column)]?.entries ??
+                          const [],
+                      colors: colors,
+                      onDay: onDay,
                     ),
                   ),
               ],
@@ -199,18 +200,40 @@ class AgendaFortnight extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _cell(
-    BuildContext context,
-    CivilDate date,
-    Map<CivilDate, AgendaDay> byDate,
-  ) {
+/// One day of a grid (2 weeks or month): number, then every entry that fits
+/// the cell's height, the last slot becoming "+N". [outside] dims days of
+/// the neighbouring month.
+class AgendaDayCell extends StatelessWidget {
+  const AgendaDayCell({
+    required this.date,
+    required this.today,
+    required this.entries,
+    required this.colors,
+    required this.onDay,
+    this.outside = false,
+    super.key,
+  });
+
+  /// Height of one dot-and-title row (10 px text plus spacing).
+  static const chipHeight = 15.0;
+
+  final CivilDate date;
+  final CivilDate today;
+  final List<AgendaEntry> entries;
+  final Map<String, Color?> colors;
+  final ValueChanged<CivilDate> onDay;
+  final bool outside;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final entries = byDate[date]?.entries ?? const <AgendaEntry>[];
     final isToday = date == today;
     final label = date.day == 1
         ? DateFormat('d MMM', 'it').format(date.asLocalDate)
         : '${date.day}';
+    final dim = outside ? 0.35 : (date.compareTo(today) < 0 ? 0.6 : 1.0);
     return InkWell(
       key: ValueKey('agenda-day-$date'),
       onTap: () => onDay(date),
@@ -228,15 +251,14 @@ class AgendaFortnight extends StatelessWidget {
           ),
         ),
         child: Opacity(
-          opacity: date.compareTo(today) < 0 ? 0.6 : 1,
+          opacity: dim,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(1, 3, 1, 1),
+            padding: const EdgeInsets.fromLTRB(1, 2, 1, 0),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Every chip that fits; the last slot becomes "+N" if needed.
                 final slots = math.max(
                   0,
-                  ((constraints.maxHeight - 22) / chipHeight).floor(),
+                  ((constraints.maxHeight - 19) / chipHeight).floor(),
                 );
                 final shown = entries.length > slots
                     ? math.max(0, slots - 1)
@@ -246,19 +268,20 @@ class AgendaFortnight extends StatelessWidget {
                   children: [
                     Center(
                       child: Container(
-                        height: 19,
-                        constraints: const BoxConstraints(minWidth: 19),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 17,
+                        constraints: const BoxConstraints(minWidth: 17),
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
                         alignment: Alignment.center,
                         decoration: isToday
                             ? BoxDecoration(
                                 color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(9),
                               )
                             : null,
                         child: Text(
                           label,
                           style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 10.5,
                             fontWeight: isToday ? FontWeight.w800 : null,
                             color: isToday ? theme.colorScheme.onPrimary : null,
                           ),
@@ -279,7 +302,7 @@ class AgendaFortnight extends StatelessWidget {
                         '+${entries.length - shown}',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 10,
+                          fontSize: 9.5,
                         ),
                       ),
                   ],

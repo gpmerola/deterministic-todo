@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.51.0 (build 205) — Todo Test
+
+- Agenda: il **mese intero** torna la vista predefinita e ora riempie lo
+  schermo. Ogni giorno mostra quante voci ci stanno, i giorni dei mesi vicini
+  completano le settimane, e si scorre di mese in mese.
+- Più spazio nell'Agenda: barra di navigazione più bassa, pulsante + piccolo,
+  riga superiore più sottile.
+- **Assistente AI** nelle Impostazioni (Android): si salva una chiave API
+  DeepSeek o Claude, cifrata solo sul telefono, con una verifica che non invia
+  contenuti. Nessuna funzione la usa ancora. Regole:
+  [assistente AI](docs/architecture/AI_ASSISTANT.md).
+
 ## 2.50.0 (build 204) — Todo Test
 
 - Più spazio ai giorni nell'Agenda. La barra superiore dell'app è nascosta e

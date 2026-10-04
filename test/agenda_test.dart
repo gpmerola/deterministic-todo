@@ -327,7 +327,7 @@ void main() {
         DateTime(2026, 10, 5, 10),
         description: 'https://teams.microsoft.com/l/meetup-join/abc',
       ),
-      for (var hour = 8; hour < 13; hour++)
+      for (var hour = 7; hour < 22; hour++)
         event(
           'busy$hour',
           'kcl',
@@ -352,13 +352,26 @@ void main() {
       find.descendant(of: monday, matching: find.text('9 Supervisione')),
       findsOneWidget,
     );
-    // Five events, three slots: two chips and "+3".
+    // The month fills the screen: a day shows every entry that fits its
+    // height, then "+N" for the rest.
     final busy = find.byKey(const ValueKey('agenda-day-2026-10-07'));
-    expect(find.descendant(of: busy, matching: find.text('+3')), findsOne);
     expect(
-      find.descendant(of: busy, matching: find.text('8 Clinica 8')),
+      find.descendant(of: busy, matching: find.text('7 Clinica 7')),
       findsOne,
     );
+    final shown = tester
+        .widgetList(
+          find.descendant(of: busy, matching: find.byType(AgendaChip)),
+        )
+        .length;
+    expect(shown, greaterThan(3));
+    expect(
+      find.descendant(of: busy, matching: find.text('+${15 - shown}')),
+      findsOne,
+    );
+    // Neighbouring months complete the weeks of October.
+    expect(find.byKey(const ValueKey('agenda-day-2026-09-28')), findsOne);
+    expect(find.byKey(const ValueKey('agenda-day-2026-11-01')), findsOne);
 
     await tester.tap(monday);
     await tester.pumpAndSettle();
@@ -1042,7 +1055,7 @@ void main() {
     expect(zoneLabel('America/New_York', -14400), 'America/New_York · UTC−4');
   });
 
-  testWidgets('la vista a 2 settimane è predefinita e mostra il fuso', (
+  testWidgets('il mese è predefinito; la vista a 2 settimane mostra il fuso', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -1073,6 +1086,12 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    expect(await service.viewMode(), AgendaViewMode.month);
+    expect(find.text('Ottobre 2026'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agenda-mode')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-mode-twoWeeks')));
     await tester.pumpAndSettle();
     expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
     expect(find.text('Europe/London · UTC+1'), findsOneWidget);

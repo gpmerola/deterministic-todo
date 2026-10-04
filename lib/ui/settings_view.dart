@@ -395,6 +395,20 @@ class SettingsView extends StatelessWidget {
           onTap: checkForUpdates,
         ),
       ),
+      // Android only: the key lives in the Android Keystore.
+      if (isAndroidPlatform)
+        ListTile(
+          key: const ValueKey('settings-ai'),
+          leading: const Icon(Icons.auto_awesome_outlined),
+          title: const Text('Assistente AI'),
+          subtitle: const Text('Chiave API (DeepSeek o Claude)'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AiSettingsView(settings: AiSettings()),
+            ),
+          ),
+        ),
       ListTile(
         leading: const Icon(Icons.health_and_safety_outlined),
         title: const Text('Salute dati'),
