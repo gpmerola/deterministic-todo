@@ -16,8 +16,12 @@ da `authenticated`.
 
 Web: `publish-web.yml` non ha più le guardie fisse 2.42.0/189; legge la
 versione da `pubspec.yaml`, richiede una build maggiore di quella online e
-verifica l'identità pubblica con gli stessi valori. Pubblicazione 212 avviata
-dopo conferma `PUBBLICA`; esito nella sezione successiva quando verificato.
+verifica l'identità pubblica con gli stessi valori. Web 2.55.0+212 pubblicata
+dopo conferma `PUBBLICA` dal commit `c4c3d70`: run `37207528222`, build e
+deploy riusciti; `release-info.json` pubblico verificato (2.55.0, 212,
+`c4c3d70`). Galaxy con 2212 installata; nessuna copia ancora in
+`agenda_snapshots` al momento della verifica (app non riaperta dopo la
+migrazione).
 
 ## Oggi + agenda, attività collegate, annulla ✨ — build 211
 
