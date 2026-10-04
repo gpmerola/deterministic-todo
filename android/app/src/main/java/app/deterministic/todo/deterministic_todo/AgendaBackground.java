@@ -34,6 +34,9 @@ import java.util.concurrent.TimeUnit;
 public final class AgendaBackground {
     static final int CALENDAR_JOB = 7301;
     static final int PERIODIC_JOB = 7302;
+    /** One-off retry after a failed upload, with growing delay. */
+    static final int RETRY_JOB = 7303;
+    private static final String RETRIES = "retries";
     static final String CHANNEL = "app.deterministic.todo/agenda_background";
     private static final String PREFS = "agenda_background";
     private static final String FINGERPRINT = "fingerprint";
@@ -86,7 +89,8 @@ public final class AgendaBackground {
         if (scheduler == null) return;
         scheduler.cancel(CALENDAR_JOB);
         scheduler.cancel(PERIODIC_JOB);
-        prefs(context).edit().remove(FINGERPRINT).apply();
+        scheduler.cancel(RETRY_JOB);
+        prefs(context).edit().remove(FINGERPRINT).remove(RETRIES).apply();
     }
 
     /**
@@ -103,6 +107,31 @@ public final class AgendaBackground {
             .setTriggerContentMaxDelay(TimeUnit.MINUTES.toMillis(15))
             .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
             .build());
+    }
+
+    /**
+     * 2, 4, 8… minutes after consecutive failures, at most an hour (the
+     * hourly job covers the rest). Requires network, like the others.
+     */
+    static long retryDelayMs(int failures) {
+        long minutes = 2L << Math.min(Math.max(failures, 0), 5);
+        return TimeUnit.MINUTES.toMillis(Math.min(minutes, 60));
+    }
+
+    static void scheduleRetry(Context context) {
+        JobScheduler scheduler = context.getSystemService(JobScheduler.class);
+        if (scheduler == null) return;
+        SharedPreferences prefs = prefs(context);
+        int failures = prefs.getInt(RETRIES, 0);
+        prefs.edit().putInt(RETRIES, failures + 1).apply();
+        scheduler.schedule(new JobInfo.Builder(RETRY_JOB, component(context))
+            .setMinimumLatency(retryDelayMs(failures))
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .build());
+    }
+
+    static void resetRetries(Context context) {
+        prefs(context).edit().remove(RETRIES).apply();
     }
 
     static boolean calendarJobPending(Context context) {

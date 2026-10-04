@@ -2,6 +2,29 @@
 
 Aggiornato il 4 ottobre 2026.
 
+## Prova reale del job in background — 4 ottobre 2026
+
+Telefono raffreddato (stato termico 1), app chiusa (in primo piano
+YouTube), evento sintetico creato e poi eliminato su Google Calendar via
+connettore. Nessuna apertura di Todo.
+
+**Creazione (18:39 UTC):** Android avvia il processo solo per
+`AgendaBackgroundJob`, cioè il motore headless. Due esecuzioni:
+
+- 6,1 s senza caricamento;
+- 3,6 s con copia caricata alle 18:49:33 UTC, contenente l'evento.
+
+Un'esecuzione successiva si ferma in 261 ms: impronta invariata, Dart non
+parte.
+
+**Eliminazione (18:59 UTC):** l'evento sparisce dal provider. Il job parte
+alle 19:09:55 UTC e lavora 12,7 s, con molti `onNetworkChanged`: rete
+mobile instabile. La copia non si aggiorna, e la 215 non riprovava fino
+alla modifica successiva del calendario.
+
+La 216 aggiunge il nuovo tentativo con attese crescenti e il caricamento
+dal job orario quando l'impronta è cambiata.
+
 ## Verifica finale build 215 — 4 ottobre 2026
 
 **Galaxy:**
@@ -13,9 +36,8 @@ Aggiornato il 4 ottobre 2026.
 **Web 215:** il + propone `sennar.pierp@gmail.com`, come il telefono. Il
 modulo è stato chiuso senza salvare.
 
-**Non verificato:** l'esecuzione spontanea dei job 7301/7302 e il motore
-headless. Il telefono resta in stato termico 3 (severo) e Android rinvia
-anche le esecuzioni forzate («Restricted due to: thermal»).
+In quel momento job e motore headless non erano verificabili: stato
+termico 3, poi verificati nella sezione precedente.
 
 ## Build 215 — Web e Todo Test pubblicati
 

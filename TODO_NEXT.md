@@ -13,9 +13,10 @@
   e «Fuso…» durante il caricamento.
 - [x] Galaxy 2215: la copia contiene `main`/`ai`; il + sul Web propone
   `sennar.pierp@gmail.com`.
-- [ ] Galaxy 2213: `dumpsys jobscheduler` mostra i job 7301/7302;
-  `cmd jobscheduler run -f` del job 7302 con app chiusa (motore headless);
-  modifica nel calendario → copia aggiornata senza aprire Todo.
+- [x] Job a trigger e motore headless verificati con app chiusa: creazione
+  su Google → copia aggiornata senza aprire Todo (STATUS).
+- [ ] Galaxy 2216: ripetere l'eliminazione di prova e verificare il nuovo
+  tentativo (job 7303) se la rete cade.
 - [ ] Osservare un giorno di batteria: il job a trigger deve fermarsi
   all'impronta quando non cambia nulla.
 

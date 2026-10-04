@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.56.3 (build 216) — Todo Test
+
+- Lavoro in background dell'Agenda più robusto. Se il caricamento
+  fallisce (rete instabile), riprova dopo 2, 4, 8… minuti, al massimo
+  dopo un'ora. Il controllo orario carica la copia anche quando il
+  calendario è cambiato. Prima un caricamento fallito restava in attesa
+  della modifica successiva del calendario.
+
 ## 2.56.2 (build 215) — Todo Test
 
 - Le modifiche in coda sul Web sono marcate «In attesa ·» invece di ⏳, che

@@ -281,8 +281,14 @@ sincronizzazione.
    - se l'impronta non è cambiata (contabilità di sync di Google o Outlook),
      finisce lì.
 2. **Ogni ora circa** (persistente, flex 20 minuti, con rete). Applica le
-   modifiche in coda dal Web. Ripristina anche il job 1 dopo un riavvio,
-   quando Android dimentica i trigger sul contenuto.
+   modifiche in coda dal Web e, dalla 216, carica la copia se l'impronta è
+   cambiata. Ripristina anche il job 1 dopo un riavvio, quando Android
+   dimentica i trigger sul contenuto.
+3. **Nuovo tentativo** (dalla 216). Dopo un caricamento fallito con il
+   calendario cambiato, un job singolo con rete riprova dopo 2, 4, 8…
+   minuti, al massimo un'ora; il contatore si azzera al primo successo.
+   Nella prova reale della 215 un'eliminazione non era arrivata al Web
+   perché la rete del telefono cambiava durante il caricamento.
 
 **Dove gira Dart.** Se il motore dell'app è vivo, il lavoro passa da lì:
 una sola sessione Supabase e nessun doppio rinnovo del token. Altrimenti
