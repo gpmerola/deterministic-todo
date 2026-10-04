@@ -5,8 +5,8 @@
 - [x] Copia dell'Agenda su Supabase (RPC unica, RLS, sola lettura sul Web).
 - [x] Migrazione `202610040001_agenda_mirror` applicata e verificata.
 - [x] Web 212 pubblicata dopo `PUBBLICA`; `release-info.json` verificato.
-- [ ] Dopo l'aggiornamento del Galaxy alla 2212: prima copia caricata
-  (`agenda_snapshots`) e Agenda visibile sul Web con «Copia dal telefono».
+- [x] Prima copia dal Galaxy 2212 caricata il 4 ottobre 2026 alle 14:20 UTC:
+  9 calendari, 271 eventi in `agenda_events`.
 - [ ] Facoltativo: creazione/modifica dal Web tramite coda eseguita dal
   telefono.
 
