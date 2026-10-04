@@ -4,7 +4,7 @@
 
 - [x] Coda Web→telefono, job in background, sovrapposizioni, ricerca senza
   accenti; `make check` verde; 2213 su manifest rolling.
-- [ ] Applicare `202610050001_agenda_requests.sql` dopo approvazione.
+- [x] `202610050001_agenda_requests.sql` applicata e verificata.
 - [x] Web 213 pubblicata e verificata.
 - [ ] Dopo la migrazione: verificare creazione ⏳ → applicata dal telefono →
   copia aggiornata.

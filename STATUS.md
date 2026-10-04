@@ -16,9 +16,14 @@ non disturbare il telefono in uso.
 
 Non ancora fatto:
 
-- la migrazione `202610050001_agenda_requests.sql` attende l'approvazione
-  dell'utente. Senza di essa il telefono ignora la coda in silenzio e il Web
-  resta in lettura con avviso d'errore al salvataggio;
+- migrazione `202610050001_agenda_requests.sql` (SHA-256
+  `cdb7281609342be3d2fb7b7e2cc6aed3d5fe447da0e0992a7b9b12e9d7937d4f`)
+  applicata dall'utente nel SQL Editor il 4 ottobre 2026. Verifica:
+  - RLS attiva con 4 policy e trigger del limite presente;
+  - `anon` non legge e non esegue le RPC;
+  - `authenticated` legge e inserisce il payload, ma non può impostare né
+    modificare lo stato;
+  - claim e complete sono eseguibili solo da `authenticated`;
 - sul dispositivo vanno verificati il job a trigger e il motore headless.
 
 Web 2.56.0+213 pubblicata dopo conferma `PUBBLICA` dal commit `0743df3`: run
