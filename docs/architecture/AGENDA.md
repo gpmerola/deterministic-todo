@@ -156,6 +156,60 @@ quell'account non compare; non esiste un aggiramento lato app.
   eventi a cavallo della mezzanotte mostrano «dalle 22:00» o «fino 02:00».
 - **Piattaforme.** Solo Android. Sul Web la sezione non è mostrata.
 
+## Agenda sul Web (build 212)
+
+Il browser non vede i calendari del telefono. Il telefono quindi carica su
+Supabase una **copia** di ciò che mostra la sua Agenda, e il Web la legge **in
+sola lettura**. L'utente ha accettato la presenza dei titoli degli eventi su
+Supabase, dichiarando che non contengono dati di pazienti.
+
+**Cosa entra nella copia** (`buildAgendaMirror`):
+
+- calendari mostrati (con colore e nome), filtri applicati e duplicati uniti;
+- finestra da 30 giorni indietro a 90 avanti;
+- per ogni evento: titolo, luogo, inizio e fine in UTC (gli eventi di
+  giornata intera anche come date civili), link della riunione, fuso
+  dell'evento e orario originale;
+- le chiavi «Mostra in agenda» delle attività. Le attività stesse arrivano al
+  Web dalla normale sincronizzazione.
+
+Note e descrizioni non vengono inviate.
+
+**Scrittura.** Una sola RPC, `replace_agenda_snapshot_v1(jsonb)`
+(migrazione `202610040001_agenda_mirror.sql`), sostituisce l'intera copia
+dell'utente in un'unica transazione: elimina gli eventi precedenti, inserisce i
+nuovi e aggiorna `agenda_snapshots`. È `security definer` con `auth.uid()`
+come proprietario. Le tabelle hanno RLS «select own»; INSERT, UPDATE, DELETE e
+TRUNCATE sono revocati a `anon` e `authenticated`; `anon` non legge. Limite:
+5.000 eventi. Verificata con PGlite (`tools/sql-tests/agenda_mirror.mjs`).
+
+**Quando il telefono carica** (`AgendaMirror`):
+
+- all'avvio e al ritorno in primo piano, al massimo ogni 10 minuti;
+- subito dopo una modifica nell'Agenda, una creazione ✨, un'attività
+  collegata o un cambio di calendari o filtri.
+
+Nessun lavoro in background, quindi nessun costo di batteria a schermo
+spento. Se fallisce, nessun errore visibile: riprova al passaggio
+successivo.
+
+**Web** (`WebAgendaService`):
+
+- tutte le viste, il dettaglio, la vista giorno e la ricerca leggono
+  `agenda_events`;
+- gli orari sono nel fuso del browser, letto come IANA da
+  `Intl.DateTimeFormat`; gli eventi di giornata intera mantengono le loro
+  date;
+- l'intestazione mostra «Copia dal telefono · <ora del caricamento>»;
+- sul Web non ci sono +, modifica, eliminazione né «Apri nel calendario».
+  Restano «Partecipa» e «Preparare/Follow-up», che creano attività
+  sincronizzate;
+- senza una copia, un messaggio spiega di aprire Todo sul telefono;
+- anche **Oggi** sul Web mostra la riga degli impegni.
+
+Creare e modificare eventi dal Web richiederà una coda eseguita dal telefono:
+non è implementato.
+
 ## Calendario e lista più vicini (build 211)
 
 - **Oggi** ha in cima una riga con gli impegni che restano della giornata:

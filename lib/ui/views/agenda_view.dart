@@ -24,8 +24,13 @@ class AgendaView extends StatefulWidget {
     this.onSearch,
     this.onSettings,
     this.onCapture,
+    this.onChanged,
     super.key,
   });
+
+  /// After a change made here (event, calendars, filters): the shell
+  /// refreshes the web mirror.
+  final VoidCallback? onChanged;
 
   /// Opens the ✨ assistant; the Agenda reloads afterwards.
   final Future<void> Function()? onCapture;
@@ -225,11 +230,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   Future<void> _createEvent({DateTime? start}) async {
     await _flows.create(context, start: start);
     await _load();
+    widget.onChanged?.call();
   }
 
   Future<void> _showEvent(AgendaEntry entry) async {
-    await _flows.show(context, entry);
+    final changed = await _flows.show(context, entry);
     await _load();
+    if (changed) widget.onChanged?.call();
   }
 
   Future<void> _setMode(AgendaViewMode next) async {
@@ -306,6 +313,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         calendar.id: !selection.hidden.contains(calendar.id),
     });
     await widget.service.saveFilter(selection.filter);
+    widget.onChanged?.call();
     await _load();
   }
 
@@ -313,6 +321,17 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     if (access == null && loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (access == AgendaAccess.noMirror) {
+      return _Message(
+        icon: Icons.cloud_off_outlined,
+        text:
+            'Sul Web l\'Agenda mostra la copia inviata dal telefono. Apri Todo '
+            'sul telefono con la sincronizzazione attiva: la copia arriva in '
+            'pochi secondi.',
+        action: 'Riprova',
+        onAction: _load,
+      );
     }
     if (access != AgendaAccess.granted) {
       return _Message(
@@ -352,6 +371,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       onToday: mode == AgendaViewMode.list ? null : _scrollToToday,
       zone: zone,
       onChoose: _chooseCalendars,
+      mirror: widget.service.mirrorLabel,
       onSearch: widget.onSearch,
       onSettings: widget.onSettings,
       onCapture: widget.onCapture == null
@@ -372,7 +392,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             colors: colors,
             onOpen: _showEvent,
-            onCreate: (start) => _createEvent(start: start),
+            onCreate: widget.service.canWrite
+                ? (start) => _createEvent(start: start)
+                : null,
             zoneLabel: zone,
           ),
         ),
@@ -389,7 +411,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             onOpenDay: openDay,
             onOpen: _showEvent,
-            onCreate: (start) => _createEvent(start: start),
+            onCreate: widget.service.canWrite
+                ? (start) => _createEvent(start: start)
+                : null,
           )
         : mode == AgendaViewMode.twoWeeks
         ? AgendaWeeksView(
@@ -451,17 +475,18 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             ),
           ],
         ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton.small(
-            key: const ValueKey('agenda-new-event'),
-            heroTag: 'agenda-new-event',
-            tooltip: 'Nuovo evento',
-            onPressed: () => unawaited(_createEvent()),
-            child: const Icon(Icons.add),
+        if (widget.service.canWrite)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.small(
+              key: const ValueKey('agenda-new-event'),
+              heroTag: 'agenda-new-event',
+              tooltip: 'Nuovo evento',
+              onPressed: () => unawaited(_createEvent()),
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -484,8 +509,11 @@ class _AgendaHeader extends StatelessWidget {
     this.onSearch,
     this.onSettings,
     this.onCapture,
+    this.mirror,
   });
 
+  /// "Copia dal telefono · 4 ott 14:32" on the web.
+  final String? mirror;
   final VoidCallback? onCapture;
   final String? zone;
   final int visible;
@@ -564,9 +592,12 @@ class _AgendaHeader extends StatelessWidget {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                    zone == null
-                        ? 'Fuso non riconosciuto'
-                        : shortZoneLabel(zone!),
+                    [
+                      zone == null
+                          ? 'Fuso non riconosciuto'
+                          : shortZoneLabel(zone!),
+                      ?mirror,
+                    ].join(' · '),
                     key: const ValueKey('agenda-zone'),
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelSmall?.copyWith(color: muted),

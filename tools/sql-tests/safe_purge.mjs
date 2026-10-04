@@ -17,7 +17,7 @@ try {
     grant usage on schema auth to authenticated, anon;
     grant execute on function auth.uid() to authenticated, anon;
   `);
-  for (const name of ['202608040001_initial', '202608040002_todoist_import', '202608080001_references', '202608310001_purge_trash', '202609110001_safe_purge', '202609110002_ledger_privileges', '202609110003_task_fingerprints', '202609110004_sync_overview']) {
+  for (const name of ['202608040001_initial', '202608040002_todoist_import', '202608080001_references', '202608310001_purge_trash', '202609110001_safe_purge', '202609110002_ledger_privileges', '202609110003_task_fingerprints', '202609110004_sync_overview', '202610040001_agenda_mirror']) {
     await db.exec(await readFile(new URL(`../../supabase/migrations/${name}.sql`, import.meta.url), 'utf8'));
   }
   for (const role of ['anon', 'authenticated']) {

@@ -22,7 +22,7 @@ class AgendaWeekView extends StatefulWidget {
     required this.colors,
     required this.onOpenDay,
     required this.onOpen,
-    required this.onCreate,
+    this.onCreate,
     this.controller,
     this.now,
     super.key,
@@ -35,7 +35,9 @@ class AgendaWeekView extends StatefulWidget {
   final Map<String, Color?> colors;
   final ValueChanged<CivilDate> onOpenDay;
   final Future<void> Function(AgendaEntry entry) onOpen;
-  final Future<void> Function(DateTime start) onCreate;
+
+  /// Null where events are read-only (the web mirror).
+  final Future<void> Function(DateTime start)? onCreate;
   final PageController? controller;
   final DateTime Function()? now;
 
@@ -156,7 +158,7 @@ class AgendaWeekPage extends StatefulWidget {
   final Map<String, Color?> colors;
   final ValueChanged<CivilDate> onOpenDay;
   final Future<void> Function(AgendaEntry entry) onOpen;
-  final Future<void> Function(DateTime start) onCreate;
+  final Future<void> Function(DateTime start)? onCreate;
   final DateTime Function() now;
 
   @override
@@ -368,28 +370,29 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
           child: Stack(
             children: [
               // Tapping free time creates an event at that half hour.
-              Positioned.fill(
-                child: GestureDetector(
-                  key: ValueKey('agenda-week-free-$date'),
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) {
-                    final minutes = (details.localPosition.dy / _hour * 60)
-                        .floor();
-                    final slot = (minutes ~/ 30 * 30).clamp(0, 23 * 60 + 30);
-                    unawaited(
-                      widget.onCreate(
-                        DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                          slot ~/ 60,
-                          slot % 60,
+              if (widget.onCreate != null)
+                Positioned.fill(
+                  child: GestureDetector(
+                    key: ValueKey('agenda-week-free-$date'),
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: (details) {
+                      final minutes = (details.localPosition.dy / _hour * 60)
+                          .floor();
+                      final slot = (minutes ~/ 30 * 30).clamp(0, 23 * 60 + 30);
+                      unawaited(
+                        widget.onCreate!(
+                          DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            slot ~/ 60,
+                            slot % 60,
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
               for (var hour = 1; hour < 24; hour++)
                 Positioned(
                   top: hour * _hour,

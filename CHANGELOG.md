@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.55.0 (build 212) — Todo Test
+
+- **Agenda sul Web**, in sola lettura. Il telefono invia a Supabase una copia
+  di ciò che mostra la sua Agenda (da un mese indietro a tre avanti), e il Web
+  la mostra con tutte le viste, il dettaglio e la ricerca. La copia si
+  aggiorna quando apri il telefono e dopo ogni modifica; l'intestazione dice
+  a quando risale. Serve la migrazione Supabase `202610040001_agenda_mirror`.
+
 ## 2.54.0 (build 211) — Todo Test
 
 - **Oggi** mostra in cima gli impegni che restano della giornata («11:00 TNG ·

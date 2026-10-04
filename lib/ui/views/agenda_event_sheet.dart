@@ -23,6 +23,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   required String? zoneLabel,
   Color? color,
   bool canCreateTasks = false,
+  bool canOpenInCalendar = true,
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
   showDragHandle: true,
@@ -34,6 +35,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     zoneLabel: zoneLabel,
     color: color,
     canCreateTasks: canCreateTasks,
+    canOpenInCalendar: canOpenInCalendar,
   ),
 );
 
@@ -45,8 +47,12 @@ class AgendaEventSheet extends StatelessWidget {
     required this.zoneLabel,
     this.color,
     this.canCreateTasks = false,
+    this.canOpenInCalendar = true,
     super.key,
   });
+
+  /// False on the web mirror: there is no phone calendar app to open.
+  final bool canOpenInCalendar;
 
   /// Shows "Preparare" / "Follow-up": linked Todo tasks before and after.
   final bool canCreateTasks;
@@ -126,7 +132,9 @@ class AgendaEventSheet extends StatelessWidget {
             if (!editable)
               row(
                 Icons.lock_outline,
-                entry.isOrganizer
+                !canOpenInCalendar
+                    ? 'Sola lettura sul Web: si modifica dal telefono'
+                    : entry.isOrganizer
                     ? 'Calendario in sola lettura'
                     : 'Invito di un altro organizzatore: si modifica dal suo '
                           'calendario',
@@ -179,11 +187,14 @@ class AgendaEventSheet extends StatelessWidget {
                     icon: const Icon(Icons.playlist_add_check),
                     label: const Text('Follow-up (giorno dopo)'),
                   ),
-                TextButton(
-                  onPressed: () =>
-                      Navigator.pop(context, AgendaEventAction.openInCalendar),
-                  child: const Text('Apri nel calendario'),
-                ),
+                if (canOpenInCalendar)
+                  TextButton(
+                    onPressed: () => Navigator.pop(
+                      context,
+                      AgendaEventAction.openInCalendar,
+                    ),
+                    child: const Text('Apri nel calendario'),
+                  ),
               ],
             ),
           ],

@@ -19,6 +19,9 @@ class AgendaTaskLinks {
   static String _keyFor(Task task) =>
       task.seriesId != null ? 'series:${task.seriesId}' : 'task:${task.id}';
 
+  /// Flag keys (`task:<id>`, `series:<id>`), mirrored to the web Agenda.
+  Future<Set<String>> keys() => _keys();
+
   Future<Set<String>> _keys() async {
     final row = await (_database.select(
       _database.appSettings,
@@ -53,8 +56,13 @@ class AgendaTaskLinks {
 
   /// Flagged, not deleted tasks dated in [first, first + days), completed
   /// ones included (shown struck through).
-  Future<List<AgendaTaskItem>> tasksBetween(CivilDate first, int days) async {
-    final keys = await _keys();
+  Future<List<AgendaTaskItem>> tasksBetween(
+    CivilDate first,
+    int days, {
+    Set<String>? withKeys,
+  }) async {
+    // The web passes the phone's mirrored keys: flags live on the phone.
+    final keys = withKeys ?? await _keys();
     if (keys.isEmpty) return const [];
     final ids = [
       for (final k in keys)

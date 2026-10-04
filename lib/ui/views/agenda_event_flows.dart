@@ -52,7 +52,9 @@ class AgendaEventFlows {
   /// Editable here only in a writable calendar and when the user organises
   /// it: changing someone else's invitation would be overwritten by its sync.
   bool editable(AgendaEntry entry) =>
-      (calendarOf(entry)?.writable ?? false) && entry.isOrganizer;
+      service.canWrite &&
+      (calendarOf(entry)?.writable ?? false) &&
+      entry.isOrganizer;
 
   static void _say(BuildContext context, String text) {
     if (!context.mounted) return;
@@ -62,10 +64,11 @@ class AgendaEventFlows {
   }
 
   /// Detail sheet of an occurrence (or the task editor), then the action.
-  Future<void> show(BuildContext context, AgendaEntry entry) async {
+  /// True when something may have changed (edit, delete, linked task).
+  Future<bool> show(BuildContext context, AgendaEntry entry) async {
     if (entry.isTask) {
       await onOpenTask?.call(entry.taskId!);
-      return;
+      return true;
     }
     final calendar = calendarOf(entry);
     final action = await showAgendaEventSheet(
@@ -81,8 +84,9 @@ class AgendaEventFlows {
       zoneLabel: zone,
       color: parseCalendarColor(calendar?.colorHex),
       canCreateTasks: onCreateTask != null,
+      canOpenInCalendar: service.canWrite,
     );
-    if (!context.mounted || action == null) return;
+    if (!context.mounted || action == null) return false;
     switch (action) {
       case AgendaEventAction.edit:
         await edit(context, entry);
@@ -119,10 +123,12 @@ class AgendaEventFlows {
           if (context.mounted) _say(context, 'Impossibile aprire l\'evento.');
         }
     }
+    return action != AgendaEventAction.openInCalendar;
   }
 
   /// Opens the form and writes the event into the chosen phone calendar.
   Future<void> create(BuildContext context, {DateTime? start}) async {
+    if (!service.canWrite) return;
     final writable = [
       for (final calendar in calendars)
         if (calendar.writable) calendar,

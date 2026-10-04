@@ -33,3 +33,6 @@ Future<int> databaseSizeBytes() async {
   final database = File(p.join(support.path, 'deterministic_todo.sqlite'));
   return await database.exists() ? database.length() : 0;
 }
+
+/// Only the web needs it; native code reads the zone from Android.
+String? get browserTimeZoneId => null;

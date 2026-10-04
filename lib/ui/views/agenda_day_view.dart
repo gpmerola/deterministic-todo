@@ -21,7 +21,7 @@ class AgendaDayPage extends StatefulWidget {
     required this.peekDays,
     required this.colors,
     required this.onOpen,
-    required this.onCreate,
+    this.onCreate,
     this.zoneLabel,
     this.now,
     super.key,
@@ -30,8 +30,9 @@ class AgendaDayPage extends StatefulWidget {
   /// Recognised device zone shown under the date; times are in it.
   final String? zoneLabel;
 
-  /// New event starting at the given time; completes once it is saved.
-  final Future<void> Function(DateTime start) onCreate;
+  /// New event starting at the given time; null where events are read-only
+  /// (the web mirror).
+  final Future<void> Function(DateTime start)? onCreate;
 
   final CivilDate initialDay;
   final CivilDate today;
@@ -122,29 +123,31 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
           now: widget.now ?? DateTime.now,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        key: const ValueKey('agenda-day-new-event'),
-        tooltip: 'Nuovo evento',
-        onPressed: () {
-          final now = (widget.now ?? DateTime.now)();
-          final hour = shown == widget.today ? now.hour + 1 : 9;
-          unawaited(
-            widget
-                .onCreate(
-                  DateTime(
-                    shown.year,
-                    shown.month,
-                    shown.day,
-                    hour.clamp(0, 23),
-                  ),
-                )
-                .then((_) {
-                  if (mounted) setState(() => _refresh++);
-                }),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: widget.onCreate == null
+          ? null
+          : FloatingActionButton(
+              key: const ValueKey('agenda-day-new-event'),
+              tooltip: 'Nuovo evento',
+              onPressed: () {
+                final now = (widget.now ?? DateTime.now)();
+                final hour = shown == widget.today ? now.hour + 1 : 9;
+                unawaited(
+                  widget
+                      .onCreate!(
+                        DateTime(
+                          shown.year,
+                          shown.month,
+                          shown.day,
+                          hour.clamp(0, 23),
+                        ),
+                      )
+                      .then((_) {
+                        if (mounted) setState(() => _refresh++);
+                      }),
+                );
+              },
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }
@@ -162,7 +165,7 @@ class AgendaDayTimeline extends StatefulWidget {
     super.key,
   });
 
-  final Future<void> Function(DateTime start) onCreate;
+  final Future<void> Function(DateTime start)? onCreate;
   final CivilDate day;
   final CivilDate today;
   final AgendaDaysLoader loadDays;
@@ -218,7 +221,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   Future<void> _createAt(double dy) async {
     final minutes = (dy / AgendaDayPage.hourHeight * 60).floor();
     final slot = (minutes ~/ 30 * 30).clamp(0, 23 * 60 + 30);
-    await widget.onCreate(
+    await widget.onCreate!(
       DateTime(
         widget.day.year,
         widget.day.month,
@@ -315,14 +318,15 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                     children: [
                       // Tapping free time creates an event there, rounded
                       // down to the half hour, like Google Calendar.
-                      Positioned.fill(
-                        child: GestureDetector(
-                          key: const ValueKey('agenda-day-free-time'),
-                          behavior: HitTestBehavior.opaque,
-                          onTapUp: (details) =>
-                              unawaited(_createAt(details.localPosition.dy)),
+                      if (widget.onCreate != null)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            key: const ValueKey('agenda-day-free-time'),
+                            behavior: HitTestBehavior.opaque,
+                            onTapUp: (details) =>
+                                unawaited(_createAt(details.localPosition.dy)),
+                          ),
                         ),
-                      ),
                       for (var hour = 0; hour < 24; hour++)
                         ..._hourRow(context, hour, constraints.maxWidth),
                       for (final block in blocks)

@@ -27,8 +27,10 @@ import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
+import 'services/agenda_mirror.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
+import 'services/agenda_web_service.dart';
 import 'services/ai_settings.dart';
 import 'services/calendar_service.dart';
 import 'services/diagnostic_log_service.dart';
@@ -366,7 +368,28 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   Stream<List<Task>>? viewStream;
   final updates = AppUpdateFlow();
   late final dayClock = CivilDayClock(now: widget.clock);
-  late final agendaService = AgendaService(widget.repository.db);
+
+  /// Agenda on Android (phone calendars) and on the web (the phone's mirror,
+  /// read-only, when sync is configured).
+  bool get _agendaAvailable =>
+      widget.enablePlatformServices &&
+      (isAndroidPlatform || (isWebPlatform && widget.syncClient != null));
+
+  late final AgendaService agendaService = isAndroidPlatform
+      ? AgendaService(widget.repository.db)
+      : WebAgendaService(widget.repository.db, widget.syncClient!);
+
+  /// Phone → Supabase copy for the web Agenda; null elsewhere.
+  late final AgendaMirror? agendaMirror =
+      widget.enablePlatformServices &&
+          isAndroidPlatform &&
+          widget.syncClient != null
+      ? AgendaMirror(
+          service: agendaService,
+          client: widget.syncClient!,
+          deviceId: widget.repository.deviceId,
+        )
+      : null;
   Stream<List<Task>> _visibleTasks() {
     final today = dayClock.today;
     final start = selectedUpcomingDate == null
@@ -430,6 +453,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!widget.enablePlatformServices) return;
       await _refreshDailyMovement();
+      unawaited(agendaMirror?.uploadIfStale());
       await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
@@ -655,6 +679,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (updates.isDue(DateTime.now())) {
         unawaited(_checkForUpdates(automatic: true));
       }
+      unawaited(agendaMirror?.uploadIfStale());
     } else if (isBackgroundLifecycle(state)) {
       // Sync pause/resume is owned by [bindSyncToLifecycle].
       appIsForeground = false;
@@ -883,8 +908,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
-              if (widget.enablePlatformServices && isAndroidPlatform)
-                AppSection.agenda,
+              if (_agendaAvailable) AppSection.agenda,
             ];
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -1270,6 +1294,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ),
     );
     if (created == null || created == 0 || !mounted) return;
+    unawaited(agendaMirror?.upload());
     final batch = _lastAiCreated;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1353,13 +1378,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       db.tasks,
     )..where((t) => t.id.equals(id))).getSingle();
     await AgendaTaskLinks(db).setShown(task, true);
+    unawaited(agendaMirror?.upload());
   }
 
   Future<void> _showUniversalCommand() => showSearch<void>(
     context: context,
     delegate: TaskSearchDelegate(
       widget.repository,
-      searchEvents: widget.enablePlatformServices && isAndroidPlatform
+      searchEvents: _agendaAvailable
           ? (text) async {
               try {
                 final results = await agendaService.searchEvents(
@@ -1421,8 +1447,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           onOpenTask: _openTaskById,
           onCreateTask: _createLinkedTask,
           onSearch: _showUniversalCommand,
-          onCapture: _openAiCapture,
+          onCapture: isAndroidPlatform ? _openAiCapture : null,
           onSettings: () => _navigateTo(AppSection.settings),
+          onChanged: () => unawaited(agendaMirror?.upload()),
         ),
       );
     }
@@ -1515,11 +1542,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               itemBuilder: (context, index) => _taskTile(visible[index]),
             ),
     );
-    if (section != AppSection.today ||
-        !widget.enablePlatformServices ||
-        !isAndroidPlatform) {
-      return list;
-    }
+    if (section != AppSection.today || !_agendaAvailable) return list;
     // Today's remaining appointments above the tasks: one look for both.
     return Column(
       children: [

@@ -8,7 +8,14 @@ import '../domain/agenda.dart';
 import '../domain/task.dart' show CivilDate;
 import 'agenda_tasks.dart';
 
-enum AgendaAccess { granted, askable, denied }
+enum AgendaAccess {
+  granted,
+  askable,
+  denied,
+
+  /// Web: no mirrored copy yet (not signed in, or the phone never sent one).
+  noMirror,
+}
 
 /// A whole month per screen is the default (build 205); the choice is kept.
 enum AgendaViewMode { week, twoWeeks, month, list }
@@ -43,6 +50,25 @@ class AgendaService {
 
   final AppDatabase _database;
   final DeviceCalendar _calendar;
+
+  /// Phone calendars can be written; the web mirror is read-only.
+  bool get canWrite => true;
+
+  /// "Copia del telefono · 14:32" on the web; null on the phone.
+  String? get mirrorLabel => null;
+
+  /// Calendars shown in Agenda (choices applied), from memory or storage.
+  Future<List<AgendaCalendar>> shownCalendars() async {
+    final all = lastCalendars ?? await calendars();
+    final hidden = hiddenAgendaCalendars(
+      all,
+      lastChoices ?? await calendarChoices(),
+    );
+    return [
+      for (final calendar in all)
+        if (!hidden.contains(calendar.id)) calendar,
+    ];
+  }
 
   static const _channel = MethodChannel('app.deterministic.todo/agenda');
 
