@@ -51,12 +51,28 @@ public final class AgendaChannel {
 
     private AgendaChannel() {}
 
+    /** The visible app's engine: also receives background runs. */
     public static void register(Context context, FlutterEngine engine) {
+        registerHandlers(context.getApplicationContext(), engine);
+        AgendaBackground.attachAppEngine(engine);
+    }
+
+    static void registerHandlers(Context context, FlutterEngine engine) {
         Context app = context.getApplicationContext();
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/agenda")
             .setMethodCallHandler((call, result) -> {
                 if (call.method.equals("deviceZone")) {
                     result.success(deviceZone(ZoneId.systemDefault(), Instant.now()));
+                    return;
+                }
+                if (call.method.equals("scheduleBackground")) {
+                    AgendaBackground.schedule(app);
+                    result.success(null);
+                    return;
+                }
+                if (call.method.equals("cancelBackground")) {
+                    AgendaBackground.cancel(app);
+                    result.success(null);
                     return;
                 }
                 if (!call.method.equals("instances")) {
@@ -104,16 +120,22 @@ public final class AgendaChannel {
         String placeholders = String.join(",", java.util.Collections.nCopies(calendarIds.size(), "?"));
         String selection = CalendarContract.Instances.CALENDAR_ID + " IN (" + placeholders + ")";
         List<String> args = new ArrayList<>(calendarIds);
-        boolean search = titleQuery != null && !titleQuery.trim().isEmpty();
+        // Title search is matched here, not with SQL LIKE: the provider's
+        // LIKE folds ASCII case only, and "attivita" must find "attività".
+        String needle = titleQuery == null ? "" : fold(titleQuery.trim());
+        boolean search = !needle.isEmpty();
         if (search) {
+            // Cheap superset in SQL (letters that may carry an accent match
+            // any one character), confirmed below on the folded title.
             selection += " AND " + CalendarContract.Instances.TITLE + " LIKE ? ESCAPE '\\'";
-            args.add("%" + likeEscape(titleQuery.trim()) + "%");
+            args.add("%" + likePrefilter(needle) + "%");
         }
         try (Cursor cursor = context.getContentResolver().query(uri.build(), PROJECTION,
                 selection, args.toArray(new String[0]),
                 CalendarContract.Instances.BEGIN + " ASC")) {
             if (cursor == null) return rows;
             while (cursor.moveToNext() && (!search || rows.size() < MAX_SEARCH_ROWS)) {
+                if (search && (cursor.isNull(2) || !fold(cursor.getString(2)).contains(needle))) continue;
                 long eventId = cursor.getLong(0);
                 long begin = cursor.getLong(5);
                 long finish = cursor.isNull(6) ? begin : cursor.getLong(6);
@@ -171,9 +193,25 @@ public final class AgendaChannel {
         return clock.format(start.atZone(zone)) + "–" + clock.format(Instant.ofEpochMilli(end).atZone(zone));
     }
 
-    /** User text is matched literally inside LIKE. */
-    static String likeEscape(String text) {
-        return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    /**
+     * LIKE pattern for a folded needle: letters that have accented forms
+     * become `_` (one character), wildcards in the text stay literal.
+     */
+    static String likePrefilter(String needle) {
+        StringBuilder out = new StringBuilder();
+        for (char c : needle.toCharArray()) {
+            if ("aeiouycn".indexOf(c) >= 0) out.append('_');
+            else if (c == '%' || c == '_' || c == '\\') out.append('\\').append(c);
+            else out.append(c);
+        }
+        return out.toString();
+    }
+
+    /** Lower case without accents, for title search. */
+    static String fold(String text) {
+        return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "")
+            .toLowerCase(java.util.Locale.ROOT);
     }
 
     /** Only URLs, so invite bodies never cross the channel. */

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'task.dart';
+import 'text_fold.dart';
 
 /// A calendar the Android system provider exposes (Google, Outlook/Exchange…).
 final class AgendaCalendar {
@@ -224,17 +225,17 @@ final class AgendaFilter {
 
   final bool hideUnanswered;
 
-  /// Case-insensitive substrings of the title, e.g. "Live Broadcast".
+  /// Case- and accent-insensitive substrings of the title, e.g. "Live Broadcast".
   final List<String> hiddenWords;
 
   bool get isActive => hideUnanswered || hiddenWords.isNotEmpty;
 
   bool hides(AgendaSourceEvent event) {
     if (hideUnanswered && event.unanswered) return true;
-    final title = event.title.toLowerCase();
+    final title = foldForSearch(event.title);
     return hiddenWords.any(
       (word) =>
-          word.trim().isNotEmpty && title.contains(word.trim().toLowerCase()),
+          word.trim().isNotEmpty && title.contains(foldForSearch(word.trim())),
     );
   }
 }
@@ -533,6 +534,36 @@ final class TimelineBlock {
   /// Side-by-side slot among overlapping blocks, 0-based, of [columns].
   final int column;
   final int columns;
+}
+
+/// Timed events that overlap another timed event, by instance id, with the
+/// events they clash with in start order. All-day events and Todo tasks
+/// never clash; touching events (one ends when the next starts) do not.
+/// Duplicates were already merged, so the same meeting in two calendars is
+/// not a clash.
+Map<String, List<AgendaEntry>> agendaOverlaps(Iterable<AgendaEntry> entries) {
+  final timed =
+      entries
+          .where((e) => !e.allDay && !e.isTask && e.end.isAfter(e.start))
+          .toList()
+        ..sort((a, b) {
+          final byStart = a.start.compareTo(b.start);
+          return byStart != 0 ? byStart : a.instanceId.compareTo(b.instanceId);
+        });
+  final result = <String, List<AgendaEntry>>{};
+  final active = <AgendaEntry>[];
+  for (final entry in timed) {
+    active.removeWhere((other) => !other.end.isAfter(entry.start));
+    for (final other in active) {
+      (result[other.instanceId] ??= []).add(entry);
+      (result[entry.instanceId] ??= []).add(other);
+    }
+    active.add(entry);
+  }
+  for (final clashes in result.values) {
+    clashes.sort((a, b) => a.start.compareTo(b.start));
+  }
+  return result;
 }
 
 /// Lays out the timed entries of [day] like a calendar day view: clipped to

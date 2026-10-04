@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/agenda_request.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
 import 'agenda_day_view.dart';
@@ -160,6 +161,59 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         failed = true;
       });
     }
+  }
+
+  /// Web changes the phone refused, each with its reason; dismissing one
+  /// only removes the notice.
+  Future<void> _showFailures() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final failed = widget.service.failedRequests;
+          return AlertDialog(
+            title: const Text('Non applicate dal telefono'),
+            content: SizedBox(
+              width: 420,
+              child: failed.isEmpty
+                  ? const Text('Nessuna.')
+                  : ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (final request in failed)
+                          ListTile(
+                            key: ValueKey('agenda-failure-${request.id}'),
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(agendaRequestLabel(request)),
+                            subtitle: Text(request.error ?? 'Non applicata.'),
+                            trailing: TextButton(
+                              onPressed: () async {
+                                try {
+                                  await widget.service.dismissRequest(
+                                    request.id,
+                                  );
+                                } catch (_) {
+                                  // Stays listed; the next load retries.
+                                }
+                                setDialogState(() {});
+                              },
+                              child: const Text('Ignora'),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Chiudi'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    await _load();
   }
 
   /// Paints the last session results at once; [_load] then revalidates.
@@ -372,6 +426,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       zone: zone,
       onChoose: _chooseCalendars,
       mirror: widget.service.mirrorLabel,
+      failures: widget.service.failedRequests.length,
+      onFailures: _showFailures,
       onSearch: widget.onSearch,
       onSettings: widget.onSettings,
       onCapture: widget.onCapture == null
@@ -510,10 +566,16 @@ class _AgendaHeader extends StatelessWidget {
     this.onSettings,
     this.onCapture,
     this.mirror,
+    this.failures = 0,
+    this.onFailures,
   });
 
   /// "Copia dal telefono · 4 ott 14:32" on the web.
   final String? mirror;
+
+  /// Web changes the phone could not apply.
+  final int failures;
+  final VoidCallback? onFailures;
   final VoidCallback? onCapture;
   final String? zone;
   final int visible;
@@ -613,6 +675,17 @@ class _AgendaHeader extends StatelessWidget {
               ],
             ),
           ),
+          if (failures > 0)
+            IconButton(
+              key: const ValueKey('agenda-failures'),
+              tooltip: 'Modifiche non applicate dal telefono',
+              visualDensity: VisualDensity.compact,
+              onPressed: onFailures,
+              icon: Badge.count(
+                count: failures,
+                child: Icon(Icons.sync_problem, color: theme.colorScheme.error),
+              ),
+            ),
           if (onCapture != null)
             IconButton(
               key: const ValueKey('agenda-ai-capture'),

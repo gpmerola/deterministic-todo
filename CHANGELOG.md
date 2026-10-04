@@ -2,6 +2,22 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.56.0 (build 213) — Todo Test
+
+- **Agenda dal Web: crea, modifica, elimina.** Il Web mette la richiesta in
+  coda e il telefono la applica all'apertura o entro circa un'ora. Fino ad
+  allora l'evento compare con ⏳. Le richieste rifiutate compaiono con il
+  motivo (icona rossa). Serve la migrazione Supabase
+  `202610050001_agenda_requests`.
+- **Web aggiornato anche senza aprire Todo.** Quando il calendario del
+  telefono cambia, un job Android aggiorna la copia. Non fa polling: se non
+  è cambiato nulla basta una sola lettura.
+- **Sovrapposizioni.** Gli impegni che si accavallano hanno il bordo rosso
+  nelle viste giorno e settimana. Il dettaglio dice con cosa si
+  sovrappongono.
+- **Ricerca senza accenti.** «attivita» trova «attività» nelle attività,
+  negli eventi (telefono e Web) e nei filtri parole dell'Agenda.
+
 ## 2.55.0 (build 212) — Todo Test
 
 - **Agenda sul Web**, in sola lettura. Il telefono invia a Supabase una copia

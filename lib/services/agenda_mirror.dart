@@ -58,6 +58,8 @@ Map<String, Object?> buildAgendaMirror({
           'name': calendar.name,
           'account': calendar.accountName,
           'color': calendar.colorHex,
+          // The web offers editing only where the phone can write.
+          'writable': calendar.writable,
         },
     ],
     'task_links': taskLinks.toList()..sort(),

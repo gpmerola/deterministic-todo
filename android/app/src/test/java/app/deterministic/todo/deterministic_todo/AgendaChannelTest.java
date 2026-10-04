@@ -31,9 +31,16 @@ public final class AgendaChannelTest {
         assertNull(AgendaChannel.eventZoneTimes(begin, end, null, london));
     }
 
-    @Test public void escapesLikeWildcards() {
-        assertEquals("100\\% sicuro\\_x\\\\y", AgendaChannel.likeEscape("100% sicuro_x\\y"));
-        assertEquals("Ward round", AgendaChannel.likeEscape("Ward round"));
+    @Test public void foldsCaseAndAccentsForSearch() {
+        assertEquals("attivita perche", AgendaChannel.fold("Attività PERCHÉ"));
+        assertEquals("100% sicuro_x", AgendaChannel.fold("100% sicuro_x"));
+        assertEquals("nandu", AgendaChannel.fold("Ñandú"));
+    }
+
+    @Test public void prefilterIsASupersetAndKeepsWildcardsLiteral() {
+        assertEquals("_tt_v_t_", AgendaChannel.likePrefilter("attivita"));
+        assertEquals("100\\% s___r_\\_x\\\\", AgendaChannel.likePrefilter("100% sicuro_x\\"));
+        assertEquals("w_rd r___d", AgendaChannel.likePrefilter("ward round"));
     }
 
     @Test public void deviceZoneIsIanaWithOffset() {

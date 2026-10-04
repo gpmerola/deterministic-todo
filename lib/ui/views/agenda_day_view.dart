@@ -252,6 +252,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
         if (entry.allDay) entry,
     ];
     final blocks = layoutDayTimeline(entries, widget.day);
+    final clashing = agendaOverlaps(entries).keys.toSet();
     // The first layout fixes the initial position; reloads keep the scroll.
     scroll ??= data == null
         ? null
@@ -330,7 +331,12 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                       for (var hour = 0; hour < 24; hour++)
                         ..._hourRow(context, hour, constraints.maxWidth),
                       for (final block in blocks)
-                        _positioned(context, block, constraints.maxWidth),
+                        _positioned(
+                          context,
+                          block,
+                          constraints.maxWidth,
+                          clashing,
+                        ),
                       if (widget.day == widget.today)
                         _nowLine(context, constraints.maxWidth),
                     ],
@@ -373,7 +379,12 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     ];
   }
 
-  Widget _positioned(BuildContext context, TimelineBlock block, double width) {
+  Widget _positioned(
+    BuildContext context,
+    TimelineBlock block,
+    double width,
+    Set<String> clashing,
+  ) {
     const unit = AgendaDayPage.hourHeight / 60;
     final available = width - _gutter - 4;
     final columnWidth = available / block.columns;
@@ -386,7 +397,12 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
       left: _gutter + block.column * columnWidth,
       width: columnWidth - 2,
       height: (block.endMinute - block.startMinute) * unit - 2,
-      child: _Block(entry: block.entry, color: color, onTap: _open),
+      child: _Block(
+        entry: block.entry,
+        color: color,
+        onTap: _open,
+        clash: clashing.contains(block.entry.instanceId),
+      ),
     );
   }
 
@@ -415,8 +431,15 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
 }
 
 class _Block extends StatelessWidget {
-  const _Block({required this.entry, required this.color, required this.onTap});
+  const _Block({
+    required this.entry,
+    required this.color,
+    required this.onTap,
+    this.clash = false,
+  });
 
+  /// Overlaps another timed event: outlined and marked with ⚠.
+  final bool clash;
   final AgendaEntry entry;
   final Color color;
   final Future<void> Function(AgendaEntry entry) onTap;
@@ -428,7 +451,12 @@ class _Block extends StatelessWidget {
     final meeting = entry.meeting;
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: clash
+            ? BorderSide(color: Theme.of(context).colorScheme.error, width: 2)
+            : BorderSide.none,
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => unawaited(onTap(entry)),
@@ -455,6 +483,7 @@ class _Block extends StatelessWidget {
                   ),
                   if (tall)
                     Text(
+                      '${clash ? '⚠ ' : ''}'
                       '${format.format(entry.start)}–${format.format(entry.end)}'
                       '${roomy && (entry.location?.trim().isNotEmpty ?? false) ? ' · ${entry.location!.trim()}' : ''}',
                       maxLines: 1,

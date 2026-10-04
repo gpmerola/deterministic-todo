@@ -24,6 +24,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   Color? color,
   bool canCreateTasks = false,
   bool canOpenInCalendar = true,
+  List<AgendaEntry> overlaps = const [],
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
   showDragHandle: true,
@@ -36,6 +37,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     color: color,
     canCreateTasks: canCreateTasks,
     canOpenInCalendar: canOpenInCalendar,
+    overlaps: overlaps,
   ),
 );
 
@@ -48,10 +50,14 @@ class AgendaEventSheet extends StatelessWidget {
     this.color,
     this.canCreateTasks = false,
     this.canOpenInCalendar = true,
+    this.overlaps = const [],
     super.key,
   });
 
-  /// False on the web mirror: there is no phone calendar app to open.
+  /// Other timed events at the same time (see [agendaOverlaps]).
+  final List<AgendaEntry> overlaps;
+
+  /// False on the web: there is no phone calendar app to open.
   final bool canOpenInCalendar;
 
   /// Shows "Preparare" / "Follow-up": linked Todo tasks before and after.
@@ -125,6 +131,34 @@ class AgendaEventSheet extends StatelessWidget {
                 ].join('\n'),
                 key: const ValueKey('agenda-sheet-zone'),
               ),
+            if (overlaps.isNotEmpty)
+              Padding(
+                key: const ValueKey('agenda-sheet-overlaps'),
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 20,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        [
+                          'Si sovrappone a:',
+                          for (final other in overlaps)
+                            '${clock.format(other.start)}–'
+                                '${clock.format(other.end)} '
+                                '${other.title.isEmpty ? '(senza titolo)' : other.title}',
+                        ].join('\n'),
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (entry.recurring) row(Icons.repeat, 'Evento ricorrente'),
             if (entry.location?.trim().isNotEmpty ?? false)
               row(Icons.place_outlined, entry.location!.trim()),
@@ -132,9 +166,7 @@ class AgendaEventSheet extends StatelessWidget {
             if (!editable)
               row(
                 Icons.lock_outline,
-                !canOpenInCalendar
-                    ? 'Sola lettura sul Web: si modifica dal telefono'
-                    : entry.isOrganizer
+                entry.isOrganizer
                     ? 'Calendario in sola lettura'
                     : 'Invito di un altro organizzatore: si modifica dal suo '
                           'calendario',

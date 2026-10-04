@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
+import '../../services/agenda_web_service.dart' show AgendaQueueBusy;
 import 'agenda_event_editor.dart';
 import 'agenda_event_sheet.dart';
 
@@ -56,6 +57,9 @@ class AgendaEventFlows {
       (calendarOf(entry)?.writable ?? false) &&
       entry.isOrganizer;
 
+  static const _busyMessage =
+      'Il telefono la sta già applicando: riprova tra poco.';
+
   static void _say(BuildContext context, String text) {
     if (!context.mounted) return;
     ScaffoldMessenger.maybeOf(
@@ -71,6 +75,8 @@ class AgendaEventFlows {
       return true;
     }
     final calendar = calendarOf(entry);
+    final overlaps = await _overlapsOf(entry);
+    if (!context.mounted) return false;
     final action = await showAgendaEventSheet(
       context,
       entry: entry,
@@ -84,7 +90,8 @@ class AgendaEventFlows {
       zoneLabel: zone,
       color: parseCalendarColor(calendar?.colorHex),
       canCreateTasks: onCreateTask != null,
-      canOpenInCalendar: service.canWrite,
+      canOpenInCalendar: service.canOpenInSystem,
+      overlaps: overlaps,
     );
     if (!context.mounted || action == null) return false;
     switch (action) {
@@ -126,6 +133,22 @@ class AgendaEventFlows {
     return action != AgendaEventAction.openInCalendar;
   }
 
+  /// Timed events of the same day that clash with [entry]; empty when the
+  /// day cannot be read (the sheet still opens).
+  Future<List<AgendaEntry>> _overlapsOf(AgendaEntry entry) async {
+    if (entry.allDay || entry.isTask) return const [];
+    try {
+      final day = (await service.agendaDays(
+        CivilDate.fromDateTime(entry.start),
+        1,
+      )).firstOrNull;
+      return agendaOverlaps(day?.entries ?? const [])[entry.instanceId] ??
+          const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// Opens the form and writes the event into the chosen phone calendar.
   Future<void> create(BuildContext context, {DateTime? start}) async {
     if (!service.canWrite) return;
@@ -159,7 +182,10 @@ class AgendaEventFlows {
       if (!context.mounted) return;
       _say(
         context,
-        hidden.contains(draft.calendarId)
+        service.writesViaPhone
+            ? 'Inviato al telefono: comparirà in '
+                  '${target?.name ?? 'calendario'} appena lo applica.'
+            : hidden.contains(draft.calendarId)
             ? 'Evento salvato in ${target?.name ?? 'calendario'}, '
                   'nascosto nell\'Agenda.'
             : 'Evento salvato in ${target?.name ?? 'calendario'}.',
@@ -195,6 +221,8 @@ class AgendaEventFlows {
           initialStart: existing!.start,
           existing: existing,
           zoneLabel: zone,
+          // Notes are not mirrored to the web: the phone keeps its own.
+          notesEditable: !service.writesViaPhone,
         ),
       ),
     );
@@ -202,8 +230,17 @@ class AgendaEventFlows {
     try {
       await service.updateEvent(entry.instanceId, draft, series: series);
       if (context.mounted) {
-        _say(context, series ? 'Serie aggiornata.' : 'Evento aggiornato.');
+        _say(
+          context,
+          service.writesViaPhone
+              ? 'Modifica inviata al telefono.'
+              : series
+              ? 'Serie aggiornata.'
+              : 'Evento aggiornato.',
+        );
       }
+    } on AgendaQueueBusy {
+      if (context.mounted) _say(context, _busyMessage);
     } catch (_) {
       // Not logged: the draft carries the user's text.
       if (context.mounted) _say(context, 'Impossibile aggiornare l\'evento.');
@@ -221,8 +258,17 @@ class AgendaEventFlows {
     try {
       await service.deleteEvent(entry.instanceId, series: series);
       if (context.mounted) {
-        _say(context, series ? 'Serie eliminata.' : 'Evento eliminato.');
+        _say(
+          context,
+          service.writesViaPhone
+              ? 'Eliminazione inviata al telefono.'
+              : series
+              ? 'Serie eliminata.'
+              : 'Evento eliminato.',
+        );
       }
+    } on AgendaQueueBusy {
+      if (context.mounted) _say(context, _busyMessage);
     } catch (_) {
       if (context.mounted) _say(context, 'Impossibile eliminare l\'evento.');
     }

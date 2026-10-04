@@ -15,8 +15,13 @@ class AgendaEventEditor extends StatefulWidget {
     this.existing,
     this.prefill,
     this.zoneLabel,
+    this.notesEditable = true,
     super.key,
   });
+
+  /// False when editing from the web: notes are not mirrored, so the field
+  /// is hidden and the phone keeps the event's own notes.
+  final bool notesEditable;
 
   /// Creation form pre-filled from a proposal (e.g. the AI assistant); the
   /// calendar stays selectable, unlike [existing].
@@ -336,16 +341,18 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
               prefixIcon: Icon(Icons.place_outlined),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: notes,
-            minLines: 2,
-            maxLines: 6,
-            decoration: const InputDecoration(
-              labelText: 'Note (facoltative)',
-              prefixIcon: Icon(Icons.notes),
+          if (widget.notesEditable) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: notes,
+              minLines: 2,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                labelText: 'Note (facoltative)',
+                prefixIcon: Icon(Icons.notes),
+              ),
             ),
-          ),
+          ],
           if (error != null)
             Padding(
               padding: const EdgeInsets.only(top: 16),

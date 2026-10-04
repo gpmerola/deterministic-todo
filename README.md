@@ -161,7 +161,9 @@ client. Sul progetto personale devono essere state applicate, nell’ordine:
 7. `supabase/migrations/202609110002_ledger_privileges.sql`;
 8. `supabase/migrations/202609110003_task_fingerprints.sql`;
 9. `supabase/migrations/202609110004_sync_overview.sql`;
-10. `supabase/migrations/202610040001_agenda_mirror.sql` (Agenda sul Web).
+10. `supabase/migrations/202610040001_agenda_mirror.sql` (Agenda sul Web);
+11. `supabase/migrations/202610050001_agenda_requests.sql` (modifiche
+    all'Agenda dal Web).
 
 Procedura e recovery: [registro delle eliminazioni](docs/operations/SAFE_PURGE.md).
 

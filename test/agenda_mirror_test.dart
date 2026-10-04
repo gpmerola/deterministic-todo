@@ -78,6 +78,7 @@ void main() {
         'name': 'Personale',
         'account': 'me@example.com',
         'color': '#039BE5',
+        'writable': true,
       },
     ]);
     expect(
@@ -115,7 +116,9 @@ void main() {
     expect(allDay.end, DateTime(2026, 10, 8));
   });
 
-  testWidgets('sul Web l Agenda è in sola lettura', (tester) async {
+  testWidgets('senza scrittura né app calendario restano solo i dettagli', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.reset);
@@ -141,7 +144,7 @@ void main() {
     expect(find.byKey(const ValueKey('agenda-sheet-edit')), findsNothing);
     expect(find.byKey(const ValueKey('agenda-sheet-delete')), findsNothing);
     expect(find.text('Apri nel calendario'), findsNothing);
-    expect(find.textContaining('Sola lettura sul Web'), findsOneWidget);
+    expect(find.textContaining('Calendario in sola lettura'), findsOneWidget);
   });
 
   testWidgets('senza copia spiega cosa fare', (tester) async {
@@ -166,6 +169,9 @@ class _ReadOnlyService extends AgendaService {
 
   @override
   bool get canWrite => false;
+
+  @override
+  bool get canOpenInSystem => false;
 
   @override
   String? get mirrorLabel => 'Copia dal telefono · 5 ott 09:00';

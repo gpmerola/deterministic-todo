@@ -15,6 +15,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
+import 'background/agenda_background.dart';
 import 'data/editor_drafts.dart';
 import 'data/local/database.dart';
 import 'data/sync/secure_supabase_storage.dart';
@@ -28,6 +29,7 @@ import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
 import 'services/agenda_mirror.dart';
+import 'services/agenda_phone_sync.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
 import 'services/agenda_web_service.dart';
@@ -79,6 +81,10 @@ part 'ui/undated_tasks_view.dart';
 const _pageMotion = Duration(milliseconds: 140);
 const _pageMotionOut = Duration(milliseconds: 90);
 const _microMotion = Duration(milliseconds: 110);
+
+/// Android background job for the web Agenda (see agenda_background.dart).
+@pragma('vm:entry-point')
+Future<void> agendaBackgroundMain() => startAgendaBackground();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -379,17 +385,20 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ? AgendaService(widget.repository.db)
       : WebAgendaService(widget.repository.db, widget.syncClient!);
 
-  /// Phone → Supabase copy for the web Agenda; null elsewhere.
-  late final AgendaMirror? agendaMirror =
+  /// Phone side of the web Agenda (mirror upload, queued web edits); null
+  /// elsewhere.
+  late final AgendaPhoneSync? agendaSync =
       widget.enablePlatformServices &&
           isAndroidPlatform &&
           widget.syncClient != null
-      ? AgendaMirror(
+      ? AgendaPhoneSync(
           service: agendaService,
           client: widget.syncClient!,
           deviceId: widget.repository.deviceId,
         )
       : null;
+
+  AgendaMirror? get agendaMirror => agendaSync?.mirror;
   Stream<List<Task>> _visibleTasks() {
     final today = dayClock.today;
     final start = selectedUpcomingDate == null
@@ -453,7 +462,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!widget.enablePlatformServices) return;
       await _refreshDailyMovement();
-      unawaited(agendaMirror?.uploadIfStale());
+      unawaited(agendaSync?.attach());
+      unawaited(agendaSync?.foreground());
       await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
@@ -679,7 +689,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (updates.isDue(DateTime.now())) {
         unawaited(_checkForUpdates(automatic: true));
       }
-      unawaited(agendaMirror?.uploadIfStale());
+      unawaited(agendaSync?.foreground());
     } else if (isBackgroundLifecycle(state)) {
       // Sync pause/resume is owned by [bindSyncToLifecycle].
       appIsForeground = false;
@@ -712,6 +722,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    agendaSync?.detach();
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
     movementRefreshTimer?.cancel();

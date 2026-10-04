@@ -70,6 +70,21 @@ controllo manuale apre la scheda Store come fallback.
 
 Non aggiungere servizi Android persistenti per gli aggiornamenti. La sincronizzazione reagisce a modifica, riconnessione e ritorno in primo piano. Il controllo di sicurezza ogni dieci minuti esiste soltanto mentre l’app è visibile e viene sospeso in background. Per il singolo account personale privilegia la convergenza rapida con una query incrementale economica; Realtime resta il percorso normale immediato. Progetti e sezioni già confermati dal server sono identificati tramite la coppia Lamport `(logical_version, device_id)` e non vengono reinviati finché non cambiano.
 
+Eccezione documentata, build 213: due job `JobScheduler` per l'Agenda sul
+Web (`docs/architecture/AGENDA.md`, «Aggiornamento in background»). Non
+sono servizi persistenti:
+
+- uno parte solo quando il provider calendario notifica una modifica.
+  Raggruppa le notifiche, esce dopo una query se l'impronta SHA-256 non è
+  cambiata e avvia Dart solo per una modifica vera;
+- l'altro gira circa una volta l'ora con rete e applica le modifiche in coda
+  dal Web.
+
+Esistono solo con la sincronizzazione attiva e si cancellano senza accesso
+o senza permesso calendario. `RECEIVE_BOOT_COMPLETED` serve a
+`JobScheduler` per conservare il job orario dopo un riavvio: l'app non
+registra receiver propri.
+
 Prima del push, l’outbox viene compattata logicamente per `entity_id`: più modifiche pendenti della stessa attività causano un solo `merge_task` della versione finale, mentre tutte le operazioni vengono comunque riconosciute e rimosse soltanto dopo il successo. Il pull carica le attività locali interessate con una sola query SQLite e applica poi il confronto Lamport in memoria, evitando una query per ogni riga remota.
 
 Una nuova riga nell'outbox avvia il sync dopo 120 ms, così più tocchi ravvicinati

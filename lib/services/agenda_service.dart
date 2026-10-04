@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../data/local/database.dart';
 import '../domain/agenda.dart';
+import '../domain/agenda_request.dart';
 import '../domain/task.dart' show CivilDate;
 import 'agenda_tasks.dart';
 
@@ -51,11 +52,23 @@ class AgendaService {
   final AppDatabase _database;
   final DeviceCalendar _calendar;
 
-  /// Phone calendars can be written; the web mirror is read-only.
+  /// Events can be created, edited and deleted (on the web through the
+  /// phone, see [writesViaPhone]).
   bool get canWrite => true;
+
+  /// The web queues changes for the phone instead of writing them.
+  bool get writesViaPhone => false;
+
+  /// "Apri nel calendario": only where a system calendar app exists.
+  bool get canOpenInSystem => true;
 
   /// "Copia del telefono · 14:32" on the web; null on the phone.
   String? get mirrorLabel => null;
+
+  /// Web changes the phone could not apply, until dismissed.
+  List<AgendaRequest> get failedRequests => const [];
+
+  Future<void> dismissRequest(String id) async {}
 
   /// Calendars shown in Agenda (choices applied), from memory or storage.
   Future<List<AgendaCalendar>> shownCalendars() async {

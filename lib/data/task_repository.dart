@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../domain/recurrence.dart';
 import '../domain/task.dart';
 import '../domain/task_planning.dart';
+import '../domain/text_fold.dart';
 import 'local/database.dart';
 
 class TaskRepository {
@@ -72,7 +73,8 @@ class TaskRepository {
   }
 
   /// Search filtered and bounded in SQLite: active items before completed
-  /// ones, then by date. Matching folds ASCII case only (SQLite `LIKE`).
+  /// ones, then by date. Matching ignores case and accents ("attivita"
+  /// finds "attività"): accents are folded on both sides, `LIKE` folds case.
   Stream<List<Task>> watchSearch({
     required String text,
     bool projectOnly = false,
@@ -83,18 +85,21 @@ class TaskRepository {
     int limit = searchLimit,
   }) {
     final pattern =
-        '%${text.replaceAllMapped(RegExp(r'[\\%_]'), (m) => '\\${m[0]}')}%';
+        '%${foldAccents(text).replaceAllMapped(RegExp(r'[\\%_]'), (m) => '\\${m[0]}')}%';
+    Expression<bool> matches(String column) => CustomExpression<String>(
+      sqlFoldAccents(column),
+    ).like(pattern, escapeChar: r'\');
     final matchingProjects = db.selectOnly(db.projects)
       ..addColumns([db.projects.id])
-      ..where(db.projects.name.like(pattern, escapeChar: r'\'));
+      ..where(matches('"projects"."name"'));
     final inProject = db.tasks.projectId.isInQuery(matchingProjects);
     final query = db.select(db.tasks)..where((t) => t.deletedAt.isNull());
     if (text.isNotEmpty) {
       query.where(
         (t) => projectOnly
             ? inProject
-            : t.title.like(pattern, escapeChar: r'\') |
-                  t.notes.like(pattern, escapeChar: r'\') |
+            : matches('"tasks"."title"') |
+                  matches('"tasks"."notes"') |
                   inProject,
       );
     }

@@ -159,8 +159,9 @@ quell'account non compare; non esiste un aggiramento lato app.
 ## Agenda sul Web (build 212)
 
 Il browser non vede i calendari del telefono. Il telefono quindi carica su
-Supabase una **copia** di ciò che mostra la sua Agenda, e il Web la legge **in
-sola lettura**. L'utente ha accettato la presenza dei titoli degli eventi su
+Supabase una **copia** di ciò che mostra la sua Agenda, e il Web la legge.
+Dalla build 213 il Web può anche creare, modificare ed eliminare eventi
+tramite una coda applicata dal telefono (sezione successiva). L'utente ha accettato la presenza dei titoli degli eventi su
 Supabase, dichiarando che non contengono dati di pazienti.
 
 **Cosa entra nella copia** (`buildAgendaMirror`):
@@ -170,6 +171,8 @@ Supabase, dichiarando che non contengono dati di pazienti.
 - per ogni evento: titolo, luogo, inizio e fine in UTC (gli eventi di
   giornata intera anche come date civili), link della riunione, fuso
   dell'evento e orario originale;
+- per ogni calendario anche se è scrivibile (`writable`, dalla 213), così il
+  Web offre la modifica solo dove il telefono può scrivere;
 - le chiavi «Mostra in agenda» delle attività. Le attività stesse arrivano al
   Web dalla normale sincronizzazione.
 
@@ -189,9 +192,9 @@ TRUNCATE sono revocati a `anon` e `authenticated`; `anon` non legge. Limite:
 - subito dopo una modifica nell'Agenda, una creazione ✨, un'attività
   collegata o un cambio di calendari o filtri.
 
-Nessun lavoro in background, quindi nessun costo di batteria a schermo
-spento. Se fallisce, nessun errore visibile: riprova al passaggio
-successivo.
+Dalla build 213 anche in background, quando cambia il calendario del
+telefono (vedi «Aggiornamento in background»). Se fallisce, nessun errore
+visibile: riprova al passaggio successivo.
 
 **Web** (`WebAgendaService`):
 
@@ -200,15 +203,108 @@ successivo.
 - gli orari sono nel fuso del browser, letto come IANA da
   `Intl.DateTimeFormat`; gli eventi di giornata intera mantengono le loro
   date;
-- l'intestazione mostra «Copia dal telefono · <ora del caricamento>»;
-- sul Web non ci sono +, modifica, eliminazione né «Apri nel calendario».
-  Restano «Partecipa» e «Preparare/Follow-up», che creano attività
-  sincronizzate;
+- l'intestazione mostra «Copia dal telefono · <ora del caricamento>» e,
+  se ci sono, quante modifiche sono «in attesa»;
+- sul Web non c'è «Apri nel calendario»; ci sono +, Modifica ed Elimina
+  (vedi sotto), «Partecipa» e «Preparare/Follow-up»;
 - senza una copia, un messaggio spiega di aprire Todo sul telefono;
 - anche **Oggi** sul Web mostra la riga degli impegni.
 
-Creare e modificare eventi dal Web richiederà una coda eseguita dal telefono:
-non è implementato.
+## Modifiche dal Web (build 213)
+
+Solo il telefono può scrivere nei suoi calendari. Il Web quindi mette la
+richiesta in coda in `agenda_requests` e il telefono la applica come una
+modifica fatta nell'Agenda.
+
+**Coda** (migrazione `202610050001_agenda_requests.sql`):
+
+- una riga per richiesta: `create`, `update` o `delete`, occorrenza
+  (`instance_key`), «tutta la serie» e `payload`;
+- orari in UTC, giornate intere come date civili: fusi diversi tra browser
+  e telefono non spostano nulla;
+- RLS «own»; il browser può inserire solo tipo, occorrenza, serie e
+  payload. Stato, proprietario e orari li impostano i default e le RPC;
+- una richiesta si può cambiare o ritirare finché il telefono non la prende;
+- al massimo 100 richieste aperte e payload fino a 8 KB.
+
+**Telefono** (`AgendaRequestProcessor`):
+
+- `claim_agenda_requests_v1` consegna ogni richiesta **una sola volta**
+  (stato `processing`), in ordine di creazione;
+- il telefono la applica e poi chiama `complete_agenda_request_v1`, con
+  `done` oppure `failed` e un motivo breve in italiano;
+- se il telefono si interrompe a metà, dopo 30 minuti la richiesta diventa
+  «Esito sconosciuto: controlla il calendario sul telefono». Non viene mai
+  ripetuta, così un evento non nasce mai due volte;
+- le richieste chiuse si cancellano dopo 14 giorni.
+
+**Regole di applicazione:**
+
+- il calendario deve esistere ed essere scrivibile sul telefono;
+- una modifica mantiene calendario, note e regola di ripetizione del
+  telefono. Le note non sono nella copia, quindi dal Web non si modificano;
+- modificare un evento sparito è un errore; eliminarlo è già fatto;
+- note e ripetizione viaggiano solo con una creazione.
+
+**Quando il telefono applica:**
+
+- all'apertura e al ritorno in primo piano, al massimo una volta al minuto;
+- dal lavoro in background orario.
+
+Subito dopo, il telefono carica una nuova copia.
+
+**Web:**
+
+- finché la copia non riflette la richiesta, il Web mostra l'effetto
+  previsto con ⏳ (`applyAgendaRequests`): nuovi eventi aggiunti, modifiche
+  già applicate, eliminazioni nascoste;
+- un evento ⏳ ancora in coda si può modificare o eliminare, cioè ritirare;
+- le richieste rifiutate compaiono con l'icona rossa nell'intestazione, con
+  il motivo. «Ignora» toglie solo l'avviso.
+
+## Aggiornamento in background (build 213)
+
+Per tenere aggiornato il Web senza aprire Todo, senza polling e senza timer
+nell'app, ci sono due job Android (`AgendaBackground`,
+`AgendaBackgroundJob`). L'app li programma solo dopo l'accesso alla
+sincronizzazione.
+
+1. **Calendario cambiato.** Usa un `JobInfo.TriggerContentUri` su
+   `CalendarContract.CONTENT_URI`:
+   - raggruppa le notifiche per 1 minuto, al massimo 15, e richiede la rete;
+   - prima di avviare Dart calcola un'impronta SHA-256 delle occorrenze
+     nella finestra della copia, con una query sola;
+   - se l'impronta non è cambiata (contabilità di sync di Google o Outlook),
+     finisce lì.
+2. **Ogni ora circa** (persistente, flex 20 minuti, con rete). Applica le
+   modifiche in coda dal Web. Ripristina anche il job 1 dopo un riavvio,
+   quando Android dimentica i trigger sul contenuto.
+
+**Dove gira Dart.** Se il motore dell'app è vivo, il lavoro passa da lì:
+una sola sessione Supabase e nessun doppio rinnovo del token. Altrimenti
+parte un motore headless (`agendaBackgroundMain`), che:
+
+- apre lo stesso database e la sessione salvata, senza timer di refresh e
+  senza deep link;
+- fa un solo giro e viene distrutto, al più tardi dopo 90 secondi.
+
+**Esiti.** Dart risponde `done` (si memorizza l'impronta), `retry` oppure
+`stop` (nessun accesso o nessun permesso calendario): con `stop` i job
+vengono cancellati finché l'app non li riprogramma. Nessun contenuto entra
+nei log.
+
+## Sovrapposizioni (build 213)
+
+`agendaOverlaps` segnala gli eventi con orario che si sovrappongono a un
+altro evento con orario, di qualunque calendario. Non contano:
+
+- eventi di giornata intera e attività;
+- eventi consecutivi (uno finisce quando l'altro inizia);
+- lo stesso evento presente in due calendari, già unito.
+
+Nella vista giorno e nella vista settimana i blocchi in conflitto hanno il
+bordo rosso; la vista giorno aggiunge ⚠ all'orario. Il dettaglio
+dell'evento elenca «Si sovrappone a:» con orari e titoli.
 
 ## Calendario e lista più vicini (build 211)
 
@@ -268,7 +364,10 @@ Il comando universale (lente) mostra, dopo le attività, una sezione
 **Eventi**: titoli che contengono il testo, almeno 2 caratteri, nei calendari
 mostrati nell'Agenda, con i filtri applicati. L'intervallo va da un anno
 indietro a due avanti. È una sola query nativa (`instances` con
-`titleQuery`, `LIKE` con caratteri jolly protetti), al massimo 200 righe; poi
+`titleQuery`), al massimo 200 righe. Dalla build 213 ignora maiuscole e
+accenti («attivita» trova «attività»): un `LIKE` largo, con `_` al posto
+delle lettere che possono essere accentate, restringe in SQLite; poi il
+titolo, normalizzato in NFD e senza segni diacritici, conferma in Java. poi
 si mostrano i 30 risultati più vicini, prima i prossimi e poi i passati più
 recenti. Toccando un risultato si apre lo stesso dettaglio dell'Agenda. Nulla
 viene salvato. I filtri della ricerca (Oggi, Senza data, …) riguardano solo
@@ -289,4 +388,13 @@ le attività e nascondono la sezione Eventi.
 - `lib/ui/views/agenda_event_sheet.dart` e `agenda_event_editor.dart`:
   dettaglio, creazione, modifica ed eliminazione.
 - `android/app/.../AgendaChannel.java`: query nativa e riduzione ai link.
-- `test/agenda_test.dart` e `AgendaChannelTest.java`: regressioni.
+- `lib/domain/agenda_request.dart`, `lib/services/agenda_requests.dart`,
+  `agenda_phone_sync.dart` e `lib/background/agenda_background.dart`: coda
+  dal Web, telefono e job in background.
+- `android/app/.../AgendaBackground.java` e `AgendaBackgroundJob.java`: job,
+  impronta e motore headless.
+- `lib/domain/text_fold.dart`: ricerca senza accenti (attività, Agenda, Web).
+- `test/agenda_test.dart`, `agenda_requests_test.dart`,
+  `agenda_overlap_test.dart`, `search_fold_test.dart`,
+  `AgendaChannelTest.java`, `AgendaBackgroundTest.java` e
+  `tools/sql-tests/agenda_requests.mjs`: regressioni.

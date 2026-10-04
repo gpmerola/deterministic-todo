@@ -359,6 +359,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
   ) {
     final theme = Theme.of(context);
     final blocks = layoutDayTimeline(entries, date, minMinutes: 25);
+    final clashing = agendaOverlaps(entries).keys.toSet();
     final line = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -415,6 +416,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     block.entry,
                     widget.colors[block.entry.calendarIds.first] ??
                         theme.colorScheme.primary,
+                    clash: clashing.contains(block.entry.instanceId),
                   ),
                 ),
               if (date == widget.today)
@@ -436,13 +438,24 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     );
   }
 
-  Widget _block(BuildContext context, AgendaEntry entry, Color color) {
+  Widget _block(
+    BuildContext context,
+    AgendaEntry entry,
+    Color color, {
+    bool clash = false,
+  }) {
     final onColor = color.computeLuminance() > 0.5
         ? Colors.black87
         : Colors.white;
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(3),
+      // Overlapping another timed event: outlined in the error colour.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(3),
+        side: clash
+            ? BorderSide(color: Theme.of(context).colorScheme.error, width: 1.5)
+            : BorderSide.none,
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => unawaited(widget.onOpen(entry)),
