@@ -357,7 +357,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: monday, matching: find.text('9')),
+      find.descendant(of: monday, matching: find.text('9:00')),
       findsOneWidget,
     );
     // The month fills the screen: a day shows every entry that fits its
@@ -435,13 +435,16 @@ void main() {
     final byId = {for (final block in blocks) block.entry.instanceId: block};
     expect(byId.keys, ['a', 'b', 'c', 'd', 'night']);
     expect((byId['a']!.startMinute, byId['a']!.endMinute), (540, 600));
-    // a and b overlap; c starts when a ends and reuses its column.
+    // b starts 30 minutes after a: drawn over it, one step to the right,
+    // not squeezed beside it; c overlaps only b and cascades over b.
     expect(
-      (byId['a']!.column, byId['b']!.column, byId['c']!.column),
-      (0, 1, 0),
+      (byId['a']!.indent, byId['b']!.indent, byId['c']!.indent),
+      (0, 1, 2),
     );
-    expect(byId['a']!.columns, 2);
-    expect(byId['c']!.columns, 2);
+    expect(
+      (byId['a']!.columns, byId['b']!.columns, byId['c']!.columns),
+      (1, 1, 1),
+    );
     // Zero-length events still get a visible minimum height.
     expect((byId['d']!.startMinute, byId['d']!.endMinute), (840, 860));
     expect(byId['d']!.columns, 1);
@@ -451,6 +454,34 @@ void main() {
       (1380, 1440),
     );
   });
+
+  test(
+    'eventi che iniziano insieme stanno affiancati, gli altri a cascata',
+    () {
+      final blocks = layoutDayTimeline([
+        entryAt('nads', 14, 0, 120),
+        entryAt('call', 15, 0, 60),
+        entryAt('beppe', 15, 45, 45),
+        entryAt('case', 11, 0, 60),
+        entryAt('tng', 11, 0, 60),
+        entryAt('later', 11, 20, 30),
+      ], first);
+      final byId = {for (final block in blocks) block.entry.instanceId: block};
+      // Same start (or within 30 minutes): side by side.
+      expect(
+        (byId['case']!.column, byId['tng']!.column, byId['later']!.column),
+        (0, 1, 2),
+      );
+      expect(byId['case']!.columns, 3);
+      expect(byId['case']!.indent, 0);
+      // Staggered starts: a cascade, every block keeps the full width.
+      expect(
+        (byId['nads']!.indent, byId['call']!.indent, byId['beppe']!.indent),
+        (0, 1, 2),
+      );
+      expect(byId['beppe']!.columns, 1);
+    },
+  );
 
   test('filtra inviti senza risposta e parole, senza maiuscole', () {
     final days = buildAgenda(
@@ -1233,7 +1264,7 @@ void main() {
   });
 
   test('orario compatto nelle celle', () {
-    expect(compactTime(DateTime(2026, 10, 5, 9)), '9');
+    expect(compactTime(DateTime(2026, 10, 5, 9)), '9:00');
     expect(compactTime(DateTime(2026, 10, 5, 16, 30)), '16:30');
     expect(compactTime(DateTime(2026, 10, 5, 8, 5)), '8:05');
   });

@@ -278,7 +278,7 @@ class AgendaDayCell extends StatelessWidget {
         child: Opacity(
           opacity: dim,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(1, 2, 1, 0),
+            padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final shown = shownEntries(entries, constraints.maxHeight - 19);
@@ -312,6 +312,7 @@ class AgendaDayCell extends StatelessWidget {
                       AgendaChip(
                         entry: entry,
                         twoLines: true,
+                        day: date,
                         color:
                             colors[entry.calendarIds.first] ??
                             theme.colorScheme.primary,

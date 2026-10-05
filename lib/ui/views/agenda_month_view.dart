@@ -251,10 +251,11 @@ class AgendaWeekdayHeader extends StatelessWidget {
   }
 }
 
-/// "9" on the hour, otherwise "16:30": the shortest readable start.
-String compactTime(DateTime moment) => moment.minute == 0
-    ? '${moment.hour}'
-    : '${moment.hour}:${moment.minute.toString().padLeft(2, '0')}';
+/// "9:00", "16:30": always hours and minutes. Until build 219 whole hours
+/// were shortened to "9", which read as a number rather than a time; the
+/// time now has its own line, so the minutes fit.
+String compactTime(DateTime moment) =>
+    '${moment.hour}:${moment.minute.toString().padLeft(2, '0')}';
 
 /// One entry in a grid cell, Google Calendar style: all-day events are
 /// filled with their calendar colour, timed events are a coloured dot and
@@ -265,8 +266,13 @@ class AgendaChip extends StatelessWidget {
     required this.color,
     this.showTime = false,
     this.twoLines = false,
+    this.day,
     super.key,
   });
+
+  /// The cell's day: a multi-day all-day event then joins its neighbours
+  /// as one bar, titled once (on its first day and on Mondays).
+  final CivilDate? day;
 
   /// Prefixes the start time of timed events (only where space allows).
   final bool showTime;
@@ -327,14 +333,28 @@ class AgendaChip extends StatelessWidget {
     }
     if (entry.allDay) {
       final fill = agendaEventFill(color, theme.colorScheme);
+      final cell = day;
+      final before = cell != null && entry.start.isBefore(cell.asLocalDate);
+      final after =
+          cell != null && entry.end.isAfter(cell.addDays(1).asLocalDate);
+      final titled = !before || cell.asLocalDate.weekday == DateTime.monday;
+      const round = Radius.circular(3);
       return Container(
-        margin: const EdgeInsets.only(bottom: 1.5),
+        // Continuing sides reach the cell edge and stay square.
+        margin: EdgeInsets.only(
+          bottom: 1.5,
+          left: before ? 0 : 1,
+          right: after ? 0 : 1,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
         decoration: BoxDecoration(
           color: fill,
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.horizontal(
+            left: before ? Radius.zero : round,
+            right: after ? Radius.zero : round,
+          ),
         ),
-        child: text(title, agendaOnFill(fill)),
+        child: text(titled ? title : ' ', agendaOnFill(fill)),
       );
     }
     if (twoLines) {

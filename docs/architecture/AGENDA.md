@@ -407,6 +407,35 @@ recenti. Toccando un risultato si apre lo stesso dettaglio dell'Agenda. Nulla
 viene salvato. I filtri della ricerca (Oggi, Senza data, …) riguardano solo
 le attività e nascondono la sezione Eventi.
 
+## Calendario, secondo giro (build 220)
+
+- **3 giorni** (`AgendaViewMode.threeDays`): `AgendaWeekView` con
+  `dayCount: 3`, da oggi, si scorre di 3 giorni in 3 giorni. Nei blocchi
+  larghi almeno 90 dp compare l'intervallo «9:00–10:00».
+- **Cascata** (`layoutDayTimeline`, `TimelineBlock.indent`,
+  `timelineSlot`):
+  - eventi che iniziano entro 30 minuti l'uno dall'altro si dividono la
+    larghezza;
+  - un evento che inizia più tardi e si sovrappone viene disegnato sopra,
+    con un rientro del 12% della corsia per livello (al massimo 4 livelli).
+- **Orari** (`compactTime`): sempre «H:mm».
+- **Barre di più giorni**: `AgendaChip(day:)` lascia aperti e squadrati i
+  lati che continuano; il titolo compare il primo giorno e il lunedì.
+- **Oggi** con il numero del giorno; icone distinte per le viste.
+- **Elenco**: gli eventi di oggi già finiti sono al 50% di opacità.
+
+**Prove su emulatore.** `tools/emulator_agenda_seed.py` crea in un
+emulatore Android tre calendari locali e circa 80 eventi sintetici. Tra
+questi: sovrapposizioni, eventi di giornata intera e di più giorni, una
+serie settimanale e un evento in un altro fuso. Lo script si rifiuta di
+girare su un dispositivo che non è un emulatore.
+
+Sul Mac l'emulatore è l'AVD `todo_s21` (1080×2400, 420 dpi, come il
+Galaxy S21), con immagine `android-35;google_apis;arm64-v8a`. Va avviato
+con `-no-window`, il tema scuro si imposta con `cmd uimode night yes` e il
+fuso con `cmd alarm set-timezone Europe/London`. Così le prove
+dell'interfaccia non usano il telefono dell'utente né dati reali.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
@@ -428,6 +457,7 @@ le attività e nascondono la sezione Eventi.
 - `android/app/.../AgendaBackground.java` e `AgendaBackgroundJob.java`: job,
   impronta e motore headless.
 - `lib/domain/text_fold.dart`: ricerca senza accenti (attività, Agenda, Web).
+- `tools/emulator_agenda_seed.py`: calendari sintetici per l'emulatore.
 - `test/agenda_test.dart`, `agenda_requests_test.dart`,
   `agenda_overlap_test.dart`, `search_fold_test.dart`,
   `AgendaChannelTest.java`, `AgendaBackgroundTest.java` e

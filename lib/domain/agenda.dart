@@ -525,15 +525,32 @@ final class TimelineBlock {
     required this.endMinute,
     required this.column,
     required this.columns,
+    this.indent = 0,
   });
 
   final AgendaEntry entry;
   final int startMinute;
   final int endMinute;
 
-  /// Side-by-side slot among overlapping blocks, 0-based, of [columns].
+  /// Side-by-side slot among events starting together, 0-based, of
+  /// [columns].
   final int column;
   final int columns;
+
+  /// Cascade level: an event starting well after one it overlaps is drawn
+  /// over it, shifted right by this many steps, instead of squeezing both
+  /// into narrow columns (Google Calendar's layout, build 220).
+  final int indent;
+}
+
+/// Horizontal placement of [block] in a lane [width] wide: left offset and
+/// width. Each cascade step shifts right by 12% of the lane (at most four
+/// steps); columns share what is left.
+({double left, double width}) timelineSlot(TimelineBlock block, double width) {
+  final step = width * 0.12;
+  final shift = math.min(block.indent, 4) * step;
+  final columnWidth = (width - shift) / block.columns;
+  return (left: shift + block.column * columnWidth, width: columnWidth);
 }
 
 /// Timed events that overlap another timed event, by instance id, with the
@@ -597,15 +614,49 @@ List<TimelineBlock> layoutDayTimeline(
         return byStart != 0 ? byStart : b.end.compareTo(a.end);
       });
 
+  // Events starting within this window of each other share columns;
+  // later overlapping ones cascade over them (see [TimelineBlock.indent]).
+  const parallelWindow = 30;
+  final groups = <_TimelineGroup>[];
+  for (final item in placed) {
+    final start = item.start.clamp(0, 24 * 60 - minMinutes);
+    final end = math.min(math.max(item.end, start + minMinutes), 24 * 60);
+    final active = [
+      for (final group in groups)
+        if (group.end > start) group,
+    ];
+    final parallel = active
+        .where((group) => group.start + parallelWindow > start)
+        .lastOrNull;
+    final group =
+        parallel ??
+        _TimelineGroup(
+          start,
+          active.isEmpty ? 0 : active.map((g) => g.indent).reduce(math.max) + 1,
+        );
+    if (parallel == null) groups.add(group);
+    // First column whose blocks have all ended by [start].
+    var column = 0;
+    while (group.items.any(
+      (other) => other.column == column && other.end > start,
+    )) {
+      column++;
+    }
+    group.items.add((
+      entry: item.entry,
+      start: start,
+      end: end,
+      column: column,
+    ));
+    group.end = math.max(group.end, end);
+  }
   final result = <TimelineBlock>[];
-  var cluster = <({AgendaEntry entry, int start, int end, int column})>[];
-  var clusterEnd = -1;
-  void flush() {
-    final columns = cluster.fold(
+  for (final group in groups) {
+    final columns = group.items.fold(
       0,
       (max, item) => item.column + 1 > max ? item.column + 1 : max,
     );
-    for (final item in cluster) {
+    for (final item in group.items) {
       result.add(
         TimelineBlock(
           entry: item.entry,
@@ -613,31 +664,20 @@ List<TimelineBlock> layoutDayTimeline(
           endMinute: item.end,
           column: item.column,
           columns: columns,
+          indent: group.indent,
         ),
       );
     }
-    cluster = [];
   }
-
-  for (final item in placed) {
-    final start = item.start.clamp(0, 24 * 60 - minMinutes);
-    final end = math.min(math.max(item.end, start + minMinutes), 24 * 60);
-    if (cluster.isNotEmpty && start >= clusterEnd) {
-      flush();
-      clusterEnd = -1;
-    }
-    // First column whose blocks have all ended by [start].
-    var column = 0;
-    while (cluster.any(
-      (other) => other.column == column && other.end > start,
-    )) {
-      column++;
-    }
-    cluster.add((entry: item.entry, start: start, end: end, column: column));
-    clusterEnd = math.max(clusterEnd, end);
-  }
-  if (cluster.isNotEmpty) flush();
   return result;
+}
+
+final class _TimelineGroup {
+  _TimelineGroup(this.start, this.indent) : end = start;
+  final int start;
+  final int indent;
+  int end;
+  final items = <({AgendaEntry entry, int start, int end, int column})>[];
 }
 
 /// "London · UTC+1" from "Europe/London · UTC+1": the city part of the IANA

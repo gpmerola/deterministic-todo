@@ -392,8 +392,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     Set<String> clashing,
   ) {
     const unit = AgendaDayPage.hourHeight / 60;
-    final available = width - _gutter - 4;
-    final columnWidth = available / block.columns;
+    final slot = timelineSlot(block, width - _gutter - 4);
     final scheme = Theme.of(context).colorScheme;
     final color = agendaEventFill(
       widget.colors[block.entry.calendarIds.first] ?? scheme.primary,
@@ -402,8 +401,8 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     return Positioned(
       key: ValueKey('agenda-block-${block.entry.instanceId}'),
       top: block.startMinute * unit + 1,
-      left: _gutter + block.column * columnWidth,
-      width: columnWidth - 2,
+      left: _gutter + slot.left,
+      width: slot.width - 2,
       height: (block.endMinute - block.startMinute) * unit - 2,
       child: _Block(
         entry: block.entry,

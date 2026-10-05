@@ -19,7 +19,8 @@ enum AgendaAccess {
 }
 
 /// A whole month per screen is the default (build 205); the choice is kept.
-enum AgendaViewMode { week, twoWeeks, month, list }
+/// [threeDays] (build 220): today and the next two days, to scale.
+enum AgendaViewMode { threeDays, week, twoWeeks, month, list }
 
 /// Access to every calendar the Android system provider holds, including
 /// Outlook/Exchange accounts synced by their own apps. Events are read on

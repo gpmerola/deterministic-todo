@@ -2,6 +2,22 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.58.0 (build 220) — Todo Test
+
+Calendario, secondo giro (provato su emulatore con calendari finti):
+
+- **Vista 3 giorni**: oggi e i due giorni dopo, in scala. Le colonne sono
+  larghe: titoli quasi interi e orario «9:00–10:00» in ogni blocco.
+- **Sovrapposizioni come Google Calendar**: solo gli eventi che iniziano
+  insieme si dividono la colonna. Quelli che iniziano dopo sono disegnati
+  sopra, spostati un po' a destra, invece che in strisce illeggibili.
+- **Orari sempre completi** («9:00», non «9»); nei blocchi della settimana
+  l'orario d'inizio compare appena c'è spazio.
+- **Eventi di più giorni** come una barra continua nel mese e nelle
+  2 settimane, con il titolo una volta per settimana.
+- Pulsante **Oggi** con il numero del giorno; icone diverse per ogni vista.
+- Nell'**Elenco** gli eventi di oggi già finiti sono attenuati.
+
 ## 2.57.0 (build 219) — Todo Test
 
 Revisione dell'interfaccia sugli screenshot del Galaxy (8 punti):

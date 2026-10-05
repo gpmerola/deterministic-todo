@@ -74,6 +74,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   final monthPage = PageController(initialPage: AgendaMonthView.monthsBack);
   final weeksPage = PageController(initialPage: AgendaWeeksView.pagesBack);
   final weekPage = PageController(initialPage: AgendaWeekView.weeksBack);
+  final threeDaysPage = PageController(initialPage: AgendaWeekView.weeksBack);
   bool loading = true;
   bool failed = false;
   int _generation = 0;
@@ -104,6 +105,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     monthPage.dispose();
     weeksPage.dispose();
     weekPage.dispose();
+    threeDaysPage.dispose();
     super.dispose();
   }
 
@@ -300,6 +302,15 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 
   void _scrollToToday() {
+    if (mode == AgendaViewMode.threeDays && threeDaysPage.hasClients) {
+      unawaited(
+        threeDaysPage.animateToPage(
+          AgendaWeekView.weeksBack,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
     if (mode == AgendaViewMode.week && weekPage.hasClients) {
       unawaited(
         weekPage.animateToPage(
@@ -430,6 +441,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       filtered: filter.isActive,
       onMode: (next) => unawaited(_setMode(next)),
       onToday: mode == AgendaViewMode.list ? null : _scrollToToday,
+      today: widget.today,
       zone: mode == AgendaViewMode.list ? zoneText : null,
       onChoose: _chooseCalendars,
       failures: widget.service.failedRequests.length,
@@ -462,7 +474,24 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         ),
       ),
     );
-    final body = mode == AgendaViewMode.week
+    final body = mode == AgendaViewMode.threeDays
+        ? AgendaWeekView(
+            key: const ValueKey('agenda-three-days'),
+            dayCount: 3,
+            today: widget.today,
+            revision: revision,
+            controller: threeDaysPage,
+            colors: colors,
+            loadDays: (first, count) =>
+                _readDays(calendars, hidden, filter, first, count),
+            peekDays: _peekDays,
+            onOpenDay: openDay,
+            onOpen: _showEvent,
+            onCreate: widget.service.canWrite
+                ? (start) => _createEvent(start: start)
+                : null,
+          )
+        : mode == AgendaViewMode.week
         ? AgendaWeekView(
             today: widget.today,
             revision: revision,
@@ -583,6 +612,7 @@ class _AgendaHeader extends StatelessWidget {
     this.filtered = false,
     required this.onMode,
     required this.onToday,
+    required this.today,
     required this.onChoose,
     this.zone,
     this.onSearch,
@@ -604,14 +634,19 @@ class _AgendaHeader extends StatelessWidget {
   final bool filtered;
   final ValueChanged<AgendaViewMode> onMode;
   final VoidCallback? onToday;
+
+  /// Shown inside the Today button, as calendar apps do.
+  final CivilDate today;
   final VoidCallback onChoose;
   final VoidCallback? onSearch;
   final VoidCallback? onSettings;
 
   static const _modes = {
-    AgendaViewMode.week: (Icons.view_column_outlined, 'Settimana', 'Sett.'),
+    // One distinct shape per view (three looked alike, build 219).
+    AgendaViewMode.threeDays: (Icons.view_column_outlined, '3 giorni', '3 gg'),
+    AgendaViewMode.week: (Icons.calendar_view_week, 'Settimana', 'Sett.'),
     AgendaViewMode.twoWeeks: (
-      Icons.view_week_outlined,
+      Icons.date_range_outlined,
       '2 settimane',
       '2 sett.',
     ),
@@ -663,7 +698,7 @@ class _AgendaHeader extends StatelessWidget {
               key: const ValueKey('agenda-today'),
               tooltip: 'Oggi',
               onPressed: onToday,
-              icon: const Icon(Icons.today_outlined),
+              icon: _TodayIcon(day: today.day),
             ),
           // The list has no period title: the zone stays here. Grids show
           // it beside their title (see AgendaView).
@@ -790,14 +825,23 @@ class _AgendaDaySection extends StatelessWidget {
           )
         else
           for (final entry in day.entries)
-            AgendaEntryTile(
-              entry: entry,
-              day: day.date,
-              color: colors[entry.calendarIds.first],
-              calendarNames: [
-                for (final id in entry.calendarIds) names[id] ?? '',
-              ],
-              onTap: () => onOpen(entry),
+            // Already over today: dimmed, so what is left stands out.
+            Opacity(
+              opacity:
+                  day.date == today &&
+                      !entry.allDay &&
+                      entry.end.isBefore(DateTime.now())
+                  ? 0.5
+                  : 1,
+              child: AgendaEntryTile(
+                entry: entry,
+                day: day.date,
+                color: colors[entry.calendarIds.first],
+                calendarNames: [
+                  for (final id in entry.calendarIds) names[id] ?? '',
+                ],
+                onTap: () => onOpen(entry),
+              ),
             ),
         const Divider(height: 1),
       ],
@@ -1250,6 +1294,39 @@ class _ZoneLabel extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Calendar outline with today's day number.
+class _TodayIcon extends StatelessWidget {
+  const _TodayIcon({required this.day});
+
+  final int day;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = IconTheme.of(context).color;
+    return SizedBox.square(
+      dimension: 24,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Icon(Icons.calendar_today_outlined),
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Text(
+              '$day',
+              style: TextStyle(
+                fontSize: 9,
+                height: 1,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -12,11 +12,14 @@ import 'agenda_month_view.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
 import 'agenda_word_wrap.dart';
 
-/// Seven day columns with hours to scale, like Google Calendar's week view:
-/// free slots across the week are visible at a glance. Swipe sideways for
-/// the previous or next week; each week reads the provider when built.
+/// Day columns with hours to scale, like Google Calendar's week view: free
+/// slots are visible at a glance. Seven days from Monday, or [dayCount] = 3
+/// from today (wider columns: titles and times readable on a phone). Swipe
+/// sideways for the previous or next page; each page reads the provider
+/// when built.
 class AgendaWeekView extends StatefulWidget {
   const AgendaWeekView({
+    this.dayCount = 7,
     required this.today,
     required this.revision,
     required this.loadDays,
@@ -30,6 +33,8 @@ class AgendaWeekView extends StatefulWidget {
     super.key,
   });
 
+  /// 7 (week from Monday) or 3 (from today).
+  final int dayCount;
   final CivilDate today;
   final int revision;
   final AgendaDaysLoader loadDays;
@@ -69,8 +74,12 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
   final Set<int> _stale = {};
   int _generation = 0;
 
-  CivilDate _mondayOf(int page) =>
-      mondayOf(widget.today).addDays((page - AgendaWeekView.weeksBack) * 7);
+  /// First day of [page]: Mondays for the week, today ± 3n for 3 days.
+  CivilDate _mondayOf(int page) => widget.dayCount == 7
+      ? mondayOf(widget.today).addDays((page - AgendaWeekView.weeksBack) * 7)
+      : widget.today.addDays(
+          (page - AgendaWeekView.weeksBack) * widget.dayCount,
+        );
 
   @override
   void didUpdateWidget(covariant AgendaWeekView oldWidget) {
@@ -93,7 +102,7 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
     if (!_loading.add(page)) return;
     final generation = _generation;
     try {
-      final result = await widget.loadDays(_mondayOf(page), 7);
+      final result = await widget.loadDays(_mondayOf(page), widget.dayCount);
       if (!mounted || generation != _generation) return;
       setState(() {
         _weeks[page] = result;
@@ -118,7 +127,7 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
       final monday = _mondayOf(page);
       var days = _weeks[page];
       if (days == null) {
-        days = widget.peekDays(monday, 7);
+        days = widget.peekDays(monday, widget.dayCount);
         if (days != null) _weeks[page] = days;
       }
       if ((days == null || _stale.contains(page)) && !_failed.contains(page)) {
@@ -129,6 +138,7 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
       return AgendaWeekPage(
         key: ValueKey('agenda-week-$monday'),
         monday: monday,
+        dayCount: widget.dayCount,
         today: widget.today,
         days: days ?? const [],
         colors: widget.colors,
@@ -144,6 +154,7 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
 class AgendaWeekPage extends StatefulWidget {
   const AgendaWeekPage({
     required this.monday,
+    this.dayCount = 7,
     required this.today,
     required this.days,
     required this.colors,
@@ -154,7 +165,9 @@ class AgendaWeekPage extends StatefulWidget {
     super.key,
   });
 
+  /// First day shown (a Monday in the week view).
   final CivilDate monday;
+  final int dayCount;
   final CivilDate today;
   final List<AgendaDay> days;
   final Map<String, Color?> colors;
@@ -181,7 +194,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     final offset = widget.today.asLocalDate
         .difference(widget.monday.asLocalDate)
         .inDays;
-    return offset >= 0 && offset < 7;
+    return offset >= 0 && offset < widget.dayCount;
   }
 
   @override
@@ -194,7 +207,9 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final byDate = {for (final day in widget.days) day.date: day};
-    final dates = [for (var i = 0; i < 7; i++) widget.monday.addDays(i)];
+    final dates = [
+      for (var i = 0; i < widget.dayCount; i++) widget.monday.addDays(i),
+    ];
     final allDay = [
       for (final date in dates)
         [
@@ -233,7 +248,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(width: _gutter),
-              for (var i = 0; i < 7; i++)
+              for (var i = 0; i < dates.length; i++)
                 Expanded(
                   child: InkWell(
                     onTap: () => widget.onOpenDay(dates[i]),
@@ -411,8 +426,8 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                   top: block.startMinute * _hour / 60 + 0.5,
                   height:
                       (block.endMinute - block.startMinute) * _hour / 60 - 1,
-                  left: block.column * width / block.columns + 0.5,
-                  width: width / block.columns - 1,
+                  left: timelineSlot(block, width).left + 0.5,
+                  width: timelineSlot(block, width).width - 1,
                   child: _block(
                     context,
                     block.entry,
@@ -462,9 +477,42 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
         onTap: () => unawaited(widget.onOpen(entry)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(2, 1, 1, 0),
-          child: AgendaWordWrap(
-            entry.title.isEmpty ? '(senza titolo)' : entry.title,
-            style: TextStyle(color: onColor, fontSize: 9.5, height: 1.15),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 90;
+              final style = TextStyle(
+                color: onColor,
+                fontSize: wide ? 11 : 9.5,
+                height: 1.15,
+              );
+              final title = AgendaWordWrap(
+                entry.title.isEmpty ? '(senza titolo)' : entry.title,
+                style: style.copyWith(fontWeight: FontWeight.w600),
+              );
+              // The start time, when the block has room for it: times
+              // must read at a glance (user request, build 220).
+              if (constraints.maxHeight < 30) return title;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    // The whole span where the block is wide (3 days).
+                    wide
+                        ? '${compactTime(entry.start)}–'
+                              '${compactTime(entry.end)}'
+                        : compactTime(entry.start),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.clip,
+                    style: style.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: wide ? 10.5 : 9,
+                    ),
+                  ),
+                  Expanded(child: title),
+                ],
+              );
+            },
           ),
         ),
       ),
