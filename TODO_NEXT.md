@@ -31,6 +31,11 @@ settimana e mese, e dell'editor. Diagnosi originale:
   ottobre presenti; SLaM resta libero/occupato via Google (verificato
   acceso in Agenda).
 - [ ] Facoltativo: k25129662 anche in Samsung Email.
+- [x] Build 225: «Nascondi festività» attivo per default (richiesta del
+  5 ottobre). Web 225 dopo `PUBBLICA`.
+- Barre di più giorni viste dall'utente: «Nicolas Ramoz visit» (6–10 ott)
+  e «Sanberk Ugur visit» (12–16 ott), calendario KCL; nessun altro evento di
+  più giorni tra −30 e +90 giorni.
 - [x] Build 223: «Canceled:» nascosti; «senza risposta» dalla copia che lo
   sa; filtro dopo l'unione.
 - [ ] Web 221 dopo `PUBBLICA`.

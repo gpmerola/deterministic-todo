@@ -27,6 +27,7 @@ void main() {
   timelineScaleTests();
   dragSpanTests();
   mergeStatusTests();
+  holidayTests();
 
   test('overlapping timed events clash both ways, in start order', () {
     final clashes = agendaOverlaps([
@@ -232,5 +233,37 @@ void mergeStatusTests() {
       hiddenCalendarIds: const {},
     );
     expect(entries, isEmpty);
+  });
+}
+
+void holidayTests() {
+  AgendaCalendar cal(String id, String name) =>
+      AgendaCalendar(id: id, name: name, accountName: 'a');
+  test('holiday calendars are recognised by name', () {
+    for (final name in [
+      'Holidays in Italy',
+      'Festività in Italia',
+      'Festività ebraiche',
+      'United Kingdom holidays',
+      'Holidays in Switzerland',
+      '공휴일',
+      '법정기념일',
+    ]) {
+      expect(isHolidayCalendar(cal('x', name)), isTrue, reason: name);
+    }
+    for (final name in ['Calendario', 'Compleanni', 'SLAM', '✨ Assistente']) {
+      expect(isHolidayCalendar(cal('x', name)), isFalse, reason: name);
+    }
+  });
+
+  test('hiding holidays wins over an explicit choice', () {
+    final calendars = [cal('h', 'Holidays in Italy'), cal('k', 'Calendario')];
+    final choices = {'h': true, 'k': true};
+    expect(hiddenAgendaCalendars(calendars, choices), isEmpty);
+    expect(hiddenAgendaCalendars(calendars, choices, hideHolidays: true), {
+      'h',
+    });
+    expect(const AgendaFilter().hideHolidays, isTrue);
+    expect(AgendaFilter.none.isActive, isFalse);
   });
 }

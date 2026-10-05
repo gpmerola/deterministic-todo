@@ -1181,6 +1181,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       final hidden = hiddenAgendaCalendars(
         all,
         await agendaService.calendarChoices(),
+        hideHolidays: (await agendaService.filter()).hideHolidays,
       );
       calendars = [
         for (final calendar in all)
@@ -1376,6 +1377,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       hidden: hiddenAgendaCalendars(
         calendars,
         agendaService.lastChoices ?? const {},
+        hideHolidays:
+            (agendaService.lastFilter ?? AgendaFilter.none).hideHolidays,
       ),
       zone: agendaService.lastZoneLabel,
       onOpenTask: _openTaskById,

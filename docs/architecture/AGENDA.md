@@ -511,6 +511,16 @@ Altri account:
   del calendario davanti a ogni impegno; i colori vengono da
   `AgendaService.lastCalendars`, quindi anche quelli scelti dall'utente.
 
+## Festività (build 225)
+
+`AgendaFilter.hideHolidays` (salvato come `hide_holidays`; assente vale
+`true`) fa nascondere a `hiddenAgendaCalendars` ogni calendario per cui
+`isHolidayCalendar` riconosce il nome: holiday, festività, Feiertag,
+férié e i calendari coreani di Samsung. Vale in tutte le viste, nella
+ricerca, per l'assistente ✨ e nella copia per il Web. Nel pannello
+Calendari quei calendari appaiono spenti, con «Festività: nascosto»,
+finché l'opzione è attiva. «Compleanni» non è una festività.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.

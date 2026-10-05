@@ -226,6 +226,7 @@ class WebAgendaService extends AgendaService {
         hiddenCalendarIds: hiddenAgendaCalendars(
           calendarList,
           lastChoices ?? await calendarChoices(),
+          hideHolidays: (lastFilter ?? await filter()).hideHolidays,
         ),
         filter: lastFilter ?? await filter(),
       ),

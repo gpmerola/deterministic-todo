@@ -81,6 +81,7 @@ class AgendaService {
     final hidden = hiddenAgendaCalendars(
       all,
       lastChoices ?? await calendarChoices(),
+      hideHolidays: (lastFilter ?? await filter()).hideHolidays,
     );
     return [
       for (final calendar in all)
@@ -309,6 +310,8 @@ class AgendaService {
             for (final word in decoded['words'] as List? ?? const [])
               word as String,
           ],
+          // Absent in filters saved before build 225: on.
+          hideHolidays: decoded['hide_holidays'] as bool? ?? true,
         );
       } on FormatException {
         result = AgendaFilter.none;
@@ -329,6 +332,7 @@ class AgendaService {
             value: jsonEncode({
               'hide_unanswered': filter.hideUnanswered,
               'words': filter.hiddenWords,
+              'hide_holidays': filter.hideHolidays,
             }),
           ),
         );
@@ -493,6 +497,7 @@ class AgendaService {
     final hidden = hiddenAgendaCalendars(
       calendarList,
       lastChoices ?? await calendarChoices(),
+      hideHolidays: (lastFilter ?? await filter()).hideHolidays,
     );
     final ids = [
       for (final calendar in calendarList)
@@ -574,6 +579,7 @@ class AgendaService {
     final hidden = hiddenAgendaCalendars(
       calendarList,
       lastChoices ?? await calendarChoices(),
+      hideHolidays: (lastFilter ?? await filter()).hideHolidays,
     );
     final found =
         await events(first.asLocalDate, first.addDays(count).asLocalDate, [

@@ -144,14 +144,26 @@ String? defaultEventCalendar(
 }
 
 /// Calendars left out of the agenda: an explicit choice wins, otherwise the
-/// phone's own visibility setting.
+/// phone's own visibility setting. With [hideHolidays] every holiday
+/// calendar is left out whatever the choice (build 225).
 Set<String> hiddenAgendaCalendars(
   List<AgendaCalendar> calendars,
-  Map<String, bool> choices,
-) => {
+  Map<String, bool> choices, {
+  bool hideHolidays = false,
+}) => {
   for (final calendar in calendars)
-    if (!(choices[calendar.id] ?? calendar.visibleBySystem)) calendar.id,
+    if ((hideHolidays && isHolidayCalendar(calendar)) ||
+        !(choices[calendar.id] ?? calendar.visibleBySystem))
+      calendar.id,
 };
+
+/// Public-holiday calendars added by Google, Samsung or Exchange accounts,
+/// recognised by name: "Holidays in Italy", "Festività in Italia",
+/// "United Kingdom holidays", "Festività ebraiche", Samsung's Korean ones…
+bool isHolidayCalendar(AgendaCalendar calendar) => RegExp(
+  r'holiday|festivit|feiertag|férié|ferie|festivo|공휴일|기념일|절기',
+  caseSensitive: false,
+).hasMatch(calendar.name);
 
 /// One occurrence read from the system provider. Never persisted or synced:
 /// work calendars may contain clinical details.
@@ -224,7 +236,11 @@ final class AgendaFilter {
   const AgendaFilter({
     this.hideUnanswered = false,
     this.hiddenWords = const [],
+    this.hideHolidays = true,
   });
+
+  /// Holiday calendars stay out of the Agenda (on by default, build 225).
+  final bool hideHolidays;
 
   static const none = AgendaFilter();
 

@@ -134,6 +134,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       final nextHidden = hiddenAgendaCalendars(
         nextCalendars,
         await widget.service.calendarChoices(),
+        hideHolidays: nextFilter.hideHolidays,
       );
       // The month view reads each month itself; only the list needs a window.
       final nextDays = nextMode == AgendaViewMode.list
@@ -228,7 +229,11 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     if (cachedCalendars == null || cachedChoices == null) return;
     access = AgendaAccess.granted;
     calendars = cachedCalendars;
-    hidden = hiddenAgendaCalendars(cachedCalendars, cachedChoices);
+    hidden = hiddenAgendaCalendars(
+      cachedCalendars,
+      cachedChoices,
+      hideHolidays: (service.lastFilter ?? AgendaFilter.none).hideHolidays,
+    );
     filter = service.lastFilter ?? AgendaFilter.none;
     mode = service.lastMode ?? AgendaViewMode.month;
     zone = service.lastZoneLabel;
@@ -1064,6 +1069,7 @@ class AgendaCalendarPicker extends StatefulWidget {
 class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   late final Set<String> hidden = {...widget.hidden};
   late bool hideUnanswered = widget.filter.hideUnanswered;
+  late bool hideHolidays = widget.filter.hideHolidays;
   late String? eventCalendarId = widget.eventCalendarId;
   late String? aiEventCalendarId = widget.aiEventCalendarId;
   late final List<String> words = [...widget.filter.hiddenWords];
@@ -1229,6 +1235,15 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
         ),
         onChanged: (value) => setState(() => hideUnanswered = value),
       ),
+      SwitchListTile(
+        key: const ValueKey('agenda-hide-holidays'),
+        value: hideHolidays,
+        title: const Text('Nascondi festività'),
+        subtitle: const Text(
+          'Calendari delle feste nazionali e religiose di ogni account',
+        ),
+        onChanged: (value) => setState(() => hideHolidays = value),
+      ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
         child: Row(
@@ -1294,9 +1309,12 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
           ),
         );
       }
+      final holiday = hideHolidays && isHolidayCalendar(calendar);
       rows.add(
         SwitchListTile(
-          value: !hidden.contains(calendar.id),
+          // Held off by "Nascondi festività" while that is on.
+          value: !holiday && !hidden.contains(calendar.id),
+          subtitle: holiday ? const Text('Festività: nascosto') : null,
           // Tap the dot to choose a colour (build 221).
           secondary: InkWell(
             key: ValueKey('agenda-color-of-${calendar.id}'),
@@ -1315,9 +1333,11 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
             ),
           ),
           title: Text(calendar.name),
-          onChanged: (show) => setState(() {
-            show ? hidden.remove(calendar.id) : hidden.add(calendar.id);
-          }),
+          onChanged: holiday
+              ? null
+              : (show) => setState(() {
+                  show ? hidden.remove(calendar.id) : hidden.add(calendar.id);
+                }),
         ),
       );
     }
@@ -1353,6 +1373,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                         AgendaFilter(
                           hideUnanswered: hideUnanswered,
                           hiddenWords: List.unmodifiable(words),
+                          hideHolidays: hideHolidays,
                         ),
                         eventCalendarId: eventCalendarId,
                         aiEventCalendarId: aiEventCalendarId,

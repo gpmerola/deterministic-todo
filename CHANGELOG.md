@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.61.0 (build 225) — Todo Test
+
+- **Festività nascoste**: nel pannello Calendari c'è «Nascondi festività»,
+  attivo da subito. Toglie dall'Agenda ogni calendario di feste nazionali o
+  religiose di qualunque account (Holidays in Italy, Festività in Italia,
+  United Kingdom holidays, Festività ebraiche, quelli di Samsung…), anche
+  quelli che arriveranno con nuovi account. Si può disattivare.
+
 ## 2.60.0 (build 224) — Todo Test e Web
 
 - **Elenco**: la data del giorno resta fissa in alto mentre scorri i suoi

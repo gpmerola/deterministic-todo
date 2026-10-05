@@ -294,12 +294,22 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(SwitchListTile),
-        matching: find.text('Personale'),
-      ),
+    final personal = find.descendant(
+      of: find.byType(SwitchListTile),
+      matching: find.text('Personale'),
     );
+    // The list in the sheet is lazy: scroll to the calendar first.
+    await tester.scrollUntilVisible(
+      personal,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(AgendaCalendarPicker),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(personal);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Applica'));
     await tester.pumpAndSettle();
