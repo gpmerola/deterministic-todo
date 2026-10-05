@@ -2,6 +2,13 @@
 
 Aggiornato il 5 ottobre 2026.
 
+## Build 225 — Web pubblicata
+
+Web 2.61.0+225 pubblicata dopo conferma `PUBBLICA` dal commit `c1965db`:
+run `37324593122` riuscito, `release-info.json` verificato. Todo Test 2225
+pubblicata dalla CI rapida. Contiene «Nascondi festività» attivo per
+default.
+
 ## Build 224 — Web pubblicata
 
 Web 2.60.0+224 pubblicata dopo conferma `PUBBLICA` del 5 ottobre dal commit

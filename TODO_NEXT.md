@@ -32,7 +32,7 @@ settimana e mese, e dell'editor. Diagnosi originale:
   acceso in Agenda).
 - [ ] Facoltativo: k25129662 anche in Samsung Email.
 - [x] Build 225: «Nascondi festività» attivo per default (richiesta del
-  5 ottobre). Web 225 dopo `PUBBLICA`.
+  5 ottobre). Web 225 pubblicata e verificata.
 - Barre di più giorni viste dall'utente: «Nicolas Ramoz visit» (6–10 ott)
   e «Sanberk Ugur visit» (12–16 ott), calendario KCL; nessun altro evento di
   più giorni tra −30 e +90 giorni.
