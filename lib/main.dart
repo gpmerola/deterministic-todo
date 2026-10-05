@@ -28,7 +28,6 @@ import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
-import 'services/agenda_mirror.dart';
 import 'services/agenda_phone_sync.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
@@ -407,7 +406,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         )
       : null;
 
-  AgendaMirror? get agendaMirror => agendaSync?.mirror;
   Stream<List<Task>> _visibleTasks() {
     final today = dayClock.today;
     final start = selectedUpcomingDate == null
@@ -1317,7 +1315,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       ),
     );
     if (created == null || created == 0 || !mounted) return;
-    unawaited(agendaMirror?.upload());
+    unawaited(agendaSync?.changed());
     final batch = _lastAiCreated;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1403,7 +1401,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       db.tasks,
     )..where((t) => t.id.equals(id))).getSingle();
     await AgendaTaskLinks(db).setShown(task, true);
-    unawaited(agendaMirror?.upload());
+    unawaited(agendaSync?.changed());
   }
 
   Future<void> _showUniversalCommand() => showSearch<void>(
@@ -1474,7 +1472,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           onSearch: _showUniversalCommand,
           onCapture: isAndroidPlatform ? _openAiCapture : null,
           onSettings: () => _navigateTo(AppSection.settings),
-          onChanged: () => unawaited(agendaMirror?.upload()),
+          onChanged: () => unawaited(agendaSync?.changed()),
         ),
       );
     }

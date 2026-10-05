@@ -51,7 +51,9 @@ quell'account non compare; non esiste un aggiramento lato app.
   primario Google, poi il primo modificabile. Gli eventi creati non entrano in SQLite Todo né in Supabase.
 - **Solo locale.** Eventi, titoli, luoghi e descrizioni non vengono salvati in
   SQLite (salvo titolo e inizio degli eventi nascosti in Todo, dalla
-  226), nei log, nei backup o su Supabase: possono contenere dati clinici. È
+  226), nei log, nei backup o su Supabase: possono contenere dati clinici.
+  Eccezioni scelte dall'utente: la copia per il Web (build 212) e il backup
+  del calendario di Todo e delle scelte (build 227). È
   salvata soltanto la scelta dei calendari in
   `app_settings.agenda_calendar_choices`, una mappa `{id: mostrato}`. La build
   191 usava `agenda_hidden_calendars`, letta una volta come "nascosti". Gli ID
@@ -550,8 +552,7 @@ calendario», «Elimina dal calendario»), solo dove erano già permesse.
   creato con `createCalendar` del plugin solo al primo salvataggio di un
   evento in esso. Android non sincronizza gli account `LOCAL`: gli eventi
   restano sul telefono (e nella copia per il Web). Compare anche nelle app
-  calendario del telefono. Non è nei backup di Todo: un ripristino del
-  telefono lo perde.
+  calendario del telefono. Dalla 227 è nel backup su Supabase (sotto).
   - `AgendaCalendar.localOnly`; nella copia per il Web `local: true`, così
     il Web può creare e modificare eventi lì tramite la coda.
   - I suoi eventi non si uniscono mai con quelli degli altri calendari
@@ -568,6 +569,66 @@ calendario», «Elimina dal calendario»), solo dove erano già permesse.
   posto dell'originale, originale ancora presente nel provider, nascondi
   dal menu della pressione lunga, ripristino dal pannello.
 - Test: `test/agenda_hidden_test.dart`.
+
+## Backup su Supabase (build 227)
+
+Richiesta dell'utente (5 ottobre 2026): non perdere i dati dell'Agenda se
+perde il telefono. I calendari degli account (Google, KCL, SLaM) stanno già
+sui loro server. Resta solo ciò che esiste in Todo; l'utente ha scelto
+Supabase e di includere le note.
+
+**Contenuto** (`buildAgendaBackup`, una riga per utente in
+`agenda_backups.payload`):
+
+- gli eventi del calendario «Todo (solo telefono)», letti per intero dalla
+  tabella `Events` (`AgendaLocalEvents.read`): titolo, inizio e fine o
+  durata, giornata intera, fusi, luogo, **note**, regole di ripetizione
+  (`RRULE`, `RDATE`, `EXRULE`, `EXDATE`) e occorrenze modificate
+  (`ORIGINAL_ID`, `ORIGINAL_INSTANCE_TIME`);
+- le scelte: filtro con gli eventi nascosti, calendari mostrati, colori,
+  «Nuovi eventi in», calendario ✨, vista e flag «Mostra in agenda».
+
+Gli ID dei calendari valgono solo su un telefono: il backup li sostituisce
+con «account␟nome» (`agendaCalendarKey`). Un colore o una scelta di un
+calendario che il telefono nuovo non ha ancora (per esempio Samsung Email
+non ancora configurato) non viene ripristinato.
+
+**Quando** (`AgendaBackup.save`, chiamato da `AgendaPhoneSync`):
+
+- dopo ogni modifica nell'Agenda, all'avvio, al ritorno in primo piano e in
+  ogni giro del lavoro in background;
+- il telefono calcola l'hash SHA-256 del JSON canonico (chiavi ordinate):
+  se è uguale all'ultimo salvato (`app_settings.agenda_backup_base`) non
+  usa la rete;
+- un errore non fa ripetere il job in background: riprova al giro dopo.
+
+**Protezione da sovrascritture** (`save_agenda_backup_v1(backup, hash,
+base_hash)`, migrazione `202610050002_agenda_backup.sql`):
+
+- il server sostituisce il backup solo se è ancora quello che il telefono
+  ha salvato o ripristinato per ultimo (`base_hash`);
+- altrimenti risponde `conflict` e non scrive: un telefono nuovo e vuoto
+  non può cancellare il backup buono, né un telefono vecchio ritrovato
+  quello scritto dopo;
+- RLS «select own», scritture solo tramite la RPC, al massimo 4 MB.
+  Verificata con PGlite (`tools/sql-tests/agenda_backup.mjs`).
+
+**Ripristino** (`AgendaBackup.restore`):
+
+- con un conflitto l'Agenda mostra una nuvola nell'intestazione; la stessa
+  scheda si apre da ⋮ › Backup dell'Agenda, con data, numero di eventi
+  Todo e di nascosti;
+- **Ripristina** crea il calendario di Todo se manca e inserisce solo gli
+  eventi assenti (`AgendaLocalEvents.restore`; firma titolo, inizio,
+  ripetizione, istante originale): ripeterlo non crea doppioni. Prima le
+  serie, poi le occorrenze modificate (`CONTENT_EXCEPTION_URI`);
+- le scelte sostituiscono quelle del telefono per i calendari presenti; i
+  flag «Mostra in agenda» si sommano;
+- poi il telefono salva il nuovo stato come backup.
+- **Usa questo telefono**, con conferma, sostituisce il backup
+  dell'account con quello del telefono.
+
+Nulla di tutto questo entra nei log.
 
 ## Codice e test
 
@@ -591,7 +652,11 @@ calendario», «Elimina dal calendario»), solo dove erano già permesse.
   impronta e motore headless.
 - `lib/domain/text_fold.dart`: ricerca senza accenti (attività, Agenda, Web).
 - `tools/emulator_agenda_seed.py`: calendari sintetici per l'emulatore.
-- `test/agenda_test.dart`, `agenda_hidden_test.dart`, `agenda_requests_test.dart`,
+- `lib/services/agenda_backup.dart`, `lib/ui/views/agenda_backup_sheet.dart`
+  e `android/app/.../AgendaLocalEvents.java`: backup e ripristino.
+- `test/agenda_test.dart`, `agenda_hidden_test.dart`, `agenda_backup_test.dart`,
+  `agenda_requests_test.dart`,
   `agenda_overlap_test.dart`, `search_fold_test.dart`,
-  `AgendaChannelTest.java`, `AgendaBackgroundTest.java` e
-  `tools/sql-tests/agenda_requests.mjs`: regressioni.
+  `AgendaChannelTest.java`, `AgendaBackgroundTest.java`,
+  `AgendaLocalEventsTest.java`, `tools/sql-tests/agenda_requests.mjs` e
+  `agenda_backup.mjs`: regressioni.

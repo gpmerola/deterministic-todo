@@ -7,7 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/agenda.dart';
 import '../../domain/agenda_request.dart';
 import '../../domain/task.dart';
+import '../../services/agenda_backup.dart';
 import '../../services/agenda_service.dart';
+import 'agenda_backup_sheet.dart';
 import 'agenda_day_view.dart';
 import 'agenda_event_flows.dart';
 import 'agenda_month_view.dart';
@@ -84,6 +86,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AgendaBackup.pending.addListener(_backupChanged);
     _seedFromMemory();
     unawaited(_load());
   }
@@ -103,12 +106,17 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AgendaBackup.pending.removeListener(_backupChanged);
     monthPage.dispose();
     weeksPage.dispose();
     weekPage.dispose();
     threeDaysPage.dispose();
     listScroll.dispose();
     super.dispose();
+  }
+
+  void _backupChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -461,7 +469,17 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           : shortZoneLabel(zone!),
       ?widget.service.mirrorLabel,
     ].join(' · ');
+    final backup = AgendaBackup.current;
     final header = _AgendaHeader(
+      backupPending: AgendaBackup.pending.value != null,
+      onBackup: backup == null
+          ? null
+          : () async {
+              if (await showAgendaBackupSheet(context, backup)) {
+                widget.onChanged?.call();
+                await _load();
+              }
+            },
       visible: calendars.length - hidden.length,
       total: calendars.length,
       loading: loading,
@@ -671,7 +689,15 @@ class _AgendaHeader extends StatelessWidget {
     this.onCapture,
     this.failures = 0,
     this.onFailures,
+    this.onBackup,
+    this.backupPending = false,
   });
+
+  /// Supabase backup of Todo's own Agenda data (phone only).
+  final VoidCallback? onBackup;
+
+  /// The account holds a backup this phone has not restored yet.
+  final bool backupPending;
 
   /// Web changes the phone could not apply.
   final int failures;
@@ -777,6 +803,19 @@ class _AgendaHeader extends StatelessWidget {
                 child: Icon(Icons.sync_problem, color: theme.colorScheme.error),
               ),
             ),
+          if (backupPending && onBackup != null)
+            IconButton(
+              key: const ValueKey('agenda-backup-pending'),
+              tooltip: 'Backup dell\'Agenda da ripristinare',
+              visualDensity: VisualDensity.compact,
+              onPressed: onBackup,
+              icon: Badge(
+                child: Icon(
+                  Icons.cloud_download_outlined,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
           if (onCapture != null)
             IconButton(
               key: const ValueKey('agenda-ai-capture'),
@@ -801,13 +840,14 @@ class _AgendaHeader extends StatelessWidget {
               semanticsLabel: 'Calendari: $visible di $total',
             ),
           ),
-          if (onSearch != null || onSettings != null)
+          if (onSearch != null || onSettings != null || onBackup != null)
             PopupMenuButton<String>(
               key: const ValueKey('agenda-more'),
               tooltip: 'Altro',
               onSelected: (value) {
                 if (value == 'search') onSearch?.call();
                 if (value == 'settings') onSettings?.call();
+                if (value == 'backup') onBackup?.call();
               },
               itemBuilder: (_) => [
                 if (onSearch != null)
@@ -817,6 +857,15 @@ class _AgendaHeader extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.search_rounded),
                       title: Text('Cerca'),
+                    ),
+                  ),
+                if (onBackup != null)
+                  const PopupMenuItem(
+                    value: 'backup',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.cloud_outlined),
+                      title: Text('Backup dell\'Agenda'),
                     ),
                   ),
                 if (onSettings != null)

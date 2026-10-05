@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'agenda_backup.dart';
 import 'agenda_mirror.dart';
 import 'agenda_requests.dart';
 import 'agenda_service.dart';
@@ -15,7 +16,11 @@ class AgendaPhoneSync {
     required String deviceId,
     AgendaRequestProcessor? processor,
     AgendaMirror? mirror,
+    AgendaBackup? backup,
   }) : service = service,
+       backup =
+           backup ??
+           AgendaBackup(service: service, client: client, deviceId: deviceId),
        processor =
            processor ??
            AgendaRequestProcessor(service: service, client: client),
@@ -33,6 +38,9 @@ class AgendaPhoneSync {
   final AgendaRequestProcessor processor;
   final AgendaMirror mirror;
 
+  /// Supabase backup of Todo's own calendar and Agenda choices (build 227).
+  final AgendaBackup backup;
+
   /// App start and resume: throttled by the processor and the mirror. Also
   /// re-arms the jobs, which a signed-out background run cancels.
   Future<void> foreground() async {
@@ -43,6 +51,14 @@ class AgendaPhoneSync {
     } else {
       await mirror.uploadIfStale();
     }
+    // Local work only, unless something changed since the last backup.
+    await backup.save();
+  }
+
+  /// After a change made in the Agenda: the mirror, then the backup.
+  Future<void> changed() async {
+    await mirror.upload();
+    await backup.save();
   }
 
   /// One background run; the result tells the Android job what to do next:
@@ -53,15 +69,18 @@ class AgendaPhoneSync {
     if (client.auth.currentSession == null) return 'stop';
     if (await service.access() != AgendaAccess.granted) return 'stop';
     final handled = await processor.process();
-    if (reason == 'calendar' || handled > 0) {
-      return await mirror.upload() ? 'done' : 'retry';
-    }
-    return 'done';
+    var uploaded = true;
+    if (reason == 'calendar' || handled > 0) uploaded = await mirror.upload();
+    // A failed backup does not ask for retries: the next run or the next
+    // app start tries again, and an unchanged backup costs no network.
+    await backup.save();
+    return uploaded ? 'done' : 'retry';
   }
 
   /// Lets the background job reach this engine while the app is alive, and
   /// arms the jobs. Missing native side (tests, other platforms) is fine.
   Future<void> attach() async {
+    AgendaBackup.current = backup;
     backgroundChannel.setMethodCallHandler((call) async {
       if (call.method != 'run') throw MissingPluginException();
       return background(call.arguments as String? ?? 'periodic');

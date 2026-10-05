@@ -43,6 +43,10 @@ settimana e mese, e dell'editor. Diagnosi originale:
   «Todo (solo telefono)», senza toccare i calendari di origine; verificata
   su emulatore.
 - [ ] Riscontro dell'utente sulla 226 sul Galaxy; Web 226 dopo `PUBBLICA`.
+- [x] Build 227: backup dell'Agenda su Supabase (eventi Todo con note,
+  nascosti, scelte) e ripristino senza doppioni; `make check` verde.
+- [ ] Applicare `202610050002_agenda_backup.sql` nel SQL Editor (utente),
+  poi verificare sul Galaxy il primo backup e un ripristino su emulatore.
 
 ## P1 — Agenda dal Web e background, build 213
 

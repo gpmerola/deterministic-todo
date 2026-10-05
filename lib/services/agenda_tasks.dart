@@ -41,6 +41,20 @@ class AgendaTaskLinks {
   Future<bool> isShown(Task task) async =>
       (await _keys()).contains(_keyFor(task));
 
+  /// Adds flags restored from the Supabase backup; existing ones stay.
+  Future<void> addKeys(Iterable<String> keys) async {
+    final current = await _keys()
+      ..addAll(keys);
+    await _database
+        .into(_database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: key,
+            value: jsonEncode(current.toList()..sort()),
+          ),
+        );
+  }
+
   Future<void> setShown(Task task, bool shown) async {
     final keys = await _keys();
     shown ? keys.add(_keyFor(task)) : keys.remove(_keyFor(task));

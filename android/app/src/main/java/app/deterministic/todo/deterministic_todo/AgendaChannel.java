@@ -75,6 +75,10 @@ public final class AgendaChannel {
                     result.success(null);
                     return;
                 }
+                if (call.method.equals("localEvents") || call.method.equals("restoreLocalEvents")) {
+                    localEvents(app, call, result);
+                    return;
+                }
                 if (!call.method.equals("instances")) {
                     result.notImplemented();
                     return;
@@ -100,6 +104,31 @@ public final class AgendaChannel {
                     }
                 });
             });
+    }
+
+    /** Backup and restore of Todo's own calendar, off the main thread. */
+    private static void localEvents(Context app, io.flutter.plugin.common.MethodCall call,
+                                    MethodChannel.Result result) {
+        String calendarId = call.argument("calendarId");
+        List<Map<String, Object>> events = call.argument("events");
+        boolean restore = call.method.equals("restoreLocalEvents");
+        if (calendarId == null || (restore && events == null)) {
+            result.error("invalid_arguments", "Missing calendar", null);
+            return;
+        }
+        Handler main = new Handler(Looper.getMainLooper());
+        IO.execute(() -> {
+            try {
+                Object value = restore
+                    ? AgendaLocalEvents.restore(app, calendarId, events)
+                    : AgendaLocalEvents.read(app, calendarId);
+                main.post(() -> result.success(value));
+            } catch (SecurityException denied) {
+                main.post(() -> result.error("permission_denied", "Calendar access denied", null));
+            } catch (RuntimeException error) {
+                main.post(() -> result.error("query_failed", "Calendar operation failed", null));
+            }
+        });
     }
 
     /** Title search keeps at most this many rows; Dart orders and trims. */

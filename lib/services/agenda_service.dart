@@ -63,6 +63,9 @@ class AgendaService {
   final AppDatabase _database;
   final DeviceCalendar _calendar;
 
+  /// Shared with the Supabase backup of the Agenda choices.
+  AppDatabase get database => _database;
+
   /// Events can be created, edited and deleted (on the web through the
   /// phone, see [writesViaPhone]).
   bool get canWrite => true;
@@ -316,20 +319,7 @@ class AgendaService {
     var result = AgendaFilter.none;
     if (row != null) {
       try {
-        final decoded = jsonDecode(row.value) as Map;
-        result = AgendaFilter(
-          hideUnanswered: decoded['hide_unanswered'] as bool? ?? false,
-          hiddenWords: [
-            for (final word in decoded['words'] as List? ?? const [])
-              word as String,
-          ],
-          // Absent in filters saved before build 225: on.
-          hideHolidays: decoded['hide_holidays'] as bool? ?? true,
-          hiddenEvents: [
-            for (final value in decoded['hidden_events'] as List? ?? const [])
-              ?HiddenAgendaEvent.fromJson(value),
-          ],
-        );
+        result = filterFromJson(jsonDecode(row.value) as Map);
       } on FormatException {
         result = AgendaFilter.none;
       } on TypeError {
@@ -339,6 +329,32 @@ class AgendaService {
     return lastFilter = result;
   }
 
+  /// Stored form of [AgendaFilter], also used by the Supabase backup.
+  static Map<String, Object?> filterToJson(AgendaFilter filter) => {
+    'hide_unanswered': filter.hideUnanswered,
+    'words': filter.hiddenWords,
+    'hide_holidays': filter.hideHolidays,
+    'hidden_events': [
+      for (final hidden in filter.hiddenEvents) hidden.toJson(),
+    ],
+  };
+
+  /// Throws [TypeError] on a malformed value.
+  static AgendaFilter filterFromJson(Map<Object?, Object?> decoded) =>
+      AgendaFilter(
+        hideUnanswered: decoded['hide_unanswered'] as bool? ?? false,
+        hiddenWords: [
+          for (final word in decoded['words'] as List? ?? const [])
+            word as String,
+        ],
+        // Absent in filters saved before build 225: on.
+        hideHolidays: decoded['hide_holidays'] as bool? ?? true,
+        hiddenEvents: [
+          for (final value in decoded['hidden_events'] as List? ?? const [])
+            ?HiddenAgendaEvent.fromJson(value),
+        ],
+      );
+
   Future<void> saveFilter(AgendaFilter filter) {
     lastFilter = filter;
     return _database
@@ -346,14 +362,7 @@ class AgendaService {
         .insertOnConflictUpdate(
           AppSettingsCompanion.insert(
             key: filterKey,
-            value: jsonEncode({
-              'hide_unanswered': filter.hideUnanswered,
-              'words': filter.hiddenWords,
-              'hide_holidays': filter.hideHolidays,
-              'hidden_events': [
-                for (final hidden in filter.hiddenEvents) hidden.toJson(),
-              ],
-            }),
+            value: jsonEncode(filterToJson(filter)),
           ),
         );
   }

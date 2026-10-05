@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.63.0 (build 227) — Todo Test
+
+- **Backup dell'Agenda su Supabase.** Se perdi il telefono, non si perde
+  niente di ciò che esiste solo in Todo: gli eventi di «Todo (solo
+  telefono)» (note e ripetizioni comprese), gli eventi nascosti, i filtri, i
+  colori, i calendari mostrati, «Nuovi eventi in» e le attività «Mostra in
+  agenda». Il telefono aggiorna il backup da solo quando qualcosa cambia.
+- Su un telefono nuovo, dopo il login, nell'Agenda compare un'icona a forma
+  di nuvola: **Ripristina** riporta eventi e scelte senza creare doppioni.
+  Un telefono nuovo, o uno vecchio ritrovato, non sovrascrive mai un backup
+  che non ha ripristinato; «Usa questo telefono» lo fa solo su richiesta.
+- Lo stato del backup si vede da ⋮ › Backup dell'Agenda, con «Salva ora».
+- Richiede la migrazione `202610050002_agenda_backup.sql`.
+
 ## 2.62.0 (build 226) — Todo Test
 
 - **Cambiare l'Agenda senza toccare i calendari di origine.** Ogni evento,
