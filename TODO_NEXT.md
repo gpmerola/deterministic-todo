@@ -45,8 +45,12 @@ settimana e mese, e dell'editor. Diagnosi originale:
 - [ ] Riscontro dell'utente sulla 226 sul Galaxy; Web 226 dopo `PUBBLICA`.
 - [x] Build 227: backup dell'Agenda su Supabase (eventi Todo con note,
   nascosti, scelte) e ripristino senza doppioni; `make check` verde.
-- [ ] Applicare `202610050002_agenda_backup.sql` nel SQL Editor (utente),
-  poi verificare sul Galaxy il primo backup e un ripristino su emulatore.
+- [x] `202610050002_agenda_backup.sql` applicata il 5 ottobre 2026 nel SQL
+  Editor (su autorizzazione dell'utente); `anon` respinto in lettura e RPC.
+- [x] Galaxy 2227: primo backup salvato alle 16:53; «Ripristina» con lo
+  stesso contenuto aggiunge 0 eventi.
+- [ ] Ripristino di eventi reali (serie e occorrenze modificate) su un
+  telefono vuoto: non ancora provato, il calendario Todo è ancora vuoto.
 
 ## P1 — Agenda dal Web e background, build 213
 

@@ -630,6 +630,11 @@ base_hash)`, migrazione `202610050002_agenda_backup.sql`):
 
 Nulla di tutto questo entra nei log.
 
+Migrazione applicata il 5 ottobre 2026 (SHA-256 `3334fe02…6ee1b`). Sul
+Galaxy 2227 il primo backup è stato salvato e un «Ripristina» con lo stesso
+contenuto non ha aggiunto nulla. Resta da provare un ripristino di eventi
+reali su un telefono vuoto.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
