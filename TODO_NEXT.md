@@ -29,10 +29,8 @@ settimana e mese, e dell'editor. Diagnosi originale:
   ottobre presenti; SLaM resta libero/occupato via Google (verificato
   acceso in Agenda).
 - [ ] Facoltativo: k25129662 anche in Samsung Email.
-- [ ] Facoltativo: nascondere «Canceled:» / «Annullato:» lasciati da
-  Exchange.
-- [ ] Facoltativo: stato «senza risposta» dalla copia Outlook quando la
-  copia Exchange non lo dice (selfAttendeeStatus 0).
+- [x] Build 223: «Canceled:» nascosti; «senza risposta» dalla copia che lo
+  sa; filtro dopo l'unione.
 - [ ] Web 221 dopo `PUBBLICA`.
 
 ## P1 — Agenda dal Web e background, build 213

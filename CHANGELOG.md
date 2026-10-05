@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.59.2 (build 223) — Todo Test
+
+- Le riunioni annullate che Exchange lascia nel calendario («Canceled: …»,
+  «Annullato: …») non compaiono più nell'Agenda.
+- Inviti KCL con due copie (Samsung Email e Outlook): la copia Exchange
+  spesso non indica la risposta. Ora conta lo stato della copia Outlook, e
+  gli inviti senza risposta tornano disegnati solo con il bordo. Anche il
+  filtro «Nascondi inviti senza risposta» guarda l'evento unito.
+
 ## 2.59.1 (build 222) — Todo Test
 
 - Vista giorno: con le frecce della 221 la data e il fuso venivano tagliati

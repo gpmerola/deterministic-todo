@@ -168,6 +168,7 @@ final class AgendaSourceEvent {
     this.url,
     this.canceled = false,
     this.unanswered = false,
+    this.answered = false,
     this.timeZone,
     this.eventZoneTimes,
     this.isOrganizer = true,
@@ -188,6 +189,10 @@ final class AgendaSourceEvent {
 
   /// Invitation never accepted or declined (Outlook's dashed events).
   final bool unanswered;
+
+  /// Accepted, declined or tentative. False also when unknown: Exchange
+  /// ActiveSync copies often carry no status at all.
+  final bool answered;
 
   /// The event's own IANA zone, as stored by its calendar.
   final String? timeZone;
@@ -230,8 +235,11 @@ final class AgendaFilter {
 
   bool get isActive => hideUnanswered || hiddenWords.isNotEmpty;
 
+  bool hidesEntry(AgendaEntry entry) => hideUnanswered && entry.unanswered;
+
+  /// Hidden by a word. Unanswered invitations are judged after duplicates
+  /// are merged ([hidesEntry]): one copy may know the answer, another not.
   bool hides(AgendaSourceEvent event) {
-    if (hideUnanswered && event.unanswered) return true;
     final title = foldForSearch(event.title);
     return hiddenWords.any(
       (word) =>
@@ -351,6 +359,14 @@ List<AgendaDay> buildAgenda({
   ];
 }
 
+/// Meetings the organiser cancelled that Exchange keeps in the calendar
+/// until removed by hand, with the status still "confirmed": "Canceled:
+/// TNG Meeting", "Annullato: …" (seen on the Galaxy, build 223).
+bool isCanceledTitle(String title) => RegExp(
+  r'^\s*(canceled|cancelled|annullato|annullata|annullati)\s*:',
+  caseSensitive: false,
+).hasMatch(title);
+
 /// Visible, filtered, de-duplicated entries in display order, before they
 /// are split into days. Also used by the universal search.
 List<AgendaEntry> mergeAgendaEntries({
@@ -368,6 +384,7 @@ List<AgendaEntry> mergeAgendaEntries({
           .where(
             (event) =>
                 !event.canceled &&
+                !isCanceledTitle(event.title) &&
                 !filter.hides(event) &&
                 calendarOrder.containsKey(event.calendarId) &&
                 !hiddenCalendarIds.contains(event.calendarId),
@@ -396,12 +413,15 @@ List<AgendaEntry> mergeAgendaEntries({
     } else if (!existing.calendarIds.contains(event.calendarId)) {
       existing.calendarIds.add(event.calendarId);
       existing.meeting ??= findMeetingLink(event);
-      existing.unanswered = existing.unanswered && event.unanswered;
+      existing.anyUnanswered |= event.unanswered;
+      existing.anyAnswered |= event.answered;
     }
   }
 
   final entries = [
-    ...merged.values.map((value) => value.freeze()),
+    ...merged.values
+        .map((value) => value.freeze())
+        .where((entry) => !filter.hidesEntry(entry)),
     for (final task in tasks)
       AgendaEntry(
         instanceId: 'task:${task.id}',
@@ -476,8 +496,10 @@ final class _MutableEntry {
   final List<String> calendarIds;
   MeetingLink? meeting;
 
-  /// Unanswered only if every merged copy is.
-  late bool unanswered = source.unanswered;
+  /// Unanswered when a copy says so and no copy has an answer (build 223:
+  /// the Exchange copy of a KCL invitation knows neither).
+  late bool anyUnanswered = source.unanswered;
+  late bool anyAnswered = source.answered;
 
   AgendaEntry freeze() => AgendaEntry(
     instanceId: source.instanceId,
@@ -491,7 +513,7 @@ final class _MutableEntry {
     timeZone: source.timeZone,
     eventZoneTimes: source.eventZoneTimes,
     isOrganizer: source.isOrganizer,
-    unanswered: unanswered,
+    unanswered: anyUnanswered && !anyAnswered,
   );
 }
 
@@ -509,6 +531,7 @@ AgendaSourceEvent agendaEventFromRow(Map<Object?, Object?> row) =>
       description: row['links'] as String?,
       canceled: row['canceled'] as bool? ?? false,
       unanswered: row['unanswered'] as bool? ?? false,
+      answered: row['answered'] as bool? ?? false,
       timeZone: row['timeZone'] as String?,
       eventZoneTimes: row['eventZoneTimes'] as String?,
       isOrganizer: row['organizer'] as bool? ?? true,

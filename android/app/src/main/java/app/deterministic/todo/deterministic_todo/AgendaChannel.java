@@ -156,6 +156,9 @@ public final class AgendaChannel {
                 // Invited and never answered: Outlook's dashed events.
                 row.put("unanswered", !cursor.isNull(10)
                     && cursor.getInt(10) == CalendarContract.Attendees.ATTENDEE_STATUS_INVITED);
+                // Accepted, declined or tentative. Exchange ActiveSync copies
+                // often report "none" (0): unknown, not unanswered.
+                row.put("answered", answered(cursor.isNull(10) ? -1 : cursor.getInt(10)));
                 String eventZone = cursor.getString(11);
                 row.put("timeZone", eventZone);
                 // Unknown counts as organizer: local events have no attendees.
@@ -165,6 +168,12 @@ public final class AgendaChannel {
             }
         }
         return rows;
+    }
+
+    static boolean answered(int status) {
+        return status == CalendarContract.Attendees.ATTENDEE_STATUS_ACCEPTED
+            || status == CalendarContract.Attendees.ATTENDEE_STATUS_DECLINED
+            || status == CalendarContract.Attendees.ATTENDEE_STATUS_TENTATIVE;
     }
 
     /** IANA id and current UTC offset, shown in the Agenda at all times. */

@@ -43,6 +43,15 @@ public final class AgendaChannelTest {
         assertEquals("w_rd r___d", AgendaChannel.likePrefilter("ward round"));
     }
 
+    @Test public void onlyRealAnswersCountAsAnswered() {
+        assertEquals(true, AgendaChannel.answered(1));
+        assertEquals(true, AgendaChannel.answered(2));
+        assertEquals(true, AgendaChannel.answered(4));
+        assertEquals(false, AgendaChannel.answered(0));
+        assertEquals(false, AgendaChannel.answered(3));
+        assertEquals(false, AgendaChannel.answered(-1));
+    }
+
     @Test public void deviceZoneIsIanaWithOffset() {
         var value = AgendaChannel.deviceZone(ZoneId.of("Europe/London"),
             java.time.Instant.parse("2026-10-03T12:00:00Z"));

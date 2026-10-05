@@ -26,6 +26,7 @@ void main() {
   setUpAll(() => initializeDateFormatting('it'));
   timelineScaleTests();
   dragSpanTests();
+  mergeStatusTests();
 
   test('overlapping timed events clash both ways, in start order', () {
     final clashes = agendaOverlaps([
@@ -158,5 +159,78 @@ void dragSpanTests() {
       start: 23 * 60 + 45,
       end: 24 * 60,
     ));
+  });
+}
+
+void mergeStatusTests() {
+  AgendaSourceEvent copy(
+    String calendar, {
+    String title = 'TNG Meeting',
+    bool unanswered = false,
+    bool answered = false,
+  }) => AgendaSourceEvent(
+    instanceId: '$calendar-1',
+    calendarId: calendar,
+    title: title,
+    start: DateTime(2026, 10, 13, 11),
+    end: DateTime(2026, 10, 13, 12),
+    allDay: false,
+    unanswered: unanswered,
+    answered: answered,
+  );
+  const calendars = [
+    AgendaCalendar(id: 'exchange', name: 'k2473476', accountName: 'kcl'),
+    AgendaCalendar(id: 'outlook', name: 'Calendario', accountName: 'kcl'),
+  ];
+
+  test('an Exchange copy without status keeps the Outlook "unanswered"', () {
+    final entries = mergeAgendaEntries(
+      events: [copy('exchange'), copy('outlook', unanswered: true)],
+      calendars: calendars,
+      hiddenCalendarIds: const {},
+    );
+    expect(entries.single.unanswered, isTrue);
+    expect(entries.single.calendarIds, ['exchange', 'outlook']);
+  });
+
+  test('a copy with an answer wins', () {
+    final entries = mergeAgendaEntries(
+      events: [
+        copy('exchange', answered: true),
+        copy('outlook', unanswered: true),
+      ],
+      calendars: calendars,
+      hiddenCalendarIds: const {},
+    );
+    expect(entries.single.unanswered, isFalse);
+  });
+
+  test('the unanswered filter hides the merged entry, not one copy', () {
+    final entries = mergeAgendaEntries(
+      events: [copy('exchange'), copy('outlook', unanswered: true)],
+      calendars: calendars,
+      hiddenCalendarIds: const {},
+      filter: const AgendaFilter(hideUnanswered: true),
+    );
+    expect(entries, isEmpty);
+  });
+
+  test('meetings left as "Canceled:" by Exchange are hidden', () {
+    for (final title in [
+      'Canceled: TNG Meeting',
+      'Cancelled: Lab',
+      'Annullato: Riunione',
+      '  canceled : x',
+    ]) {
+      expect(isCanceledTitle(title), isTrue, reason: title);
+    }
+    expect(isCanceledTitle('Canceled flights review'), isFalse);
+    expect(isCanceledTitle('Review: cancelled items'), isFalse);
+    final entries = mergeAgendaEntries(
+      events: [copy('exchange', title: 'Canceled: TNG Meeting')],
+      calendars: calendars,
+      hiddenCalendarIds: const {},
+    );
+    expect(entries, isEmpty);
   });
 }

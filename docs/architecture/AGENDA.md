@@ -438,8 +438,14 @@ dell'interfaccia non usano il telefono dell'utente né dati reali.
 
 ## Calendario, terzo giro (build 221)
 
-- **Inviti senza risposta**: `AgendaEntry.unanswered` vale solo se tutte
-  le copie unite sono senza risposta. Nei blocchi c'è solo il bordo nel
+- **Inviti senza risposta**: dalla build 223 `AgendaEntry.unanswered` vale
+  se almeno una copia è «invitato» e nessuna ha una risposta
+  (`AgendaSourceEvent.answered`: accettato, rifiutato o forse). Le copie
+  Exchange di Samsung Email riportano spesso «nessuno», che vale come
+  sconosciuto. Il filtro «Nascondi inviti senza risposta»
+  (`AgendaFilter.hidesEntry`) si applica dopo l'unione. I titoli
+  «Canceled:», «Cancelled:» e «Annullato:» (`isCanceledTitle`) sono
+  trattati come annullati. Nei blocchi c'è solo il bordo nel
   colore del calendario, nel mese il titolo è in corsivo attenuato, e il
   dettaglio lo segnala. La copia per il Web non porta questo dato.
 - **Colori personali**: `AgendaService.calendarColorsKey`
