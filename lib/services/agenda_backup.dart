@@ -27,6 +27,129 @@ Object? _sorted(Object? value) => switch (value) {
   _ => value,
 };
 
+/// Choices of a restored backup for calendars this phone does not have yet,
+/// e.g. KCL before its account is set up again (build 228). They stay in
+/// the backup and apply by themselves when the calendar appears, so the
+/// order of "Ripristina" and account setup does not matter.
+final class UnmatchedAgendaSettings {
+  const UnmatchedAgendaSettings({
+    this.choices = const {},
+    this.colors = const {},
+    this.main,
+    this.mainBefore,
+    this.ai,
+    this.aiBefore,
+  });
+
+  static const empty = UnmatchedAgendaSettings();
+
+  /// By [agendaCalendarKey].
+  final Map<String, bool> choices;
+  final Map<String, String> colors;
+
+  /// «Nuovi eventi in» and the ✨ calendar of the backup, by key, with this
+  /// phone's own choice when they were set aside: a choice the user makes
+  /// afterwards wins over them.
+  final String? main;
+  final String? mainBefore;
+  final String? ai;
+  final String? aiBefore;
+
+  bool get isEmpty =>
+      choices.isEmpty && colors.isEmpty && main == null && ai == null;
+
+  Map<String, Object?> toJson() => {
+    'choices': choices,
+    'colors': colors,
+    'main': main,
+    'main_before': mainBefore,
+    'ai': ai,
+    'ai_before': aiBefore,
+  };
+
+  static UnmatchedAgendaSettings fromJson(Object? value) {
+    if (value is! Map) return empty;
+    return UnmatchedAgendaSettings(
+      choices: _typed<bool>(value['choices']),
+      colors: _typed<String>(value['colors']),
+      main: value['main'] as String?,
+      mainBefore: value['main_before'] as String?,
+      ai: value['ai'] as String?,
+      aiBefore: value['ai_before'] as String?,
+    );
+  }
+
+  static Map<String, T> _typed<T>(Object? value) => {
+    if (value is Map)
+      for (final entry in value.entries)
+        if (entry.key is String && entry.value is T)
+          entry.key as String: entry.value as T,
+  };
+
+  /// Settings of a backup ([settings], by key) split against the calendars
+  /// of this phone ([ids]: key → id): what applies now, by id, and what is
+  /// set aside. [main] and [ai] are this phone's current choices.
+  static ({AgendaSettingsById now, UnmatchedAgendaSettings later}) split(
+    Map<Object?, Object?> settings,
+    Map<String, String> ids, {
+    required String? main,
+    required String? ai,
+  }) {
+    final choices = _typed<bool>(settings['choices']);
+    final colors = _typed<String>(settings['colors']);
+    final mainKey = settings['main'] as String?;
+    final aiKey = settings['ai'] as String?;
+    return (
+      now: (
+        choices: {
+          for (final entry in choices.entries)
+            if (ids[entry.key] != null) ids[entry.key]!: entry.value,
+        },
+        colors: {
+          for (final entry in colors.entries)
+            if (ids[entry.key] != null) ids[entry.key]!: entry.value,
+        },
+        main: ids[mainKey],
+        ai: ids[aiKey],
+      ),
+      later: UnmatchedAgendaSettings(
+        choices: {
+          for (final entry in choices.entries)
+            if (ids[entry.key] == null) entry.key: entry.value,
+        },
+        colors: {
+          for (final entry in colors.entries)
+            if (ids[entry.key] == null) entry.key: entry.value,
+        },
+        main: mainKey != null && ids[mainKey] == null ? mainKey : null,
+        mainBefore: mainKey != null && ids[mainKey] == null ? main : null,
+        ai: aiKey != null && ids[aiKey] == null ? aiKey : null,
+        aiBefore: aiKey != null && ids[aiKey] == null ? ai : null,
+      ),
+    );
+  }
+
+  /// Set-aside settings as a backup holds them, minus «Nuovi eventi in» or
+  /// ✨ when the user has chosen another calendar since ([main], [ai]).
+  Map<String, Object?> asSettings({
+    required String? main,
+    required String? ai,
+  }) => {
+    'choices': choices,
+    'colors': colors,
+    'main': main == mainBefore ? this.main : null,
+    'ai': ai == aiBefore ? this.ai : null,
+  };
+}
+
+/// Choices to apply on this phone, by calendar id.
+typedef AgendaSettingsById = ({
+  Map<String, bool> choices,
+  Map<String, String> colors,
+  String? main,
+  String? ai,
+});
+
 /// What only Todo's Agenda holds (build 227): the events of the phone-only
 /// Todo calendar, notes and repetitions included, and the Agenda choices.
 /// Everything else lives in the accounts that sync it.
@@ -40,7 +163,9 @@ Map<String, Object?> buildAgendaBackup({
   required String? aiCalendarId,
   required AgendaViewMode viewMode,
   required Set<String> taskLinks,
+  UnmatchedAgendaSettings unmatched = UnmatchedAgendaSettings.empty,
 }) {
+  final aside = unmatched.asSettings(main: mainCalendarId, ai: aiCalendarId);
   final keys = {
     for (final calendar in calendars) calendar.id: agendaCalendarKey(calendar),
   };
@@ -52,15 +177,17 @@ Map<String, Object?> buildAgendaBackup({
     'settings': {
       'filter': AgendaService.filterToJson(filter),
       'choices': {
+        ...unmatched.choices,
         for (final entry in choices.entries)
           if (keys[entry.key] != null) keys[entry.key]!: entry.value,
       },
       'colors': {
+        ...unmatched.colors,
         for (final entry in colors.entries)
           if (keys[entry.key] != null) keys[entry.key]!: entry.value,
       },
-      'main': keys[mainCalendarId],
-      'ai': keys[aiCalendarId],
+      'main': aside['main'] ?? keys[mainCalendarId],
+      'ai': aside['ai'] ?? keys[aiCalendarId],
       'view_mode': viewMode.name,
       'task_links': taskLinks.toList()..sort(),
     },
@@ -117,6 +244,10 @@ class AgendaBackup {
   /// refuses to replace any other (see `save_agenda_backup_v1`).
   static const baseKey = 'agenda_backup_base';
 
+  /// [UnmatchedAgendaSettings] of the last restore, until their calendars
+  /// appear on this phone.
+  static const unmatchedKey = 'agenda_backup_unmatched';
+
   static const _channel = MethodChannel('app.deterministic.todo/agenda');
 
   /// A backup waiting for "Ripristina" (or for "Usa questo telefono").
@@ -142,7 +273,114 @@ class AgendaBackup {
         AppSettingsCompanion.insert(key: baseKey, value: hash),
       );
 
+  Future<UnmatchedAgendaSettings> _unmatched() async {
+    final row = await (_database.select(
+      _database.appSettings,
+    )..where((setting) => setting.key.equals(unmatchedKey))).getSingleOrNull();
+    if (row == null) return UnmatchedAgendaSettings.empty;
+    try {
+      return UnmatchedAgendaSettings.fromJson(jsonDecode(row.value));
+    } on FormatException {
+      return UnmatchedAgendaSettings.empty;
+    }
+  }
+
+  Future<void> _saveUnmatched(UnmatchedAgendaSettings value) async {
+    if (value.isEmpty) {
+      await (_database.delete(
+        _database.appSettings,
+      )..where((setting) => setting.key.equals(unmatchedKey))).go();
+      return;
+    }
+    await _database
+        .into(_database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: unmatchedKey,
+            value: jsonEncode(value.toJson()),
+          ),
+        );
+  }
+
+  /// Applies [settings] (by key) for the calendars this phone has; sets the
+  /// rest aside. Used by the restore and, for set-aside choices, whenever
+  /// the backup is built: a calendar set up later gets its choices then.
+  Future<UnmatchedAgendaSettings> _applyByKey(
+    Map<Object?, Object?> settings,
+    List<AgendaCalendar> calendars, {
+    String? mainBefore,
+    String? aiBefore,
+    bool fromRestore = false,
+  }) async {
+    final ids = {
+      for (final calendar in calendars)
+        agendaCalendarKey(calendar): calendar.id,
+    };
+    final main = await service.lastEventCalendar();
+    final ai = await service.aiEventCalendar();
+    final split = UnmatchedAgendaSettings.split(
+      settings,
+      ids,
+      main: main,
+      ai: ai,
+    );
+    final now = split.now;
+    if (now.choices.isNotEmpty) {
+      await service.saveCalendarChoices({
+        ...await service.calendarChoices(),
+        ...now.choices,
+      });
+    }
+    if (now.colors.isNotEmpty) {
+      await service.saveCalendarColors({
+        ...await service.calendarColors(),
+        ...now.colors,
+      });
+    }
+    // A set-aside «Nuovi eventi in» applies only if the user has not chosen
+    // another calendar since the restore.
+    if (now.main != null && (fromRestore || main == mainBefore)) {
+      await service.saveEventCalendar(now.main!);
+    }
+    if (now.ai != null && (fromRestore || ai == aiBefore)) {
+      await service.saveAiEventCalendar(now.ai);
+    }
+    final later = split.later;
+    // Still waiting: keep the phone's choice as it was at the restore.
+    return UnmatchedAgendaSettings(
+      choices: later.choices,
+      colors: later.colors,
+      main: later.main,
+      mainBefore: fromRestore ? later.mainBefore : mainBefore,
+      ai: later.ai,
+      aiBefore: fromRestore ? later.aiBefore : aiBefore,
+    );
+  }
+
+  /// Applies set-aside choices whose calendars are now on this phone;
+  /// returns what is still waiting.
+  @visibleForTesting
+  Future<UnmatchedAgendaSettings> applySetAside() async {
+    final unmatched = await _unmatched();
+    if (unmatched.isEmpty) return unmatched;
+    final remaining = await _applyByKey(
+      unmatched.asSettings(
+        main: await service.lastEventCalendar(),
+        ai: await service.aiEventCalendar(),
+      ),
+      await service.calendars(),
+      mainBefore: unmatched.mainBefore,
+      aiBefore: unmatched.aiBefore,
+    );
+    if (canonicalJson(remaining.toJson()) !=
+        canonicalJson(unmatched.toJson())) {
+      await _saveUnmatched(remaining);
+    }
+    return remaining;
+  }
+
   Future<Map<String, Object?>> _build() async {
+    final unmatched = await applySetAside();
     final calendars = await service.calendars();
     final local = calendars.where((c) => c.localOnly).firstOrNull;
     final events = local == null
@@ -162,6 +400,7 @@ class AgendaBackup {
       aiCalendarId: await service.aiEventCalendar(),
       viewMode: await service.viewMode(),
       taskLinks: await service.taskLinks.keys(),
+      unmatched: unmatched,
     );
   }
 
@@ -243,7 +482,7 @@ class AgendaBackup {
           0;
     }
     final settings = payload['settings'];
-    if (settings is Map) await _restoreSettings(settings);
+    if (settings is Map) await restoreSettings(settings);
     await _saveBase(backup.hash);
     pending.value = null;
     // The merged state becomes the new backup.
@@ -251,18 +490,8 @@ class AgendaBackup {
     return added;
   }
 
-  Future<void> _restoreSettings(Map<Object?, Object?> settings) async {
-    final calendars = await service.calendars();
-    final ids = {
-      for (final calendar in calendars)
-        agendaCalendarKey(calendar): calendar.id,
-    };
-    Map<String, T> byId<T>(Object? value) => {
-      if (value is Map)
-        for (final entry in value.entries)
-          if (ids[entry.key] != null && entry.value is T)
-            ids[entry.key]!: entry.value as T,
-    };
+  @visibleForTesting
+  Future<void> restoreSettings(Map<Object?, Object?> settings) async {
     final filter = settings['filter'];
     if (filter is Map) {
       try {
@@ -271,24 +500,9 @@ class AgendaBackup {
         // A malformed filter is skipped; the rest still restores.
       }
     }
-    final choices = byId<bool>(settings['choices']);
-    if (choices.isNotEmpty) {
-      await service.saveCalendarChoices({
-        ...await service.calendarChoices(),
-        ...choices,
-      });
-    }
-    final colors = byId<String>(settings['colors']);
-    if (colors.isNotEmpty) {
-      await service.saveCalendarColors({
-        ...await service.calendarColors(),
-        ...colors,
-      });
-    }
-    final main = ids[settings['main']];
-    if (main != null) await service.saveEventCalendar(main);
-    final ai = ids[settings['ai']];
-    if (ai != null) await service.saveAiEventCalendar(ai);
+    await _saveUnmatched(
+      await _applyByKey(settings, await service.calendars(), fromRestore: true),
+    );
     final mode = AgendaViewMode.values
         .where((mode) => mode.name == settings['view_mode'])
         .firstOrNull;

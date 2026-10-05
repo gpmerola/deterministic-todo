@@ -589,9 +589,22 @@ Supabase e di includere le note.
   «Nuovi eventi in», calendario ✨, vista e flag «Mostra in agenda».
 
 Gli ID dei calendari valgono solo su un telefono: il backup li sostituisce
-con «account␟nome» (`agendaCalendarKey`). Un colore o una scelta di un
-calendario che il telefono nuovo non ha ancora (per esempio Samsung Email
-non ancora configurato) non viene ripristinato.
+con «account␟nome» (`agendaCalendarKey`).
+
+**Calendari non ancora presenti (build 228).** Fino alla 227 la scelta o il
+colore di un calendario che il telefono nuovo non aveva ancora (per esempio
+KCL prima di riconfigurare Samsung Email) andava perso: il backup salvato
+dopo il ripristino non lo conteneva più. Ora `UnmatchedAgendaSettings`:
+
+- tiene da parte, in `app_settings.agenda_backup_unmatched`, visibilità,
+  colori, «Nuovi eventi in» e ✨ dei calendari assenti;
+- li rimette nel backup a ogni salvataggio (`buildAgendaBackup(unmatched:)`);
+- li applica non appena il calendario compare (`applySetAside`, a ogni
+  costruzione del backup) e li toglie dalla lista;
+- per «Nuovi eventi in» e ✨ ricorda la scelta del telefono al momento del
+  ripristino: se l'utente ne sceglie un'altra, vince la sua.
+
+Regressione in `test/agenda_backup_test.dart`.
 
 **Quando** (`AgendaBackup.save`, chiamato da `AgendaPhoneSync`):
 

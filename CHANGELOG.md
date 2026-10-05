@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.63.1 (build 228) — Todo Test
+
+- **Ripristino in qualsiasi ordine.** Se su un telefono nuovo premi
+  «Ripristina» prima di aver riconfigurato un account (per esempio KCL in
+  Samsung Email), colori, visibilità e «Nuovi eventi in» di quei calendari
+  non vanno più persi: restano nel backup e si applicano da soli quando il
+  calendario ricompare. Se nel frattempo hai scelto un altro calendario per
+  «Nuovi eventi in», resta la tua scelta.
+
 ## 2.63.0 (build 227) — Todo Test
 
 - **Backup dell'Agenda su Supabase.** Se perdi il telefono, non si perde

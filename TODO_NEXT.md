@@ -49,6 +49,9 @@ settimana e mese, e dell'editor. Diagnosi originale:
   Editor (su autorizzazione dell'utente); `anon` respinto in lettura e RPC.
 - [x] Galaxy 2227: primo backup salvato alle 16:53; «Ripristina» con lo
   stesso contenuto aggiunge 0 eventi.
+- [x] Build 228: le scelte dei calendari non ancora presenti restano nel
+  backup e si applicano quando compaiono (ordine ripristino/account
+  indifferente).
 - [ ] Ripristino di eventi reali (serie e occorrenze modificate) su un
   telefono vuoto: non ancora provato, il calendario Todo è ancora vuoto.
 
