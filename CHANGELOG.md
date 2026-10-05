@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.60.0 (build 224) — Todo Test e Web
+
+- **Elenco**: la data del giorno resta fissa in alto mentre scorri i suoi
+  eventi; il pulsante Oggi funziona anche qui e riporta in cima (l'elenco
+  parte da oggi).
+- **Riga di Oggi**: un pallino nel colore del calendario davanti a ogni
+  impegno.
+
 ## 2.59.2 (build 223) — Todo Test
 
 - Le riunioni annullate che Exchange lascia nel calendario («Canceled: …»,

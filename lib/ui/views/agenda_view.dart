@@ -74,6 +74,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   final monthPage = PageController(initialPage: AgendaMonthView.monthsBack);
   final weeksPage = PageController(initialPage: AgendaWeeksView.pagesBack);
   final weekPage = PageController(initialPage: AgendaWeekView.weeksBack);
+  final listScroll = ScrollController();
   final threeDaysPage = PageController(initialPage: AgendaWeekView.weeksBack);
   bool loading = true;
   bool failed = false;
@@ -106,6 +107,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     weeksPage.dispose();
     weekPage.dispose();
     threeDaysPage.dispose();
+    listScroll.dispose();
     super.dispose();
   }
 
@@ -308,6 +310,16 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 
   void _scrollToToday() {
+    // The list starts today.
+    if (mode == AgendaViewMode.list && listScroll.hasClients) {
+      unawaited(
+        listScroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
     if (mode == AgendaViewMode.threeDays && threeDaysPage.hasClients) {
       unawaited(
         threeDaysPage.animateToPage(
@@ -451,7 +463,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       mode: mode,
       filtered: filter.isActive,
       onMode: (next) => unawaited(_setMode(next)),
-      onToday: mode == AgendaViewMode.list ? null : _scrollToToday,
+      onToday: _scrollToToday,
       today: widget.today,
       zone: mode == AgendaViewMode.list ? zoneText : null,
       onChoose: _chooseCalendars,
@@ -542,15 +554,42 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             onOpenDay: openDay,
           )
-        : ListView.builder(
+        // Each day's date stays pinned at the top while its events scroll
+        // under it (build 224).
+        : CustomScrollView(
             key: const PageStorageKey('agenda-list'),
-            padding: const EdgeInsets.only(bottom: 24),
+            controller: listScroll,
             physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: days.length + 1,
-            itemBuilder: (context, index) {
-              if (index == days.length) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
+            slivers: [
+              for (final day in days)
+                SliverMainAxisGroup(
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _DayHeaderDelegate(
+                        label: _AgendaDaySection.dayLabel(
+                          day.date,
+                          widget.today,
+                        ),
+                        background: Theme.of(context).colorScheme.surface,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _AgendaDaySection(
+                        day: day,
+                        today: widget.today,
+                        colors: colors,
+                        names: names,
+                        onOpen: (entry) => unawaited(_showEvent(entry)),
+                        onQuick: (entry) => unawaited(_quickEvent(entry)),
+                      ),
+                    ),
+                  ],
+                ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                sliver: SliverToBoxAdapter(
                   child: OutlinedButton(
                     key: const ValueKey('agenda-load-more'),
                     onPressed: () {
@@ -559,17 +598,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                     },
                     child: const Text('Mostra altri 14 giorni'),
                   ),
-                );
-              }
-              return _AgendaDaySection(
-                day: days[index],
-                today: widget.today,
-                colors: colors,
-                names: names,
-                onOpen: (entry) => unawaited(_showEvent(entry)),
-                onQuick: (entry) => unawaited(_quickEvent(entry)),
-              );
-            },
+                ),
+              ),
+            ],
           );
     return Stack(
       children: [
@@ -823,13 +854,7 @@ class _AgendaDaySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 5),
-          child: Text(
-            _dayLabel(day.date, today),
-            style: theme.textTheme.titleSmall,
-          ),
-        ),
+        // The date is the pinned header above (see _DayHeaderDelegate).
         if (day.entries.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
@@ -866,7 +891,7 @@ class _AgendaDaySection extends StatelessWidget {
     );
   }
 
-  static String _dayLabel(CivilDate date, CivilDate today) {
+  static String dayLabel(CivilDate date, CivilDate today) {
     final label = DateFormat('EEEE d MMMM', 'it').format(date.asLocalDate);
     final capitalised = label[0].toUpperCase() + label.substring(1);
     if (date == today) return 'Oggi · $capitalised';
@@ -1444,4 +1469,49 @@ class AgendaTodayIcon extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pinned date of one day in the list.
+class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _DayHeaderDelegate({
+    required this.label,
+    required this.background,
+    required this.style,
+  });
+
+  final String label;
+  final Color background;
+  final TextStyle? style;
+
+  static const _height = 38.0;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => SizedBox.expand(
+    child: ColoredBox(
+      color: background,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: style,
+        ),
+      ),
+    ),
+  );
+
+  @override
+  bool shouldRebuild(covariant _DayHeaderDelegate old) =>
+      old.label != label || old.background != background || old.style != style;
 }

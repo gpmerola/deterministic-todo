@@ -17,8 +17,12 @@ class TodayAgendaStrip extends StatefulWidget {
     required this.onOpen,
     required this.dayKey,
     this.now,
+    this.colorOf,
     super.key,
   });
+
+  /// Calendar colour of an entry, drawn as a dot before it (build 224).
+  final Color? Function(AgendaEntry entry)? colorOf;
 
   /// Today's Agenda entries (calendar events; tasks are filtered out here).
   final Future<List<AgendaEntry>> Function() loadEntries;
@@ -145,14 +149,50 @@ class _TodayAgendaStripState extends State<TodayAgendaStrip>
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  parts.isEmpty
-                      ? 'Nessun altro impegno oggi'
-                      : parts.join(' · '),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium,
-                ),
+                child: widget.colorOf == null || shown.isEmpty
+                    ? Text(
+                        parts.isEmpty
+                            ? 'Nessun altro impegno oggi'
+                            : parts.join(' · '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      )
+                    : Text.rich(
+                        TextSpan(
+                          children: [
+                            for (final (index, part) in parts.indexed) ...[
+                              if (index > 0) const TextSpan(text: ' · '),
+                              // A dot in the calendar colour before each
+                              // appointment, as in the other views.
+                              if (index < shown.length)
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 4),
+                                    child: Container(
+                                      key: ValueKey(
+                                        'today-agenda-dot-${shown[index].instanceId}',
+                                      ),
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            widget.colorOf!(shown[index]) ??
+                                            theme.colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              TextSpan(text: part),
+                            ],
+                          ],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
               ),
               if (join != null)
                 Padding(

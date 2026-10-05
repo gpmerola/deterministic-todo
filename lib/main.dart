@@ -1573,6 +1573,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           loadEntries: () async =>
               (await agendaService.agendaDays(today, 1)).single.entries,
           onOpen: () => unawaited(_openAgendaDay(today)),
+          colorOf: (entry) => parseCalendarColor(
+            agendaService.lastCalendars
+                ?.where((c) => c.id == entry.calendarIds.first)
+                .firstOrNull
+                ?.colorHex,
+          ),
         ),
         Expanded(child: list),
       ],

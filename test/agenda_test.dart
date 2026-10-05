@@ -1268,6 +1268,36 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('la striscia mostra il colore del calendario', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TodayAgendaStrip(
+            dayKey: '2026-10-05',
+            loadEntries: () async => [
+              AgendaEntry(
+                instanceId: 'tng',
+                calendarIds: const ['kcl'],
+                title: 'TNG',
+                start: DateTime(2026, 10, 5, 15),
+                end: DateTime(2026, 10, 5, 16),
+                allDay: false,
+              ),
+            ],
+            onOpen: () {},
+            now: () => DateTime(2026, 10, 5, 9),
+            colorOf: (_) => const Color(0xff8e24aa),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dot = tester.widget<Container>(
+      find.byKey(const ValueKey('today-agenda-dot-tng')),
+    );
+    expect((dot.decoration! as BoxDecoration).color, const Color(0xff8e24aa));
+  });
+
   testWidgets('la striscia offre la riunione che sta per iniziare', (
     tester,
   ) async {

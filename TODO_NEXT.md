@@ -24,7 +24,9 @@ settimana e mese, e dell'editor. Diagnosi originale:
 - [x] Build 221: inviti con bordo, colori personali, ore compattate, «tra
   N min» con Partecipa, frecce giorno, pressione lunga, creare trascinando;
   verificata su emulatore.
-- [ ] Riscontro dell'utente sulla 221–222 sul Galaxy.
+- [ ] Riscontro dell'utente sulla 221–224 sul Galaxy.
+- [x] Build 224: elenco con data fissa e Oggi; pallini nella riga di Oggi
+  (verificati su emulatore). Web 224 dopo `PUBBLICA` del 5 ottobre.
 - [x] KCL k2473476 aggiunto a Samsung Email (Exchange): eventi di
   ottobre presenti; SLaM resta libero/occupato via Google (verificato
   acceso in Agenda).

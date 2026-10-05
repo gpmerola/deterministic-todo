@@ -500,6 +500,17 @@ Altri account:
   (calendario «SLAM»);
 - KCL non permette di pubblicare il calendario in ICS.
 
+## Elenco e riga di Oggi (build 224)
+
+- **Elenco**: `CustomScrollView` con un `SliverMainAxisGroup` per giorno.
+  L'intestazione del giorno (`_DayHeaderDelegate`, 38 dp, figlio
+  `SizedBox.expand` per evitare l'errore di geometria di
+  `SliverMainAxisGroup`) resta fissa finché scorrono i suoi eventi. Oggi
+  riporta l'elenco in cima.
+- **Riga di Oggi**: `TodayAgendaStrip.colorOf` disegna un pallino nel colore
+  del calendario davanti a ogni impegno; i colori vengono da
+  `AgendaService.lastCalendars`, quindi anche quelli scelti dall'utente.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
