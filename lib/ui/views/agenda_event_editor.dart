@@ -10,6 +10,7 @@ class AgendaEventEditor extends StatefulWidget {
   const AgendaEventEditor({
     required this.calendars,
     required this.initialStart,
+    this.initialEnd,
     this.initialCalendarId,
     this.initialAllDay = false,
     this.existing,
@@ -37,6 +38,10 @@ class AgendaEventEditor extends StatefulWidget {
   /// Writable calendars only.
   final List<AgendaCalendar> calendars;
   final DateTime initialStart;
+
+  /// End chosen by dragging on the timeline; an hour after the start
+  /// otherwise.
+  final DateTime? initialEnd;
   final String? initialCalendarId;
   final bool initialAllDay;
 
@@ -59,7 +64,9 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
   late bool allDay = _seed?.allDay ?? widget.initialAllDay;
   late final DateTime _start = _seed?.start ?? widget.initialStart;
   late final DateTime _end =
-      _seed?.end ?? widget.initialStart.add(const Duration(hours: 1));
+      _seed?.end ??
+      widget.initialEnd ??
+      widget.initialStart.add(const Duration(hours: 1));
   late DateTime day = DateTime(_start.year, _start.month, _start.day);
   // All-day ends are exclusive midnights: the last day is the one before.
   late DateTime lastDay = allDay

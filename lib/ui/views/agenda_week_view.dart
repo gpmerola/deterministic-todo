@@ -27,11 +27,15 @@ class AgendaWeekView extends StatefulWidget {
     required this.colors,
     required this.onOpenDay,
     required this.onOpen,
+    this.onLongPress,
     this.onCreate,
     this.controller,
     this.now,
     super.key,
   });
+
+  /// Quick actions on long press; null: none.
+  final Future<void> Function(AgendaEntry entry)? onLongPress;
 
   /// 7 (week from Monday) or 3 (from today).
   final int dayCount;
@@ -44,7 +48,7 @@ class AgendaWeekView extends StatefulWidget {
   final Future<void> Function(AgendaEntry entry) onOpen;
 
   /// Null where events are read-only (the web mirror).
-  final Future<void> Function(DateTime start)? onCreate;
+  final AgendaCreateAt? onCreate;
   final PageController? controller;
   final DateTime Function()? now;
 
@@ -144,6 +148,7 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
         colors: widget.colors,
         onOpenDay: widget.onOpenDay,
         onOpen: widget.onOpen,
+        onLongPress: widget.onLongPress,
         onCreate: widget.onCreate,
         now: widget.now ?? DateTime.now,
       );
@@ -162,8 +167,11 @@ class AgendaWeekPage extends StatefulWidget {
     required this.onOpen,
     required this.onCreate,
     required this.now,
+    this.onLongPress,
     super.key,
   });
+
+  final Future<void> Function(AgendaEntry entry)? onLongPress;
 
   /// First day shown (a Monday in the week view).
   final CivilDate monday;
@@ -173,7 +181,7 @@ class AgendaWeekPage extends StatefulWidget {
   final Map<String, Color?> colors;
   final ValueChanged<CivilDate> onOpenDay;
   final Future<void> Function(AgendaEntry entry) onOpen;
-  final Future<void> Function(DateTime start)? onCreate;
+  final AgendaCreateAt? onCreate;
   final DateTime Function() now;
 
   @override
@@ -183,11 +191,22 @@ class AgendaWeekPage extends StatefulWidget {
 class _AgendaWeekPageState extends State<AgendaWeekPage> {
   static const _gutter = 36.0;
   static const _hour = AgendaWeekView.hourHeight;
-  late final ScrollController scroll = ScrollController(
-    // Around now in the current week, otherwise from 07:30.
-    initialScrollOffset: _containsToday
-        ? math.max(0, widget.now().hour - 1) * _hour
-        : 7.5 * _hour,
+  ScrollController? _scroll;
+
+  /// Press-and-drag on free time (build 221).
+  CivilDate? _dragDate;
+  int? _pressed;
+  ({int start, int end})? _drag;
+
+  /// Hours of the page, shared by all its columns so they line up; empty
+  /// night hours are folded.
+  TimelineScale scale = TimelineScale.forBlocks(const [], hourHeight: _hour);
+
+  /// Around now in the current week, otherwise from 07:30.
+  ScrollController get scroll => _scroll ??= ScrollController(
+    initialScrollOffset: scale.y(
+      _containsToday ? math.max(0, widget.now().hour - 1) * 60 : 7 * 60 + 30,
+    ),
   );
 
   bool get _containsToday {
@@ -199,7 +218,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
 
   @override
   void dispose() {
-    scroll.dispose();
+    _scroll?.dispose();
     super.dispose();
   }
 
@@ -210,6 +229,18 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     final dates = [
       for (var i = 0; i < widget.dayCount; i++) widget.monday.addDays(i),
     ];
+    final blocksByDate = {
+      for (final date in dates)
+        date: layoutDayTimeline(
+          byDate[date]?.entries ?? const <AgendaEntry>[],
+          date,
+          minMinutes: 25,
+        ),
+    };
+    scale = TimelineScale.forBlocks(
+      blocksByDate.values.expand((blocks) => blocks),
+      hourHeight: _hour,
+    );
     final allDay = [
       for (final date in dates)
         [
@@ -289,7 +320,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
               bottom: MediaQuery.viewPaddingOf(context).bottom + 80,
             ),
             child: SizedBox(
-              height: 24 * _hour,
+              height: scale.total,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -298,16 +329,18 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     child: Stack(
                       children: [
                         for (var hour = 1; hour < 24; hour++)
-                          Positioned(
-                            top: hour * _hour - 7,
-                            right: 4,
-                            child: Text(
-                              hour.toString().padLeft(2, '0'),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                          if (!scale.isFolded(hour) ||
+                              !scale.isFolded(hour - 1))
+                            Positioned(
+                              top: scale.y(hour * 60) - 7,
+                              right: 4,
+                              child: Text(
+                                hour.toString().padLeft(2, '0'),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
-                          ),
                       ],
                     ),
                   ),
@@ -317,6 +350,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                         context,
                         date,
                         byDate[date]?.entries ?? const [],
+                        blocksByDate[date]!,
                       ),
                     ),
                 ],
@@ -373,9 +407,9 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     BuildContext context,
     CivilDate date,
     List<AgendaEntry> entries,
+    List<TimelineBlock> blocks,
   ) {
     final theme = Theme.of(context);
-    final blocks = layoutDayTimeline(entries, date, minMinutes: 25);
     final clashing = agendaOverlaps(entries).keys.toSet();
     final line = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
     return LayoutBuilder(
@@ -394,8 +428,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     key: ValueKey('agenda-week-free-$date'),
                     behavior: HitTestBehavior.opaque,
                     onTapUp: (details) {
-                      final minutes = (details.localPosition.dy / _hour * 60)
-                          .floor();
+                      final minutes = scale.minuteAt(details.localPosition.dy);
                       final slot = (minutes ~/ 30 * 30).clamp(0, 23 * 60 + 30);
                       unawaited(
                         widget.onCreate!(
@@ -409,11 +442,61 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                         ),
                       );
                     },
+                    onLongPressStart: (details) => setState(() {
+                      _dragDate = date;
+                      _pressed = scale.minuteAt(details.localPosition.dy);
+                      _drag = dragSpan(_pressed!, _pressed! + 60);
+                    }),
+                    onLongPressMoveUpdate: (details) => setState(() {
+                      _drag = dragSpan(
+                        _pressed!,
+                        scale.minuteAt(details.localPosition.dy),
+                      );
+                    }),
+                    onLongPressEnd: (_) {
+                      final span = _drag;
+                      setState(() {
+                        _dragDate = null;
+                        _pressed = null;
+                        _drag = null;
+                      });
+                      if (span == null) return;
+                      DateTime at(int minute) => DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        minute ~/ 60,
+                        minute % 60,
+                      );
+                      unawaited(
+                        widget.onCreate!(at(span.start), end: at(span.end)),
+                      );
+                    },
+                    onLongPressCancel: () => setState(() {
+                      _dragDate = null;
+                      _pressed = null;
+                      _drag = null;
+                    }),
                   ),
                 ),
+              for (var hour = 0; hour < 24; hour++)
+                if (scale.isFolded(hour))
+                  Positioned(
+                    top: scale.y(hour * 60),
+                    height: scale.hourHeights[hour],
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: ColoredBox(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.03,
+                        ),
+                      ),
+                    ),
+                  ),
               for (var hour = 1; hour < 24; hour++)
                 Positioned(
-                  top: hour * _hour,
+                  top: scale.y(hour * 60),
                   left: 0,
                   right: 0,
                   child: IgnorePointer(
@@ -423,9 +506,9 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
               for (final block in blocks)
                 Positioned(
                   key: ValueKey('agenda-week-block-${block.entry.instanceId}'),
-                  top: block.startMinute * _hour / 60 + 0.5,
+                  top: scale.y(block.startMinute) + 0.5,
                   height:
-                      (block.endMinute - block.startMinute) * _hour / 60 - 1,
+                      scale.y(block.endMinute) - scale.y(block.startMinute) - 1,
                   left: timelineSlot(block, width).left + 0.5,
                   width: timelineSlot(block, width).width - 1,
                   child: _block(
@@ -436,11 +519,20 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     clash: clashing.contains(block.entry.instanceId),
                   ),
                 ),
+              if (_dragDate == date && _drag != null)
+                Positioned(
+                  key: ValueKey('agenda-week-drag-$date'),
+                  top: scale.y(_drag!.start),
+                  height: scale.y(_drag!.end) - scale.y(_drag!.start),
+                  left: 0.5,
+                  right: 0.5,
+                  child: AgendaDragGhost(span: _drag!),
+                ),
               if (date == widget.today)
                 Positioned(
                   top: () {
                     final now = widget.now();
-                    return (now.hour * 60 + now.minute) * _hour / 60 - 1;
+                    return scale.y(now.hour * 60 + now.minute) - 1;
                   }(),
                   left: 0,
                   right: 0,
@@ -461,20 +553,28 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     Color color, {
     bool clash = false,
   }) {
-    final fill = agendaEventFill(color, Theme.of(context).colorScheme);
-    final onColor = agendaOnFill(fill);
+    final scheme = Theme.of(context).colorScheme;
+    final fill = agendaEventFill(color, scheme);
+    // Unanswered invitations: outlined, not filled, like Google Calendar.
+    final outlined = entry.unanswered;
+    final onColor = outlined ? scheme.onSurface : agendaOnFill(fill);
     return Material(
-      color: fill,
+      color: outlined ? scheme.surface : fill,
       // Overlapping another timed event: outlined in the error colour.
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(3),
         side: clash
-            ? BorderSide(color: Theme.of(context).colorScheme.error, width: 1.5)
+            ? BorderSide(color: scheme.error, width: 1.5)
+            : outlined
+            ? BorderSide(color: fill, width: 1.5)
             : BorderSide.none,
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => unawaited(widget.onOpen(entry)),
+        onLongPress: widget.onLongPress == null
+            ? null
+            : () => unawaited(widget.onLongPress!(entry)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(2, 1, 1, 0),
           child: LayoutBuilder(

@@ -45,7 +45,8 @@ def content_insert(serial: str, uri: str, values: dict[str, object]) -> None:
         elif isinstance(value, int):
             parts += ["--bind", f"{key}:l:{value}"]
         else:
-            parts += ["--bind", f"{key}:s:{value}"]
+            # The content tool splits bindings on ':'; escape it in values.
+            parts += ["--bind", f"{key}:s:{str(value).replace(':', chr(92) + ':')}"]
     adb(serial, "shell", " ".join(shlex.quote(part) for part in parts))
 
 
@@ -104,6 +105,14 @@ def main() -> int:
     ids = calendar_ids(args.serial)
     work, clinic, personal = (ids[name] for name, _ in CALENDARS)
 
+    # Idempotent: the demo calendars' events are replaced on every run.
+    adb(args.serial, "shell", " ".join(shlex.quote(part) for part in [
+        "content", "delete", "--uri",
+        "content://com.android.calendar/events?caller_is_syncadapter=true"
+        f"&account_name={ACCOUNT}&account_type=LOCAL",
+        "--where", f"calendar_id IN ({work},{clinic},{personal})",
+    ]))
+
     today = dt.date.today()
     monday = today - dt.timedelta(days=today.weekday())
     events: list[dict[str, object]] = []
@@ -153,8 +162,42 @@ def main() -> int:
     all_day(personal, "Compleanno Anna", today)
     timed(work, "Call con New York", today + dt.timedelta(days=2), (15, 0), (16, 0),
           eventTimezone="America/New_York")
+    # A Teams meeting starting soon (Today strip countdown and join button).
+    soon = dt.datetime.now(ZONE).replace(second=0, microsecond=0) + dt.timedelta(minutes=20)
+    events.append({
+        "calendar_id": work,
+        "title": "Stand-up (demo)",
+        "dtstart": int(soon.timestamp() * 1000),
+        "dtend": int((soon + dt.timedelta(minutes=30)).timestamp() * 1000),
+        "eventTimezone": "Europe/London",
+        "description": "Join: https://teams.microsoft.com/l/meetup-join/demo-standup",
+    })
+    # An invitation from someone else, not yet answered (drawn outlined).
+    events.append({
+        "calendar_id": work,
+        "title": "Grand Round (invito)",
+        "dtstart": millis(today + dt.timedelta(days=1), 15, 0),
+        "dtend": millis(today + dt.timedelta(days=1), 16, 0),
+        "eventTimezone": "Europe/London",
+        "organizer": "boss@example.com",
+        "hasAttendeeData": 1,
+    })
     for event in events:
         content_insert(args.serial, "content://com.android.calendar/events", event)
+    invite = adb(
+        args.serial, "shell", "content", "query", "--uri",
+        "content://com.android.calendar/events", "--projection", "_id",
+        "--where", shlex.quote("title='Grand Round (invito)'"),
+    )
+    for event_id in re.findall(r"_id=(\d+)", invite):
+        content_insert(args.serial, "content://com.android.calendar/attendees", {
+            "event_id": int(event_id),
+            "attendeeEmail": "demo@example.com",
+            "attendeeName": "Demo",
+            "attendeeRelationship": 1,
+            "attendeeType": 1,
+            "attendeeStatus": 3,
+        })
     print(f"{len(ids)} calendars, {len(events)} synthetic events on {args.serial}")
     return 0
 

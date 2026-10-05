@@ -21,8 +21,11 @@ settimana e mese, e dell'editor. Diagnosi originale:
   eventi (orario sopra il titolo), poi «+N»: valutare con lui.
 - [x] Build 220: 3 giorni, cascata, orari completi, barre multi-giorno,
   Oggi con numero, icone; verificata su emulatore (AVD `todo_s21`).
-- [ ] Riscontro dell'utente sulla 220 sul Galaxy.
-- [ ] Web 220 dopo `PUBBLICA`.
+- [x] Build 221: inviti con bordo, colori personali, ore compattate, «tra
+  N min» con Partecipa, frecce giorno, pressione lunga, creare trascinando;
+  verificata su emulatore.
+- [ ] Riscontro dell'utente sulla 221 sul Galaxy.
+- [ ] Web 221 dopo `PUBBLICA`.
 
 ## P1 — Agenda dal Web e background, build 213
 

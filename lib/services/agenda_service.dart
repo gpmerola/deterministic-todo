@@ -47,6 +47,10 @@ class AgendaService {
   /// `{"hide_unanswered": bool, "words": [String]}`; device-local.
   static const filterKey = 'agenda_filter';
 
+  /// `{calendarId: "#RRGGBB"}` chosen by the user over the provider's
+  /// colours (build 221); device-local.
+  static const calendarColorsKey = 'agenda_calendar_colors';
+
   /// Build 191 stored only hidden IDs; read once as explicit "hidden" choices.
   static const legacyHiddenCalendarsKey = 'agenda_hidden_calendars';
 
@@ -128,13 +132,14 @@ class AgendaService {
   /// Every calendar on the phone, grouped by account then name. Calendars
   /// hidden in the phone's calendar app are listed too, off by default.
   Future<List<AgendaCalendar>> calendars() async {
+    final colors = lastColors ?? await calendarColors();
     final result = [
       for (final calendar in await _calendar.listCalendars())
         AgendaCalendar(
           id: calendar.id,
           name: calendar.name,
           accountName: calendar.accountName ?? '',
-          colorHex: calendar.colorHex,
+          colorHex: colors[calendar.id] ?? calendar.colorHex,
           visibleBySystem: !calendar.hidden,
           writable: !calendar.readOnly,
           isGooglePrimary:
@@ -175,6 +180,47 @@ class AgendaService {
   /// Opens the occurrence in the phone's own calendar app.
   Future<void> openEvent(String instanceId) =>
       _calendar.showEventModal(instanceId);
+
+  Map<String, String>? lastColors;
+
+  /// Colours the user picked, by calendar id.
+  Future<Map<String, String>> calendarColors() async {
+    final row =
+        await (_database.select(_database.appSettings)
+              ..where((setting) => setting.key.equals(calendarColorsKey)))
+            .getSingleOrNull();
+    var result = <String, String>{};
+    if (row != null) {
+      try {
+        result = {
+          for (final entry in (jsonDecode(row.value) as Map).entries)
+            entry.key as String: entry.value as String,
+        };
+      } on FormatException {
+        result = {};
+      } on TypeError {
+        result = {};
+      }
+    }
+    return lastColors = result;
+  }
+
+  Future<void> saveCalendarColors(Map<String, String> colors) {
+    lastColors = Map.of(colors);
+    lastCalendars = null;
+    return _database
+        .into(_database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: calendarColorsKey,
+            value: jsonEncode(
+              Map.fromEntries(
+                colors.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+              ),
+            ),
+          ),
+        );
+  }
 
   Future<Map<String, bool>> calendarChoices() async =>
       lastChoices = await _readChoices();

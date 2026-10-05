@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/task.dart' show CivilDate;
@@ -94,6 +95,93 @@ class AgendaEventFlows {
       overlaps: overlaps,
     );
     if (!context.mounted || action == null) return false;
+    return perform(context, entry, action);
+  }
+
+  /// Long press: the frequent actions in a short menu, without the detail
+  /// sheet (build 221). True when something may have changed.
+  Future<bool> quickActions(BuildContext context, AgendaEntry entry) async {
+    if (entry.isTask) return show(context, entry);
+    final meeting = entry.meeting;
+    final canEdit = editable(entry);
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        Widget item(
+          String value,
+          IconData icon,
+          String label, {
+          Color? color,
+        }) => ListTile(
+          key: ValueKey('agenda-quick-$value'),
+          leading: Icon(icon, color: color),
+          title: Text(label, style: TextStyle(color: color)),
+          onTap: () => Navigator.pop(sheetContext, value),
+        );
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  entry.title.isEmpty ? '(senza titolo)' : entry.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              if (meeting != null)
+                item(
+                  'join',
+                  Icons.videocam_outlined,
+                  'Partecipa · ${meeting.provider}',
+                ),
+              if (onCreateTask != null) ...[
+                item('prepare', Icons.playlist_add, 'Preparare (giorno prima)'),
+                item(
+                  'followUp',
+                  Icons.playlist_add_check,
+                  'Follow-up (giorno dopo)',
+                ),
+              ],
+              if (canEdit) item('edit', Icons.edit_outlined, 'Modifica'),
+              if (canEdit)
+                item(
+                  'delete',
+                  Icons.delete_outline,
+                  'Elimina',
+                  color: theme.colorScheme.error,
+                ),
+              item('details', Icons.info_outline, 'Dettagli'),
+            ],
+          ),
+        );
+      },
+    );
+    if (choice == null || !context.mounted) return false;
+    if (choice == 'join') {
+      await launchUrl(meeting!.url, mode: LaunchMode.externalApplication);
+      return false;
+    }
+    if (choice == 'details') return show(context, entry);
+    return perform(context, entry, switch (choice) {
+      'prepare' => AgendaEventAction.prepareTask,
+      'followUp' => AgendaEventAction.followUpTask,
+      'edit' => AgendaEventAction.edit,
+      _ => AgendaEventAction.delete,
+    });
+  }
+
+  /// Runs one action of the detail sheet or of the quick menu.
+  Future<bool> perform(
+    BuildContext context,
+    AgendaEntry entry,
+    AgendaEventAction action,
+  ) async {
     switch (action) {
       case AgendaEventAction.edit:
         await edit(context, entry);
@@ -150,7 +238,11 @@ class AgendaEventFlows {
   }
 
   /// Opens the form and writes the event into the chosen phone calendar.
-  Future<void> create(BuildContext context, {DateTime? start}) async {
+  Future<void> create(
+    BuildContext context, {
+    DateTime? start,
+    DateTime? end,
+  }) async {
     if (!service.canWrite) return;
     final writable = [
       for (final calendar in calendars)
@@ -170,6 +262,7 @@ class AgendaEventFlows {
           calendars: writable,
           initialStart:
               start ?? DateTime(now.year, now.month, now.day, now.hour + 1),
+          initialEnd: end,
           initialCalendarId: initialCalendar,
           zoneLabel: zone,
         ),

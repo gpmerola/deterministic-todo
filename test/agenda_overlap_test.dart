@@ -24,6 +24,8 @@ AgendaEntry _event(
 
 void main() {
   setUpAll(() => initializeDateFormatting('it'));
+  timelineScaleTests();
+  dragSpanTests();
 
   test('overlapping timed events clash both ways, in start order', () {
     final clashes = agendaOverlaps([
@@ -92,4 +94,69 @@ extension on AgendaEntry {
     allDay: allDay,
     taskId: taskId,
   );
+}
+
+TimelineBlock _block(int start, int end) => TimelineBlock(
+  entry: _event('x', 0, 0, 0, 1),
+  startMinute: start,
+  endMinute: end,
+  column: 0,
+  columns: 1,
+);
+
+void timelineScaleTests() {
+  test('empty night hours fold, useful hours keep full height', () {
+    final scale = TimelineScale.forBlocks(const [], hourHeight: 60);
+    expect(scale.isFolded(3), isTrue);
+    expect(scale.isFolded(7), isFalse);
+    expect(scale.isFolded(20), isFalse);
+    expect(scale.isFolded(21), isTrue);
+    // 7 folded hours, 14 full, 3 folded.
+    expect(scale.total, 7 * 14 + 14 * 60 + 3 * 14);
+    expect(scale.y(7 * 60), 7 * 14);
+    expect(scale.y(7 * 60 + 30), 7 * 14 + 30);
+  });
+
+  test('an early or late event unfolds its hours', () {
+    final scale = TimelineScale.forBlocks([
+      _block(6 * 60 + 30, 7 * 60),
+      _block(22 * 60, 23 * 60 + 10),
+    ], hourHeight: 60);
+    expect(scale.isFolded(6), isFalse);
+    expect(scale.isFolded(22), isFalse);
+    expect(scale.isFolded(23), isFalse);
+    expect(scale.isFolded(5), isTrue);
+  });
+
+  test('minuteAt inverts y', () {
+    final scale = TimelineScale.forBlocks([
+      _block(9 * 60, 10 * 60),
+    ], hourHeight: 48);
+    for (final minute in [0, 125, 7 * 60, 9 * 60 + 30, 20 * 60 + 59, 23 * 60]) {
+      expect(
+        scale.minuteAt(scale.y(minute)),
+        inInclusiveRange(minute - 1, minute),
+      );
+    }
+    expect(scale.minuteAt(-5), 0);
+    expect(scale.minuteAt(scale.total + 10), 24 * 60);
+  });
+}
+
+void dragSpanTests() {
+  test('drag picks quarter hours, either direction, at least 15 minutes', () {
+    expect(dragSpan(9 * 60 + 5, 10 * 60 + 40), (
+      start: 9 * 60,
+      end: 10 * 60 + 45,
+    ));
+    expect(dragSpan(11 * 60, 10 * 60 + 20), (
+      start: 10 * 60 + 15,
+      end: 11 * 60,
+    ));
+    expect(dragSpan(14 * 60, 14 * 60 + 5), (start: 14 * 60, end: 14 * 60 + 15));
+    expect(dragSpan(23 * 60 + 55, 24 * 60), (
+      start: 23 * 60 + 45,
+      end: 24 * 60,
+    ));
+  });
 }

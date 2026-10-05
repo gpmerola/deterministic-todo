@@ -2,12 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 
 /// Top of Today: the day's remaining appointments in one line, so tasks and
-/// meetings are seen together. Reads on build, on resume and on new day;
-/// no timer. Tapping opens the day view.
+/// meetings are seen together. Reads on build, on resume and on new day.
+/// When the next appointment is within the hour it says "tra 25 min" (or
+/// "ora") and offers its meeting link; only then a one-shot timer wakes at
+/// the next minute, and never in background. Tapping opens the day view.
 class TodayAgendaStrip extends StatefulWidget {
   const TodayAgendaStrip({
     required this.loadEntries,
@@ -48,11 +51,18 @@ class _TodayAgendaStripState extends State<TodayAgendaStrip>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(_load());
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load());
+    } else {
+      // Nothing ticks in background.
+      _tick?.cancel();
+      _tick = null;
+    }
   }
 
   @override
   void dispose() {
+    _tick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -64,6 +74,19 @@ class _TodayAgendaStripState extends State<TodayAgendaStrip>
     } catch (_) {
       // Not logged: entries carry event titles. The strip stays hidden.
     }
+  }
+
+  Timer? _tick;
+
+  /// Re-renders at the next minute while a countdown is shown.
+  void _scheduleTick(bool counting) {
+    _tick?.cancel();
+    _tick = null;
+    if (!counting) return;
+    final now = (widget.now ?? DateTime.now)();
+    _tick = Timer(Duration(seconds: 60 - now.second, milliseconds: 50), () {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -84,9 +107,24 @@ class _TodayAgendaStripState extends State<TodayAgendaStrip>
     final clock = DateFormat.Hm('it');
     final shown = upcoming.take(3).toList();
     final more = upcoming.length - shown.length;
+    // "ora" for what is under way, "tra N min" for the first one still to
+    // start within the hour.
+    final labels = <String, String>{};
+    for (final entry in shown) {
+      final label = relativeStartLabel(entry.start, entry.end, now);
+      if (label == null) continue;
+      if (label != 'ora' && labels.values.any((l) => l != 'ora')) continue;
+      labels[entry.instanceId] = label;
+    }
+    _scheduleTick(labels.isNotEmpty);
+    final join = shown
+        .where((e) => labels.containsKey(e.instanceId) && e.meeting != null)
+        .firstOrNull
+        ?.meeting;
     final parts = [
       for (final entry in shown)
-        '${clock.format(entry.start)} '
+        '${labels[entry.instanceId] == null ? '' : '${labels[entry.instanceId]} · '}'
+            '${clock.format(entry.start)} '
             '${entry.title.isEmpty ? '(senza titolo)' : entry.title}',
       if (more > 0) '+$more',
       if (allDay > 0) '$allDay tutto il giorno',
@@ -116,7 +154,23 @@ class _TodayAgendaStripState extends State<TodayAgendaStrip>
                   style: theme.textTheme.bodyMedium,
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 18),
+              if (join != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: FilledButton.tonal(
+                    key: const ValueKey('today-agenda-join'),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    onPressed: () => unawaited(
+                      launchUrl(join.url, mode: LaunchMode.externalApplication),
+                    ),
+                    child: Text(join.provider),
+                  ),
+                )
+              else
+                const Icon(Icons.chevron_right, size: 18),
             ],
           ),
         ),

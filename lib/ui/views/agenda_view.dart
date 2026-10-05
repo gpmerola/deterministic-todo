@@ -283,14 +283,20 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     onCreateTask: widget.onCreateTask,
   );
 
-  Future<void> _createEvent({DateTime? start}) async {
-    await _flows.create(context, start: start);
+  Future<void> _createEvent({DateTime? start, DateTime? end}) async {
+    await _flows.create(context, start: start, end: end);
     await _load();
     widget.onChanged?.call();
   }
 
   Future<void> _showEvent(AgendaEntry entry) async {
     final changed = await _flows.show(context, entry);
+    await _load();
+    if (changed) widget.onChanged?.call();
+  }
+
+  Future<void> _quickEvent(AgendaEntry entry) async {
+    final changed = await _flows.quickActions(context, entry);
     await _load();
     if (changed) widget.onChanged?.call();
   }
@@ -355,6 +361,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       hidden: hidden,
     );
     final aiCalendar = await widget.service.aiEventCalendar();
+    final userColors = await widget.service.calendarColors();
     if (!mounted) return;
     final selection = await showModalBottomSheet<AgendaPickerResult>(
       context: context,
@@ -366,9 +373,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         filter: filter,
         eventCalendarId: eventCalendar,
         aiEventCalendarId: aiCalendar,
+        colors: widget.service.canOpenInSystem ? userColors : null,
       ),
     );
     if (selection == null) return;
+    if (selection.colors != null) {
+      await widget.service.saveCalendarColors(selection.colors!);
+    }
     await widget.service.saveAiEventCalendar(selection.aiEventCalendarId);
     if (selection.eventCalendarId != null) {
       await widget.service.saveEventCalendar(selection.eventCalendarId!);
@@ -466,8 +477,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             colors: colors,
             onOpen: _showEvent,
+            onLongPress: _quickEvent,
             onCreate: widget.service.canWrite
-                ? (start) => _createEvent(start: start)
+                ? (start, {end}) => _createEvent(start: start, end: end)
                 : null,
             zoneLabel: zone,
           ),
@@ -487,8 +499,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             onOpenDay: openDay,
             onOpen: _showEvent,
+            onLongPress: _quickEvent,
             onCreate: widget.service.canWrite
-                ? (start) => _createEvent(start: start)
+                ? (start, {end}) => _createEvent(start: start, end: end)
                 : null,
           )
         : mode == AgendaViewMode.week
@@ -502,8 +515,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             peekDays: _peekDays,
             onOpenDay: openDay,
             onOpen: _showEvent,
+            onLongPress: _quickEvent,
             onCreate: widget.service.canWrite
-                ? (start) => _createEvent(start: start)
+                ? (start, {end}) => _createEvent(start: start, end: end)
                 : null,
           )
         : mode == AgendaViewMode.twoWeeks
@@ -553,6 +567,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                 colors: colors,
                 names: names,
                 onOpen: (entry) => unawaited(_showEvent(entry)),
+                onQuick: (entry) => unawaited(_quickEvent(entry)),
               );
             },
           );
@@ -792,8 +807,10 @@ class _AgendaDaySection extends StatelessWidget {
     required this.colors,
     required this.names,
     required this.onOpen,
+    required this.onQuick,
   });
 
+  final ValueChanged<AgendaEntry> onQuick;
   final AgendaDay day;
   final CivilDate today;
   final Map<String, Color?> colors;
@@ -841,6 +858,7 @@ class _AgendaDaySection extends StatelessWidget {
                   for (final id in entry.calendarIds) names[id] ?? '',
                 ],
                 onTap: () => onOpen(entry),
+                onLongPress: () => onQuick(entry),
               ),
             ),
         const Divider(height: 1),
@@ -864,6 +882,7 @@ class AgendaEntryTile extends StatelessWidget {
     required this.color,
     required this.calendarNames,
     required this.onTap,
+    this.onLongPress,
     super.key,
   });
 
@@ -872,6 +891,7 @@ class AgendaEntryTile extends StatelessWidget {
   final Color? color;
   final List<String> calendarNames;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -883,6 +903,7 @@ class AgendaEntryTile extends StatelessWidget {
     ].where((part) => part.isNotEmpty).join('\n');
     final meeting = entry.meeting;
     return InkWell(
+      onLongPress: onLongPress,
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
@@ -976,7 +997,11 @@ final class AgendaPickerResult {
     this.filter, {
     this.eventCalendarId,
     this.aiEventCalendarId,
+    this.colors,
   });
+
+  /// User colours by calendar id; null when the picker did not offer them.
+  final Map<String, String>? colors;
 
   /// Separate calendar for ✨ events; null means "same as new events".
   final String? aiEventCalendarId;
@@ -994,8 +1019,12 @@ class AgendaCalendarPicker extends StatefulWidget {
     this.filter = AgendaFilter.none,
     this.eventCalendarId,
     this.aiEventCalendarId,
+    this.colors,
     super.key,
   });
+
+  /// Colours the user picked; null hides the colour choice.
+  final Map<String, String>? colors;
 
   final String? aiEventCalendarId;
   final List<AgendaCalendar> calendars;
@@ -1013,6 +1042,70 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   late String? eventCalendarId = widget.eventCalendarId;
   late String? aiEventCalendarId = widget.aiEventCalendarId;
   late final List<String> words = [...widget.filter.hiddenWords];
+  late final Map<String, String>? colors = widget.colors == null
+      ? null
+      : {...widget.colors!};
+
+  /// Google Calendar's event colours, with their Italian names.
+  static const palette = [
+    ('Pomodoro', '#D50000'),
+    ('Fenicottero', '#E67C73'),
+    ('Mandarino', '#F4511E'),
+    ('Banana', '#F6BF26'),
+    ('Salvia', '#33B679'),
+    ('Basilico', '#0B8043'),
+    ('Pavone', '#039BE5'),
+    ('Mirtillo', '#3F51B5'),
+    ('Lavanda', '#7986CB'),
+    ('Uva', '#8E24AA'),
+    ('Grafite', '#616161'),
+  ];
+
+  Future<void> _chooseColor(AgendaCalendar calendar) async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text('Colore di ${calendar.name}'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final (name, hex) in palette)
+                  Tooltip(
+                    message: name,
+                    child: InkWell(
+                      key: ValueKey('agenda-color-$hex'),
+                      customBorder: const CircleBorder(),
+                      onTap: () => Navigator.pop(dialogContext, hex),
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: parseCalendarColor(hex),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SimpleDialogOption(
+            key: const ValueKey('agenda-color-reset'),
+            // Empty string: back to the calendar's own colour.
+            onPressed: () => Navigator.pop(dialogContext, ''),
+            child: const Text('Colore originale del calendario'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      picked.isEmpty
+          ? colors!.remove(calendar.id)
+          : colors![calendar.id] = picked;
+    });
+  }
+
   final wordInput = TextEditingController();
 
   @override
@@ -1151,6 +1244,16 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
           ),
         ),
       const Divider(height: 24),
+      if (colors != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Text(
+            'Tocca il pallino per scegliere il colore di un calendario.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
     ];
     String? account;
     for (final calendar in widget.calendars) {
@@ -1169,11 +1272,22 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
       rows.add(
         SwitchListTile(
           value: !hidden.contains(calendar.id),
-          secondary: CircleAvatar(
-            radius: 7,
-            backgroundColor:
-                parseCalendarColor(calendar.colorHex) ??
-                theme.colorScheme.primary,
+          // Tap the dot to choose a colour (build 221).
+          secondary: InkWell(
+            key: ValueKey('agenda-color-of-${calendar.id}'),
+            customBorder: const CircleBorder(),
+            onTap: colors == null ? null : () => _chooseColor(calendar),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: CircleAvatar(
+                radius: 8,
+                backgroundColor:
+                    parseCalendarColor(
+                      colors?[calendar.id] ?? calendar.colorHex,
+                    ) ??
+                    theme.colorScheme.primary,
+              ),
+            ),
           ),
           title: Text(calendar.name),
           onChanged: (show) => setState(() {
@@ -1209,6 +1323,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                     Navigator.pop(
                       context,
                       AgendaPickerResult(
+                        colors: colors,
                         hidden,
                         AgendaFilter(
                           hideUnanswered: hideUnanswered,

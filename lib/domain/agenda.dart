@@ -256,7 +256,12 @@ final class AgendaEntry {
     this.isOrganizer = true,
     this.taskId,
     this.completed = false,
+    this.unanswered = false,
   });
+
+  /// Invitation not yet accepted or declined in any of its calendars:
+  /// drawn outlined, as Google Calendar does (build 221).
+  final bool unanswered;
 
   /// Calendar id used for Todo tasks shown in the Agenda.
   static const tasksCalendarId = 'todo-tasks';
@@ -391,6 +396,7 @@ List<AgendaEntry> mergeAgendaEntries({
     } else if (!existing.calendarIds.contains(event.calendarId)) {
       existing.calendarIds.add(event.calendarId);
       existing.meeting ??= findMeetingLink(event);
+      existing.unanswered = existing.unanswered && event.unanswered;
     }
   }
 
@@ -470,6 +476,9 @@ final class _MutableEntry {
   final List<String> calendarIds;
   MeetingLink? meeting;
 
+  /// Unanswered only if every merged copy is.
+  late bool unanswered = source.unanswered;
+
   AgendaEntry freeze() => AgendaEntry(
     instanceId: source.instanceId,
     calendarIds: List.unmodifiable(calendarIds),
@@ -482,6 +491,7 @@ final class _MutableEntry {
     timeZone: source.timeZone,
     eventZoneTimes: source.eventZoneTimes,
     isOrganizer: source.isOrganizer,
+    unanswered: unanswered,
   );
 }
 
@@ -541,6 +551,89 @@ final class TimelineBlock {
   /// over it, shifted right by this many steps, instead of squeezing both
   /// into narrow columns (Google Calendar's layout, build 220).
   final int indent;
+}
+
+/// "ora" while [start]–[end] is under way, "tra 25 min" within the next
+/// hour, otherwise null: how soon the next appointment is (build 221).
+String? relativeStartLabel(DateTime start, DateTime end, DateTime now) {
+  if (!now.isBefore(start) && now.isBefore(end)) return 'ora';
+  final minutes = (start.difference(now).inSeconds / 60).ceil();
+  if (minutes <= 0 || minutes > 60) return null;
+  return minutes == 60 ? 'tra 1 ora' : 'tra $minutes min';
+}
+
+/// Event span picked by press-and-drag on a timeline: from the quarter
+/// hour pressed to the quarter hour reached, at least 15 minutes, either
+/// direction, inside the day (build 221).
+({int start, int end}) dragSpan(int pressedMinute, int currentMinute) {
+  int snap(int minute) => ((minute / 15).round() * 15).clamp(0, 24 * 60);
+  final a = snap(pressedMinute).clamp(0, 24 * 60 - 15);
+  final b = snap(currentMinute);
+  if (b >= a + 15) return (start: a, end: b);
+  if (b <= a - 15) return (start: b, end: a);
+  return (start: a, end: a + 15);
+}
+
+/// Vertical scale of a day timeline: full height for the useful hours
+/// (by default 7:00–21:00, widened to every event of [blocks]), a narrow
+/// band for the others, so empty nights do not push the day off screen
+/// (build 221). Minutes map to offsets and back for taps and drags.
+final class TimelineScale {
+  TimelineScale._(this.hourHeights) : _tops = _offsets(hourHeights);
+
+  static List<double> _offsets(List<double> heights) {
+    final tops = [0.0];
+    for (final height in heights) {
+      tops.add(tops.last + height);
+    }
+    return tops;
+  }
+
+  factory TimelineScale.forBlocks(
+    Iterable<TimelineBlock> blocks, {
+    required double hourHeight,
+    double foldedHeight = 14,
+    int firstHour = 7,
+    int lastHour = 21,
+  }) {
+    var first = firstHour;
+    var last = lastHour;
+    for (final block in blocks) {
+      first = math.min(first, block.startMinute ~/ 60);
+      last = math.max(last, (block.endMinute + 59) ~/ 60);
+    }
+    return TimelineScale._([
+      for (var hour = 0; hour < 24; hour++)
+        hour >= first && hour < last ? hourHeight : foldedHeight,
+    ]);
+  }
+
+  /// Height of each hour, 0–23.
+  final List<double> hourHeights;
+  final List<double> _tops;
+
+  double get total => _tops[24];
+
+  bool isFolded(int hour) => hourHeights[hour] < hourHeights.reduce(math.max);
+
+  /// Offset of [minute] (0–1440) from midnight.
+  double y(int minute) {
+    final clamped = minute.clamp(0, 24 * 60);
+    final hour = math.min(clamped ~/ 60, 23);
+    return _tops[hour] + (clamped - hour * 60) / 60 * hourHeights[hour];
+  }
+
+  /// Minute at offset [dy], the inverse of [y].
+  int minuteAt(double dy) {
+    if (dy <= 0) return 0;
+    for (var hour = 0; hour < 24; hour++) {
+      if (dy < _tops[hour + 1]) {
+        return hour * 60 +
+            ((dy - _tops[hour]) / hourHeights[hour] * 60).floor();
+      }
+    }
+    return 24 * 60;
+  }
 }
 
 /// Horizontal placement of [block] in a lane [width] wide: left offset and

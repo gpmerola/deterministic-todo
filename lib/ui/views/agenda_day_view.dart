@@ -12,6 +12,9 @@ typedef AgendaDaysLoader =
     Future<List<AgendaDay>> Function(CivilDate first, int days);
 typedef AgendaDaysPeek = List<AgendaDay>? Function(CivilDate first, int days);
 
+/// New event at [start]; [end] when dragged to a length, otherwise an hour.
+typedef AgendaCreateAt = Future<void> Function(DateTime start, {DateTime? end});
+
 /// Google Calendar-like day view: 24 hours to scale, so gaps between
 /// meetings are visible; swipe for the previous or next day.
 class AgendaDayPage extends StatefulWidget {
@@ -22,18 +25,22 @@ class AgendaDayPage extends StatefulWidget {
     required this.peekDays,
     required this.colors,
     required this.onOpen,
+    this.onLongPress,
     this.onCreate,
     this.zoneLabel,
     this.now,
     super.key,
   });
 
+  /// Quick actions on long press; null: none.
+  final Future<void> Function(AgendaEntry entry)? onLongPress;
+
   /// Recognised device zone shown under the date; times are in it.
   final String? zoneLabel;
 
   /// New event starting at the given time; null where events are read-only
   /// (the web mirror).
-  final Future<void> Function(DateTime start)? onCreate;
+  final AgendaCreateAt? onCreate;
 
   final CivilDate initialDay;
   final CivilDate today;
@@ -66,6 +73,14 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
     pages.dispose();
     super.dispose();
   }
+
+  void _step(int days) => unawaited(
+    pages.animateToPage(
+      (pages.page ?? _origin.toDouble()).round() + days,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    ),
+  );
 
   void _goToToday() {
     final delta = widget.today.asLocalDate
@@ -107,6 +122,19 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
               onPressed: _goToToday,
               child: const Text('Oggi'),
             ),
+          // Swiping already moves between days; the arrows make it visible.
+          IconButton(
+            key: const ValueKey('agenda-day-previous'),
+            tooltip: 'Giorno prima',
+            onPressed: () => _step(-1),
+            icon: const Icon(Icons.chevron_left),
+          ),
+          IconButton(
+            key: const ValueKey('agenda-day-next'),
+            tooltip: 'Giorno dopo',
+            onPressed: () => _step(1),
+            icon: const Icon(Icons.chevron_right),
+          ),
         ],
       ),
       body: PageView.builder(
@@ -120,6 +148,7 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
           peekDays: widget.peekDays,
           colors: widget.colors,
           onOpen: widget.onOpen,
+          onLongPress: widget.onLongPress,
           onCreate: widget.onCreate,
           now: widget.now ?? DateTime.now,
         ),
@@ -163,10 +192,12 @@ class AgendaDayTimeline extends StatefulWidget {
     required this.onOpen,
     required this.onCreate,
     required this.now,
+    this.onLongPress,
     super.key,
   });
 
-  final Future<void> Function(DateTime start)? onCreate;
+  final Future<void> Function(AgendaEntry entry)? onLongPress;
+  final AgendaCreateAt? onCreate;
   final CivilDate day;
   final CivilDate today;
   final AgendaDaysLoader loadDays;
@@ -183,6 +214,16 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   static const _gutter = 48.0;
   AgendaDay? data;
   ScrollController? scroll;
+
+  /// Press-and-drag on free time: pressed minute and current span.
+  int? _pressed;
+  ({int start, int end})? _drag;
+
+  /// Hours of the current layout; empty night hours are folded.
+  TimelineScale scale = TimelineScale.forBlocks(
+    const [],
+    hourHeight: AgendaDayPage.hourHeight,
+  );
 
   @override
   void initState() {
@@ -220,7 +261,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   }
 
   Future<void> _createAt(double dy) async {
-    final minutes = (dy / AgendaDayPage.hourHeight * 60).floor();
+    final minutes = scale.minuteAt(dy);
     final slot = (minutes ~/ 30 * 30).clamp(0, 23 * 60 + 30);
     await widget.onCreate!(
       DateTime(
@@ -234,6 +275,24 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     await _load();
   }
 
+  Future<void> _createDragged() async {
+    final span = _drag;
+    setState(() {
+      _pressed = null;
+      _drag = null;
+    });
+    if (span == null) return;
+    DateTime at(int minute) => DateTime(
+      widget.day.year,
+      widget.day.month,
+      widget.day.day,
+      minute ~/ 60,
+      minute % 60,
+    );
+    await widget.onCreate!(at(span.start), end: at(span.end));
+    await _load();
+  }
+
   /// Start a little before the first meeting, or around now for today.
   double _initialOffset(List<TimelineBlock> blocks) {
     final minute = blocks.isNotEmpty
@@ -241,7 +300,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
         : widget.day == widget.today
         ? widget.now().hour * 60 - 60
         : 8 * 60;
-    return (minute.clamp(0, 24 * 60) / 60) * AgendaDayPage.hourHeight;
+    return scale.y(minute.clamp(0, 24 * 60));
   }
 
   @override
@@ -253,6 +312,10 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
         if (entry.allDay) entry,
     ];
     final blocks = layoutDayTimeline(entries, widget.day);
+    scale = TimelineScale.forBlocks(
+      blocks,
+      hourHeight: AgendaDayPage.hourHeight,
+    );
     final clashing = agendaOverlaps(entries).keys.toSet();
     // The first layout fixes the initial position; reloads keep the scroll.
     scroll ??= data == null
@@ -319,7 +382,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                 bottom: MediaQuery.viewPaddingOf(context).bottom + 8,
               ),
               child: SizedBox(
-                height: 24 * AgendaDayPage.hourHeight,
+                height: scale.total,
                 child: LayoutBuilder(
                   builder: (context, constraints) => Stack(
                     children: [
@@ -332,6 +395,24 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                             behavior: HitTestBehavior.opaque,
                             onTapUp: (details) =>
                                 unawaited(_createAt(details.localPosition.dy)),
+                            // Hold and drag: the event's length (build 221).
+                            onLongPressStart: (details) => setState(() {
+                              _pressed = scale.minuteAt(
+                                details.localPosition.dy,
+                              );
+                              _drag = dragSpan(_pressed!, _pressed! + 60);
+                            }),
+                            onLongPressMoveUpdate: (details) => setState(() {
+                              _drag = dragSpan(
+                                _pressed!,
+                                scale.minuteAt(details.localPosition.dy),
+                              );
+                            }),
+                            onLongPressEnd: (_) => unawaited(_createDragged()),
+                            onLongPressCancel: () => setState(() {
+                              _pressed = null;
+                              _drag = null;
+                            }),
                           ),
                         ),
                       for (var hour = 0; hour < 24; hour++)
@@ -345,6 +426,15 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                         ),
                       if (widget.day == widget.today)
                         _nowLine(context, constraints.maxWidth),
+                      if (_drag case final span?)
+                        Positioned(
+                          key: const ValueKey('agenda-day-drag'),
+                          top: scale.y(span.start),
+                          height: scale.y(span.end) - scale.y(span.start),
+                          left: _gutter,
+                          right: 4,
+                          child: AgendaDragGhost(span: span),
+                        ),
                     ],
                   ),
                 ),
@@ -358,8 +448,22 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
 
   List<Widget> _hourRow(BuildContext context, int hour, double width) {
     final theme = Theme.of(context);
-    final top = hour * AgendaDayPage.hourHeight;
+    final top = scale.y(hour * 60);
+    final folded = scale.isFolded(hour);
     return [
+      // Folded hours: a faint band, labelled only where it starts.
+      if (folded)
+        Positioned(
+          top: top,
+          left: _gutter,
+          right: 0,
+          height: scale.hourHeights[hour],
+          child: IgnorePointer(
+            child: ColoredBox(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.03),
+            ),
+          ),
+        ),
       Positioned(
         top: top,
         left: _gutter,
@@ -369,7 +473,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      if (hour > 0)
+      if (hour > 0 && (!folded || !scale.isFolded(hour - 1)))
         Positioned(
           top: top - 7,
           left: 0,
@@ -391,7 +495,6 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     double width,
     Set<String> clashing,
   ) {
-    const unit = AgendaDayPage.hourHeight / 60;
     final slot = timelineSlot(block, width - _gutter - 4);
     final scheme = Theme.of(context).colorScheme;
     final color = agendaEventFill(
@@ -400,14 +503,20 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     );
     return Positioned(
       key: ValueKey('agenda-block-${block.entry.instanceId}'),
-      top: block.startMinute * unit + 1,
+      top: scale.y(block.startMinute) + 1,
       left: _gutter + slot.left,
       width: slot.width - 2,
-      height: (block.endMinute - block.startMinute) * unit - 2,
+      height: scale.y(block.endMinute) - scale.y(block.startMinute) - 2,
       child: _Block(
         entry: block.entry,
         color: color,
         onTap: _open,
+        onLongPress: widget.onLongPress == null
+            ? null
+            : (entry) async {
+                await widget.onLongPress!(entry);
+                await _load();
+              },
         clash: clashing.contains(block.entry.instanceId),
       ),
     );
@@ -415,7 +524,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
 
   Widget _nowLine(BuildContext context, double width) {
     final now = widget.now();
-    final top = (now.hour * 60 + now.minute) * AgendaDayPage.hourHeight / 60;
+    final top = scale.y(now.hour * 60 + now.minute);
     final color = Theme.of(context).colorScheme.error;
     return Positioned(
       top: top - 4,
@@ -442,8 +551,11 @@ class _Block extends StatelessWidget {
     required this.entry,
     required this.color,
     required this.onTap,
+    this.onLongPress,
     this.clash = false,
   });
+
+  final Future<void> Function(AgendaEntry entry)? onLongPress;
 
   /// Overlaps another timed event: outlined and marked with ⚠.
   final bool clash;
@@ -453,20 +565,28 @@ class _Block extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = agendaOnFill(color);
+    final scheme = Theme.of(context).colorScheme;
+    // Unanswered invitations: outlined, not filled, like Google Calendar.
+    final outlined = entry.unanswered;
+    final onColor = outlined ? scheme.onSurface : agendaOnFill(color);
     final format = DateFormat.Hm('it');
     final meeting = entry.meeting;
     return Material(
-      color: color,
+      color: outlined ? scheme.surface : color,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(6),
         side: clash
-            ? BorderSide(color: Theme.of(context).colorScheme.error, width: 2)
+            ? BorderSide(color: scheme.error, width: 2)
+            : outlined
+            ? BorderSide(color: color, width: 1.5)
             : BorderSide.none,
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => unawaited(onTap(entry)),
+        onLongPress: onLongPress == null
+            ? null
+            : () => unawaited(onLongPress!(entry)),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final tall = constraints.maxHeight >= 40;
@@ -528,6 +648,42 @@ class _Block extends StatelessWidget {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// The span being dragged out for a new event, with its times.
+class AgendaDragGhost extends StatelessWidget {
+  const AgendaDragGhost({required this.span, super.key});
+
+  final ({int start, int end}) span;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    String time(int minute) =>
+        '${minute ~/ 60}:${(minute % 60).toString().padLeft(2, '0')}';
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.primary.withValues(alpha: 0.25),
+          border: Border.all(color: scheme.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 2, 4, 0),
+          child: Text(
+            '${time(span.start)}–${time(span.end)}',
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
     );

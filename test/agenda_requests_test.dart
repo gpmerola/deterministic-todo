@@ -55,6 +55,7 @@ final _timed = AgendaEventDraft(
 
 void main() {
   setUpAll(() => initializeDateFormatting('it'));
+  calendarColorTests();
 
   group('payload', () {
     test('a timed creation travels as UTC and comes back local', () {
@@ -484,4 +485,21 @@ class _QueueService extends AgendaService {
     DateTime end,
     List<String> calendarIds,
   ) async => const [];
+}
+
+void calendarColorTests() {
+  test('user colours are saved per calendar and survive a restart', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = AgendaService(db);
+    expect(await service.calendarColors(), isEmpty);
+    await service.saveCalendarColors({'kcl': '#8E24AA', 'slam': '#039BE5'});
+    final reopened = AgendaService(db);
+    expect(await reopened.calendarColors(), {
+      'kcl': '#8E24AA',
+      'slam': '#039BE5',
+    });
+    await reopened.saveCalendarColors({'slam': '#039BE5'});
+    expect(await AgendaService(db).calendarColors(), {'slam': '#039BE5'});
+  });
 }

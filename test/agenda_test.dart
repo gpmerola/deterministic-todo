@@ -568,7 +568,7 @@ void main() {
           peekDays: (_, _) => days,
           colors: const {},
           onOpen: (_) async {},
-          onCreate: (start) async => created.add(start),
+          onCreate: (start, {end}) async => created.add(start),
           now: () => DateTime(2026, 10, 5, 10),
         ),
       ),
@@ -956,7 +956,7 @@ void main() {
             colors: const {},
             onOpenDay: (_) {},
             onOpen: (_) async {},
-            onCreate: (start) async => created.add(start),
+            onCreate: (start, {end}) async => created.add(start),
             now: () => DateTime(2026, 10, 5, 8),
           ),
         ),
@@ -1201,6 +1201,109 @@ void main() {
     expect(created.single.$3, 'Collegata a: TNG Meeting · gio 8 ott 15:30');
   });
 
+  test('quanto manca al prossimo impegno', () {
+    final start = DateTime(2026, 10, 5, 11);
+    final end = DateTime(2026, 10, 5, 12);
+    expect(
+      relativeStartLabel(start, end, DateTime(2026, 10, 5, 10, 35)),
+      'tra 25 min',
+    );
+    expect(
+      relativeStartLabel(start, end, DateTime(2026, 10, 5, 10, 59, 30)),
+      'tra 1 min',
+    );
+    expect(
+      relativeStartLabel(start, end, DateTime(2026, 10, 5, 11, 20)),
+      'ora',
+    );
+    expect(
+      relativeStartLabel(start, end, DateTime(2026, 10, 5, 9, 30)),
+      isNull,
+    );
+    expect(relativeStartLabel(start, end, DateTime(2026, 10, 5, 12)), isNull);
+  });
+
+  testWidgets('in corso e prossima riunione insieme, il link della riunione', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TodayAgendaStrip(
+            dayKey: '2026-10-05',
+            loadEntries: () async => [
+              AgendaEntry(
+                instanceId: 'visit',
+                calendarIds: const ['clinic'],
+                title: 'Visita',
+                start: DateTime(2026, 10, 5, 11, 30),
+                end: DateTime(2026, 10, 5, 12, 30),
+                allDay: false,
+              ),
+              AgendaEntry(
+                instanceId: 'standup',
+                calendarIds: const ['kcl'],
+                title: 'Stand-up',
+                start: DateTime(2026, 10, 5, 12),
+                end: DateTime(2026, 10, 5, 12, 30),
+                allDay: false,
+                meeting: MeetingLink(
+                  'Teams',
+                  Uri.parse('https://teams.microsoft.com/l/meetup-join/y'),
+                ),
+              ),
+            ],
+            onOpen: () {},
+            now: () => DateTime(2026, 10, 5, 11, 42),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('ora · 11:30 Visita · tra 18 min · 12:00 Stand-up'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('today-agenda-join')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('la striscia offre la riunione che sta per iniziare', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TodayAgendaStrip(
+            dayKey: '2026-10-05',
+            loadEntries: () async => [
+              AgendaEntry(
+                instanceId: 'tng',
+                calendarIds: const ['kcl'],
+                title: 'TNG',
+                start: DateTime(2026, 10, 5, 11),
+                end: DateTime(2026, 10, 5, 12),
+                allDay: false,
+                meeting: MeetingLink(
+                  'Teams',
+                  Uri.parse('https://teams.microsoft.com/l/meetup-join/x'),
+                ),
+              ),
+            ],
+            onOpen: () {},
+            now: () => DateTime(2026, 10, 5, 10, 40),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('tra 20 min · 11:00 TNG'), findsOneWidget);
+    expect(find.byKey(const ValueKey('today-agenda-join')), findsOneWidget);
+    expect(find.text('Teams'), findsOneWidget);
+    // The minute timer stops with the widget.
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('la striscia di Oggi mostra solo gli impegni che restano', (
     tester,
   ) async {
@@ -1255,7 +1358,12 @@ void main() {
     );
     await pump(entries);
     await tester.pumpAndSettle();
-    expect(find.text('11:00 TNG · 1 tutto il giorno'), findsOneWidget);
+    // Within the hour: how soon, on the next appointment (build 221).
+    expect(
+      find.text('tra 1 ora · 11:00 TNG · 1 tutto il giorno'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('today-agenda-join')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('today-agenda-strip')));
     expect(opened, 1);
     await pump(const []);

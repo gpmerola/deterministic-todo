@@ -159,6 +159,8 @@ class AgendaEventSheet extends StatelessWidget {
                   ],
                 ),
               ),
+            if (entry.unanswered)
+              row(Icons.help_outline, 'Invito ancora senza risposta'),
             if (entry.recurring) row(Icons.repeat, 'Evento ricorrente'),
             if (entry.location?.trim().isNotEmpty ?? false)
               row(Icons.place_outlined, entry.location!.trim()),

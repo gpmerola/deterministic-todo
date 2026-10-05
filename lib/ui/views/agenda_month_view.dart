@@ -378,7 +378,19 @@ class AgendaChip extends StatelessWidget {
                 color: agendaAccentText(color, theme.colorScheme),
               ),
             ),
-            text(title, theme.colorScheme.onSurface),
+            // Unanswered invitation: muted and italic, still readable.
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              softWrap: false,
+              style: style.copyWith(
+                color: entry.unanswered
+                    ? theme.colorScheme.onSurfaceVariant
+                    : theme.colorScheme.onSurface,
+                fontStyle: entry.unanswered ? FontStyle.italic : null,
+              ),
+            ),
           ],
         ),
       );

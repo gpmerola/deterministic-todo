@@ -1596,7 +1596,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               calendar.id: parseCalendarColor(calendar.colorHex),
           },
           onOpen: (entry) => flows.show(pageContext, entry),
-          onCreate: (start) => flows.create(pageContext, start: start),
+          onLongPress: (entry) => flows.quickActions(pageContext, entry),
+          onCreate: (start, {end}) =>
+              flows.create(pageContext, start: start, end: end),
           zoneLabel: agendaService.lastZoneLabel,
         ),
       ),

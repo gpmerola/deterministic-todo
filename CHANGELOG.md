@@ -2,6 +2,29 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.59.0 (build 221) — Todo Test
+
+Calendario, terzo giro (7 punti, provati su emulatore):
+
+- **Inviti senza risposta** disegnati solo con il bordo; nel mese in
+  corsivo attenuato; nel dettaglio «Invito ancora senza risposta».
+- **Colore personale per calendario**: nel pannello Calendari si tocca il
+  pallino e si sceglie uno degli 11 colori di Google Calendar oppure
+  «Colore originale». Resta sul telefono e vale in tutte le viste, anche
+  nella copia per il Web.
+- **Ore notturne compattate** in giorno, 3 giorni e settimana: le ore
+  fuori 7:00–21:00 senza impegni diventano una fascia sottile.
+- **Oggi**: «ora» per ciò che è in corso, «tra 18 min» per il prossimo
+  entro un'ora, e un pulsante per entrare nella riunione (Teams, Zoom,
+  Meet).
+- **Vista giorno**: frecce ‹ › per il giorno prima e dopo (lo
+  scorrimento laterale c'era già).
+- **Pressione lunga su un evento**: Partecipa, Preparare, Follow-up,
+  Modifica, Elimina, Dettagli.
+- **Creare trascinando**: si tiene premuto su uno spazio libero e si
+  trascina; il modulo si apre con inizio e fine scelti, a passi di
+  15 minuti.
+
 ## 2.58.0 (build 220) — Todo Test
 
 Calendario, secondo giro (provato su emulatore con calendari finti):

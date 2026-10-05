@@ -436,6 +436,39 @@ con `-no-window`, il tema scuro si imposta con `cmd uimode night yes` e il
 fuso con `cmd alarm set-timezone Europe/London`. Così le prove
 dell'interfaccia non usano il telefono dell'utente né dati reali.
 
+## Calendario, terzo giro (build 221)
+
+- **Inviti senza risposta**: `AgendaEntry.unanswered` vale solo se tutte
+  le copie unite sono senza risposta. Nei blocchi c'è solo il bordo nel
+  colore del calendario, nel mese il titolo è in corsivo attenuato, e il
+  dettaglio lo segnala. La copia per il Web non porta questo dato.
+- **Colori personali**: `AgendaService.calendarColorsKey`
+  (`agenda_calendar_colors`, `{id: "#RRGGBB"}`, locale).
+  `calendars()` li applica sopra quelli del provider, quindi valgono in
+  ogni vista e nella copia per il Web. Si scelgono dal pallino nel pannello
+  Calendari, con la tavolozza di Google Calendar o «Colore originale».
+- **Ore compattate** (`TimelineScale`):
+  - in pieno le ore 7–21, allargate a ogni evento della pagina;
+  - le altre ore sono alte 14 dp, con fascia tenue ed etichetta solo
+    all'inizio;
+  - tocchi e trascinamenti usano `minuteAt`;
+  - la settimana usa una scala unica per le colonne.
+- **Oggi** (`relativeStartLabel`): «ora» per l'evento in corso, «tra
+  N min» per il primo che inizia entro un'ora, più il pulsante della
+  riunione. Un solo timer, solo in quel caso, fino al minuto successivo, e
+  mai in background.
+- **Vista giorno**: frecce per il giorno prima e dopo.
+- **Pressione lunga** (`AgendaEventFlows.quickActions`): menu breve.
+  Modifica ed Elimina compaiono solo per gli eventi modificabili.
+- **Creare trascinando** (`dragSpan`, `AgendaCreateAt`): pressione lunga
+  su uno spazio libero, trascinamento a quarti d'ora in entrambe le
+  direzioni (almeno 15 minuti), poi il modulo con `initialEnd`.
+
+`tools/emulator_agenda_seed.py` ora:
+- si può rilanciare: sostituisce gli eventi dei calendari demo;
+- aggiunge un invito senza risposta e una riunione Teams tra 20 minuti;
+- protegge i `:` nei valori del comando `content`.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
