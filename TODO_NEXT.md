@@ -1,5 +1,20 @@
 # TODO e handover
 
+## P1 — Revisione interfaccia (5 ottobre 2026, screenshot Galaxy 2217)
+
+Diagnosi data all'utente, in attesa della scelta:
+1. Rosso del marchio come `primary` anche nel tema scuro: link, bottoni,
+   bordi, «Salvato sul dispositivo», contatore filtri e Modifica/Elimina
+   tutti rossi, indistinguibili da errori.
+2. Colori dei calendari saturi e crudi sul tema scuro.
+3. Testi troncati: chip del mese, parole spezzate nella settimana, titolo
+   «Prossi…».
+4. Barra in alto affollata, con anello passi «234» poco chiaro.
+5. Barra in basso incoerente nell'Agenda; tre icone simili a calendari.
+6. Link lunghi su più righe.
+7. Il + copre l'ultima riga; la vista giorno va sotto la barra di sistema.
+8. Editor: due chip di data poco chiari.
+
 ## P1 — Agenda dal Web e background, build 213
 
 - [x] Coda Web→telefono, job in background, sovrapposizioni, ricerca senza
@@ -17,7 +32,8 @@
   su Google → copia aggiornata senza aprire Todo (STATUS).
 - [x] Galaxy 2217: sessione scaduta rinnovata in background (token ruotato
   e attivo), copia aggiornata senza aprire Todo.
-- [ ] Conferma dell'utente: nessuna richiesta di login all'apertura.
+- [x] Conferma dell'utente (5 ottobre 2026): nessuna richiesta di login
+  all'apertura.
 - [ ] Osservare un giorno di batteria: il job a trigger deve fermarsi
   all'impronta quando non cambia nulla.
 
