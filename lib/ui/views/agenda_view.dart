@@ -713,7 +713,7 @@ class _AgendaHeader extends StatelessWidget {
               key: const ValueKey('agenda-today'),
               tooltip: 'Oggi',
               onPressed: onToday,
-              icon: _TodayIcon(day: today.day),
+              icon: AgendaTodayIcon(day: today.day),
             ),
           // The list has no period title: the zone stays here. Grids show
           // it beside their title (see AgendaView).
@@ -1414,8 +1414,8 @@ class _ZoneLabel extends StatelessWidget {
 }
 
 /// Calendar outline with today's day number.
-class _TodayIcon extends StatelessWidget {
-  const _TodayIcon({required this.day});
+class AgendaTodayIcon extends StatelessWidget {
+  const AgendaTodayIcon({required this.day, super.key});
 
   final int day;
 

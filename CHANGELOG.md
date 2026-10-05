@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.59.1 (build 222) — Todo Test
+
+- Vista giorno: con le frecce della 221 la data e il fuso venivano tagliati
+  («Giovedì 2…»). Ora il giorno è abbreviato («Gio 15 ottobre») e Oggi è
+  un'icona con il numero del giorno, quindi entrambi stanno per intero.
+
 ## 2.59.0 (build 221) — Todo Test
 
 Calendario, terzo giro (7 punti, provati su emulatore):

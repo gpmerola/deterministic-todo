@@ -469,6 +469,31 @@ dell'interfaccia non usano il telefono dell'utente né dati reali.
 - aggiunge un invito senza risposta e una riunione Teams tra 20 minuti;
 - protegge i `:` nei valori del comando `content`.
 
+## Fonti dei calendari di lavoro (5 ottobre 2026)
+
+Diagnosi via ADB sul Galaxy: in Agenda mancavano eventi KCL che Teams
+mostrava.
+
+Outlook per Android, che copiava `k2473476@kcl.ac.uk` nel calendario di
+sistema:
+- da agosto non inseriva più eventi singoli nuovi;
+- scriveva come annullate (`eventStatus=2`) alcune occorrenze valide.
+
+Disattivando e riattivando «Sincronizza calendari» il calendario è stato
+ricreato, ma solo dopo diverso tempo.
+
+Soluzione stabile: lo stesso account in **Samsung Email** (Office365,
+accesso tramite il broker Microsoft del telefono), con solo il calendario
+attivo. Samsung Email scrive nel provider di sistema via Exchange
+ActiveSync (`com.samsung.android.exchange`). Le due copie, Exchange e
+Outlook, sono unite dall'Agenda e restano due fonti indipendenti.
+
+Altri account:
+- SLaM rifiuta Samsung Email: l'accesso condizionale ammette solo app
+  approvate. Resta il libero/occupato pubblicato e abbonato in Google
+  (calendario «SLAM»);
+- KCL non permette di pubblicare il calendario in ICS.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.

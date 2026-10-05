@@ -383,7 +383,7 @@ void main() {
 
     await tester.tap(monday);
     await tester.pumpAndSettle();
-    expect(find.text('Lunedì 5 ottobre'), findsOneWidget);
+    expect(find.text('Lun 5 ottobre'), findsOneWidget);
     expect(find.text('09:00–10:00'), findsOneWidget);
     expect(find.text('Partecipa · Teams'), findsOneWidget);
     await tester.pageBack();

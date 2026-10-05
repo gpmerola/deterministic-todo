@@ -24,7 +24,15 @@ settimana e mese, e dell'editor. Diagnosi originale:
 - [x] Build 221: inviti con bordo, colori personali, ore compattate, «tra
   N min» con Partecipa, frecce giorno, pressione lunga, creare trascinando;
   verificata su emulatore.
-- [ ] Riscontro dell'utente sulla 221 sul Galaxy.
+- [ ] Riscontro dell'utente sulla 221–222 sul Galaxy.
+- [x] KCL k2473476 aggiunto a Samsung Email (Exchange): eventi di
+  ottobre presenti; SLaM resta libero/occupato via Google (verificato
+  acceso in Agenda).
+- [ ] Facoltativo: k25129662 anche in Samsung Email.
+- [ ] Facoltativo: nascondere «Canceled:» / «Annullato:» lasciati da
+  Exchange.
+- [ ] Facoltativo: stato «senza risposta» dalla copia Outlook quando la
+  copia Exchange non lo dice (selfAttendeeStatus 0).
 - [ ] Web 221 dopo `PUBBLICA`.
 
 ## P1 — Agenda dal Web e background, build 213

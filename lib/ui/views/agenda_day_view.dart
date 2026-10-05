@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
+import 'agenda_view.dart' show AgendaTodayIcon;
 
 typedef AgendaDaysLoader =
     Future<List<AgendaDay>> Function(CivilDate first, int days);
@@ -99,7 +100,7 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
   Widget build(BuildContext context) {
     // The year only when it differs: the full date is cut off on phones.
     final label = DateFormat(
-      shown.year == widget.today.year ? 'EEEE d MMMM' : 'EEEE d MMMM yyyy',
+      shown.year == widget.today.year ? 'EEE d MMMM' : 'EEE d MMM yyyy',
       'it',
     ).format(shown.asLocalDate);
     return Scaffold(
@@ -111,30 +112,38 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
             Text(
               widget.zoneLabel ?? 'Fuso orario non riconosciuto',
               key: const ValueKey('agenda-day-zone'),
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ],
         ),
+        // Compact actions: with "Oggi" as text and two full-size arrows the
+        // date and the zone were cut ("Giovedì 2…", build 221).
         actions: [
           if (shown != widget.today)
-            TextButton(
+            IconButton(
               key: const ValueKey('agenda-day-today'),
+              tooltip: 'Oggi',
+              visualDensity: VisualDensity.compact,
               onPressed: _goToToday,
-              child: const Text('Oggi'),
+              icon: AgendaTodayIcon(day: widget.today.day),
             ),
           // Swiping already moves between days; the arrows make it visible.
           IconButton(
             key: const ValueKey('agenda-day-previous'),
             tooltip: 'Giorno prima',
+            visualDensity: VisualDensity.compact,
             onPressed: () => _step(-1),
             icon: const Icon(Icons.chevron_left),
           ),
           IconButton(
             key: const ValueKey('agenda-day-next'),
             tooltip: 'Giorno dopo',
+            visualDensity: VisualDensity.compact,
             onPressed: () => _step(1),
             icon: const Icon(Icons.chevron_right),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: PageView.builder(
