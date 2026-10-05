@@ -198,6 +198,10 @@ class AgendaEventSheet extends StatelessWidget {
                 if (editable)
                   OutlinedButton.icon(
                     key: const ValueKey('agenda-sheet-delete'),
+                    // Red only for what removes data.
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                    ),
                     onPressed: () =>
                         Navigator.pop(context, AgendaEventAction.delete),
                     icon: const Icon(Icons.delete_outline),

@@ -41,7 +41,8 @@ class UpcomingTaskList extends StatelessWidget {
     final visibleDays = days < dayCount + 1 ? days : dayCount + 1;
     return ListView.builder(
       key: listKey,
-      padding: const EdgeInsets.only(bottom: 24),
+      // Room for the + button over the last row (UI review, build 218).
+      padding: const EdgeInsets.only(bottom: 96),
       itemCount: visibleDays + 1,
       itemBuilder: (context, index) {
         if (index == visibleDays) {

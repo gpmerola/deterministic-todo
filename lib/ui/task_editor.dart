@@ -410,9 +410,16 @@ class _TaskEditorState extends State<TaskEditor> {
                           final rejected = pending.any(
                             (e) => e.lastError == 'server_rejected',
                           );
+                          final scheme = Theme.of(context).colorScheme;
                           return Align(
                             alignment: Alignment.centerLeft,
                             child: TextButton.icon(
+                              // A confirmation, not an action or an alert.
+                              style: TextButton.styleFrom(
+                                foregroundColor: conflict || rejected
+                                    ? scheme.error
+                                    : scheme.onSurfaceVariant,
+                              ),
                               icon: Icon(
                                 conflict
                                     ? Icons.sync_problem
@@ -501,6 +508,10 @@ class _TaskEditorState extends State<TaskEditor> {
                 children: [
                   TextButton.icon(
                     key: const ValueKey('task-editor-delete'),
+                    // Red only for what removes data.
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                    ),
                     onPressed: () async {
                       await widget.repository.softDelete(widget.task);
                       await drafts.remove(widget.task.id);
@@ -558,24 +569,25 @@ class _TaskEditorState extends State<TaskEditor> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
+          // One date control: the chip shows it, its × removes it. A
+          // separate "Senza data" chip beside "4 ott ×" read as two dates
+          // (UI review, build 218).
           ActionChip(
             avatar: const Icon(Icons.calendar_today_outlined, size: 18),
             label: Text(_compactDateLabel()),
             onPressed: _pickShowDate,
           ),
-          if (showDate.text.isNotEmpty)
+          // Also when the title implies a date ("domani"): × keeps the
+          // task undated instead.
+          if (showDate.text.isNotEmpty ||
+              (!dateExplicitlyCleared && _titleImpliesDate))
             IconButton(
+              key: const ValueKey('task-editor-no-date'),
               tooltip: 'Rimuovi data',
               visualDensity: VisualDensity.compact,
               onPressed: _clearShowDate,
               icon: const Icon(Icons.close, size: 18),
             ),
-          ChoiceChip(
-            key: const ValueKey('task-editor-no-date'),
-            label: const Text('Senza data'),
-            selected: showDate.text.isEmpty,
-            onSelected: (_) => _clearShowDate(),
-          ),
           PopupMenuButton<int>(
             tooltip: 'Priorità P${5 - priority}',
             icon: Icon(Icons.circle, color: priorityColor(priority), size: 20),
@@ -687,8 +699,13 @@ class _TaskEditorState extends State<TaskEditor> {
     );
   }
 
+  /// The title carries date syntax that saving would apply (see [_save]).
+  bool get _titleImpliesDate =>
+      const QuickAddParser().recognizedSyntax(title.text).isNotEmpty &&
+      parsePlannedQuickTask(title.text).showDate != null;
+
   String _compactDateLabel() {
-    if (showDate.text.isEmpty) return 'Data';
+    if (showDate.text.isEmpty) return 'Senza data';
     try {
       return DateFormat(
         'd MMM',

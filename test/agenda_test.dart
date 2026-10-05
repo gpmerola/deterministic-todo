@@ -351,15 +351,20 @@ void main() {
     expect(find.text('Ottobre 2026'), findsOneWidget);
     expect(find.text('L'), findsOneWidget);
     final monday = find.byKey(const ValueKey('agenda-day-2026-10-05'));
+    // Time over title: both always readable (build 218).
     expect(
-      find.descendant(of: monday, matching: find.text('9 Supervisione')),
+      find.descendant(of: monday, matching: find.text('Supervisione')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: monday, matching: find.text('9')),
       findsOneWidget,
     );
     // The month fills the screen: a day shows every entry that fits its
     // height, then "+N" for the rest.
     final busy = find.byKey(const ValueKey('agenda-day-2026-10-07'));
     expect(
-      find.descendant(of: busy, matching: find.text('7 Clinica 7')),
+      find.descendant(of: busy, matching: find.text('Clinica 7')),
       findsOne,
     );
     final shown = tester
@@ -1257,10 +1262,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    // Zone, mode, today and calendars share one row above the days.
-    final zone = tester.getTopLeft(find.byKey(const ValueKey('agenda-zone')));
-    final mode = tester.getTopLeft(find.byKey(const ValueKey('agenda-mode')));
-    expect((zone.dy - mode.dy).abs(), lessThan(24));
+    // In grids the zone sits beside the period title, on the right, where
+    // it is not cut (build 218).
+    final zone = tester.getCenter(find.byKey(const ValueKey('agenda-zone')));
+    final title = tester.getCenter(find.text('Ottobre 2026'));
+    expect((zone.dy - title.dy).abs(), lessThan(12));
+    expect(zone.dx, greaterThan(title.dx));
     await tester.tap(find.byKey(const ValueKey('agenda-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cerca'));
@@ -1319,8 +1326,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
     expect(find.text('London · UTC+1'), findsOneWidget);
-    expect(find.text('9 Supervisione'), findsOneWidget);
-    expect(find.text('8:30 Ward round'), findsOneWidget);
+    expect(find.text('Supervisione'), findsOneWidget);
+    expect(find.text('Ward round'), findsOneWidget);
+    expect(find.text('8:30'), findsOneWidget);
     expect(await service.viewMode(), AgendaViewMode.twoWeeks);
 
     await tester.tap(find.byKey(const ValueKey('agenda-day-2026-10-05')));

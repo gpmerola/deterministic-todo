@@ -30,7 +30,8 @@ class TodayTaskList extends StatelessWidget {
     if (overdue.isEmpty) {
       return ListView.builder(
         key: const PageStorageKey('task-list-today'),
-        padding: const EdgeInsets.only(bottom: 24),
+        // Room for the + button over the last row (UI review, build 218).
+        padding: const EdgeInsets.only(bottom: 96),
         itemCount: current.length,
         itemBuilder: (_, index) => tileBuilder(current[index]),
       );
@@ -40,7 +41,8 @@ class TodayTaskList extends StatelessWidget {
         currentHeaderIndex + (current.isEmpty ? 0 : 1) + current.length;
     return ListView.builder(
       key: const PageStorageKey('task-list-today'),
-      padding: const EdgeInsets.only(bottom: 24),
+      // Room for the + button over the last row (UI review, build 218).
+      padding: const EdgeInsets.only(bottom: 96),
       itemCount: itemCount,
       itemBuilder: (_, index) {
         if (index == 0) {

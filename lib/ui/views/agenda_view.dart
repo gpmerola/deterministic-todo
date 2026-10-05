@@ -415,6 +415,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     final names = {
       for (final calendar in calendars) calendar.id: calendar.name,
     };
+    final zoneText = [
+      zone == null
+          // Not yet known while the first load runs.
+          ? (loading ? 'Fuso…' : 'Fuso non riconosciuto')
+          : shortZoneLabel(zone!),
+      ?widget.service.mirrorLabel,
+    ].join(' · ');
     final header = _AgendaHeader(
       visible: calendars.length - hidden.length,
       total: calendars.length,
@@ -423,9 +430,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       filtered: filter.isActive,
       onMode: (next) => unawaited(_setMode(next)),
       onToday: mode == AgendaViewMode.list ? null : _scrollToToday,
-      zone: zone,
+      zone: mode == AgendaViewMode.list ? zoneText : null,
       onChoose: _chooseCalendars,
-      mirror: widget.service.mirrorLabel,
       failures: widget.service.failedRequests.length,
       onFailures: _showFailures,
       onSearch: widget.onSearch,
@@ -527,7 +533,24 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           children: [
             header,
             Expanded(
-              child: RefreshIndicator(onRefresh: _load, child: body),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: RefreshIndicator(onRefresh: _load, child: body),
+                  ),
+                  // Grids have a period title on the left of their first
+                  // row; the zone sits on its right, where there is room
+                  // (in the header it was cut to "Londo…", build 217).
+                  if (mode != AgendaViewMode.list)
+                    Positioned(
+                      top: 1,
+                      right: 12,
+                      child: IgnorePointer(
+                        child: _ZoneLabel(text: zoneText, loading: loading),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -565,13 +588,9 @@ class _AgendaHeader extends StatelessWidget {
     this.onSearch,
     this.onSettings,
     this.onCapture,
-    this.mirror,
     this.failures = 0,
     this.onFailures,
   });
-
-  /// "Copia dal telefono · 4 ott 14:32" on the web.
-  final String? mirror;
 
   /// Web changes the phone could not apply.
   final int failures;
@@ -646,35 +665,20 @@ class _AgendaHeader extends StatelessWidget {
               onPressed: onToday,
               icon: const Icon(Icons.today_outlined),
             ),
+          // The list has no period title: the zone stays here. Grids show
+          // it beside their title (see AgendaView).
           Expanded(
-            // The recognised zone stays visible: every time shown is in it.
-            child: Row(
-              children: [
-                Icon(Icons.public, size: 14, color: muted),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    [
-                      zone == null
-                          // Not yet known while the first load runs.
-                          ? (loading ? 'Fuso…' : 'Fuso non riconosciuto')
-                          : shortZoneLabel(zone!),
-                      ?mirror,
-                    ].join(' · '),
-                    key: const ValueKey('agenda-zone'),
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(color: muted),
-                  ),
-                ),
-                if (loading) ...[
-                  const SizedBox(width: 6),
-                  const SizedBox.square(
-                    dimension: 12,
-                    child: CircularProgressIndicator(strokeWidth: 1.5),
-                  ),
-                ],
-              ],
-            ),
+            child: zone == null
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: loading
+                        ? const SizedBox.square(
+                            dimension: 12,
+                            child: CircularProgressIndicator(strokeWidth: 1.5),
+                          )
+                        : const SizedBox.shrink(),
+                  )
+                : _ZoneLabel(text: zone!, loading: loading),
           ),
           if (failures > 0)
             IconButton(
@@ -700,6 +704,9 @@ class _AgendaHeader extends StatelessWidget {
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: 6),
+              // Accent only when filters hide something; a plain count is
+              // not an alert.
+              foregroundColor: filtered ? theme.colorScheme.primary : muted,
             ),
             onPressed: total == 0 ? null : onChoose,
             icon: Icon(filtered ? Icons.filter_alt : Icons.tune, size: 18),
@@ -1208,4 +1215,41 @@ class _Message extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Recognised zone (and on the web the copy's age), always visible: every
+/// time shown is in it.
+class _ZoneLabel extends StatelessWidget {
+  const _ZoneLabel({required this.text, required this.loading});
+
+  final String text;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.public, size: 13, color: muted),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            key: const ValueKey('agenda-zone'),
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(color: muted),
+          ),
+        ),
+        if (loading) ...[
+          const SizedBox(width: 6),
+          const SizedBox.square(
+            dimension: 12,
+            child: CircularProgressIndicator(strokeWidth: 1.5),
+          ),
+        ],
+      ],
+    );
+  }
 }

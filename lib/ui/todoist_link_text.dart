@@ -62,7 +62,7 @@ class _TodoistLinkTextState extends State<TodoistLinkText> {
       recognizers.add(recognizer);
       spans.add(
         TextSpan(
-          text: match.group(1),
+          text: displayLinkLabel(match.group(1)!, match.group(2)!),
           recognizer: recognizer,
           style: TextStyle(
             color: Theme.of(context).colorScheme.primary,

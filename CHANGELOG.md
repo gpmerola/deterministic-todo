@@ -2,6 +2,27 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.57.0 (build 219) — Todo Test
+
+Revisione dell'interfaccia sugli screenshot del Galaxy (8 punti):
+
+- **Colori.** Il rosso del marchio resta per il +, le arretrate, la priorità
+  alta e ciò che elimina. Link, selezioni, oggi e pulsanti usano un azzurro
+  tenue, distinto dagli errori. «Salvato sul dispositivo» è grigio.
+- **Calendari nel tema scuro**: colori smorzati, come nelle app calendario.
+- **Mese leggibile**: l'orario sta su una riga, nel colore del calendario,
+  e il titolo sotto, con tutta la larghezza.
+- **Settimana**: i titoli vanno a capo solo tra parole; una parola troppo
+  lunga finisce con «…».
+- **Fuso** accanto al titolo del periodo, non più tagliato.
+- **Barra in alto**: i passi solo in Oggi; la nuvola compare solo se c'è
+  qualcosa da sincronizzare o un problema.
+- **Barra in basso** uguale in tutte le sezioni, con icone distinte per
+  Oggi (sole), Prossime e Agenda.
+- **Link brevi**: identificatori e pagine generiche mostrano solo il sito
+  («chatgpt.com»), anche per i link già salvati.
+- Spazio sotto gli elenchi per il +; nell'editor una sola data con ×.
+
 ## 2.56.4 (build 217) — Todo Test
 
 - **Correzione urgente: niente più logout dal telefono.** Dalla 213 il

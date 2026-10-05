@@ -13,9 +13,11 @@ extension AppSectionPresentation on AppSection {
     AppSection.settings => 'Impostazioni',
   };
 
+  /// Distinct shapes: three calendar icons (Today, Upcoming, Agenda) were
+  /// hard to tell apart without labels (UI review, build 218).
   IconData get icon => switch (this) {
-    AppSection.today => Icons.today_outlined,
-    AppSection.upcoming => Icons.event_outlined,
+    AppSection.today => Icons.wb_sunny_outlined,
+    AppSection.upcoming => Icons.upcoming_outlined,
     AppSection.projects => Icons.folder_outlined,
     AppSection.agenda => Icons.calendar_month_outlined,
     AppSection.completed => Icons.check_circle_outline,

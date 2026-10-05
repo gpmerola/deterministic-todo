@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
+import 'agenda_colors.dart';
 
 typedef AgendaDaysLoader =
     Future<List<AgendaDay>> Function(CivilDate first, int days);
@@ -281,18 +282,23 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                             size: 18,
                           )
                         : null,
-                    backgroundColor:
-                        widget.colors[entry.calendarIds.first] ??
-                        theme.colorScheme.primaryContainer,
+                    backgroundColor: agendaEventFill(
+                      widget.colors[entry.calendarIds.first] ??
+                          theme.colorScheme.primaryContainer,
+                      theme.colorScheme,
+                    ),
                     label: Text(
                       entry.title.isEmpty ? '(senza titolo)' : entry.title,
                       style: TextStyle(
                         decoration: entry.completed
                             ? TextDecoration.lineThrough
                             : null,
-                        color: _onColor(
-                          widget.colors[entry.calendarIds.first] ??
-                              theme.colorScheme.primaryContainer,
+                        color: agendaOnFill(
+                          agendaEventFill(
+                            widget.colors[entry.calendarIds.first] ??
+                                theme.colorScheme.primaryContainer,
+                            theme.colorScheme,
+                          ),
                         ),
                       ),
                     ),
@@ -388,9 +394,11 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     const unit = AgendaDayPage.hourHeight / 60;
     final available = width - _gutter - 4;
     final columnWidth = available / block.columns;
-    final color =
-        widget.colors[block.entry.calendarIds.first] ??
-        Theme.of(context).colorScheme.primary;
+    final scheme = Theme.of(context).colorScheme;
+    final color = agendaEventFill(
+      widget.colors[block.entry.calendarIds.first] ?? scheme.primary,
+      scheme,
+    );
     return Positioned(
       key: ValueKey('agenda-block-${block.entry.instanceId}'),
       top: block.startMinute * unit + 1,
@@ -446,7 +454,7 @@ class _Block extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = _onColor(color);
+    final onColor = agendaOnFill(color);
     final format = DateFormat.Hm('it');
     final meeting = entry.meeting;
     return Material(
@@ -526,6 +534,3 @@ class _Block extends StatelessWidget {
     );
   }
 }
-
-Color _onColor(Color color) =>
-    color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;

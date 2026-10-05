@@ -237,7 +237,14 @@ class _AppRuntime {
 }
 
 class TodoApp extends StatelessWidget {
+  /// Brand colour: the + button, and red keeps meaning "attention"
+  /// (overdue, high priority, delete, errors).
   static const brandRed = Color(0xffdb4035);
+
+  /// Seed of the everyday accent (links, selection, today, buttons). Until
+  /// build 217 the brand red was the primary colour too, so confirmations,
+  /// links and plain buttons looked like errors (UI review, 5 October 2026).
+  static const accentSeed = Color(0xff3b6fb6);
 
   const TodoApp({
     required this.repository,
@@ -281,11 +288,9 @@ class TodoApp extends StatelessWidget {
     final dark = brightness == Brightness.dark;
     final scheme =
         ColorScheme.fromSeed(
-          seedColor: brandRed,
+          seedColor: accentSeed,
           brightness: brightness,
         ).copyWith(
-          primary: brandRed,
-          onPrimary: Colors.white,
           outline: highContrast ? (dark ? Colors.white : Colors.black) : null,
           surface: dark ? const Color(0xff1f1f1f) : const Color(0xfffafafa),
           surfaceContainerLow: dark
@@ -335,6 +340,10 @@ class TodoApp extends StatelessWidget {
       focusColor: scheme.primary.withValues(alpha: highContrast ? 0.28 : 0.16),
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: brandRed,
+        foregroundColor: Colors.white,
       ),
     );
   }
@@ -1026,8 +1035,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             ),
                           ),
                           actions: [
+                            // Steps only in Today: five actions cut the
+                            // title elsewhere ("Prossi…", build 217).
                             if (widget.enablePlatformServices &&
-                                isAndroidPlatform)
+                                isAndroidPlatform &&
+                                section == AppSection.today)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 3,
@@ -1119,13 +1131,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           heightFactor: 1,
                           child: SizedBox(
                             width: 720,
-                            // Lower bar in Agenda: more height for the days.
+                            // Same bar in every section (it was lower and
+                            // without labels in Agenda until build 217).
                             child: NavigationBar(
-                              height: section == AppSection.agenda ? 56 : null,
-                              labelBehavior: section == AppSection.agenda
-                                  ? NavigationDestinationLabelBehavior
-                                        .onlyShowSelected
-                                  : null,
+                              height: 64,
+                              labelBehavior:
+                                  NavigationDestinationLabelBehavior.alwaysShow,
                               selectedIndex: primarySections
                                   .indexOf(section)
                                   .clamp(0, primarySections.length - 1),

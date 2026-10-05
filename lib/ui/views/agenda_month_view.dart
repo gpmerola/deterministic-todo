@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
+import 'agenda_colors.dart';
 import 'agenda_weeks_view.dart' show AgendaDayCell;
 
 /// One whole month per screen, Monday first, like Google Calendar's month
@@ -263,11 +264,19 @@ class AgendaChip extends StatelessWidget {
     required this.entry,
     required this.color,
     this.showTime = false,
+    this.twoLines = false,
     super.key,
   });
 
   /// Prefixes the start time of timed events (only where space allows).
   final bool showTime;
+
+  /// Timed events as time over title (narrow grid cells).
+  final bool twoLines;
+
+  /// Height of a [twoLines] timed entry; other entries use
+  /// `AgendaDayCell.chipHeight`.
+  static const twoLineHeight = 25.0;
 
   final AgendaEntry entry;
   final Color color;
@@ -317,16 +326,40 @@ class AgendaChip extends StatelessWidget {
       );
     }
     if (entry.allDay) {
+      final fill = agendaEventFill(color, theme.colorScheme);
       return Container(
         margin: const EdgeInsets.only(bottom: 1.5),
         padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
         decoration: BoxDecoration(
-          color: color,
+          color: fill,
           borderRadius: BorderRadius.circular(3),
         ),
-        child: text(
-          title,
-          color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white,
+        child: text(title, agendaOnFill(fill)),
+      );
+    }
+    if (twoLines) {
+      // Month and two-week cells are ~50 dp wide: the time gets its own
+      // line, in the calendar colour, so it is always readable and the
+      // title keeps the whole width below it.
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 2, left: 1),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              compactTime(entry.start),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.clip,
+              style: TextStyle(
+                fontSize: 9.5,
+                height: 1.15,
+                fontWeight: FontWeight.w800,
+                color: agendaAccentText(color, theme.colorScheme),
+              ),
+            ),
+            text(title, theme.colorScheme.onSurface),
+          ],
         ),
       );
     }

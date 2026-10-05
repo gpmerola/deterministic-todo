@@ -47,15 +47,54 @@ String _linkifyGap(String value) =>
       return '[${friendlyLinkLabel(url)}]($url)$suffix';
     });
 
+/// Short label for a pasted URL: the site, plus the last path segment
+/// only when it reads as words. Identifiers ("6ac22c33-b194-…"), file
+/// names like `index.php` and long segments give just the site: the full
+/// IDs took three or four lines in task lists (UI review, build 218).
 String friendlyLinkLabel(String url) {
   final uri = Uri.tryParse(normalizeWebUrl(url));
   if (uri == null || uri.host.isEmpty) return url;
-  final host = uri.host.startsWith('www.') ? uri.host.substring(4) : uri.host;
+  final host = linkHost(uri);
   final segments = uri.pathSegments.where((item) => item.isNotEmpty).toList();
-  final last = segments.isEmpty ? null : segments.last;
-  if (last == null || RegExp(r'^\d+$').hasMatch(last)) return host;
-  final readable = Uri.decodeComponent(last).replaceAll(RegExp(r'[-_]+'), ' ');
-  return readable.isEmpty ? host : '$host › $readable';
+  if (segments.isEmpty) return host;
+  var last = segments.last;
+  try {
+    last = Uri.decodeComponent(last);
+  } on ArgumentError {
+    return host;
+  }
+  last = last.replaceFirst(
+    RegExp(r'\.(aspx?|php|html?|jsp)$', caseSensitive: false),
+    '',
+  );
+  final readable = last.replaceAll(RegExp(r'[-_+]+'), ' ').trim();
+  const generic = {'index', 'default', 'home', 'view', 'edit', 'main'};
+  final looksLikeId =
+      RegExp(r'^[0-9a-f -]{8,}$', caseSensitive: false).hasMatch(readable) ||
+      RegExp(r'\d').allMatches(readable).length >= 4;
+  if (readable.isEmpty ||
+      looksLikeId ||
+      generic.contains(readable.toLowerCase()) ||
+      readable.length > 28) {
+    return host;
+  }
+  return '$host › $readable';
+}
+
+/// Host without `www.`.
+String linkHost(Uri uri) =>
+    uri.host.startsWith('www.') ? uri.host.substring(4) : uri.host;
+
+/// Label shown for a stored link: labels the app generated earlier ("site"
+/// or "site › …") follow the current [friendlyLinkLabel]; labels the user
+/// wrote stay as they are.
+String displayLinkLabel(String label, String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null || uri.host.isEmpty) return label;
+  final host = linkHost(uri);
+  return label == host || label.startsWith('$host › ')
+      ? friendlyLinkLabel(url)
+      : label;
 }
 
 List<ParsedTextLink> extractMarkdownLinks(String value) => [

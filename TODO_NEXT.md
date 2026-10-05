@@ -2,7 +2,9 @@
 
 ## P1 — Revisione interfaccia (5 ottobre 2026, screenshot Galaxy 2217)
 
-Diagnosi data all'utente, in attesa della scelta:
+Tutti gli 8 punti approvati dall'utente e implementati nella 2.57.0+219.
+Verifica sul Galaxy fatta con screenshot di Oggi, Prossime, Agenda in
+settimana e mese, e dell'editor. Diagnosi originale:
 1. Rosso del marchio come `primary` anche nel tema scuro: link, bottoni,
    bordi, «Salvato sul dispositivo», contatore filtri e Modifica/Elimina
    tutti rossi, indistinguibili da errori.
@@ -14,6 +16,10 @@ Diagnosi data all'utente, in attesa della scelta:
 6. Link lunghi su più righe.
 7. Il + copre l'ultima riga; la vista giorno va sotto la barra di sistema.
 8. Editor: due chip di data poco chiari.
+
+- [ ] Riscontro dell'utente sulla 219. Nel mese ogni giorno mostra meno
+  eventi (orario sopra il titolo), poi «+N»: valutare con lui.
+- [ ] Web 219 dopo `PUBBLICA`.
 
 ## P1 — Agenda dal Web e background, build 213
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -216,8 +215,29 @@ class AgendaDayCell extends StatelessWidget {
     super.key,
   });
 
-  /// Height of one dot-and-title row (10 px text plus spacing).
+  /// Height of one single-line entry (10 px text plus spacing).
   static const chipHeight = 15.0;
+
+  /// How many [entries] fit in [height], keeping a line for "+N" when
+  /// some are left out. Timed events take two lines (time over title).
+  static int shownEntries(List<AgendaEntry> entries, double height) {
+    double heightOf(AgendaEntry e) =>
+        e.allDay || e.isTask ? chipHeight : AgendaChip.twoLineHeight;
+    var used = 0.0;
+    var fit = 0;
+    for (final entry in entries) {
+      if (used + heightOf(entry) > height) break;
+      used += heightOf(entry);
+      fit++;
+    }
+    if (fit == entries.length) return fit;
+    // Make room for "+N".
+    while (fit > 0 && used + chipHeight > height) {
+      used -= heightOf(entries[fit - 1]);
+      fit--;
+    }
+    return fit;
+  }
 
   final CivilDate date;
   final CivilDate today;
@@ -261,13 +281,7 @@ class AgendaDayCell extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(1, 2, 1, 0),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final slots = math.max(
-                  0,
-                  ((constraints.maxHeight - 19) / chipHeight).floor(),
-                );
-                final shown = entries.length > slots
-                    ? math.max(0, slots - 1)
-                    : entries.length;
+                final shown = shownEntries(entries, constraints.maxHeight - 19);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -297,7 +311,7 @@ class AgendaDayCell extends StatelessWidget {
                     for (final entry in entries.take(shown))
                       AgendaChip(
                         entry: entry,
-                        showTime: true,
+                        twoLines: true,
                         color:
                             colors[entry.calendarIds.first] ??
                             theme.colorScheme.primary,

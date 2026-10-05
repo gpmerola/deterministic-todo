@@ -89,7 +89,9 @@ void main() {
           final noDate = find.byKey(const ValueKey('task-editor-no-date'));
           await tester.tap(useClose ? find.byTooltip('Rimuovi data') : noDate);
           await tester.pumpAndSettle();
-          expect(tester.widget<ChoiceChip>(noDate).selected, isTrue);
+          // One date control: the × disappears and the chip says so.
+          expect(noDate, findsNothing);
+          expect(find.widgetWithText(ActionChip, 'Senza data'), findsOneWidget);
           await tester.tap(find.byKey(const ValueKey('task-editor-save')));
           await tester.pumpAndSettle();
 
@@ -108,7 +110,8 @@ void main() {
           // desktop editors, and enqueue the saved version for synchronization.
           await tester.tap(find.text('Attività sintetica'));
           await tester.pumpAndSettle();
-          expect(tester.widget<ChoiceChip>(noDate).selected, isTrue);
+          expect(noDate, findsNothing);
+          expect(find.widgetWithText(ActionChip, 'Senza data'), findsOneWidget);
           await tester.enterText(
             find.byKey(const ValueKey('task-editor-title')),
             'Attività sintetica modificata',
@@ -158,6 +161,8 @@ void main() {
       find.byKey(const ValueKey('task-editor-title')),
       'Attività sintetica domani',
     );
+    // The × appears once the title implies a date.
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('task-editor-no-date')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('task-editor-save')));

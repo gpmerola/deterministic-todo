@@ -120,15 +120,13 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
         ),
       );
     }
+    // All synced: nothing to say, no icon (the bar has room for the
+    // title). The state stays in Settings › Sincronizzazione.
+    if (pending == 0) return const SizedBox.shrink();
     return IconButton(
-      tooltip: pending > 0
-          ? '$pending modifiche da sincronizzare'
-          : 'Salvato sul dispositivo · sincronizzazione',
+      tooltip: '$pending modifiche da sincronizzare',
       onPressed: _openIssues,
-      icon: Icon(
-        pending > 0 ? Icons.cloud_upload_outlined : Icons.cloud_done_outlined,
-        size: 20,
-      ),
+      icon: const Icon(Icons.cloud_upload_outlined, size: 20),
     );
   }
 }

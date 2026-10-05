@@ -88,12 +88,19 @@ quell'account non compare; non esiste un aggiramento lato app.
   giorni resta una sola riga di 40 dp con il menu della vista (Settimana,
   2 settimane, Mese, Elenco), **Oggi**, il fuso riconosciuto, i calendari
   (icona e conteggio) e **⋮** con Cerca e Impostazioni. Intervalli di date e
-  giorni della settimana usano caratteri e margini più piccoli.
-- **Celle (build 203; orario dalla 204).** Nelle viste 2 settimane e Mese gli eventi di giornata
-  intera hanno lo sfondo del colore del calendario; quelli con orario hanno un
-  pallino colorato, l'ora d'inizio compatta, più piccola e attenuata («9»,
-  «16:30»: `compactTime`), e il titolo. Le attività hanno una casella di
-  spunta.
+  giorni della settimana usano caratteri e margini più piccoli. Dalla build
+  219 il fuso delle griglie sta a destra del titolo del periodo, perché
+  nella riga veniva tagliato («Londo…»); l'Elenco lo tiene nella riga. La
+  barra in basso è la stessa di tutte le sezioni.
+- **Celle (build 203; orario dalla 204; due righe dalla 219).** Nelle viste
+  2 settimane e Mese gli eventi di giornata intera hanno lo sfondo del
+  colore del calendario. Quelli con orario mostrano l'ora d'inizio compatta
+  («9», «16:30»: `compactTime`) in grassetto nel colore del calendario e,
+  sotto, il titolo su tutta la larghezza. Prima stavano sulla stessa riga e
+  il titolo restava di 4–5 lettere. Le attività hanno una casella di
+  spunta. Nel tema scuro i colori dei calendari sono smorzati
+  (`agenda_colors.dart`); nella settimana i titoli vanno a capo solo tra le
+  parole (`agenda_word_wrap.dart`).
 - **2 settimane (build 201, predefinita).** Due settimane dal lunedì riempiono
   lo schermo, così ogni giorno ha spazio per più eventi, con l'ora d'inizio
   davanti al titolo. Scorrendo in verticale si passa alla quindicina

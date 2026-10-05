@@ -6,9 +6,11 @@ import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
+import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
+import 'agenda_word_wrap.dart';
 
 /// Seven day columns with hours to scale, like Google Calendar's week view:
 /// free slots across the week are visible at a glance. Swipe sideways for
@@ -444,11 +446,10 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     Color color, {
     bool clash = false,
   }) {
-    final onColor = color.computeLuminance() > 0.5
-        ? Colors.black87
-        : Colors.white;
+    final fill = agendaEventFill(color, Theme.of(context).colorScheme);
+    final onColor = agendaOnFill(fill);
     return Material(
-      color: color,
+      color: fill,
       // Overlapping another timed event: outlined in the error colour.
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(3),
@@ -461,9 +462,8 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
         onTap: () => unawaited(widget.onOpen(entry)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(2, 1, 1, 0),
-          child: Text(
+          child: AgendaWordWrap(
             entry.title.isEmpty ? '(senza titolo)' : entry.title,
-            overflow: TextOverflow.clip,
             style: TextStyle(color: onColor, fontSize: 9.5, height: 1.15),
           ),
         ),

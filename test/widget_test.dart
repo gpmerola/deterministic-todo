@@ -1264,9 +1264,7 @@ void main() {
 
     await tester.tap(find.text('Riprogramma attività'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('task-editor-no-date')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ActionChip, 'Data'));
+    await tester.tap(find.widgetWithText(ActionChip, 'Senza data'));
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(DatePickerDialog), findsOneWidget);
@@ -1462,15 +1460,20 @@ void main() {
     await db.close();
   });
 
-  testWidgets('il tema usa il rosso di marca su chiaro e scuro', (
+  testWidgets('rosso di marca solo per il +, accento distinto dagli errori', (
     tester,
   ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.theme?.colorScheme.primary, TodoApp.brandRed);
-    expect(app.darkTheme?.colorScheme.primary, TodoApp.brandRed);
+    for (final theme in [app.theme!, app.darkTheme!]) {
+      expect(theme.floatingActionButtonTheme.backgroundColor, TodoApp.brandRed);
+      // Plain actions must not look like errors (UI review, build 218).
+      final primary = HSLColor.fromColor(theme.colorScheme.primary).hue;
+      final error = HSLColor.fromColor(theme.colorScheme.error).hue;
+      expect((primary - error).abs(), greaterThan(60));
+    }
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
