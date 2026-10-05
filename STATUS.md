@@ -1,6 +1,14 @@
 # Stato corrente
 
-Aggiornato il 4 ottobre 2026.
+Aggiornato il 5 ottobre 2026.
+
+## Build 224 — Web pubblicata
+
+Web 2.60.0+224 pubblicata dopo conferma `PUBBLICA` del 5 ottobre dal commit
+`600d13e`: run `37321321449`, build e deploy riusciti, `release-info.json`
+verificato. Comprende le build 219–224 (interfaccia, 3 giorni, cascata,
+colori personali, ore compattate, elenco con data fissa). Todo Test 2224
+pubblicata dalla CI rapida.
 
 ## Verifica 2217: sessione scaduta rinnovata in background — 4 ottobre 2026
 
