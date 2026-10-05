@@ -12,6 +12,12 @@ enum AgendaEventAction {
   openInCalendar,
   prepareTask,
   followUpTask,
+
+  /// Hidden in Todo only; the calendar keeps it (build 226).
+  hide,
+
+  /// Copy edited in Todo's own calendar that replaces the original here.
+  editInTodo,
 }
 
 /// Google Calendar-like detail of one occurrence. Returns the chosen action.
@@ -24,6 +30,8 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   Color? color,
   bool canCreateTasks = false,
   bool canOpenInCalendar = true,
+  bool localOnly = false,
+  bool canCopyInTodo = false,
   List<AgendaEntry> overlaps = const [],
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
@@ -37,6 +45,8 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     color: color,
     canCreateTasks: canCreateTasks,
     canOpenInCalendar: canOpenInCalendar,
+    localOnly: localOnly,
+    canCopyInTodo: canCopyInTodo,
     overlaps: overlaps,
   ),
 );
@@ -50,9 +60,17 @@ class AgendaEventSheet extends StatelessWidget {
     this.color,
     this.canCreateTasks = false,
     this.canOpenInCalendar = true,
+    this.localOnly = false,
+    this.canCopyInTodo = false,
     this.overlaps = const [],
     super.key,
   });
+
+  /// In Todo's own calendar: Modifica and Elimina change only Todo.
+  final bool localOnly;
+
+  /// Offers "Modifica solo in Todo" (phone only).
+  final bool canCopyInTodo;
 
   /// Other timed events at the same time (see [agendaOverlaps]).
   final List<AgendaEntry> overlaps;
@@ -165,6 +183,11 @@ class AgendaEventSheet extends StatelessWidget {
             if (entry.location?.trim().isNotEmpty ?? false)
               row(Icons.place_outlined, entry.location!.trim()),
             row(Icons.calendar_today_outlined, calendarName),
+            if (localOnly)
+              row(
+                Icons.phone_android,
+                'Solo in Todo: nessun altro calendario lo riceve',
+              ),
             if (!editable)
               row(
                 Icons.lock_outline,
@@ -195,7 +218,9 @@ class AgendaEventSheet extends StatelessWidget {
                     onPressed: () =>
                         Navigator.pop(context, AgendaEventAction.edit),
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Modifica'),
+                    label: Text(
+                      localOnly ? 'Modifica' : 'Modifica nel calendario',
+                    ),
                   ),
                 if (editable)
                   OutlinedButton.icon(
@@ -207,7 +232,25 @@ class AgendaEventSheet extends StatelessWidget {
                     onPressed: () =>
                         Navigator.pop(context, AgendaEventAction.delete),
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Elimina'),
+                    label: Text(
+                      localOnly ? 'Elimina' : 'Elimina dal calendario',
+                    ),
+                  ),
+                if (!localOnly && canCopyInTodo)
+                  OutlinedButton.icon(
+                    key: const ValueKey('agenda-sheet-edit-in-todo'),
+                    onPressed: () =>
+                        Navigator.pop(context, AgendaEventAction.editInTodo),
+                    icon: const Icon(Icons.edit_note),
+                    label: const Text('Modifica solo in Todo'),
+                  ),
+                if (!localOnly)
+                  OutlinedButton.icon(
+                    key: const ValueKey('agenda-sheet-hide'),
+                    onPressed: () =>
+                        Navigator.pop(context, AgendaEventAction.hide),
+                    icon: const Icon(Icons.visibility_off_outlined),
+                    label: const Text('Nascondi in Todo'),
                   ),
                 if (canCreateTasks)
                   OutlinedButton.icon(
@@ -273,15 +316,52 @@ Future<bool?> askSeriesScope(BuildContext context, {required bool delete}) =>
       ),
     );
 
-/// Explicit confirmation before deleting from a phone calendar.
-Future<bool> confirmDelete(BuildContext context, String title) async =>
+/// Asks whether "Nascondi" applies to one occurrence or every event with
+/// this title. Returns null when cancelled.
+Future<bool?> askHideScope(BuildContext context) => showDialog<bool>(
+  context: context,
+  builder: (dialogContext) => AlertDialog(
+    title: const Text('Nascondi evento ricorrente'),
+    content: const Text(
+      'Solo in Todo: il calendario non cambia. Nascondere questa occorrenza '
+      'o tutti gli eventi con questo titolo?',
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(dialogContext),
+        child: const Text('Annulla'),
+      ),
+      TextButton(
+        key: const ValueKey('agenda-hide-series'),
+        onPressed: () => Navigator.pop(dialogContext, true),
+        child: const Text('Tutta la serie'),
+      ),
+      FilledButton(
+        key: const ValueKey('agenda-hide-one'),
+        onPressed: () => Navigator.pop(dialogContext, false),
+        child: const Text('Solo questa'),
+      ),
+    ],
+  ),
+);
+
+/// Explicit confirmation before deleting from a phone calendar; with
+/// [localOnly] the event is only in Todo's own calendar.
+Future<bool> confirmDelete(
+  BuildContext context,
+  String title, {
+  bool localOnly = false,
+}) async =>
     await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminare l\'evento?'),
         content: Text(
-          '«$title» sarà eliminato dal calendario del telefono e dal suo '
-          'account.',
+          localOnly
+              ? '«$title» sarà eliminato da Todo.'
+              : '«$title» sarà eliminato dal calendario del telefono e dal '
+                    'suo account. Per toglierlo solo da Todo usa «Nascondi '
+                    'in Todo».',
         ),
         actions: [
           TextButton(

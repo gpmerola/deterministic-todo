@@ -2,6 +2,23 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.62.0 (build 226) — Todo Test
+
+- **Cambiare l'Agenda senza toccare i calendari di origine.** Ogni evento,
+  anche gli inviti di altri, ha due nuove azioni:
+  - **Nascondi in Todo**: sparisce dall'Agenda e dalla copia per il Web, ma
+    resta nel suo calendario e nel suo account. Per un evento ricorrente si
+    può nascondere solo quell'occorrenza o tutti gli eventi con quel titolo.
+    Si ripristina da Calendari › «Nascosti in Todo».
+  - **Modifica solo in Todo**: apre il modulo con l'evento già compilato; la
+    versione modificata finisce nel nuovo calendario «Todo (solo telefono)»
+    e l'originale viene nascosto in Todo.
+- **Calendario «Todo (solo telefono)»**: un calendario locale di Android che
+  nessun account sincronizza. Si può scegliere anche dal + per creare eventi
+  solo in Todo; viene creato al primo salvataggio.
+- «Modifica» ed «Elimina» sugli eventi degli altri calendari si chiamano ora
+  «Modifica nel calendario» ed «Elimina dal calendario».
+
 ## 2.61.0 (build 225) — Todo Test
 
 - **Festività nascoste**: nel pannello Calendari c'è «Nascondi festività»,

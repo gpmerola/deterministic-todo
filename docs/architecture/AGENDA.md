@@ -50,7 +50,8 @@ quell'account non compare; non esiste un aggiramento lato app.
   nell'Agenda vengono saltati. Poi qualsiasi calendario mostrato, poi un
   primario Google, poi il primo modificabile. Gli eventi creati non entrano in SQLite Todo né in Supabase.
 - **Solo locale.** Eventi, titoli, luoghi e descrizioni non vengono salvati in
-  SQLite, nei log, nei backup o su Supabase: possono contenere dati clinici. È
+  SQLite (salvo titolo e inizio degli eventi nascosti in Todo, dalla
+  226), nei log, nei backup o su Supabase: possono contenere dati clinici. È
   salvata soltanto la scelta dei calendari in
   `app_settings.agenda_calendar_choices`, una mappa `{id: mostrato}`. La build
   191 usava `agenda_hidden_calendars`, letta una volta come "nascosti". Gli ID
@@ -521,6 +522,53 @@ ricerca, per l'assistente ✨ e nella copia per il Web. Nel pannello
 Calendari quei calendari appaiono spenti, con «Festività: nascosto»,
 finché l'opzione è attiva. «Compleanni» non è una festività.
 
+## Solo in Todo (build 226)
+
+Richiesta dell'utente (5 ottobre 2026): cancellare, creare o modificare
+eventi nell'Agenda senza alterare i calendari di origine. Le azioni sui
+calendari di origine restano, con nomi espliciti («Modifica nel
+calendario», «Elimina dal calendario»), solo dove erano già permesse.
+
+- **Nascondi in Todo** (`AgendaService.hideEvent`). Salva in
+  `agenda_filter.hidden_events` una voce `{key, title, start, all_day}`:
+  - `key` è `agendaEventKey` dell'occorrenza unita (titolo, inizio, fine,
+    giornata intera), quindi nasconde tutte le copie della stessa riunione
+    nei vari account;
+  - per un evento ricorrente si può scegliere «Tutta la serie»: la chiave
+    diventa `agendaTitleKey` e nasconde ogni evento con quel titolo
+    (maiuscole e accenti ignorati);
+  - se l'organizzatore sposta o rinomina l'evento, la chiave cambia e
+    l'evento ricompare: meglio vedere uno spostamento che perderlo;
+  - le occorrenze finite da oltre 400 giorni escono dalla lista al
+    salvataggio successivo, le serie restano;
+  - si applica dopo l'unione (`AgendaFilter.hidesEntry`), in ogni vista,
+    nella ricerca, per ✨ e nella copia per il Web. Sul Web la scelta resta
+    nel browser e non arriva al telefono.
+  - Calendari › «Nascosti in Todo (N)» elenca le voci con «Ripristina».
+- **Calendario di Todo** (`AgendaService.localCalendar`). Un calendario
+  `ACCOUNT_TYPE_LOCAL` con account `Todo`, nome «Todo (solo telefono)»,
+  creato con `createCalendar` del plugin solo al primo salvataggio di un
+  evento in esso. Android non sincronizza gli account `LOCAL`: gli eventi
+  restano sul telefono (e nella copia per il Web). Compare anche nelle app
+  calendario del telefono. Non è nei backup di Todo: un ripristino del
+  telefono lo perde.
+  - `AgendaCalendar.localOnly`; nella copia per il Web `local: true`, così
+    il Web può creare e modificare eventi lì tramite la coda.
+  - I suoi eventi non si uniscono mai con quelli degli altri calendari
+    (`agendaEventKey(localOnly: true)`) e una serie nascosta per titolo non
+    li nasconde: la copia modificata ha spesso lo stesso titolo
+    dell'originale.
+- **Modifica solo in Todo** (`AgendaEventFlows.editInTodo`, solo telefono).
+  Legge l'occorrenza completa (`draftFor`), apre il modulo precompilato
+  sul calendario di Todo, salva la copia senza ripetizione e poi nasconde
+  l'originale. Il link della riunione finisce nelle note se l'originale lo
+  teneva solo nel campo URL. Sul Web non è offerta: nasconderebbe
+  l'originale solo nel browser.
+- Prova sull'emulatore (`todo_s21`, calendari demo): copia modificata al
+  posto dell'originale, originale ancora presente nel provider, nascondi
+  dal menu della pressione lunga, ripristino dal pannello.
+- Test: `test/agenda_hidden_test.dart`.
+
 ## Codice e test
 
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
@@ -543,7 +591,7 @@ finché l'opzione è attiva. «Compleanni» non è una festività.
   impronta e motore headless.
 - `lib/domain/text_fold.dart`: ricerca senza accenti (attività, Agenda, Web).
 - `tools/emulator_agenda_seed.py`: calendari sintetici per l'emulatore.
-- `test/agenda_test.dart`, `agenda_requests_test.dart`,
+- `test/agenda_test.dart`, `agenda_hidden_test.dart`, `agenda_requests_test.dart`,
   `agenda_overlap_test.dart`, `search_fold_test.dart`,
   `AgendaChannelTest.java`, `AgendaBackgroundTest.java` e
   `tools/sql-tests/agenda_requests.mjs`: regressioni.

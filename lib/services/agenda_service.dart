@@ -44,8 +44,14 @@ class AgendaService {
   /// Optional separate calendar for events created by the ✨ assistant.
   static const aiEventCalendarKey = 'agenda_ai_event_calendar';
 
-  /// `{"hide_unanswered": bool, "words": [String]}`; device-local.
+  /// `{"hide_unanswered": bool, "words": [String], "hide_holidays": bool,
+  /// "hidden_events": [{key, title, start, all_day}]}`; device-local.
   static const filterKey = 'agenda_filter';
+
+  /// Account of Todo's own phone calendar (build 226). `LOCAL` accounts are
+  /// never synced by Android: what is written there stays on the phone.
+  static const localAccountName = 'Todo';
+  static const localCalendarName = 'Todo (solo telefono)';
 
   /// `{calendarId: "#RRGGBB"}` chosen by the user over the provider's
   /// colours (build 221); device-local.
@@ -63,6 +69,10 @@ class AgendaService {
 
   /// The web queues changes for the phone instead of writing them.
   bool get writesViaPhone => false;
+
+  /// "Modifica solo in Todo": a copy in [localCalendar] replaces the
+  /// original, hidden here (build 226).
+  bool get canCopyInTodo => true;
 
   /// "Apri nel calendario": only where a system calendar app exists.
   bool get canOpenInSystem => true;
@@ -146,6 +156,9 @@ class AgendaService {
           isGooglePrimary:
               calendar.isPrimary &&
               (calendar.accountType?.contains('google') ?? false),
+          localOnly:
+              calendar.accountType == 'LOCAL' &&
+              calendar.accountName == localAccountName,
         ),
     ];
     result.sort((a, b) {
@@ -312,6 +325,10 @@ class AgendaService {
           ],
           // Absent in filters saved before build 225: on.
           hideHolidays: decoded['hide_holidays'] as bool? ?? true,
+          hiddenEvents: [
+            for (final value in decoded['hidden_events'] as List? ?? const [])
+              ?HiddenAgendaEvent.fromJson(value),
+          ],
         );
       } on FormatException {
         result = AgendaFilter.none;
@@ -333,6 +350,9 @@ class AgendaService {
               'hide_unanswered': filter.hideUnanswered,
               'words': filter.hiddenWords,
               'hide_holidays': filter.hideHolidays,
+              'hidden_events': [
+                for (final hidden in filter.hiddenEvents) hidden.toJson(),
+              ],
             }),
           ),
         );
@@ -363,6 +383,43 @@ class AgendaService {
     // + and exports to "✨ Assistente" (build 211).
     return id;
   }
+
+  /// Todo's own calendar, created on first use from an explicit action
+  /// (a new event or a copy edited in Todo). Null where it cannot exist.
+  Future<AgendaCalendar?> localCalendar({bool create = true}) async {
+    final existing = (await calendars())
+        .where((calendar) => calendar.localOnly)
+        .firstOrNull;
+    if (existing != null || !create) return existing;
+    await _calendar.createCalendar(
+      name: localCalendarName,
+      colorHex: '#616161',
+      platformOptions: const CreateCalendarOptionsAndroid(
+        accountName: localAccountName,
+      ),
+    );
+    return (await calendars()).where((calendar) => calendar.localOnly).first;
+  }
+
+  /// Hides [entry] in Todo only, or with [series] every event with its
+  /// title; the calendar it comes from is not touched.
+  Future<void> hideEvent(AgendaEntry entry, {bool series = false}) async {
+    final current = lastFilter ?? await filter();
+    await saveFilter(
+      current.hiding(
+        HiddenAgendaEvent(
+          key: series ? agendaTitleKey(entry.title) : entry.key,
+          title: entry.title,
+          start: entry.start,
+          allDay: entry.allDay,
+        ),
+        DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> showHiddenEvent(String key) async =>
+      saveFilter((lastFilter ?? await filter()).showing(key));
 
   static String? _blankToNull(String? value) =>
       value == null || value.trim().isEmpty ? null : value.trim();

@@ -13,7 +13,12 @@ final class AgendaCalendar {
     this.visibleBySystem = true,
     this.writable = false,
     this.isGooglePrimary = false,
+    this.localOnly = false,
   });
+
+  /// Todo's own calendar on the phone (build 226): a local account the
+  /// provider never syncs, for events and copies kept only in Todo.
+  final bool localOnly;
 
   final String id;
   final String name;
@@ -82,6 +87,18 @@ final class AgendaEventDraft {
     this.repeat = AgendaRepeat.none,
     this.repeatUntil,
   });
+
+  AgendaEventDraft inCalendar(String id) => AgendaEventDraft(
+    calendarId: id,
+    title: title,
+    start: start,
+    end: end,
+    allDay: allDay,
+    location: location,
+    notes: notes,
+    repeat: repeat,
+    repeatUntil: repeatUntil,
+  );
 
   /// Only for new events; editing keeps the series rule.
   final AgendaRepeat repeat;
@@ -231,13 +248,104 @@ final class AgendaTaskItem {
   final bool completed;
 }
 
+/// An event hidden in Todo only (build 226): its calendar keeps it.
+final class HiddenAgendaEvent {
+  const HiddenAgendaEvent({
+    required this.key,
+    required this.title,
+    required this.start,
+    required this.allDay,
+  });
+
+  /// One occurrence: [AgendaEntry.key]. A whole series: [agendaTitleKey].
+  final String key;
+  final String title;
+  final DateTime start;
+  final bool allDay;
+
+  bool get series => key.startsWith(_titleKeyPrefix);
+
+  Map<String, Object?> toJson() => {
+    'key': key,
+    'title': title,
+    'start': start.millisecondsSinceEpoch,
+    'all_day': allDay,
+  };
+
+  static HiddenAgendaEvent? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final key = value['key'];
+    final start = value['start'];
+    if (key is! String || start is! int) return null;
+    return HiddenAgendaEvent(
+      key: key,
+      title: value['title'] as String? ?? '',
+      start: DateTime.fromMillisecondsSinceEpoch(start),
+      allDay: value['all_day'] as bool? ?? false,
+    );
+  }
+}
+
+const _titleKeyPrefix = 'title:';
+
+/// Hides every event with this title, whatever its date: used to hide a
+/// whole recurring series in Todo.
+String agendaTitleKey(String title) =>
+    '$_titleKeyPrefix${foldForSearch(title.trim())}';
+
+/// Same meeting in several calendars: same title (case and trailing spaces
+/// ignored), start, end and all-day flag. Events of Todo's own calendar
+/// never merge with others, so a copy edited in Todo stays apart from the
+/// original it replaces.
+String agendaEventKey(AgendaSourceEvent event, {bool localOnly = false}) => [
+  event.title.trim().toLowerCase(),
+  event.start.millisecondsSinceEpoch,
+  event.end.millisecondsSinceEpoch,
+  event.allDay,
+  if (localOnly) 'todo',
+].join('|');
+
 /// What the user chose to hide, on top of hidden calendars. Local only.
 final class AgendaFilter {
   const AgendaFilter({
     this.hideUnanswered = false,
     this.hiddenWords = const [],
     this.hideHolidays = true,
+    this.hiddenEvents = const [],
   });
+
+  /// Events hidden in Todo only, newest last (build 226).
+  final List<HiddenAgendaEvent> hiddenEvents;
+
+  AgendaFilter copyWith({List<HiddenAgendaEvent>? hiddenEvents}) =>
+      AgendaFilter(
+        hideUnanswered: hideUnanswered,
+        hiddenWords: hiddenWords,
+        hideHolidays: hideHolidays,
+        hiddenEvents: hiddenEvents ?? this.hiddenEvents,
+      );
+
+  /// Adds [event], dropping occurrences that ended over a year before [now]
+  /// so the list does not grow forever.
+  AgendaFilter hiding(HiddenAgendaEvent event, DateTime now) {
+    final oldest = now.subtract(const Duration(days: 400));
+    return copyWith(
+      hiddenEvents: List.unmodifiable([
+        for (final hidden in hiddenEvents)
+          if (hidden.key != event.key &&
+              (hidden.series || hidden.start.isAfter(oldest)))
+            hidden,
+        event,
+      ]),
+    );
+  }
+
+  AgendaFilter showing(String key) => copyWith(
+    hiddenEvents: List.unmodifiable([
+      for (final hidden in hiddenEvents)
+        if (hidden.key != key) hidden,
+    ]),
+  );
 
   /// Holiday calendars stay out of the Agenda (on by default, build 225).
   final bool hideHolidays;
@@ -251,7 +359,16 @@ final class AgendaFilter {
 
   bool get isActive => hideUnanswered || hiddenWords.isNotEmpty;
 
-  bool hidesEntry(AgendaEntry entry) => hideUnanswered && entry.unanswered;
+  /// Judged after merging. Todo's own events are hidden only one by one,
+  /// never by a series hidden by title (its edited copies share the title).
+  bool hidesEntry(AgendaEntry entry, {bool localOnly = false}) {
+    if (hideUnanswered && entry.unanswered) return true;
+    if (hiddenEvents.isEmpty) return false;
+    final titleKey = localOnly ? null : agendaTitleKey(entry.title);
+    return hiddenEvents.any(
+      (hidden) => hidden.key == entry.key || hidden.key == titleKey,
+    );
+  }
 
   /// Hidden by a word. Unanswered invitations are judged after duplicates
   /// are merged ([hidesEntry]): one copy may know the answer, another not.
@@ -281,7 +398,11 @@ final class AgendaEntry {
     this.taskId,
     this.completed = false,
     this.unanswered = false,
+    this.key = '',
   });
+
+  /// [agendaEventKey] of the merged occurrence: what "Nascondi" stores.
+  final String key;
 
   /// Invitation not yet accepted or declined in any of its calendars:
   /// drawn outlined, as Google Calendar does (build 221).
@@ -395,6 +516,10 @@ List<AgendaEntry> mergeAgendaEntries({
   final calendarOrder = {
     for (final (index, calendar) in calendars.indexed) calendar.id: index,
   };
+  final localIds = {
+    for (final calendar in calendars)
+      if (calendar.localOnly) calendar.id,
+  };
   final visible =
       events
           .where(
@@ -417,15 +542,13 @@ List<AgendaEntry> mergeAgendaEntries({
 
   final merged = <String, _MutableEntry>{};
   for (final event in visible) {
-    final key = [
-      event.title.trim().toLowerCase(),
-      event.start.millisecondsSinceEpoch,
-      event.end.millisecondsSinceEpoch,
-      event.allDay,
-    ].join('|');
+    final key = agendaEventKey(
+      event,
+      localOnly: localIds.contains(event.calendarId),
+    );
     final existing = merged[key];
     if (existing == null) {
-      merged[key] = _MutableEntry(event);
+      merged[key] = _MutableEntry(event, key);
     } else if (!existing.calendarIds.contains(event.calendarId)) {
       existing.calendarIds.add(event.calendarId);
       existing.meeting ??= findMeetingLink(event);
@@ -437,7 +560,12 @@ List<AgendaEntry> mergeAgendaEntries({
   final entries = [
     ...merged.values
         .map((value) => value.freeze())
-        .where((entry) => !filter.hidesEntry(entry)),
+        .where(
+          (entry) => !filter.hidesEntry(
+            entry,
+            localOnly: localIds.contains(entry.calendarIds.first),
+          ),
+        ),
     for (final task in tasks)
       AgendaEntry(
         instanceId: 'task:${task.id}',
@@ -504,11 +632,12 @@ int _compareEntries(AgendaEntry a, AgendaEntry b) {
 }
 
 final class _MutableEntry {
-  _MutableEntry(this.source)
+  _MutableEntry(this.source, this.key)
     : calendarIds = [source.calendarId],
       meeting = findMeetingLink(source);
 
   final AgendaSourceEvent source;
+  final String key;
   final List<String> calendarIds;
   MeetingLink? meeting;
 
@@ -530,6 +659,7 @@ final class _MutableEntry {
     eventZoneTimes: source.eventZoneTimes,
     isOrganizer: source.isOrganizer,
     unanswered: anyUnanswered && !anyAnswered,
+    key: key,
   );
 }
 

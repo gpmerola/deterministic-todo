@@ -119,9 +119,22 @@ class WebAgendaService extends AgendaService {
             colorHex: row['color'] as String?,
             // Copies from phones older than build 213 carry no flag.
             writable: row['writable'] as bool? ?? false,
+            localOnly: row['local'] as bool? ?? false,
           ),
     ];
   }
+
+  /// Only a calendar the phone already created: the browser cannot.
+  @override
+  Future<AgendaCalendar?> localCalendar({bool create = true}) async =>
+      (lastCalendars ?? await calendars())
+          .where((calendar) => calendar.localOnly)
+          .firstOrNull;
+
+  /// A copy edited in Todo hides the original only where it is edited:
+  /// the phone would keep showing both, so the web does not offer it.
+  @override
+  bool get canCopyInTodo => false;
 
   String? _mirroredCalendar(String flag) {
     final rows = _snapshot?['calendars'];

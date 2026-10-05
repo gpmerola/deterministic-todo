@@ -58,6 +58,17 @@ class AgendaEventFlows {
       (calendarOf(entry)?.writable ?? false) &&
       entry.isOrganizer;
 
+  /// In Todo's own calendar (see [AgendaService.localCalendar]).
+  bool localOnly(AgendaEntry entry) => calendarOf(entry)?.localOnly ?? false;
+
+  static const _pendingLocalCalendar = AgendaCalendar(
+    id: 'todo-local-pending',
+    name: AgendaService.localCalendarName,
+    accountName: AgendaService.localAccountName,
+    writable: true,
+    localOnly: true,
+  );
+
   static const _busyMessage =
       'Il telefono la sta già applicando: riprova tra poco.';
 
@@ -92,6 +103,8 @@ class AgendaEventFlows {
       color: parseCalendarColor(calendar?.colorHex),
       canCreateTasks: onCreateTask != null,
       canOpenInCalendar: service.canOpenInSystem,
+      localOnly: localOnly(entry),
+      canCopyInTodo: service.canCopyInTodo,
       overlaps: overlaps,
     );
     if (!context.mounted || action == null) return false;
@@ -104,6 +117,7 @@ class AgendaEventFlows {
     if (entry.isTask) return show(context, entry);
     final meeting = entry.meeting;
     final canEdit = editable(entry);
+    final local = localOnly(entry);
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -148,14 +162,23 @@ class AgendaEventFlows {
                   'Follow-up (giorno dopo)',
                 ),
               ],
-              if (canEdit) item('edit', Icons.edit_outlined, 'Modifica'),
+              if (canEdit)
+                item(
+                  'edit',
+                  Icons.edit_outlined,
+                  local ? 'Modifica' : 'Modifica nel calendario',
+                ),
               if (canEdit)
                 item(
                   'delete',
                   Icons.delete_outline,
-                  'Elimina',
+                  local ? 'Elimina' : 'Elimina dal calendario',
                   color: theme.colorScheme.error,
                 ),
+              if (!local && service.canCopyInTodo)
+                item('editInTodo', Icons.edit_note, 'Modifica solo in Todo'),
+              if (!local)
+                item('hide', Icons.visibility_off_outlined, 'Nascondi in Todo'),
               item('details', Icons.info_outline, 'Dettagli'),
             ],
           ),
@@ -172,6 +195,8 @@ class AgendaEventFlows {
       'prepare' => AgendaEventAction.prepareTask,
       'followUp' => AgendaEventAction.followUpTask,
       'edit' => AgendaEventAction.edit,
+      'editInTodo' => AgendaEventAction.editInTodo,
+      'hide' => AgendaEventAction.hide,
       _ => AgendaEventAction.delete,
     });
   }
@@ -187,6 +212,10 @@ class AgendaEventFlows {
         await edit(context, entry);
       case AgendaEventAction.delete:
         await delete(context, entry);
+      case AgendaEventAction.hide:
+        await hide(context, entry);
+      case AgendaEventAction.editInTodo:
+        await editInTodo(context, entry);
       case AgendaEventAction.prepareTask:
       case AgendaEventAction.followUpTask:
         final followUp = action == AgendaEventAction.followUpTask;
@@ -247,6 +276,10 @@ class AgendaEventFlows {
     final writable = [
       for (final calendar in calendars)
         if (calendar.writable) calendar,
+      // Todo's own calendar is offered before it exists and created only
+      // when an event is saved into it.
+      if (service.canCopyInTodo && !calendars.any((c) => c.localOnly))
+        _pendingLocalCalendar,
     ];
     final initialCalendar = defaultEventCalendar(
       calendars,
@@ -269,9 +302,14 @@ class AgendaEventFlows {
       ),
     );
     if (draft == null || !context.mounted) return;
-    final target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
+    var target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
     try {
-      await service.createEvent(draft);
+      if (draft.calendarId == _pendingLocalCalendar.id) {
+        target = await service.localCalendar();
+        await service.createEvent(draft.inCalendar(target!.id));
+      } else {
+        await service.createEvent(draft);
+      }
       if (!context.mounted) return;
       _say(
         context,
@@ -345,7 +383,10 @@ class AgendaEventFlows {
     if (entry.recurring) {
       series = await askSeriesScope(context, delete: true);
     } else {
-      series = await confirmDelete(context, entry.title) ? false : null;
+      series =
+          await confirmDelete(context, entry.title, localOnly: localOnly(entry))
+          ? false
+          : null;
     }
     if (series == null || !context.mounted) return;
     try {
@@ -364,6 +405,87 @@ class AgendaEventFlows {
       if (context.mounted) _say(context, _busyMessage);
     } catch (_) {
       if (context.mounted) _say(context, 'Impossibile eliminare l\'evento.');
+    }
+  }
+
+  /// Hides [entry] in Todo only: its calendar and account keep it. A
+  /// recurring event can be hidden with every event of the same title.
+  Future<void> hide(BuildContext context, AgendaEntry entry) async {
+    final series = entry.recurring ? await askHideScope(context) : false;
+    if (series == null || !context.mounted) return;
+    try {
+      await service.hideEvent(entry, series: series);
+      if (context.mounted) {
+        _say(
+          context,
+          '${series ? 'Serie nascosta' : 'Nascosto'} in Todo; il calendario '
+          'non cambia. Si ripristina da Calendari › Nascosti in Todo.',
+        );
+      }
+    } catch (_) {
+      if (context.mounted) _say(context, 'Impossibile nascondere l\'evento.');
+    }
+  }
+
+  /// "Modifica solo in Todo": the occurrence is copied into Todo's own
+  /// calendar with the user's changes and the original is hidden here.
+  /// Nothing is written to the original calendar or its account.
+  Future<void> editInTodo(BuildContext context, AgendaEntry entry) async {
+    final AgendaEventDraft? original;
+    final AgendaCalendar? target;
+    try {
+      original = await service.draftFor(entry.instanceId);
+      target = original == null ? null : await service.localCalendar();
+    } catch (_) {
+      if (context.mounted) _say(context, 'Impossibile preparare la copia.');
+      return;
+    }
+    if (!context.mounted) return;
+    if (original == null || target == null) {
+      _say(context, 'L\'evento non esiste più.');
+      return;
+    }
+    // The meeting link survives in the notes even when the original kept
+    // it only in its URL field.
+    final link = entry.meeting?.url.toString();
+    final notes = original.notes ?? '';
+    final draft = await Navigator.of(context).push<AgendaEventDraft>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => AgendaEventEditor(
+          heading: 'Modifica solo in Todo',
+          calendars: [target!],
+          initialStart: original!.start,
+          initialCalendarId: target.id,
+          prefill: AgendaEventDraft(
+            calendarId: target.id,
+            title: original.title,
+            start: original.start,
+            end: original.end,
+            allDay: original.allDay,
+            location: original.location,
+            notes: link == null || notes.contains(link)
+                ? notes
+                : [notes, link].where((part) => part.isNotEmpty).join('\n\n'),
+          ),
+          zoneLabel: zone,
+        ),
+      ),
+    );
+    if (draft == null || !context.mounted) return;
+    try {
+      await service.createEvent(draft);
+      await service.hideEvent(entry);
+      if (context.mounted) {
+        _say(
+          context,
+          'Copia salvata in Todo; l\'originale resta nel suo calendario, '
+          'nascosto qui.',
+        );
+      }
+    } catch (_) {
+      // Not logged: the draft carries the user's text.
+      if (context.mounted) _say(context, 'Impossibile salvare la copia.');
     }
   }
 }

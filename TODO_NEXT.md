@@ -38,7 +38,11 @@ settimana e mese, e dell'editor. Diagnosi originale:
   più giorni tra −30 e +90 giorni.
 - [x] Build 223: «Canceled:» nascosti; «senza risposta» dalla copia che lo
   sa; filtro dopo l'unione.
-- [ ] Web 221 dopo `PUBBLICA`.
+- [x] Web 221 dopo `PUBBLICA`: superata dalla Web 225.
+- [x] Build 226: «Nascondi in Todo», «Modifica solo in Todo» e calendario
+  «Todo (solo telefono)», senza toccare i calendari di origine; verificata
+  su emulatore.
+- [ ] Riscontro dell'utente sulla 226 sul Galaxy; Web 226 dopo `PUBBLICA`.
 
 ## P1 — Agenda dal Web e background, build 213
 

@@ -1073,6 +1073,9 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
   late String? eventCalendarId = widget.eventCalendarId;
   late String? aiEventCalendarId = widget.aiEventCalendarId;
   late final List<String> words = [...widget.filter.hiddenWords];
+  late final List<HiddenAgendaEvent> hiddenEvents = [
+    ...widget.filter.hiddenEvents,
+  ];
   late final Map<String, String>? colors = widget.colors == null
       ? null
       : {...widget.colors!};
@@ -1283,6 +1286,47 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
             ],
           ),
         ),
+      if (hiddenEvents.isNotEmpty) ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Text(
+            'Nascosti in Todo (${hiddenEvents.length})',
+            key: const ValueKey('agenda-hidden-events'),
+            style: theme.textTheme.labelLarge,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+          child: Text(
+            'Restano nei loro calendari; qui non compaiono.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        for (final hidden in hiddenEvents.reversed)
+          ListTile(
+            dense: true,
+            title: Text(
+              hidden.title.isEmpty ? '(senza titolo)' : hidden.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              hidden.series
+                  ? 'Tutti gli eventi con questo titolo'
+                  : DateFormat(
+                      hidden.allDay ? 'EEE d MMM yyyy' : 'EEE d MMM yyyy HH:mm',
+                      'it',
+                    ).format(hidden.start),
+            ),
+            trailing: TextButton(
+              key: ValueKey('agenda-show-${hidden.key}'),
+              onPressed: () => setState(() => hiddenEvents.remove(hidden)),
+              child: const Text('Ripristina'),
+            ),
+          ),
+      ],
       const Divider(height: 24),
       if (colors != null)
         Padding(
@@ -1374,6 +1418,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                           hideUnanswered: hideUnanswered,
                           hiddenWords: List.unmodifiable(words),
                           hideHolidays: hideHolidays,
+                          hiddenEvents: List.unmodifiable(hiddenEvents),
                         ),
                         eventCalendarId: eventCalendarId,
                         aiEventCalendarId: aiEventCalendarId,

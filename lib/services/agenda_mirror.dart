@@ -62,6 +62,7 @@ Map<String, Object?> buildAgendaMirror({
           'color': calendar.colorHex,
           // The web offers editing only where the phone can write.
           'writable': calendar.writable,
+          if (calendar.localOnly) 'local': true,
           // «Nuovi eventi in» and the ✨ calendar, as defaults on the web.
           if (calendar.id == mainCalendarId) 'main': true,
           if (calendar.id == aiCalendarId) 'ai': true,

@@ -17,8 +17,13 @@ class AgendaEventEditor extends StatefulWidget {
     this.prefill,
     this.zoneLabel,
     this.notesEditable = true,
+    this.heading,
     super.key,
   });
+
+  /// Title of the page when neither "Nuovo evento" nor "Modifica evento"
+  /// fits, e.g. a copy edited in Todo only.
+  final String? heading;
 
   /// False when editing from the web: notes are not mirrored, so the field
   /// is hidden and the phone keeps the event's own notes.
@@ -196,7 +201,8 @@ class _AgendaEventEditorState extends State<AgendaEventEditor> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          widget.existing == null ? 'Nuovo evento' : 'Modifica evento',
+          widget.heading ??
+              (widget.existing == null ? 'Nuovo evento' : 'Modifica evento'),
         ),
         actions: [
           TextButton(
