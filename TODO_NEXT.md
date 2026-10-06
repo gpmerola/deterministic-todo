@@ -3,9 +3,9 @@
 ## P1 — Second Brain su Drive
 
 - [x] Esportatore di sola lettura e automazione Google preparati, test sintetici verdi.
-- [x] Documento privato e collegamento in START QUI, stato esplicito «in preparazione».
-- [ ] Autorizzazione Google e grant Supabase, prima copia e verifica trigger orario.
-- [ ] Prova da una chat esterna con Drive collegato; dettagli in STATUS e runbook Second Brain.
+- [x] Documento privato e collegamento in START QUI; autorizzazione e prima copia riuscite.
+- [x] Grant Supabase di sola lettura e unico trigger orario configurati; lettura dal connettore Drive verificata.
+- [ ] Osservare la prima esecuzione automatica oraria e provare la frase da una nuova chat con Drive collegato (STATUS).
 
 ## P1 — Avviso nascosto e leggibilità, build 238
 

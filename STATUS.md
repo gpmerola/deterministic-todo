@@ -2,7 +2,7 @@
 
 Aggiornato il 6 ottobre 2026.
 
-## Second Brain — collegamento predisposto, non attivo
+## Second Brain — attivato il 6 ottobre 2026
 
 Su richiesta dell'utente è stata scelta una copia privata su Google Drive,
 aggiornata ogni ora. RPC con grant di sola lettura per un singolo proprietario,
@@ -13,14 +13,26 @@ Contratto e attivazione in [SECOND_BRAIN](docs/operations/SECOND_BRAIN.md).
 
 Documento privato creato in `SECOND BRAIN/30_RISORSE`, riferimento nativo
 aggiunto a START QUI e changelog del sistema aggiornato. Contenuti di stato e
-permessi privati riletti. Sorgente Apps Script e manifest caricati nel progetto
-Google associato; nessun token, grant o trigger ancora attivato, nessun dato
-operativo esportato. Migrazione server NON applicata. Mancano autorizzazione
-Google, provisioning del grant, prima copia e successiva esecuzione automatica.
+permessi privati riletti. Dopo «fatto, attiva», verificata la preparazione della
+chiave eseguita dall'utente; applicata in transazione la migrazione server e
+registrato un solo grant, con scadenza 6 ottobre 2027. RLS attiva e tabella grant
+non leggibile da `anon` né `authenticated`; richiesta REST senza chiave respinta
+con HTTP 401 / codice 42501. Il segreto è rimasto nelle proprietà dello script.
+
+`installSecondBrain` riuscito alle 17:26 UTC: prima copia letta tramite il
+connettore Drive, con timestamp del telefono e copertura distinti da quello
+dell'esportazione. Documento ancora privato (solo proprietario). Unico trigger
+`syncSecondBrain` configurato ogni ora, anche a Mac spento. START QUI e changelog
+aggiornati e riletti. Prima esecuzione automatica non ancora osservata; non
+equivale alla prova manuale riuscita. Il tentativo di timer temporaneo al minuto
+per il collaudo è stato respinto dall'auto-review: modifica annullata, cadenza
+oraria conservata. Nessun ulteriore accesso o trigger di prova creato.
 `make check`: analisi statica pulita, 414 test Flutter, controlli strumenti,
 documenti e SQL superati. Nuovi test sintetici: isolamento tra proprietari,
 proiezione dei campi, scadenza/revoca, mancata sovrascrittura su errore,
 trigger idempotenti e preparazione della chiave senza esposizione del segreto.
+CI Verify del commit `6df80c2` superata. Questa attivazione non modifica il
+codice dell'app né la release Android 238.
 
 ## Release stabile 238 — pubblicata
 

@@ -65,8 +65,10 @@ accessi attraverso browser richiede conferma al momento dell'azione.
    non mostrarlo né copiarlo in chat.
 5. Eseguire `installSecondBrain`: prima copia verificata, poi un solo trigger
    orario. Ripeterlo non duplica i trigger. Controllare contenuto e metadati del
-   documento e una successiva esecuzione automatica. Solo allora cambiare lo
-   stato in START QUI da «in preparazione» ad «attivo».
+   documento: distinguere «prima copia riuscita e timer configurato» da
+   «esecuzione automatica verificata». Aggiornare START QUI con l'esatto stato
+   osservato. Verificare successivamente l'esecuzione oraria naturale senza
+   aumentare la frequenza autorizzata per accelerare il collaudo.
 6. Da una nuova chat con Google Drive collegato, chiedere «Vai sul Second Brain
    e guarda il mio calendario». Verificare che legga il documento giusto,
    dichiari freschezza/copertura e non scambi un intervallo ignoto per libero.
