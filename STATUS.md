@@ -2,6 +2,25 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 237 — Palette dedicata al Calendario
+
+Superfici neutre chiare/ardesia, fasce delle date grigio-azzurre e accenti blu
+per «Oggi» e comandi. Eventi con fondi meno saturi e bordi nelle viste orarie;
+colori e preferenze dei calendari conservati. Il tema è applicato solo alla
+sezione Calendario e alla pagina giorno, mantenendo tipografia e impostazioni.
+
+Rendering sintetici 360×800 di tre settimane e settimana, chiaro/scuro,
+ispezionati con gruppi e singoli eventi blu/verde chiaro. Nessun overflow
+nei flussi di espansione. `make check` superato: analisi pulita, 408 test
+Flutter e controlli strumenti, SQL e documentazione. Nessun nuovo test
+per valori cosmetici; verifiche visive eseguite su fixture sintetiche.
+Build Android e Web release riuscite. Nessun collaudo browser HTTPS della 237;
+Web/stabile pubblicati restano alla 229.
+Todo Test 2.68.1-dev / versionCode 2237 installata e avviata in-place sul Galaxy
+con `make todo-test`; versione e processo verificati, dati conservati. Primo
+streamed install ADB fallito senza motivo dettagliato; ripetizione del comando
+canonico riuscita dopo `s21-adb`. Controllo visivo sintetico, non sul telefono.
+
 ## Build 236 — Tre settimane e ultima vista ricordata
 
 Nuova modalità «3 settimane», con la settimana corrente e le due successive:

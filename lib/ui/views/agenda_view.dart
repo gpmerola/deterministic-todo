@@ -618,20 +618,22 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       unawaited(
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => AgendaDayPage(
-              initialDay: day,
-              onDayChanged: (day) => selectedDay = day,
-              today: widget.today,
-              loadDays: (first, count) =>
-                  _readDays(calendars, hidden, filter, first, count),
-              peekDays: _peekDays,
-              colors: colors,
-              onOpen: _showEvent,
-              onLongPress: _quickEvent,
-              onCreate: widget.service.canWrite
-                  ? (start, {end}) => _createEvent(start: start, end: end)
-                  : null,
-              zoneLabel: zone,
+            builder: (_) => AgendaPalette(
+              child: AgendaDayPage(
+                initialDay: day,
+                onDayChanged: (day) => selectedDay = day,
+                today: widget.today,
+                loadDays: (first, count) =>
+                    _readDays(calendars, hidden, filter, first, count),
+                peekDays: _peekDays,
+                colors: colors,
+                onOpen: _showEvent,
+                onLongPress: _quickEvent,
+                onCreate: widget.service.canWrite
+                    ? (start, {end}) => _createEvent(start: start, end: end)
+                    : null,
+                zoneLabel: zone,
+              ),
             ),
           ),
         ),

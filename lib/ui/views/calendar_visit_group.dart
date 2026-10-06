@@ -74,7 +74,10 @@ class CalendarVisitGroup extends StatelessWidget {
           height: height,
           margin: const EdgeInsets.only(bottom: 1),
           decoration: BoxDecoration(
-            color: agendaEventFill(color, scheme).withValues(alpha: 0.16),
+            color: Color.alphaBlend(
+              color.withValues(alpha: 0.16),
+              scheme.surface,
+            ),
             border: Border(left: BorderSide(color: color, width: 2)),
             borderRadius: BorderRadius.circular(2),
           ),

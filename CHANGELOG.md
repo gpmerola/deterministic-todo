@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.68.1 (build 237) — Todo Test
+
+- Palette dedicata al Calendario: superfici neutre, fasce delle date
+  grigio-azzurre e accenti blu. Eventi più tenui e bordi leggibili nei temi
+  chiaro e scuro, conservando i colori assegnati ai calendari.
+
 ## 2.68.0 (build 236) — Todo Test
 
 - Aggiunta la vista «3 settimane»: corrente più due, con pagine di 21 giorni

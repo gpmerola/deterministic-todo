@@ -4,6 +4,17 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Palette dedicata — build 237
+
+`AgendaPalette` applica al solo Calendario superfici neutre (chiare o ardesia),
+accenti blu e fasce data grigio-azzurre. La pagina giorno mantiene la palette
+quando viene aperta come nuova route. Tipografia, luminosità, outline per
+alto contrasto e impostazioni dell’app sono conservati. Nessuna modifica alle
+preferenze dei colori: il rendering miscela il colore degli eventi alla
+superficie (20% chiaro, 40% scuro), con bordi nelle viste orarie e testo
+scelto in base alla luminosità. Gruppi con tinta al 16% e bordo nel colore
+del calendario. Le altre sezioni continuano a usare il tema dell’app.
+
 ## Tre settimane e vista memorizzata — build 236
 
 `threeWeeks` riusa `AgendaWeeksView` con 21 giorni: dal lunedì della settimana

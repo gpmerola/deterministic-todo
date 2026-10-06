@@ -60,6 +60,7 @@ import 'ui/shell/civil_day_clock.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
+import 'ui/views/agenda_colors.dart';
 import 'ui/views/agenda_day_view.dart';
 import 'ui/views/agenda_event_flows.dart';
 import 'ui/views/agenda_view.dart';
@@ -1498,16 +1499,18 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     if (section == AppSection.agenda) {
       return SafeArea(
         bottom: false,
-        child: AgendaView(
-          service: agendaService,
-          onPinCalendar: isAndroidPlatform ? _pinCalendarShortcut : null,
-          today: dayClock.today,
-          onOpenTask: _openTaskById,
-          onCreateTask: _createLinkedTask,
-          onSearch: _showUniversalCommand,
-          onCapture: isAndroidPlatform ? _openAiCapture : null,
-          onSettings: () => _navigateTo(AppSection.settings),
-          onChanged: () => unawaited(agendaSync?.changed()),
+        child: AgendaPalette(
+          child: AgendaView(
+            service: agendaService,
+            onPinCalendar: isAndroidPlatform ? _pinCalendarShortcut : null,
+            today: dayClock.today,
+            onOpenTask: _openTaskById,
+            onCreateTask: _createLinkedTask,
+            onSearch: _showUniversalCommand,
+            onCapture: isAndroidPlatform ? _openAiCapture : null,
+            onSettings: () => _navigateTo(AppSection.settings),
+            onChanged: () => unawaited(agendaSync?.changed()),
+          ),
         ),
       );
     }

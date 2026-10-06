@@ -607,7 +607,7 @@ class _Block extends StatelessWidget {
             ? BorderSide(color: scheme.error, width: 2)
             : outlined
             ? BorderSide(color: color, width: 1.5)
-            : BorderSide.none,
+            : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

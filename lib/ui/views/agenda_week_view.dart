@@ -592,7 +592,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
             ? BorderSide(color: scheme.error, width: 1.5)
             : outlined
             ? BorderSide(color: fill, width: 1.5)
-            : BorderSide.none,
+            : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

@@ -1,5 +1,9 @@
 # TODO e handover
 
+## P1 — Palette Calendario, build 237
+
+- [x] Palette neutra con accenti blu, date grigio-azzurre ed eventi più tenui; chiaro/scuro e pagina giorno coerenti.
+
 ## P1 — Tre settimane e preferenza vista, build 236
 
 - [x] Vista tre settimane, paging di 21 giorni, «Oggi» e raggruppamento visite.
