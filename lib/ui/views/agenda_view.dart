@@ -1101,24 +1101,15 @@ class _AgendaDaySection extends StatelessWidget {
                 onOpen: (entry) async => onOpen(entry),
               )
             else
-              // Already over today: dimmed, so what is left stands out.
-              Opacity(
-                opacity:
-                    day.date == today &&
-                        !item.first.allDay &&
-                        item.first.end.isBefore(DateTime.now())
-                    ? 0.5
-                    : 1,
-                child: AgendaEntryTile(
-                  entry: item.first,
-                  day: day.date,
-                  color: colors[item.first.calendarIds.first],
-                  calendarNames: [
-                    for (final id in item.first.calendarIds) names[id] ?? '',
-                  ],
-                  onTap: () => onOpen(item.first),
-                  onLongPress: () => onQuick(item.first),
-                ),
+              AgendaEntryTile(
+                entry: item.first,
+                day: day.date,
+                color: colors[item.first.calendarIds.first],
+                calendarNames: [
+                  for (final id in item.first.calendarIds) names[id] ?? '',
+                ],
+                onTap: () => onOpen(item.first),
+                onLongPress: () => onQuick(item.first),
               ),
         const Divider(height: 1),
       ],

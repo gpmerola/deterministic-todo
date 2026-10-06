@@ -18,6 +18,10 @@ class AgendaPalette extends StatelessWidget {
       onPrimaryContainer: dark
           ? const Color(0xffdeecff)
           : const Color(0xff163d6a),
+      onSurface: dark ? const Color(0xfff1f4f8) : const Color(0xff17212b),
+      onSurfaceVariant: dark
+          ? const Color(0xffcbd5e1)
+          : const Color(0xff455468),
       surface: dark ? const Color(0xff171c22) : const Color(0xfffafbfd),
       surfaceContainerLow: dark
           ? const Color(0xff1e252e)
@@ -34,6 +38,10 @@ class AgendaPalette extends StatelessWidget {
       data: base.copyWith(
         colorScheme: scheme,
         scaffoldBackgroundColor: scheme.surface,
+        textTheme: base.textTheme.apply(
+          bodyColor: scheme.onSurface,
+          displayColor: scheme.onSurface,
+        ),
       ),
       child: ColoredBox(color: scheme.surface, child: child),
     );
@@ -52,14 +60,22 @@ Color agendaEventFill(Color calendar, ColorScheme scheme) => Color.alphaBlend(
   scheme.surface,
 );
 
-/// Readable text on [fill].
+/// Pick the higher-contrast opaque foreground, including mid-tone fills.
 Color agendaOnFill(Color fill) =>
-    fill.computeLuminance() > 0.45 ? Colors.black87 : Colors.white;
+    fill.computeLuminance() > 0.179 ? Colors.black : Colors.white;
 
-/// Calendar colour used as text (the start time in month cells): the raw
-/// colour on dark surfaces, darkened on light ones so pale calendars stay
-/// legible.
-Color agendaAccentText(Color calendar, ColorScheme scheme) =>
-    scheme.brightness == Brightness.dark
-    ? Color.lerp(calendar, Colors.white, 0.15)!
-    : Color.lerp(calendar, Colors.black, 0.4)!;
+/// Preserve the calendar hue but ensure readable small text on the surface.
+Color agendaAccentText(Color calendar, ColorScheme scheme) {
+  final target = scheme.brightness == Brightness.dark
+      ? Colors.white
+      : Colors.black;
+  final opaque = Color.alphaBlend(calendar, scheme.surface);
+  for (var step = 0; step <= 10; step++) {
+    final candidate = Color.lerp(opaque, target, step / 10)!;
+    final a = candidate.computeLuminance();
+    final b = scheme.surface.computeLuminance();
+    final ratio = (a > b ? a + 0.05 : b + 0.05) / (a > b ? b + 0.05 : a + 0.05);
+    if (ratio >= 4.5) return candidate;
+  }
+  return target;
+}

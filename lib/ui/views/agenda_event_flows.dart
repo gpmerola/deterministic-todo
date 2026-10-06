@@ -436,8 +436,13 @@ class AgendaEventFlows {
     try {
       await service.hideEvent(entry, series: series);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           SnackBar(
+            persist: false,
+            duration: const Duration(seconds: 6),
+            showCloseIcon: true,
             content: Text('${series ? 'Serie nascosta' : 'Nascosto'} in Todo.'),
             action: SnackBarAction(
               label: 'Annulla',

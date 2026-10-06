@@ -2,6 +2,28 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 238 — Avviso temporaneo e testi più leggibili
+
+La SnackBar «Nascosto in Todo» restava visibile perché l’azione «Annulla»
+implicava `persist: true` nella versione Flutter installata. Ora `persist`
+è esplicitamente falso, durata 6 secondi, X disponibile e coda delle conferme
+precedenti svuotata. Testano timeout dopo ripetizione, X e annullamento,
+verificando che solo «Annulla» ripristini l’evento e che il filtro resti salvato.
+
+Rimosso lo sbiadimento globale di eventi passati e fuori mese, anche in elenco;
+fuori mese si distingue il numero giorno. Testo principale e secondario più
+netto, nero/bianco sui riempimenti scelto per contrasto e orari colorati adattati
+alla superficie. Test di contrasto includono colori chiari, scuri e intermedi;
+test UI proteggono dall’opacità ridotta sulle celle passate/fuori mese e lista.
+Rendering sintetico 360×800 della vista tre settimane, chiaro/scuro, ispezionato
+con gruppo e appuntamento in giorni passati. Nessun collaudo visivo reale sul
+telefono eseguito.
+`make check` superato: analisi statica pulita, 414 test Flutter e controlli
+strumenti, SQL e documentazione. Build Android e Web release riuscite.
+Todo Test 2.68.2-dev / versionCode 2238 installata e avviata in-place sul
+Galaxy con `make todo-test`; versione/processo verificati e dati conservati.
+Collaudo browser HTTPS non eseguito; Web/stabile pubblicati restano alla 229.
+
 ## Build 237 — Palette dedicata al Calendario
 
 Superfici neutre chiare/ardesia, fasce delle date grigio-azzurre e accenti blu

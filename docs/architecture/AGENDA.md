@@ -4,6 +4,21 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Conferme temporanee e contrasto — build 238
+
+La conferma di `hide` imposta `persist: false`, durata 6 secondi e X; svuota
+le conferme precedenti per evitare code. «Annulla» ripristina l’evento;
+chiusura e timeout lasciano intatto il filtro salvato. Con la versione Flutter
+in uso l’azione rendeva la SnackBar persistente per default: test di regressione
+coprono timeout, ripetizione, X, annullamento e persistenza del filtro.
+
+Rimossa l’opacità globale dalle celle passate/fuori mese e dagli eventi
+terminati nell’elenco; fuori mese cambia solo il colore del numero giorno.
+Testo base più netto. `agendaOnFill` sceglie nero/bianco opachi con contrasto
+maggiore; gli orari colorati vengono corretti verso nero/bianco fino a un
+contrasto di almeno 4.5:1 rispetto alla superficie. Test con colori chiari,
+scuri e intermedi, più regressioni su celle passate e lista.
+
 ## Palette dedicata — build 237
 
 `AgendaPalette` applica al solo Calendario superfici neutre (chiare o ardesia),
@@ -210,7 +225,7 @@ quell'account non compare; non esiste un aggiramento lato app.
 - **Mese a schermo intero (build 205; opzionale dalla 231).** Ogni mese occupa tutta
   l'altezza: le righe (5 o 6 settimane, dal lunedì) si dividono lo spazio e
   ogni giorno mostra tutte le voci che ci stanno, poi «+N». I giorni dei mesi
-  vicini completano le settimane, attenuati. Dalla build 206 si cambia mese
+  vicini completano le settimane; dalla 238 è distinto solo il numero giorno. Dalla build 206 si cambia mese
   scorrendo di lato, come in Settimana e Giorno; lo stesso vale per la vista
   2 settimane. L'intervallo va da un anno indietro a tre avanti. La preferenza della vista ha una
   nuova chiave (`agenda_view_mode_v2`), così una scelta «2 settimane» salvata
@@ -244,7 +259,7 @@ quell'account non compare; non esiste un aggiramento lato app.
 - **Viste.** Dalla build 194 alla 200 la vista predefinita era **Mese**: griglie mensili
   con lunedì come primo giorno, da 12 mesi indietro a 36 avanti, che scorrono in
   verticale come in Google Calendar. Ogni cella mostra fino a tre eventi colorati
-  dal calendario, o due più «+N»; i giorni passati sono attenuati. Toccare un
+  dal calendario, o due più «+N»; i giorni passati mantengono testo a piena opacità dalla 238. Toccare un
   giorno apre il dettaglio con orari, luoghi e pulsante riunione. **Oggi**
   riporta al mese corrente. **Elenco** è la vista per giorni delle build
   191–193. La scelta è salvata in `app_settings.agenda_view_mode`.
@@ -556,7 +571,7 @@ le attività e nascondono la sezione Eventi.
 - **Barre di più giorni**: `AgendaChip(day:)` lascia aperti e squadrati i
   lati che continuano; il titolo compare il primo giorno e il lunedì.
 - **Oggi** con il numero del giorno; icone distinte per le viste.
-- **Elenco**: gli eventi di oggi già finiti sono al 50% di opacità.
+- **Elenco**: dalla build 238 anche gli eventi già finiti restano a piena opacità.
 
 **Prove su emulatore.** `tools/emulator_agenda_seed.py` crea in un
 emulatore Android tre calendari locali e circa 80 eventi sintetici. Tra

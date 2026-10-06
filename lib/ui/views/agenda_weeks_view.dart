@@ -274,7 +274,6 @@ class AgendaDayCell extends StatelessWidget {
     final label = date.day == 1
         ? DateFormat('d MMM', 'it').format(date.asLocalDate)
         : '${date.day}';
-    final dim = outside ? 0.35 : (date.compareTo(today) < 0 ? 0.6 : 1.0);
     final weekend = date.asLocalDate.weekday >= DateTime.saturday;
     return InkWell(
       key: ValueKey('agenda-day-$date'),
@@ -296,91 +295,90 @@ class AgendaDayCell extends StatelessWidget {
             ),
           ),
         ),
-        child: Opacity(
-          opacity: dim,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final items = groupVisits
-                    ? calendarVisitItems(entries, date)
-                    : entries.map((e) => CalendarVisitItem([e])).toList();
-                final shown = _shownHeights([
-                  for (final item in items)
-                    item.grouped
-                        ? CalendarVisitGroup.height
-                        : item.first.allDay || item.first.isTask
-                        ? chipHeight
-                        : AgendaChip.twoLineHeight,
-                ], constraints.maxHeight - 19);
-                final hiddenCount = items
-                    .skip(shown)
-                    .fold<int>(0, (sum, item) => sum + item.entries.length);
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ColoredBox(
-                      color: agendaDateHeaderFill(theme.colorScheme),
-                      child: Center(
-                        child: Container(
-                          height: 17,
-                          constraints: const BoxConstraints(minWidth: 17),
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          alignment: Alignment.center,
-                          decoration: isToday
-                              ? BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(9),
-                                )
-                              : null,
-                          child: Text(
-                            label,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 10.5,
-                              fontWeight: isToday ? FontWeight.w800 : null,
-                              color: isToday
-                                  ? theme.colorScheme.onPrimary
-                                  : null,
-                            ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final items = groupVisits
+                  ? calendarVisitItems(entries, date)
+                  : entries.map((e) => CalendarVisitItem([e])).toList();
+              final shown = _shownHeights([
+                for (final item in items)
+                  item.grouped
+                      ? CalendarVisitGroup.height
+                      : item.first.allDay || item.first.isTask
+                      ? chipHeight
+                      : AgendaChip.twoLineHeight,
+              ], constraints.maxHeight - 19);
+              final hiddenCount = items
+                  .skip(shown)
+                  .fold<int>(0, (sum, item) => sum + item.entries.length);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ColoredBox(
+                    color: agendaDateHeaderFill(theme.colorScheme),
+                    child: Center(
+                      child: Container(
+                        height: 17,
+                        constraints: const BoxConstraints(minWidth: 17),
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        alignment: Alignment.center,
+                        decoration: isToday
+                            ? BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                borderRadius: BorderRadius.circular(9),
+                              )
+                            : null,
+                        child: Text(
+                          label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 10.5,
+                            fontWeight: isToday ? FontWeight.w800 : null,
+                            color: isToday
+                                ? theme.colorScheme.onPrimary
+                                : outside
+                                ? theme.colorScheme.onSurfaceVariant
+                                : theme.colorScheme.onSurface,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 1),
-                    for (final item in items.take(shown))
-                      if (item.grouped)
-                        CalendarVisitGroup(
-                          item: item,
-                          color:
-                              colors[item.first.calendarIds.first] ??
-                              theme.colorScheme.primary,
-                          onOpen:
-                              onOpenEntry ??
-                              (_) async {
-                                onDay(date);
-                              },
-                        )
-                      else
-                        AgendaChip(
-                          entry: item.first,
-                          twoLines: true,
-                          day: date,
-                          color:
-                              colors[item.first.calendarIds.first] ??
-                              theme.colorScheme.primary,
-                        ),
-                    if (hiddenCount > 0)
-                      Text(
-                        '+$hiddenCount',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 9.5,
-                        ),
+                  ),
+                  const SizedBox(height: 1),
+                  for (final item in items.take(shown))
+                    if (item.grouped)
+                      CalendarVisitGroup(
+                        item: item,
+                        color:
+                            colors[item.first.calendarIds.first] ??
+                            theme.colorScheme.primary,
+                        onOpen:
+                            onOpenEntry ??
+                            (_) async {
+                              onDay(date);
+                            },
+                      )
+                    else
+                      AgendaChip(
+                        entry: item.first,
+                        twoLines: true,
+                        day: date,
+                        color:
+                            colors[item.first.calendarIds.first] ??
+                            theme.colorScheme.primary,
                       ),
-                  ],
-                );
-              },
-            ),
+                  if (hiddenCount > 0)
+                    Text(
+                      '+$hiddenCount',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 9.5,
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),

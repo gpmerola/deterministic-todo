@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.68.2 (build 238) — Todo Test
+
+- «Nascosto in Todo» ora scompare dopo 6 secondi, si può chiudere con X
+  e mantiene «Annulla». Conferme ripetute non si accumulano.
+- Testi più netti: niente sbiadimento per eventi passati o fuori mese;
+  contrasto corretto per testo su colori intermedi e orari colorati.
+
 ## 2.68.1 (build 237) — Todo Test
 
 - Palette dedicata al Calendario: superfici neutre, fasce delle date

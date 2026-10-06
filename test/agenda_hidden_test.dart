@@ -1,6 +1,7 @@
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
+import 'package:deterministic_todo/ui/views/agenda_event_flows.dart';
 import 'package:deterministic_todo/ui/views/agenda_event_sheet.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +53,63 @@ HiddenAgendaEvent _hidden(String key) => HiddenAgendaEvent(
 
 void main() {
   setUpAll(() => initializeDateFormatting('it'));
+
+  for (final action in ['timeout', 'close', 'undo']) {
+    testWidgets('hidden-event notice can $action without getting stuck', (
+      tester,
+    ) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final service = AgendaService(db);
+      final entry = AgendaEntry(
+        instanceId: 'synthetic',
+        key: 'synthetic-key',
+        calendarIds: const ['kcl'],
+        title: 'Evento sintetico',
+        start: DateTime.now().add(const Duration(days: 1)),
+        end: DateTime.now().add(const Duration(days: 1, hours: 1)),
+        allDay: false,
+      );
+      final flows = AgendaEventFlows(
+        service: service,
+        calendars: const [kcl],
+        hidden: const {},
+        zone: null,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => flows.hide(context, entry),
+                child: const Text('Hide fixture'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Hide fixture'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nascosto in Todo.'), findsOneWidget);
+      if (action == 'timeout') {
+        // Repeating an action must not leave a queue of persistent notices.
+        await tester.tap(find.text('Hide fixture'));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 7));
+        await tester.pumpAndSettle();
+      } else {
+        await tester.tap(
+          action == 'undo' ? find.text('Annulla') : find.byIcon(Icons.close),
+        );
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Nascosto in Todo.'), findsNothing);
+      expect(
+        (await service.filter()).hiddenEvents,
+        action == 'undo' ? isEmpty : hasLength(1),
+      );
+    });
+  }
 
   test('hiding a merged meeting hides every copy, nothing else', () {
     final events = [

@@ -102,6 +102,9 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 Il Calendario ha una palette dedicata: superfici neutre, fasce delle date
 in grigio-azzurro e accenti blu per «Oggi» e comandi. I colori dei calendari
 restano distinti, con fondi più tenui per gli eventi, nei temi chiaro e scuro.
+I testi degli eventi restano a piena opacità anche nei giorni passati.
+La conferma «Nascosto in Todo» sparisce dopo 6 secondi, con X e «Annulla»;
+gli eventi nascosti restano ripristinabili da «Calendari e filtri».
 
 La sezione **Calendario** riunisce i calendari già sincronizzati dal telefono:
 Google e gli account Microsoft 365 configurati nelle app di sistema. Offre

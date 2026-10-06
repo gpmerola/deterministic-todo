@@ -1616,6 +1616,45 @@ void main() {
     },
   );
 
+  testWidgets('finished events in list retain full text opacity', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final start = DateTime.now().subtract(const Duration(days: 1));
+    final service = _FakeAgendaService(db, [
+      event(
+        'past',
+        'gmail',
+        'Evento terminato sintetico',
+        start,
+        start.add(const Duration(minutes: 15)),
+      ),
+    ]);
+    await service.saveViewMode(AgendaViewMode.list);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(
+            service: service,
+            today: CivilDate.fromDateTime(start),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final title = find.text('Evento terminato sintetico');
+    expect(title, findsOneWidget);
+    expect(
+      tester
+          .widgetList<Opacity>(
+            find.ancestor(of: title, matching: find.byType(Opacity)),
+          )
+          .any((widget) => widget.opacity < 1),
+      false,
+    );
+  });
+
   testWidgets('quattro settimane correnti predefinite, paginazione e Oggi', (
     tester,
   ) async {

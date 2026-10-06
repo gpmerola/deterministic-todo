@@ -1,5 +1,10 @@
 # TODO e handover
 
+## P1 — Avviso nascosto e leggibilità, build 238
+
+- [x] Conferma temporanea con X/Annulla e test di regressione.
+- [x] Testi a piena opacità e contrasto corretto su sfondi intermedi.
+
 ## P1 — Palette Calendario, build 237
 
 - [x] Palette neutra con accenti blu, date grigio-azzurre ed eventi più tenui; chiaro/scuro e pagina giorno coerenti.
