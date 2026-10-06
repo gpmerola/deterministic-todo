@@ -8,7 +8,7 @@ extension AppSectionPresentation on AppSection {
     AppSection.today => 'Oggi',
     AppSection.upcoming => 'Prossime',
     AppSection.projects => 'Progetti',
-    AppSection.agenda => 'Agenda',
+    AppSection.agenda => 'Calendario',
     AppSection.completed => 'Completate',
     AppSection.settings => 'Impostazioni',
   };

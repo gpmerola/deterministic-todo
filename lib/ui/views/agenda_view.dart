@@ -29,12 +29,14 @@ class AgendaView extends StatefulWidget {
     this.onSettings,
     this.onCapture,
     this.onChanged,
+    this.onPinCalendar,
     super.key,
   });
 
   /// After a change made here (event, calendars, filters): the shell
   /// refreshes the web mirror.
   final VoidCallback? onChanged;
+  final Future<void> Function()? onPinCalendar;
 
   /// Opens the ✨ assistant; the Agenda reloads afterwards.
   final Future<void> Function()? onCapture;
@@ -541,7 +543,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       return _Message(
         icon: Icons.cloud_off_outlined,
         text:
-            'Sul Web l\'Agenda mostra la copia inviata dal telefono. Apri Todo '
+            'Sul Web il Calendario mostra la copia inviata dal telefono. Apri Todo '
             'sul telefono con la sincronizzazione attiva: la copia arriva in '
             'pochi secondi.',
         action: 'Riprova',
@@ -552,7 +554,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       return _Message(
         icon: Icons.calendar_month_outlined,
         text:
-            'L’agenda legge i calendari del telefono. Se attivi la sincronizzazione, '
+            'Il Calendario legge i calendari del telefono. Se attivi la sincronizzazione, '
             'una copia viene inviata al tuo account per consultarla sul Web.',
         action: access == AgendaAccess.denied
             ? 'Apri impostazioni'
@@ -600,6 +602,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       onChoose: _chooseCalendars,
       failures: widget.service.failedRequests.length,
       onFailures: _showFailures,
+      onPinCalendar: widget.onPinCalendar,
       onSearch: widget.onSearch,
       onSettings: widget.onSettings,
       onCapture: widget.onCapture == null
@@ -674,6 +677,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         ? AgendaWeeksView(
             key: ValueKey(mode),
             weekCount: mode == AgendaViewMode.fourWeeks ? 4 : 2,
+            onOpenEntry: _showEvent,
             today: widget.today,
             revision: revision,
             controller: weeksPage,
@@ -812,6 +816,7 @@ class _AgendaHeader extends StatelessWidget {
     this.onSettings,
     this.onCapture,
     this.onCreate,
+    this.onPinCalendar,
     this.failures = 0,
     this.onFailures,
     this.onBackup,
@@ -829,6 +834,7 @@ class _AgendaHeader extends StatelessWidget {
   final VoidCallback? onFailures;
   final VoidCallback? onCapture;
   final VoidCallback? onCreate;
+  final VoidCallback? onPinCalendar;
   final String? zone;
   final int visible;
   final int total;
@@ -945,7 +951,7 @@ class _AgendaHeader extends StatelessWidget {
           if (backupPending && onBackup != null)
             IconButton(
               key: const ValueKey('agenda-backup-pending'),
-              tooltip: 'Backup dell\'Agenda da ripristinare',
+              tooltip: 'Backup del Calendario da ripristinare',
               visualDensity: VisualDensity.compact,
               onPressed: onBackup,
               icon: Badge(
@@ -979,7 +985,10 @@ class _AgendaHeader extends StatelessWidget {
               semanticsLabel: 'Calendari: $visible di $total',
             ),
           ),
-          if (onSearch != null || onSettings != null || onBackup != null)
+          if (onSearch != null ||
+              onSettings != null ||
+              onBackup != null ||
+              onPinCalendar != null)
             PopupMenuButton<String>(
               key: const ValueKey('agenda-more'),
               tooltip: 'Altro',
@@ -987,8 +996,18 @@ class _AgendaHeader extends StatelessWidget {
                 if (value == 'search') onSearch?.call();
                 if (value == 'settings') onSettings?.call();
                 if (value == 'backup') onBackup?.call();
+                if (value == 'pinCalendar') onPinCalendar?.call();
               },
               itemBuilder: (_) => [
+                if (onPinCalendar != null)
+                  const PopupMenuItem(
+                    value: 'pinCalendar',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.add_to_home_screen),
+                      title: Text('Aggiungi alla schermata Home'),
+                    ),
+                  ),
                 if (onSearch != null)
                   const PopupMenuItem(
                     value: 'search',
@@ -1004,7 +1023,7 @@ class _AgendaHeader extends StatelessWidget {
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.cloud_outlined),
-                      title: Text('Backup dell\'Agenda'),
+                      title: Text('Backup del Calendario'),
                     ),
                   ),
                 if (onSettings != null)
@@ -1613,7 +1632,7 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Calendari nell\'agenda',
+                'Calendari e filtri',
                 style: theme.textTheme.titleMedium,
               ),
             ),

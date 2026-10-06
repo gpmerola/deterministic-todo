@@ -1,4 +1,39 @@
-# Agenda unificata (Android)
+# Calendario unificato (Android)
+
+Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
+chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
+legata alla rinomina.
+
+## Visite compatte e collegamento Home — build 233
+
+Solo la vista a quattro settimane raggruppa tre o più visite contigue (fine
+uguale all'inizio successivo) dello stesso insieme ordinato di calendari.
+Riconoscimento prudente tramite etichette visita/visite, consulto/consultazione,
+consultation, appointment, assessment e follow-up. Titoli non riconosciuti,
+eventi di giornata intera, task, inviti senza risposta, modifiche Web in attesa,
+eventi a cavallo di giorni e sovrapposizioni visibili restano singoli. Una pausa
+interrompe il gruppo. La trasformazione è pura, senza persistenza: conserva
+gli oggetti originali e non modifica provider, mirror, backup o sincronizzazione.
+Il blocco mostra entrambi gli orari completi e il numero di visite; un tap
+apre una lista degli originali, selezionabili per il dettaglio normale.
+Il conteggio «+N» conta eventi nascosti, non gruppi.
+
+Android: «Calendario → ⋮ → Aggiungi alla schermata Home» usa
+[`ShortcutManager.requestPinShortcut`](https://developer.android.com/reference/android/content/pm/ShortcutManager#requestPinShortcut(android.content.pm.ShortcutInfo,%20android.content.IntentSender)),
+senza dipendenze né nuovi permessi. ID stabile `calendar`, icona vettoriale e
+Intent esplicito al package corrente: Todo Test non apre il fallback Play.
+Richiesta accettata dal launcher e icona effettivamente aggiunta sono stati
+distinti; la UI invita alla conferma Android senza dichiarare prematuramente
+il successo. Se già presente non richiede un duplicato; launcher non supportato
+ed errori hanno messaggi espliciti.
+
+La Activity condivisa gestisce avvio a freddo e `onNewIntent`; Dart consuma una
+richiesta pendente una sola volta, anche se arriva prima del listener. Il bridge
+è solo foreground e indipendente dal motore di sincronizzazione. La shell usa
+la normale navigazione: un editor/modal già aperto non viene chiuso forzatamente
+dal collegamento e conserva le modifiche. Test con fixture sintetiche in
+`calendar_visit_groups_test.dart`, `calendar_shortcut_test.dart` e JVM
+`CalendarLaunchRequestTest`.
 
 Dalla build 191. Problema: KCL, SLaM e gli altri account Microsoft 365, insieme
 alle riunioni Teams, si integrano male in Google Calendar (link ICS lenti o

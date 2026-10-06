@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
+import 'calendar_visit_group.dart';
 
 /// Monday of the week containing [day].
 CivilDate mondayOf(CivilDate day) =>
@@ -23,11 +25,13 @@ class AgendaWeeksView extends StatefulWidget {
     required this.colors,
     required this.onOpenDay,
     this.weekCount = 2,
+    this.onOpenEntry,
     this.controller,
     this.onPeriodChanged,
     super.key,
   });
 
+  final Future<void> Function(AgendaEntry)? onOpenEntry;
   final int weekCount;
   int get pageDays => weekCount * 7;
 
@@ -127,6 +131,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
         });
       }
       return AgendaWeeksPage(
+        onOpenEntry: widget.onOpenEntry,
         weekCount: widget.weekCount,
         first: first,
         today: widget.today,
@@ -143,6 +148,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
 class AgendaWeeksPage extends StatelessWidget {
   const AgendaWeeksPage({
     this.weekCount = 2,
+    this.onOpenEntry,
     required this.first,
     required this.today,
     required this.days,
@@ -152,6 +158,7 @@ class AgendaWeeksPage extends StatelessWidget {
     super.key,
   });
 
+  final Future<void> Function(AgendaEntry)? onOpenEntry;
   final int weekCount;
   final CivilDate first;
   final CivilDate today;
@@ -189,6 +196,8 @@ class AgendaWeeksPage extends StatelessWidget {
                 for (var column = 0; column < 7; column++)
                   Expanded(
                     child: AgendaDayCell(
+                      groupVisits: weekCount == 4,
+                      onOpenEntry: onOpenEntry,
                       date: first.addDays(week * 7 + column),
                       today: today,
                       entries:
@@ -217,6 +226,8 @@ class AgendaDayCell extends StatelessWidget {
     required this.colors,
     required this.onDay,
     this.outside = false,
+    this.groupVisits = false,
+    this.onOpenEntry,
     super.key,
   });
 
@@ -226,20 +237,23 @@ class AgendaDayCell extends StatelessWidget {
   /// How many [entries] fit in [height], keeping a line for "+N" when
   /// some are left out. Timed events take two lines (time over title).
   static int shownEntries(List<AgendaEntry> entries, double height) {
-    double heightOf(AgendaEntry e) =>
-        e.allDay || e.isTask ? chipHeight : AgendaChip.twoLineHeight;
+    return _shownHeights([
+      for (final e in entries)
+        e.allDay || e.isTask ? chipHeight : AgendaChip.twoLineHeight,
+    ], height);
+  }
+
+  static int _shownHeights(List<double> heights, double available) {
     var used = 0.0;
     var fit = 0;
-    for (final entry in entries) {
-      if (used + heightOf(entry) > height) break;
-      used += heightOf(entry);
+    for (final height in heights) {
+      if (used + height > available) break;
+      used += height;
       fit++;
     }
-    if (fit == entries.length) return fit;
-    // Make room for "+N".
-    while (fit > 0 && used + chipHeight > height) {
-      used -= heightOf(entries[fit - 1]);
-      fit--;
+    if (fit == heights.length) return fit;
+    while (fit > 0 && used + chipHeight > available) {
+      used -= heights[--fit];
     }
     return fit;
   }
@@ -250,6 +264,8 @@ class AgendaDayCell extends StatelessWidget {
   final Map<String, Color?> colors;
   final ValueChanged<CivilDate> onDay;
   final bool outside;
+  final bool groupVisits;
+  final Future<void> Function(AgendaEntry)? onOpenEntry;
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +302,20 @@ class AgendaDayCell extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final shown = shownEntries(entries, constraints.maxHeight - 19);
+                final items = groupVisits
+                    ? calendarVisitItems(entries, date)
+                    : entries.map((e) => CalendarVisitItem([e])).toList();
+                final shown = _shownHeights([
+                  for (final item in items)
+                    item.grouped
+                        ? CalendarVisitGroup.height
+                        : item.first.allDay || item.first.isTask
+                        ? chipHeight
+                        : AgendaChip.twoLineHeight,
+                ], constraints.maxHeight - 19);
+                final hiddenCount = items
+                    .skip(shown)
+                    .fold<int>(0, (sum, item) => sum + item.entries.length);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -318,18 +347,31 @@ class AgendaDayCell extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 1),
-                    for (final entry in entries.take(shown))
-                      AgendaChip(
-                        entry: entry,
-                        twoLines: true,
-                        day: date,
-                        color:
-                            colors[entry.calendarIds.first] ??
-                            theme.colorScheme.primary,
-                      ),
-                    if (entries.length > shown)
+                    for (final item in items.take(shown))
+                      if (item.grouped)
+                        CalendarVisitGroup(
+                          item: item,
+                          color:
+                              colors[item.first.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                          onOpen:
+                              onOpenEntry ??
+                              (_) async {
+                                onDay(date);
+                              },
+                        )
+                      else
+                        AgendaChip(
+                          entry: item.first,
+                          twoLines: true,
+                          day: date,
+                          color:
+                              colors[item.first.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                        ),
+                    if (hiddenCount > 0)
                       Text(
-                        '+${entries.length - shown}',
+                        '+$hiddenCount',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontSize: 9.5,

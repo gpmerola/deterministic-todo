@@ -330,7 +330,7 @@ class AgendaEventFlows {
                   '${target?.name ?? 'calendario'} appena lo applica.'
             : hidden.contains(draft.calendarId)
             ? 'Evento salvato in ${target?.name ?? 'calendario'}, '
-                  'nascosto nell\'Agenda.'
+                  'nascosto nel Calendario.'
             : 'Evento salvato in ${target?.name ?? 'calendario'}.',
       );
     } catch (_) {

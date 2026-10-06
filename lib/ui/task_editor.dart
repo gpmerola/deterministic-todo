@@ -654,7 +654,7 @@ class _TaskEditorState extends State<TaskEditor> {
                   key: const ValueKey('task-show-in-agenda'),
                   value: 'agenda',
                   checked: showInAgenda,
-                  child: const Text('Mostra in Agenda'),
+                  child: const Text('Mostra nel Calendario'),
                 ),
               if (isAndroidPlatform)
                 const PopupMenuItem(
@@ -688,12 +688,12 @@ class _TaskEditorState extends State<TaskEditor> {
       SnackBar(
         content: Text(
           next && showDate.text.isEmpty
-              ? 'Compare nell\'Agenda quando avrà una data.'
+              ? 'Compare nel Calendario quando avrà una data.'
               : next
               ? widget.task.seriesId != null
-                    ? 'Tutta la serie compare nell\'Agenda.'
-                    : 'L\'attività compare nell\'Agenda.'
-              : 'Tolta dall\'Agenda.',
+                    ? 'Tutta la serie compare nel Calendario.'
+                    : 'L\'attività compare nel Calendario.'
+              : 'Tolta dal Calendario.',
         ),
       ),
     );

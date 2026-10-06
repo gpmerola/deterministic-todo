@@ -513,7 +513,7 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
                     : widget.writesViaPhone
                     ? 'Da applicare sul telefono · ${target?.name ?? "Scegli un calendario"}'
                     : target?.localOnly == true
-                    ? 'Copia personale in Todo · backup Agenda se attivo'
+                    ? 'Copia personale in Todo · backup Calendario se attivo'
                     : 'Salvi nel calendario ${target?.name ?? "selezionato"}',
                 key: const ValueKey('agenda-save-destination'),
               ),

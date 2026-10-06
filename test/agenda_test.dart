@@ -1423,6 +1423,34 @@ void main() {
     expect(compactTime(DateTime(2026, 10, 5, 8, 5)), '8:05');
   });
 
+  testWidgets(
+    'il menu Calendario offre il collegamento Home solo se disponibile',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      var requests = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AgendaView(
+              service: _FakeAgendaService(db, const []),
+              today: first,
+              onPinCalendar: () async {
+                requests++;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('agenda-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Aggiungi alla schermata Home'));
+      await tester.pumpAndSettle();
+      expect(requests, 1);
+    },
+  );
+
   testWidgets('senza barra superiore cerca e impostazioni restano nel menu', (
     tester,
   ) async {

@@ -2,11 +2,36 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 233 — Calendario, visite compatte e icona Home
+
+«Agenda» diventa «Calendario» nell’interfaccia; nessuna migrazione dei dati.
+Nella vista quattro settimane almeno tre visite riconoscibili dal titolo,
+consecutive nello stesso calendario, diventano un blocco con orario e conteggio.
+Un tocco mostra l’elenco e permette di aprire il singolo evento originale.
+Pause, sovrapposizioni, task e richieste in attesa non vengono raggruppati.
+
+Su Android, «⋮ → Aggiungi alla schermata Home» richiede al launcher un’icona
+«Calendario». La conferma spetta all’utente; la richiesta non viene presentata
+come aggiunta già completata. Il collegamento apre la sezione corretta e resta
+nel package di origine. Editor eventualmente aperti non vengono chiusi forzatamente.
+
+`make check` superato: analisi statica pulita e 397 test Flutter. Test JVM dev
+e compilazione Kotlin direct/play superati. Test coprono raggruppamento,
+esclusioni, accesso agli originali, menu e consumo singolo delle richieste
+native/Dart a freddo e a caldo. Rendering sintetico 360×800 del blocco e della
+lista espansa ispezionato. Conferma del launcher e apertura dall’icona reale
+sul Galaxy ancora da collaudare: i test non sostituiscono questa verifica.
+
+Todo Test 2.66.0-dev / versionCode 2233 installata e avviata in-place sul
+Galaxy con `make todo-test`; versione e processo verificati, dati conservati.
+Build Web release riuscita; collaudo browser HTTPS della 233 non eseguito.
+Web/stabile pubblicati restano alla 229.
+
 ## Build 232 — Creazione nella barra superiore
 
 «+» spostato accanto a «Oggi»: rimosso il pulsante flottante che copriva gli
-ultimi giorni. Permessi e salvataggio invariati. Nessun raggruppamento delle
-visite implementato: resta una proposta da definire con l'utente.
+ultimi giorni. Permessi e salvataggio invariati. Il raggruppamento delle visite, ancora
+una proposta in questa build, è stato implementato nella 233.
 
 `make check` superato: analisi pulita, 388 test Flutter. Il test di creazione
 verifica ora anche l'allineamento con «Oggi» e l'assenza del pulsante flottante.

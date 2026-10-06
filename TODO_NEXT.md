@@ -1,9 +1,16 @@
 # TODO e handover
 
+## P1 — Calendario e collegamento Home, build 233
+
+- [x] «Agenda» rinominata «Calendario» nell’interfaccia, identificatori persistenti invariati.
+- [x] Gruppi espandibili di almeno tre visite contigue nella vista quattro settimane; pause e sovrapposizioni restano visibili.
+- [x] Menu Android per richiedere il collegamento Home; gestione delle aperture a freddo e a caldo verificata con test.
+- [ ] Conferma del launcher e apertura dalla nuova icona sul Galaxy: collaudo manuale ancora da eseguire.
+
 ## P1 — Creazione in alto, build 232
 
 - [x] «+» nella barra superiore; ultime celle libere. Test e rendering verificati (STATUS).
-- [ ] Proposta da concordare: raggruppamento solo visivo delle visite consecutive, espandibile e senza nascondere pause/sovrapposizioni.
+- [x] Proposta di raggruppamento approvata e implementata nella build 233.
 
 ## P1 — Quattro settimane correnti, build 231
 

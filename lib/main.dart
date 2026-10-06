@@ -34,6 +34,7 @@ import 'services/agenda_tasks.dart';
 import 'services/agenda_web_service.dart';
 import 'services/ai_settings.dart';
 import 'services/calendar_service.dart';
+import 'services/calendar_shortcut_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/performance_monitor.dart';
@@ -381,6 +382,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   String? viewStreamKey;
   Stream<List<Task>>? viewStream;
   final updates = AppUpdateFlow();
+  final calendarShortcut = CalendarShortcutService();
   late final dayClock = CivilDayClock(now: widget.clock);
 
   /// Agenda on Android (phone calendars) and on the web (the phone's mirror,
@@ -452,6 +454,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
     dayClock.addListener(_onCivilDayChanged);
     unawaited(_initializeProjectCaches());
+    if (widget.enablePlatformServices && isAndroidPlatform) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(
+            calendarShortcut.attach(() async {
+              if (mounted) await _navigateTo(AppSection.agenda);
+            }),
+          );
+        }
+      });
+    }
     remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
       ids,
     ) {
@@ -537,6 +550,24 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (value != null) await _setDailyStepGoal(value);
     },
   );
+
+  Future<void> _pinCalendarShortcut() async {
+    String message;
+    try {
+      message = switch (await calendarShortcut.pin()) {
+        'requested' => 'Conferma l’aggiunta nella schermata Android.',
+        'alreadyPinned' => 'Il collegamento Calendario è già nella Home.',
+        _ => 'La schermata Home non supporta questo collegamento.',
+      };
+    } catch (_) {
+      message = 'Impossibile aggiungere il collegamento. Riprova.';
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
 
   /// Task editor for a task shown in the Agenda.
   Future<void> _openTaskById(String id) async {
@@ -730,6 +761,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     agendaSync?.detach();
+    if (widget.enablePlatformServices && isAndroidPlatform) {
+      calendarShortcut.detach();
+    }
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
     movementRefreshTimer?.cancel();
@@ -1466,6 +1500,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         bottom: false,
         child: AgendaView(
           service: agendaService,
+          onPinCalendar: isAndroidPlatform ? _pinCalendarShortcut : null,
           today: dayClock.today,
           onOpenTask: _openTaskById,
           onCreateTask: _createLinkedTask,

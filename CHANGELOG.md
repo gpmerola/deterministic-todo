@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.66.0 (build 233) — Todo Test
+
+- «Agenda» si chiama ora «Calendario» in navigazione, filtri e messaggi.
+- Nella griglia a quattro settimane, almeno tre visite consecutive dello
+  stesso calendario sono raccolte in un blocco espandibile. Orari e singoli
+  eventi rimangono accessibili; pause e sovrapposizioni interrompono i gruppi.
+- Su Android, dal menu del Calendario si può aggiungere un collegamento
+  dedicato alla schermata Home. Apre il Calendario nel canale già installato.
+
 ## 2.65.1 (build 232) — Todo Test
 
 - Agenda: pulsante «+» nella barra superiore, accanto a «Oggi»; nessun

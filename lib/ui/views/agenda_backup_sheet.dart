@@ -130,12 +130,12 @@ class _AgendaBackupSheetState extends State<_AgendaBackupSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Backup dell\'Agenda', style: theme.textTheme.titleLarge),
+              Text('Backup del Calendario', style: theme.textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
                 'Sul tuo account Supabase: gli eventi di «Todo (solo '
                 'telefono)», note comprese, gli eventi nascosti e le scelte '
-                'dell\'Agenda. Gli altri calendari sono già nei loro account.',
+                'del Calendario. Gli altri calendari sono già nei loro account.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
