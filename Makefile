@@ -13,6 +13,7 @@ check-docs:
 
 test-tools:
 	python3 -m unittest discover -s tools -p 'test_*.py'
+	node tools/second-brain/test.mjs
 
 # Fastest safe delivery: ADB when connected, otherwise publish the locally built APK.
 todo-test:
@@ -34,3 +35,4 @@ check-sql:
 	node tools/sql-tests/agenda_mirror.mjs
 	node tools/sql-tests/agenda_backup.mjs
 	node tools/sql-tests/agenda_requests.mjs
+	node tools/sql-tests/second_brain.mjs

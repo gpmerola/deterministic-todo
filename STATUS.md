@@ -2,6 +2,38 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Second Brain — collegamento predisposto, non attivo
+
+Su richiesta dell'utente è stata scelta una copia privata su Google Drive,
+aggiornata ogni ora. RPC con grant di sola lettura per un singolo proprietario,
+hash SHA-256 del token, scadenza/revoca, proiezioni ridotte e snapshot coerente.
+Apps Script associato al documento dedicato: scope limitato al documento,
+nessun deployment pubblico; copia precedente conservata se il fetch fallisce.
+Contratto e attivazione in [SECOND_BRAIN](docs/operations/SECOND_BRAIN.md).
+
+Documento privato creato in `SECOND BRAIN/30_RISORSE`, riferimento nativo
+aggiunto a START QUI e changelog del sistema aggiornato. Contenuti di stato e
+permessi privati riletti. Sorgente Apps Script e manifest caricati nel progetto
+Google associato; nessun token, grant o trigger ancora attivato, nessun dato
+operativo esportato. Migrazione server NON applicata. Mancano autorizzazione
+Google, provisioning del grant, prima copia e successiva esecuzione automatica.
+`make check`: analisi statica pulita, 414 test Flutter, controlli strumenti,
+documenti e SQL superati. Nuovi test sintetici: isolamento tra proprietari,
+proiezione dei campi, scadenza/revoca, mancata sovrascrittura su errore,
+trigger idempotenti e preparazione della chiave senza esposizione del segreto.
+
+## Release stabile 238 — pubblicata
+
+Dopo `PUBBLICA`, workflow coordinato
+[37491519220](https://github.com/gpmerola/deterministic-todo/actions/runs/37491519220)
+riuscito: Web, APK diretti e upload Play nel track interno. Versione 2.68.2,
+build 238, sorgente `05dfc17bba0b9252733bc3b2ec51deedbb6205d8`.
+Identità Web e manifest coerenti; i quattro APK pubblici riscaricati e SHA-256
+verificati. Chrome aggiornato dalla 229: Impostazioni mostra 2.68.2 (238),
+sessione e contenuti conservati dopo refresh HTTPS, sincronizzazione riuscita.
+La disponibilità Play sul singolo dispositivo non è stata verificata; Galaxy
+resta sul canale Todo Test 2238 già installato, senza riattivare il package Play.
+
 ## Build 238 — Avviso temporaneo e testi più leggibili
 
 La SnackBar «Nascosto in Todo» restava visibile perché l’azione «Annulla»
@@ -22,7 +54,7 @@ telefono eseguito.
 strumenti, SQL e documentazione. Build Android e Web release riuscite.
 Todo Test 2.68.2-dev / versionCode 2238 installata e avviata in-place sul
 Galaxy con `make todo-test`; versione/processo verificati e dati conservati.
-Collaudo browser HTTPS non eseguito; Web/stabile pubblicati restano alla 229.
+Pubblicazione e collaudo browser HTTPS: vedere la sezione release stabile sopra.
 
 ## Build 237 — Palette dedicata al Calendario
 

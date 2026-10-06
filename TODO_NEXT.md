@@ -1,9 +1,17 @@
 # TODO e handover
 
+## P1 — Second Brain su Drive
+
+- [x] Esportatore di sola lettura e automazione Google preparati, test sintetici verdi.
+- [x] Documento privato e collegamento in START QUI, stato esplicito «in preparazione».
+- [ ] Autorizzazione Google e grant Supabase, prima copia e verifica trigger orario.
+- [ ] Prova da una chat esterna con Drive collegato; dettagli in STATUS e runbook Second Brain.
+
 ## P1 — Avviso nascosto e leggibilità, build 238
 
 - [x] Conferma temporanea con X/Annulla e test di regressione.
 - [x] Testi a piena opacità e contrasto corretto su sfondi intermedi.
+- [x] Dopo `PUBBLICA`: Web, APK stabili e Play interno 238 pubblicati e verificati (STATUS).
 
 ## P1 — Palette Calendario, build 237
 
