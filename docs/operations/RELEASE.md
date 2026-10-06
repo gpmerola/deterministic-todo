@@ -15,6 +15,9 @@
 3. Commit e push del branch `agent/**`.
 4. `Publish Android and Web Release` verifica una volta e avvia in parallelo
    bundle Play, APK diretti e Web.
+   Il bundle resta `release`; i test JVM usano `:app:testPlayDebugUnitTest`
+   e `:runtracker:testDebugUnitTest`. La configurazione Android corrente non
+   genera il task `testPlayReleaseUnitTest`.
 5. Il bundle Play viene caricato nel track interno appena pronto, senza
    attendere gli APK o il deploy Web.
 6. Chrome viene distribuito e controllato tramite `release-info.json`.
