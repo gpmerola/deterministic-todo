@@ -270,12 +270,15 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
             style: theme.textTheme.titleSmall,
           ),
         ),
-        Row(
-          children: [
-            const SizedBox(width: _gutter),
-            for (final date in dates)
-              Expanded(child: _dayHeader(context, date)),
-          ],
+        ColoredBox(
+          color: agendaDateHeaderFill(theme.colorScheme),
+          child: Row(
+            children: [
+              const SizedBox(width: _gutter),
+              for (final date in dates)
+                Expanded(child: _dayHeader(context, date)),
+            ],
+          ),
         ),
         if (allDayRows > 0)
           Row(

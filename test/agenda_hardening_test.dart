@@ -326,8 +326,15 @@ void main() {
       await tester.tap(find.text('Elenco').last);
       await tester.pumpAndSettle();
       expect(find.textContaining('nov'), findsWidgets);
-      expect(find.text('Azzera filtri'), findsOneWidget);
+      expect(find.text('Azzera filtri'), findsNothing);
+      expect(find.textContaining('festività nascoste'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('festività nascoste'), findsOneWidget);
       await tester.tap(find.text('Azzera filtri'));
+      await tester.pumpAndSettle();
+      expect((await service.filter()).hideHolidays, true);
+      await tester.tap(find.text('Applica'));
       await tester.pumpAndSettle();
       expect((await service.filter()).hideHolidays, false);
       expect(find.text('Azzera filtri'), findsNothing);

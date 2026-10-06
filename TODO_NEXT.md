@@ -1,5 +1,10 @@
 # TODO e handover
 
+## P1 — Agenda compatta, build 230
+
+- [x] Riepilogo e reset nel pannello Calendari; fasce delle date leggermente distinte.
+- [x] `make check`, rendering chiaro/scuro e installazione Galaxy 2230 verificati (STATUS).
+
 ## P1 — Agenda affidabilità e UX, build 229
 
 - [x] Editor, bozze, errori, destinazioni, navigazione, filtri, date finali e copie recuperabili implementati.

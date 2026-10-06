@@ -22,8 +22,11 @@ dall'NHS e dalle università.
   dopo la terminazione del processo/browser.
 - Un cambio vista mantiene la data selezionata; lo scorrimento cambia il
   periodo di riferimento. «Oggi» riporta al giorno corrente anche nell'elenco.
-  Il riepilogo filtri comprende calendari, festività, inviti, parole e nascosti;
-  «Azzera filtri» mostra esplicitamente tutto, inclusi gli originali nascosti.
+  Dalla build 230 il riepilogo filtri è nel pannello «Calendari», insieme ad
+  «Azzera filtri»: la scelta mostra tutto, inclusi gli originali nascosti,
+  solo dopo «Applica». Il calendario non ha più una riga aggiuntiva di filtri.
+  Le righe delle date hanno uno sfondo leggermente distinto in mese, due
+  settimane, settimana, tre giorni ed elenco, senza aumentare l'altezza.
 - La data finale è modificabile anche per eventi con orario: una fine
   precedente all'inizio è un errore, non uno spostamento implicito a domani.
   I nuovi eventi Android possono scegliere un fuso IANA da quelli di sistema.

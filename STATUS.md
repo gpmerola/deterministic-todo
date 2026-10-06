@@ -2,6 +2,23 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 230 — Agenda più compatta
+
+Riepilogo dei calendari nascosti e «Azzera filtri» spostati nel pannello
+Calendari: nessuna riga aggiuntiva sopra la griglia. L'azzeramento resta locale
+al pannello fino ad «Applica». Le righe delle date hanno una lieve tinta
+neutra nei temi chiaro e scuro, a parità di altezza.
+
+`make check` superato: analisi pulita e 386 test Flutter, inclusa la verifica
+che il riepilogo compaia solo nel pannello e che il reset richieda «Applica».
+Rendering sintetico a 360×800 con font reali: mese chiaro/scuro e pannello
+Calendari ispezionati, senza overflow. Todo Test 2.64.1-dev / versionCode 2230
+installata in-place e avviata sul Galaxy con `make todo-test`; versione e
+processo verificati, dati conservati. L'ispezione visiva è sul rendering
+sintetico, non uno screenshot del dispositivo. Web/stabile restano alla 229.
+Build Web release 230 riuscita; collaudo della 230 nel browser HTTPS non
+eseguito e nessun nuovo deploy Web avviato.
+
 ## Build 229 — Agenda: protezione delle modifiche e navigazione
 
 Todo Test 2.64.0-dev / versionCode 2229 installata con `make todo-test` sul

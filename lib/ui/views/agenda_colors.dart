@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// Subtle opaque band behind dates, readable in either theme.
+Color agendaDateHeaderFill(ColorScheme scheme) =>
+    Color.alphaBlend(scheme.onSurface.withValues(alpha: 0.05), scheme.surface);
+
 /// Event fill for a calendar colour. On dark surfaces the raw provider
 /// colours (lime, cyan, red) are loud, so they are blended half into the
 /// surface, as calendar apps do in dark mode (UI review, build 218).

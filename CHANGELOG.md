@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.64.1 (build 230) — Todo Test
+
+- Agenda: riepilogo dei calendari nascosti e «Azzera filtri» spostati nel
+  pannello Calendari, lasciando più spazio alla griglia.
+- Sfondo leggermente distinto per le righe delle date, nei temi chiaro e scuro.
+
 ## 2.64.0 (build 229) — Web, APK stabili, Play interno e Todo Test
 
 - Agenda: editor con bozza locale recuperabile, protezione all'uscita,

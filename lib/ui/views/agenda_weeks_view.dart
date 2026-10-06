@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
+import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 
@@ -288,24 +289,29 @@ class AgendaDayCell extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        height: 17,
-                        constraints: const BoxConstraints(minWidth: 17),
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        alignment: Alignment.center,
-                        decoration: isToday
-                            ? BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(9),
-                              )
-                            : null,
-                        child: Text(
-                          label,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10.5,
-                            fontWeight: isToday ? FontWeight.w800 : null,
-                            color: isToday ? theme.colorScheme.onPrimary : null,
+                    ColoredBox(
+                      color: agendaDateHeaderFill(theme.colorScheme),
+                      child: Center(
+                        child: Container(
+                          height: 17,
+                          constraints: const BoxConstraints(minWidth: 17),
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          alignment: Alignment.center,
+                          decoration: isToday
+                              ? BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(9),
+                                )
+                              : null,
+                          child: Text(
+                            label,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10.5,
+                              fontWeight: isToday ? FontWeight.w800 : null,
+                              color: isToday
+                                  ? theme.colorScheme.onPrimary
+                                  : null,
+                            ),
                           ),
                         ),
                       ),

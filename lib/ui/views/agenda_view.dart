@@ -10,6 +10,7 @@ import '../../domain/task.dart';
 import '../../services/agenda_backup.dart';
 import '../../services/agenda_service.dart';
 import 'agenda_backup_sheet.dart';
+import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_event_flows.dart';
 import 'agenda_month_view.dart';
@@ -75,31 +76,12 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       filter.isActive ||
       filter.hideHolidays ||
       filter.hiddenEvents.isNotEmpty;
-  String get filterSummary => [
-    if (hidden.isNotEmpty) '${hidden.length} calendari nascosti',
-    if (filter.hideHolidays) 'festività nascoste',
-    if (filter.hideUnanswered) 'inviti senza risposta nascosti',
-    if (filter.hiddenWords.isNotEmpty)
-      '${filter.hiddenWords.length} filtri per parola',
-    if (filter.hiddenEvents.isNotEmpty)
-      '${filter.hiddenEvents.length} eventi/serie nascosti',
-  ].join(' · ');
-
   void _periodChanged(CivilDate first, int count) {
     final last = first.addDays(count);
     if (selectedDay.asLocalDate.isBefore(first.asLocalDate) ||
         !selectedDay.asLocalDate.isBefore(last.asLocalDate)) {
       selectedDay = first;
     }
-  }
-
-  Future<void> _clearFilters() async {
-    await widget.service.saveFilter(const AgendaFilter(hideHolidays: false));
-    await widget.service.saveCalendarChoices({
-      for (final c in calendars) c.id: true,
-    });
-    widget.onChanged?.call();
-    await _load();
   }
 
   void _listScrolled() {
@@ -603,7 +585,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       total: calendars.length,
       loading: loading,
       mode: mode,
-      filtered: filter.isActive,
+      filtered: hasFilters,
       onMode: (next) => unawaited(_setMode(next)),
       onToday: _scrollToToday,
       today: widget.today,
@@ -723,7 +705,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                           day.date,
                           widget.today,
                         ),
-                        background: Theme.of(context).colorScheme.surface,
+                        background: agendaDateHeaderFill(
+                          Theme.of(context).colorScheme,
+                        ),
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                     ),
@@ -772,24 +756,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                     child: const Text('Riprova'),
                   ),
                 ],
-              ),
-            if (hasFilters)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        filterSummary,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: _clearFilters,
-                      child: const Text('Azzera filtri'),
-                    ),
-                  ],
-                ),
               ),
             Expanded(
               child: Stack(
@@ -1298,6 +1264,30 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
       ? null
       : {...widget.colors!};
 
+  bool get hasFilters =>
+      hidden.isNotEmpty ||
+      hideHolidays ||
+      hideUnanswered ||
+      words.isNotEmpty ||
+      hiddenEvents.isNotEmpty;
+
+  String get filterSummary => [
+    if (hidden.isNotEmpty) '${hidden.length} calendari nascosti',
+    if (hideHolidays) 'festività nascoste',
+    if (hideUnanswered) 'inviti senza risposta nascosti',
+    if (words.isNotEmpty) '${words.length} filtri per parola',
+    if (hiddenEvents.isNotEmpty) '${hiddenEvents.length} eventi/serie nascosti',
+  ].join(' · ');
+
+  void _clearFilters() => setState(() {
+    hidden.clear();
+    hideHolidays = false;
+    hideUnanswered = false;
+    words.clear();
+    hiddenEvents.clear();
+    wordInput.clear();
+  });
+
   /// Google Calendar's event colours, with their Italian names.
   static const palette = [
     ('Pomodoro', '#D50000'),
@@ -1618,33 +1608,44 @@ class _AgendaCalendarPickerState extends State<AgendaCalendarPicker> {
                 style: theme.textTheme.titleMedium,
               ),
             ),
+            if (hasFilters)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Text(filterSummary, style: theme.textTheme.bodySmall),
+              ),
             Flexible(child: ListView(shrinkWrap: true, children: rows)),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: () {
-                    // A word typed but not yet added still counts.
-                    _addWord();
-                    Navigator.pop(
-                      context,
-                      AgendaPickerResult(
-                        colors: colors,
-                        hidden,
-                        AgendaFilter(
-                          hideUnanswered: hideUnanswered,
-                          hiddenWords: List.unmodifiable(words),
-                          hideHolidays: hideHolidays,
-                          hiddenEvents: List.unmodifiable(hiddenEvents),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: hasFilters ? _clearFilters : null,
+                    child: const Text('Azzera filtri'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      // A word typed but not yet added still counts.
+                      _addWord();
+                      Navigator.pop(
+                        context,
+                        AgendaPickerResult(
+                          colors: colors,
+                          hidden,
+                          AgendaFilter(
+                            hideUnanswered: hideUnanswered,
+                            hiddenWords: List.unmodifiable(words),
+                            hideHolidays: hideHolidays,
+                            hiddenEvents: List.unmodifiable(hiddenEvents),
+                          ),
+                          eventCalendarId: eventCalendarId,
+                          aiEventCalendarId: aiEventCalendarId,
                         ),
-                        eventCalendarId: eventCalendarId,
-                        aiEventCalendarId: aiEventCalendarId,
-                      ),
-                    );
-                  },
-                  child: const Text('Applica'),
-                ),
+                      );
+                    },
+                    child: const Text('Applica'),
+                  ),
+                ],
               ),
             ),
           ],
