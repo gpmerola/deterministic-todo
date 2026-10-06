@@ -30,7 +30,7 @@ final class AgendaLocalEvents {
         Events.EVENT_LOCATION, Events.DESCRIPTION, Events.RRULE, Events.RDATE,
         Events.EXRULE, Events.EXDATE, Events.ORIGINAL_ID,
         Events.ORIGINAL_INSTANCE_TIME, Events.ORIGINAL_ALL_DAY, Events.STATUS,
-        Events.AVAILABILITY,
+        Events.AVAILABILITY, Events.CUSTOM_APP_URI,
     };
 
     /** JSON keys, in the order of [COLUMNS]. */
@@ -38,7 +38,7 @@ final class AgendaLocalEvents {
         "id", "title", "dtstart", "dtend", "duration", "all_day", "tz", "end_tz",
         "location", "description", "rrule", "rdate", "exrule", "exdate",
         "original_id", "original_instance_time", "original_all_day", "status",
-        "availability",
+        "availability", "copy_key",
     };
 
     static List<Map<String, Object>> read(Context context, String calendarId) {
@@ -151,7 +151,9 @@ final class AgendaLocalEvents {
         putString(values, Events.TITLE, event.get("title"));
         putLong(values, Events.DTSTART, event.get("dtstart"));
         boolean recurring = event.get("rrule") != null || event.get("rdate") != null;
-        if (recurring && !exception) {
+        // CONTENT_EXCEPTION_URI inherits the parent recurrence and requires
+        // DURATION, never DTEND (the provider rejects both together).
+        if (recurring || exception) {
             Object duration = event.get("duration");
             if (duration == null) {
                 Long start = number(event.get("dtstart"));
@@ -175,9 +177,11 @@ final class AgendaLocalEvents {
         putString(values, Events.DESCRIPTION, event.get("description"));
         putLong(values, Events.STATUS, event.get("status"));
         putLong(values, Events.AVAILABILITY, event.get("availability"));
+        putString(values, Events.CUSTOM_APP_URI, event.get("copy_key"));
         if (exception) {
             putLong(values, Events.ORIGINAL_INSTANCE_TIME, event.get("original_instance_time"));
-            putLong(values, Events.ORIGINAL_ALL_DAY, event.get("original_all_day"));
+            // The provider derives ORIGINAL_ALL_DAY from the parent and rejects
+            // attempts to overwrite it through CONTENT_EXCEPTION_URI.
         } else {
             putString(values, Events.RRULE, event.get("rrule"));
             putString(values, Events.RDATE, event.get("rdate"));
@@ -185,6 +189,40 @@ final class AgendaLocalEvents {
             putString(values, Events.EXDATE, event.get("exdate"));
         }
         return values;
+    }
+
+    /** Stable private copy identity survives a crash between provider and SQLite writes. */
+    static synchronized String copy(Context context, String calendarId, Map<String, Object> event) {
+        ContentResolver resolver = context.getContentResolver();
+        try (Cursor calendar = resolver.query(android.provider.CalendarContract.Calendars.CONTENT_URI,
+                new String[] {android.provider.CalendarContract.Calendars._ID},
+                "_id = ? AND account_type = ? AND account_name = ?",
+                new String[] {calendarId, "LOCAL", "Todo"}, null)) {
+            if (calendar == null || !calendar.moveToFirst()) throw new IllegalArgumentException("Not local");
+        }
+        String key = (String) event.get("copy_key");
+        if (key == null || !key.startsWith("todo-copy:")) throw new IllegalArgumentException("Missing key");
+        ContentValues value = values(calendarId, event, false);
+        return AgendaCopyOperation.apply(key, new AgendaCopyOperation.Store() {
+            public String find(String copyKey) {
+                try (Cursor cursor = resolver.query(Events.CONTENT_URI, new String[] {Events._ID},
+                        Events.CALENDAR_ID + " = ? AND " + Events.CUSTOM_APP_URI + " = ? AND " + Events.DELETED + " = 0",
+                        new String[] {calendarId, copyKey}, Events._ID + " ASC")) {
+                    return cursor != null && cursor.moveToFirst() ? Long.toString(cursor.getLong(0)) : null;
+                }
+            }
+            public void update(String id) {
+                if (event.get("rrule") == null) { value.putNull(Events.RRULE); value.putNull(Events.DURATION); }
+                else value.putNull(Events.DTEND);
+                if (resolver.update(ContentUris.withAppendedId(Events.CONTENT_URI, Long.parseLong(id)), value, null, null) != 1)
+                    throw new IllegalStateException("Copy disappeared");
+            }
+            public String insert() {
+                Uri inserted = resolver.insert(Events.CONTENT_URI, value);
+                if (inserted == null) throw new IllegalStateException("Copy failed");
+                return Long.toString(ContentUris.parseId(inserted));
+            }
+        });
     }
 
     private static void putString(ContentValues values, String column, Object value) {

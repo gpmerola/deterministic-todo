@@ -66,6 +66,58 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   AgendaFilter filter = AgendaFilter.none;
   List<AgendaDay> days = const [];
   int dayCount = AgendaView.pageDays;
+  late CivilDate selectedDay = widget.today;
+  late CivilDate listFirst = widget.today;
+  final _listViewport = GlobalKey();
+  final Map<CivilDate, GlobalKey> _listDates = {};
+  bool get hasFilters =>
+      hidden.isNotEmpty ||
+      filter.isActive ||
+      filter.hideHolidays ||
+      filter.hiddenEvents.isNotEmpty;
+  String get filterSummary => [
+    if (hidden.isNotEmpty) '${hidden.length} calendari nascosti',
+    if (filter.hideHolidays) 'festività nascoste',
+    if (filter.hideUnanswered) 'inviti senza risposta nascosti',
+    if (filter.hiddenWords.isNotEmpty)
+      '${filter.hiddenWords.length} filtri per parola',
+    if (filter.hiddenEvents.isNotEmpty)
+      '${filter.hiddenEvents.length} eventi/serie nascosti',
+  ].join(' · ');
+
+  void _periodChanged(CivilDate first, int count) {
+    final last = first.addDays(count);
+    if (selectedDay.asLocalDate.isBefore(first.asLocalDate) ||
+        !selectedDay.asLocalDate.isBefore(last.asLocalDate)) {
+      selectedDay = first;
+    }
+  }
+
+  Future<void> _clearFilters() async {
+    await widget.service.saveFilter(const AgendaFilter(hideHolidays: false));
+    await widget.service.saveCalendarChoices({
+      for (final c in calendars) c.id: true,
+    });
+    widget.onChanged?.call();
+    await _load();
+  }
+
+  void _listScrolled() {
+    if (mode != AgendaViewMode.list) return;
+    final viewport = _listViewport.currentContext?.findRenderObject();
+    if (viewport is! RenderBox) return;
+    final top = viewport.localToGlobal(Offset.zero).dy;
+    for (final day in days) {
+      final box = _listDates[day.date]?.currentContext?.findRenderObject();
+      if (box is RenderBox &&
+          box.attached &&
+          box.localToGlobal(Offset(0, box.size.height)).dy > top + 32) {
+        selectedDay = day.date;
+        return;
+      }
+    }
+  }
+
   AgendaViewMode mode = AgendaViewMode.month;
 
   /// Recognised device zone, always shown; null only if Android cannot tell.
@@ -73,11 +125,23 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
 
   /// Bumped on every successful reload so month grids drop cached events.
   int revision = 0;
-  final monthPage = PageController(initialPage: AgendaMonthView.monthsBack);
-  final weeksPage = PageController(initialPage: AgendaWeeksView.pagesBack);
-  final weekPage = PageController(initialPage: AgendaWeekView.weeksBack);
+  var monthPage = PageController(
+    initialPage: AgendaMonthView.monthsBack,
+    keepPage: false,
+  );
+  var weeksPage = PageController(
+    initialPage: AgendaWeeksView.pagesBack,
+    keepPage: false,
+  );
+  var weekPage = PageController(
+    initialPage: AgendaWeekView.weeksBack,
+    keepPage: false,
+  );
   final listScroll = ScrollController();
-  final threeDaysPage = PageController(initialPage: AgendaWeekView.weeksBack);
+  var threeDaysPage = PageController(
+    initialPage: AgendaWeekView.weeksBack,
+    keepPage: false,
+  );
   bool loading = true;
   bool failed = false;
   int _generation = 0;
@@ -87,6 +151,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     AgendaBackup.pending.addListener(_backupChanged);
+    listScroll.addListener(_listScrolled);
     _seedFromMemory();
     unawaited(_load());
   }
@@ -120,10 +185,10 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     final generation = ++_generation;
     setState(() {
       loading = true;
-      failed = false;
     });
     try {
       final nextAccess = await widget.service.access();
@@ -150,7 +215,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
               nextCalendars,
               nextHidden,
               nextFilter,
-              widget.today,
+              listFirst,
               dayCount,
             )
           : days;
@@ -163,6 +228,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         hidden = nextHidden;
         filter = nextFilter;
         days = nextDays;
+        failed = false;
         revision++;
         loading = false;
       });
@@ -296,6 +362,10 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     zone: zone,
     onOpenTask: widget.onOpenTask,
     onCreateTask: widget.onCreateTask,
+    onChanged: () {
+      unawaited(_load());
+      widget.onChanged?.call();
+    },
   );
 
   Future<void> _createEvent({DateTime? start, DateTime? end}) async {
@@ -319,10 +389,60 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   Future<void> _setMode(AgendaViewMode next) async {
     if (next == mode) return;
     await widget.service.saveViewMode(next);
+    if (!mounted) return;
+    final today = widget.today;
+    int daysBetween(CivilDate a, CivilDate b) => DateTime.utc(
+      a.year,
+      a.month,
+      a.day,
+    ).difference(DateTime.utc(b.year, b.month, b.day)).inDays;
+    final delta = daysBetween(selectedDay, today);
+    PageController replacement(int page, int max) =>
+        PageController(initialPage: page.clamp(0, max - 1), keepPage: false);
+    switch (next) {
+      case AgendaViewMode.month:
+        monthPage.dispose();
+        monthPage = replacement(
+          AgendaMonthView.monthsBack +
+              (selectedDay.year - today.year) * 12 +
+              selectedDay.month -
+              today.month,
+          AgendaMonthView.monthsBack + AgendaMonthView.monthsAhead,
+        );
+      case AgendaViewMode.week:
+        weekPage.dispose();
+        weekPage = replacement(
+          AgendaWeekView.weeksBack +
+              (daysBetween(selectedDay, mondayOf(today)) / 7).floor(),
+          AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
+        );
+      case AgendaViewMode.threeDays:
+        threeDaysPage.dispose();
+        threeDaysPage = replacement(
+          AgendaWeekView.weeksBack + (delta / 3).floor(),
+          AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
+        );
+      case AgendaViewMode.twoWeeks:
+        weeksPage.dispose();
+        weeksPage = replacement(
+          AgendaWeeksView.pagesBack +
+              (daysBetween(selectedDay, mondayOf(today)) / 14).floor(),
+          AgendaWeeksView.pagesBack + AgendaWeeksView.pagesAhead,
+        );
+      case AgendaViewMode.list:
+        listFirst = selectedDay;
+        dayCount = AgendaView.pageDays;
+        _listDates.clear();
+    }
     await _load();
   }
 
   void _scrollToToday() {
+    selectedDay = widget.today;
+    if (mode == AgendaViewMode.list && listFirst != widget.today) {
+      listFirst = widget.today;
+      unawaited(_load());
+    }
     // The list starts today.
     if (mode == AgendaViewMode.list && listScroll.hasClients) {
       unawaited(
@@ -423,6 +543,14 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     if (access == null && loading) {
       return const Center(child: CircularProgressIndicator());
     }
+    if (failed && calendars.isEmpty) {
+      return _Message(
+        icon: Icons.error_outline,
+        text: 'Impossibile leggere i calendari del telefono.',
+        action: 'Riprova',
+        onAction: _load,
+      );
+    }
     if (access == AgendaAccess.noMirror) {
       return _Message(
         icon: Icons.cloud_off_outlined,
@@ -438,21 +566,12 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       return _Message(
         icon: Icons.calendar_month_outlined,
         text:
-            'L\'agenda mostra insieme i calendari già sincronizzati sul '
-            'telefono, compresi gli account Outlook di lavoro. Gli eventi '
-            'restano sul telefono e non vengono sincronizzati.',
+            'L’agenda legge i calendari del telefono. Se attivi la sincronizzazione, '
+            'una copia viene inviata al tuo account per consultarla sul Web.',
         action: access == AgendaAccess.denied
             ? 'Apri impostazioni'
             : 'Consenti accesso al calendario',
         onAction: _requestAccess,
-      );
-    }
-    if (failed) {
-      return _Message(
-        icon: Icons.error_outline,
-        text: 'Impossibile leggere i calendari del telefono.',
-        action: 'Riprova',
-        onAction: _load,
       );
     }
     final colors = {
@@ -501,26 +620,31 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
               await _load();
             },
     );
-    void openDay(CivilDate day) => unawaited(
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => AgendaDayPage(
-            initialDay: day,
-            today: widget.today,
-            loadDays: (first, count) =>
-                _readDays(calendars, hidden, filter, first, count),
-            peekDays: _peekDays,
-            colors: colors,
-            onOpen: _showEvent,
-            onLongPress: _quickEvent,
-            onCreate: widget.service.canWrite
-                ? (start, {end}) => _createEvent(start: start, end: end)
-                : null,
-            zoneLabel: zone,
+    void openDay(CivilDate day) {
+      selectedDay = day;
+      unawaited(
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => AgendaDayPage(
+              initialDay: day,
+              onDayChanged: (day) => selectedDay = day,
+              today: widget.today,
+              loadDays: (first, count) =>
+                  _readDays(calendars, hidden, filter, first, count),
+              peekDays: _peekDays,
+              colors: colors,
+              onOpen: _showEvent,
+              onLongPress: _quickEvent,
+              onCreate: widget.service.canWrite
+                  ? (start, {end}) => _createEvent(start: start, end: end)
+                  : null,
+              zoneLabel: zone,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
+
     final body = mode == AgendaViewMode.threeDays
         ? AgendaWeekView(
             key: const ValueKey('agenda-three-days'),
@@ -528,6 +652,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             today: widget.today,
             revision: revision,
             controller: threeDaysPage,
+            onPeriodChanged: (day) => _periodChanged(day, 3),
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -544,6 +669,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             today: widget.today,
             revision: revision,
             controller: weekPage,
+            onPeriodChanged: (day) => _periodChanged(day, 7),
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -560,6 +686,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             today: widget.today,
             revision: revision,
             controller: weeksPage,
+            onPeriodChanged: (day) => _periodChanged(day, 14),
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -571,6 +698,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             today: widget.today,
             revision: revision,
             controller: monthPage,
+            onPeriodChanged: (day) =>
+                _periodChanged(day, DateTime(day.year, day.month + 1, 0).day),
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -580,7 +709,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         // Each day's date stays pinned at the top while its events scroll
         // under it (build 224).
         : CustomScrollView(
-            key: const PageStorageKey('agenda-list'),
+            key: ValueKey('agenda-list:$listFirst'),
             controller: listScroll,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -600,6 +729,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                     ),
                     SliverToBoxAdapter(
                       child: _AgendaDaySection(
+                        key: _listDates.putIfAbsent(day.date, GlobalKey.new),
+                        filtered: hasFilters,
                         day: day,
                         today: widget.today,
                         colors: colors,
@@ -630,11 +761,44 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         Column(
           children: [
             header,
+            if (failed)
+              MaterialBanner(
+                content: const Text(
+                  'Aggiornamento non riuscito. Mostro gli ultimi dati disponibili.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: loading ? null : _load,
+                    child: const Text('Riprova'),
+                  ),
+                ],
+              ),
+            if (hasFilters)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        filterSummary,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _clearFilters,
+                      child: const Text('Azzera filtri'),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: RefreshIndicator(onRefresh: _load, child: body),
+                    child: SizedBox(
+                      key: _listViewport,
+                      child: RefreshIndicator(onRefresh: _load, child: body),
+                    ),
                   ),
                   // Grids have a period title on the left of their first
                   // row; the zone sits on its right, where there is room
@@ -893,8 +1057,11 @@ class _AgendaDaySection extends StatelessWidget {
     required this.names,
     required this.onOpen,
     required this.onQuick,
+    this.filtered = false,
+    super.key,
   });
 
+  final bool filtered;
   final ValueChanged<AgendaEntry> onQuick;
   final AgendaDay day;
   final CivilDate today;
@@ -913,7 +1080,9 @@ class _AgendaDaySection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             child: Text(
-              'Nessun evento',
+              filtered
+                  ? 'Nessun evento visibile · filtri attivi'
+                  : 'Nessun impegno',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

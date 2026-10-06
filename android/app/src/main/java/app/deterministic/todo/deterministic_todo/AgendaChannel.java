@@ -61,6 +61,21 @@ public final class AgendaChannel {
         Context app = context.getApplicationContext();
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/agenda")
             .setMethodCallHandler((call, result) -> {
+                if (call.method.equals("timeZones")) {
+                    List<String> zones = new ArrayList<>(ZoneId.getAvailableZoneIds());
+                    java.util.Collections.sort(zones);
+                    result.success(zones);
+                    return;
+                }
+                if (call.method.equals("resolveZone")) {
+                    try {
+                        result.success(AgendaTimeZones.resolve(call.argument("zone"), call.argument("start"),
+                            call.argument("end"), call.argument("until")));
+                    } catch (RuntimeException error) {
+                        result.error("invalid_local_time", "Orario inesistente o ambiguo nel fuso scelto: scegli un altro orario.", null);
+                    }
+                    return;
+                }
                 if (call.method.equals("deviceZone")) {
                     result.success(deviceZone(ZoneId.systemDefault(), Instant.now()));
                     return;
@@ -75,7 +90,7 @@ public final class AgendaChannel {
                     result.success(null);
                     return;
                 }
-                if (call.method.equals("localEvents") || call.method.equals("restoreLocalEvents")) {
+                if (call.method.equals("localEvents") || call.method.equals("restoreLocalEvents") || call.method.equals("copyLocalEvent")) {
                     localEvents(app, call, result);
                     return;
                 }
@@ -119,7 +134,9 @@ public final class AgendaChannel {
         Handler main = new Handler(Looper.getMainLooper());
         IO.execute(() -> {
             try {
-                Object value = restore
+                Object value = call.method.equals("copyLocalEvent")
+                    ? AgendaLocalEvents.copy(app, calendarId, call.argument("event"))
+                    : restore
                     ? AgendaLocalEvents.restore(app, calendarId, events)
                     : AgendaLocalEvents.read(app, calendarId);
                 main.post(() -> result.success(value));

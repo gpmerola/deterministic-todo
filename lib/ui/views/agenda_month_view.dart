@@ -22,6 +22,7 @@ class AgendaMonthView extends StatefulWidget {
     required this.colors,
     required this.onOpenDay,
     this.controller,
+    this.onPeriodChanged,
     super.key,
   });
 
@@ -39,6 +40,7 @@ class AgendaMonthView extends StatefulWidget {
   /// Opens the day view for a tapped cell.
   final ValueChanged<CivilDate> onOpenDay;
   final PageController? controller;
+  final ValueChanged<CivilDate>? onPeriodChanged;
 
   static const monthsBack = 12;
   static const monthsAhead = 36;
@@ -128,6 +130,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
 
   @override
   Widget build(BuildContext context) => PageView.builder(
+    onPageChanged: (index) => widget.onPeriodChanged?.call(_monthOf(index)),
     key: const PageStorageKey('agenda-months'),
     controller: widget.controller ?? _ownController,
     // Sideways, like the week and day views (build 206).

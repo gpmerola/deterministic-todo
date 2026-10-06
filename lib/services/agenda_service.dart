@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/services.dart';
 
@@ -355,9 +356,8 @@ class AgendaService {
         ],
       );
 
-  Future<void> saveFilter(AgendaFilter filter) {
-    lastFilter = filter;
-    return _database
+  Future<void> saveFilter(AgendaFilter filter) async {
+    await _database
         .into(_database.appSettings)
         .insertOnConflictUpdate(
           AppSettingsCompanion.insert(
@@ -365,6 +365,7 @@ class AgendaService {
             value: jsonEncode(filterToJson(filter)),
           ),
         );
+    lastFilter = filter;
   }
 
   Future<String?> lastEventCalendar() async =>
@@ -382,6 +383,7 @@ class AgendaService {
       startDate: draft.start,
       endDate: draft.end,
       isAllDay: draft.allDay,
+      timeZone: draft.timeZone,
       location: _blankToNull(draft.location),
       description: _blankToNull(draft.notes),
       recurrenceRule: recurrenceRuleFor(draft),
@@ -408,6 +410,42 @@ class AgendaService {
       ),
     );
     return (await calendars()).where((calendar) => calendar.localOnly).first;
+  }
+
+  /// Retry-safe provider copy, then the independent local visibility choice.
+  /// The provider stores the identity with the event, closing the crash window.
+  Future<void> copyInTodo(AgendaEntry entry, AgendaEventDraft draft) async {
+    final problem = draft.problem;
+    if (problem != null) throw ArgumentError(problem);
+    final zone = await deviceZoneLabel();
+    final zoneId = zone?.split(' · ').first;
+    if (!draft.allDay && (draft.timeZone ?? zoneId) == null) {
+      throw StateError('Unknown time zone');
+    }
+    int instant(DateTime value) => draft.allDay
+        ? DateTime.utc(
+            value.year,
+            value.month,
+            value.day,
+          ).millisecondsSinceEpoch
+        : value.millisecondsSinceEpoch;
+    await _channel.invokeMethod<String>('copyLocalEvent', {
+      'calendarId': draft.calendarId,
+      'event': {
+        'copy_key':
+            'todo-copy:${sha256.convert(utf8.encode(entry.instanceId))}',
+        'title': draft.title.trim(),
+        'dtstart': instant(draft.start),
+        'dtend': instant(draft.end),
+        'all_day': draft.allDay ? 1 : 0,
+        'tz': draft.allDay ? 'UTC' : (draft.timeZone ?? zoneId),
+        'location': draft.location ?? '',
+        'description': draft.notes ?? '',
+        'rrule': recurrenceRuleFor(draft)?.rruleString,
+      },
+    });
+    _events.clear();
+    await hideEvent(entry);
   }
 
   /// Hides [entry] in Todo only, or with [series] every event with its
@@ -451,6 +489,51 @@ class AgendaService {
     }
   }
 
+  Future<List<String>> timeZones() async =>
+      (await _channel.invokeListMethod<String>('timeZones')) ?? const [];
+
+  /// Civil input in a selected IANA zone. Reject gaps and ambiguous clock times.
+  Future<AgendaEventDraft> resolveTimeZone(AgendaEventDraft draft) async {
+    if (draft.allDay || draft.timeZone == null) return draft;
+    String wall(DateTime d) => DateTime.utc(
+      d.year,
+      d.month,
+      d.day,
+      d.hour,
+      d.minute,
+    ).toIso8601String().replaceFirst('Z', '');
+    final value = await _channel
+        .invokeMapMethod<String, Object?>('resolveZone', {
+          'zone': draft.timeZone,
+          'start': wall(draft.start),
+          'end': wall(draft.end),
+          if (draft.repeatUntil != null) 'until': draft.repeatUntil.toString(),
+        });
+    return AgendaEventDraft(
+      calendarId: draft.calendarId,
+      title: draft.title,
+      start: DateTime.fromMillisecondsSinceEpoch(
+        value!['start'] as int,
+        isUtc: true,
+      ),
+      end: DateTime.fromMillisecondsSinceEpoch(
+        value['end'] as int,
+        isUtc: true,
+      ),
+      location: draft.location,
+      notes: draft.notes,
+      repeat: draft.repeat,
+      repeatUntil: draft.repeatUntil,
+      timeZone: draft.timeZone,
+      repeatUntilInstant: value['until'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(
+              value['until'] as int,
+              isUtc: true,
+            ),
+    );
+  }
+
   /// Full occurrence for the edit form, including notes the Agenda never
   /// keeps in memory. Null when the event no longer exists.
   Future<AgendaEventDraft?> draftFor(String instanceId) async {
@@ -485,6 +568,7 @@ class AgendaService {
         start: draft.start,
         duration: draft.end.difference(draft.start),
         isAllDay: draft.allDay,
+        timeZone: draft.timeZone,
         location: patch(draft.location),
         description: patch(draft.notes),
       );
@@ -495,6 +579,7 @@ class AgendaService {
         startDate: draft.start,
         endDate: draft.end,
         isAllDay: draft.allDay,
+        timeZone: draft.timeZone,
         location: patch(draft.location),
         description: patch(draft.notes),
       );
@@ -530,7 +615,15 @@ class AgendaService {
     final end = until == null
         ? null
         : UntilEnd(
-            DateTime(until.year, until.month, until.day, 23, 59, 59).toUtc(),
+            draft.repeatUntilInstant ??
+                DateTime(
+                  until.year,
+                  until.month,
+                  until.day,
+                  23,
+                  59,
+                  59,
+                ).toUtc(),
           );
     return switch (draft.repeat) {
       AgendaRepeat.none => null,

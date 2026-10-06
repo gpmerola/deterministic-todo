@@ -24,6 +24,7 @@ class AgendaWeeksView extends StatefulWidget {
     required this.colors,
     required this.onOpenDay,
     this.controller,
+    this.onPeriodChanged,
     super.key,
   });
 
@@ -34,6 +35,7 @@ class AgendaWeeksView extends StatefulWidget {
   final Map<String, Color?> colors;
   final ValueChanged<CivilDate> onOpenDay;
   final PageController? controller;
+  final ValueChanged<CivilDate>? onPeriodChanged;
 
   static const pagesBack = 26;
   static const pagesAhead = 78;
@@ -108,6 +110,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
 
   @override
   Widget build(BuildContext context) => PageView.builder(
+    onPageChanged: (index) => widget.onPeriodChanged?.call(_firstOf(index)),
     key: const PageStorageKey('agenda-weeks'),
     controller: widget.controller ?? _ownController,
     // Sideways, like the week and day views (build 206).

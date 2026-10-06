@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../data/editor_drafts.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
@@ -33,6 +34,7 @@ class AgendaEventFlows {
     required this.zone,
     this.onOpenTask,
     this.onCreateTask,
+    this.onChanged,
   });
 
   /// Creates a Todo task (title, date, notes) shown in the Agenda; the shell
@@ -40,6 +42,7 @@ class AgendaEventFlows {
   final Future<void> Function(String title, CivilDate date, String notes)?
   onCreateTask;
 
+  final VoidCallback? onChanged;
   final AgendaService service;
   final List<AgendaCalendar> calendars;
   final Set<String> hidden;
@@ -293,6 +296,21 @@ class AgendaEventFlows {
         fullscreenDialog: true,
         builder: (_) => AgendaEventEditor(
           calendars: writable,
+          drafts: EditorDrafts(service.database),
+          draftId: 'agenda:new',
+          writesViaPhone: service.writesViaPhone,
+          loadTimeZones: service.canOpenInSystem ? service.timeZones : null,
+          resolveTimeZone: service.canOpenInSystem
+              ? service.resolveTimeZone
+              : null,
+          onSave: (draft) async {
+            final target = draft.calendarId == _pendingLocalCalendar.id
+                ? await service.localCalendar()
+                : null;
+            await service.createEvent(
+              target == null ? draft : draft.inCalendar(target.id),
+            );
+          },
           initialStart:
               start ?? DateTime(now.year, now.month, now.day, now.hour + 1),
           initialEnd: end,
@@ -302,14 +320,8 @@ class AgendaEventFlows {
       ),
     );
     if (draft == null || !context.mounted) return;
-    var target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
+    final target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
     try {
-      if (draft.calendarId == _pendingLocalCalendar.id) {
-        target = await service.localCalendar();
-        await service.createEvent(draft.inCalendar(target!.id));
-      } else {
-        await service.createEvent(draft);
-      }
       if (!context.mounted) return;
       _say(
         context,
@@ -349,6 +361,15 @@ class AgendaEventFlows {
         fullscreenDialog: true,
         builder: (_) => AgendaEventEditor(
           calendars: [?calendarOf(entry)],
+          drafts: EditorDrafts(service.database),
+          draftId: 'agenda:edit:${entry.instanceId}:$series',
+          writesViaPhone: service.writesViaPhone,
+          loadTimeZones: service.canOpenInSystem ? service.timeZones : null,
+          resolveTimeZone: service.canOpenInSystem
+              ? service.resolveTimeZone
+              : null,
+          onSave: (draft) =>
+              service.updateEvent(entry.instanceId, draft, series: series),
           initialStart: existing!.start,
           existing: existing,
           zoneLabel: zone,
@@ -359,7 +380,6 @@ class AgendaEventFlows {
     );
     if (draft == null || !context.mounted) return;
     try {
-      await service.updateEvent(entry.instanceId, draft, series: series);
       if (context.mounted) {
         _say(
           context,
@@ -416,10 +436,28 @@ class AgendaEventFlows {
     try {
       await service.hideEvent(entry, series: series);
       if (context.mounted) {
-        _say(
-          context,
-          '${series ? 'Serie nascosta' : 'Nascosto'} in Todo; il calendario '
-          'non cambia. Si ripristina da Calendari › Nascosti in Todo.',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${series ? 'Serie nascosta' : 'Nascosto'} in Todo.'),
+            action: SnackBarAction(
+              label: 'Annulla',
+              onPressed: () async {
+                try {
+                  await service.showHiddenEvent(
+                    series ? agendaTitleKey(entry.title) : entry.key,
+                  );
+                  onChanged?.call();
+                } catch (_) {
+                  if (context.mounted) {
+                    _say(
+                      context,
+                      'Impossibile ripristinare: riprova da Calendari.',
+                    );
+                  }
+                }
+              },
+            ),
+          ),
         );
       }
     } catch (_) {
@@ -454,6 +492,14 @@ class AgendaEventFlows {
         fullscreenDialog: true,
         builder: (_) => AgendaEventEditor(
           heading: 'Modifica solo in Todo',
+          drafts: EditorDrafts(service.database),
+          draftId: 'agenda:copy:${entry.instanceId}',
+          writesViaPhone: service.writesViaPhone,
+          loadTimeZones: service.canOpenInSystem ? service.timeZones : null,
+          resolveTimeZone: service.canOpenInSystem
+              ? service.resolveTimeZone
+              : null,
+          onSave: (draft) => service.copyInTodo(entry, draft),
           calendars: [target!],
           initialStart: original!.start,
           initialCalendarId: target.id,
@@ -474,8 +520,6 @@ class AgendaEventFlows {
     );
     if (draft == null || !context.mounted) return;
     try {
-      await service.createEvent(draft);
-      await service.hideEvent(entry);
       if (context.mounted) {
         _say(
           context,

@@ -99,19 +99,22 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 
 ## Agenda (Android)
 
-La sezione **Agenda** riunisce, in una vista a 2 settimane (predefinita),
-mensile come Google Calendar o in un elenco per giorni, tutti i calendari che il
-telefono già sincronizza: Google e gli account Microsoft 365 aggiunti all'app
-Outlook con **Sincronizza calendari** attivo. Todo non si collega agli account
-e non serve alcuna approvazione IT. Si possono creare eventi e modificare o
-eliminare quelli che organizzi tu, sempre con un'azione esplicita. Toccando un
-evento si apre un dettaglio, e Teams, Zoom e Meet hanno un pulsante per
-partecipare. Il fuso orario riconosciuto (IANA, con lo scarto da UTC) è sempre
-visibile. Le riunioni duplicate su più account appaiono una volta, ogni
-calendario si può nascondere e gli inviti senza risposta o con certe parole si
-possono filtrare. Gli eventi passano solo dal calendario del telefono al suo
-account, mai da Todo o Supabase. Dettagli:
-[agenda unificata](docs/architecture/AGENDA.md).
+La sezione **Agenda** riunisce i calendari già sincronizzati dal telefono:
+Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
+mese (predefinito), 2 settimane, settimana, 3 giorni ed elenco. Il cambio
+vista conserva la data selezionata; i filtri attivi sono espliciti e azzerabili.
+
+L'editor conserva una bozza locale recuperabile e rimane aperto se il
+salvataggio fallisce. Mostra calendario di destinazione, data finale e durata;
+Android permette di scegliere un fuso IANA per nuovi eventi. Una copia «solo
+in Todo» è indipendente dall'originale, che viene nascosto soltanto in Todo;
+un tentativo ripetuto aggiorna la stessa copia. «Nascondi» offre «Annulla».
+
+Con sincronizzazione attiva, il telefono invia a Supabase una copia per il
+Web; le scritture Web vengono applicate dal telefono. Il backup Agenda
+comprende gli eventi del calendario locale e le scelte, mentre le bozze
+restano sul dispositivo. I calendari esterni continuano a usare la propria
+sincronizzazione. Dettagli e limiti: [agenda unificata](docs/architecture/AGENDA.md).
 
 ## Passi (Android)
 

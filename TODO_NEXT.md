@@ -1,5 +1,12 @@
 # TODO e handover
 
+## P1 — Agenda affidabilità e UX, build 229
+
+- [x] Editor, bozze, errori, destinazioni, navigazione, filtri, date finali e copie recuperabili implementati.
+- [x] Verifiche automatiche, provider sintetico e installazione Galaxy; esiti e limiti in STATUS.
+- [ ] Riscontro sul Galaxy e ripristino di serie reali su telefono vuoto.
+
+
 ## P1 — Revisione interfaccia (5 ottobre 2026, screenshot Galaxy 2217)
 
 Tutti gli 8 punti approvati dall'utente e implementati nella 2.57.0+219.

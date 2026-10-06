@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.64.0 (build 229) — Todo Test
+
+- Agenda: editor con bozza locale recuperabile, protezione all'uscita,
+  attesa del salvataggio e campi conservati dopo un errore.
+- Destinazione del salvataggio esplicita; «Nascondi» annullabile e copie
+  «solo in Todo» recuperabili senza duplicati dopo un fallimento intermedio.
+- Refresh falliti senza svuotare la vista; filtri visibili e azzerabili;
+  data conservata nel cambio vista.
+- Ripristino di serie con occorrenze modificate: corretti i campi rifiutati
+  dal provider Android, con regressione su emulatore.
+- Data finale e durata esplicite; nuovi eventi Android con scelta del fuso
+  IANA e rifiuto degli orari ambigui/inesistenti al cambio d'ora.
+
 ## 2.63.1 (build 228) — Todo Test
 
 - **Ripristino in qualsiasi ordine.** Se su un telefono nuovo premi

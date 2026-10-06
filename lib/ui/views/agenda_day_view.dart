@@ -30,6 +30,7 @@ class AgendaDayPage extends StatefulWidget {
     this.onCreate,
     this.zoneLabel,
     this.now,
+    this.onDayChanged,
     super.key,
   });
 
@@ -43,6 +44,7 @@ class AgendaDayPage extends StatefulWidget {
   /// (the web mirror).
   final AgendaCreateAt? onCreate;
 
+  final ValueChanged<CivilDate>? onDayChanged;
   final CivilDate initialDay;
   final CivilDate today;
   final AgendaDaysLoader loadDays;
@@ -148,7 +150,10 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
       ),
       body: PageView.builder(
         controller: pages,
-        onPageChanged: (index) => setState(() => shown = _dayAt(index)),
+        onPageChanged: (index) {
+          setState(() => shown = _dayAt(index));
+          widget.onDayChanged?.call(shown);
+        },
         itemBuilder: (context, index) => AgendaDayTimeline(
           key: ValueKey('agenda-timeline-${_dayAt(index)}-$_refresh'),
           day: _dayAt(index),

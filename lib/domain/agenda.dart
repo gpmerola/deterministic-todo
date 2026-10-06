@@ -86,6 +86,8 @@ final class AgendaEventDraft {
     this.notes,
     this.repeat = AgendaRepeat.none,
     this.repeatUntil,
+    this.timeZone,
+    this.repeatUntilInstant,
   });
 
   AgendaEventDraft inCalendar(String id) => AgendaEventDraft(
@@ -98,9 +100,13 @@ final class AgendaEventDraft {
     notes: notes,
     repeat: repeat,
     repeatUntil: repeatUntil,
+    timeZone: timeZone,
+    repeatUntilInstant: repeatUntilInstant,
   );
 
   /// Only for new events; editing keeps the series rule.
+  final String? timeZone;
+  final DateTime? repeatUntilInstant;
   final AgendaRepeat repeat;
 
   /// Last civil day of the series (inclusive), or forever when null.

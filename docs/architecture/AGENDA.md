@@ -6,6 +6,58 @@ disattivati, abbonamenti incompleti). Un collegamento diretto a Microsoft Graph
 richiederebbe il consenso dell'amministratore di ogni tenant, di solito negato
 dall'NHS e dalle università.
 
+## Affidabilità e uso quotidiano — build 229
+
+- L'editor attende la conferma della scrittura prima di chiudersi, blocca i
+  doppi tap e conserva i campi in caso di errore. Le bozze `editor_draft:agenda:*`
+  usano SQLite locale, debounce di 300 ms e flush alla pausa/uscita; nessun
+  invio cloud o inclusione nel backup Agenda. Alla riapertura si sceglie
+  «Riprendi» o «Scarta bozza». Il calendario mancante richiede una nuova
+  selezione; le bozze di modifica sono separate per evento e ambito della serie.
+- Il salvataggio esplicita calendario, copia personale o coda verso il
+  telefono. Le proposte AI restano proposte fino alla loro conferma dedicata.
+- Un refresh generale fallito mantiene l'ultima vista disponibile in memoria,
+  con avviso e «Riprova». Una revoca dei permessi impedisce invece la lettura
+  e nasconde gli eventi. Questa cache non garantisce riapertura Web offline
+  dopo la terminazione del processo/browser.
+- Un cambio vista mantiene la data selezionata; lo scorrimento cambia il
+  periodo di riferimento. «Oggi» riporta al giorno corrente anche nell'elenco.
+  Il riepilogo filtri comprende calendari, festività, inviti, parole e nascosti;
+  «Azzera filtri» mostra esplicitamente tutto, inclusi gli originali nascosti.
+- La data finale è modificabile anche per eventi con orario: una fine
+  precedente all'inizio è un errore, non uno spostamento implicito a domani.
+  I nuovi eventi Android possono scegliere un fuso IANA da quelli di sistema.
+  Le ore civili sono convertite nativamente; gap e ambiguità del cambio d'ora
+  richiedono un altro orario. La durata nel fuso scelto è etichettata nominale;
+  l'intervallo effettivo segue gli offset delle due date. Il termine delle
+  ricorrenze include l'intera data finale nel fuso scelto. Eventi esistenti e
+  Web usano gli orari del dispositivo/browser; il selettore è per le nuove
+  creazioni Android. Nessuna nuova dipendenza.
+- «Modifica solo in Todo» salva un'identità opaca `todo-copy:*` insieme alla
+  copia nel provider Android (`CUSTOM_APP_URI`). Un retry aggiorna la stessa
+  copia anche se il processo termina prima che SQLite nasconda l'originale.
+  Il provider accetta questo percorso solo nel calendario locale Todo. Il
+  marker sopravvive al backup/ripristino. Il ripristino delle eccezioni usa
+  DURATION e lascia al provider ORIGINAL_ALL_DAY, entrambi vincoli verificati
+  con una serie sintetica sul provider reale. La copia è indipendente dalle future
+  modifiche dell'originale; nascondere/ripristinare è una scelta locale.
+- «Nascondi» offre un annullamento che rimuove soltanto la relativa regola,
+  senza riscrivere gli altri filtri.
+
+Verifica: `make check`, `:app:testDevDebugUnitTest`, build release Android/Web.
+Regressioni in `test/agenda_hardening_test.dart`, `AgendaTimeZonesTest.java` e
+`AgendaCopyOperationTest.java`. Il collaudo riproducibile
+`python3 tools/agenda_provider_smoke.py --serial emulator-5554` rifiuta i
+telefoni reali: installa un entrypoint sintetico sul solo emulatore, verifica
+copia/retry, ripristino ripetuto, relazione serie/occorrenza modificata, note e
+fusi, poi rimuove i propri eventi. Usa un database Todo in memoria e conserva
+gli APK di distribuzione preesistenti. Richiede emulatore arm64 acceso, SDK,
+JDK 17 e firma Todo Test locale. Esito atteso: `Agenda native provider smoke:
+PASS`; un fallimento non autorizza cancellazioni dei calendari. Per ripristinare
+l'app ordinaria sull'emulatore usare `make todo-test` con il suo seriale.
+Restano distinti il test sintetico e il ripristino di serie reali su un telefono
+vuoto, che richiede un collaudo dedicato senza alterare i calendari personali.
+
 ## Fonte dei dati
 
 L'agenda legge il **calendario di sistema Android** (`CalendarContract`). Il

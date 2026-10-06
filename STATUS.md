@@ -1,6 +1,32 @@
 # Stato corrente
 
-Aggiornato il 5 ottobre 2026.
+Aggiornato il 6 ottobre 2026.
+
+## Build 229 — Agenda: protezione delle modifiche e navigazione
+
+Todo Test 2.64.0-dev / versionCode 2229 installata con `make todo-test` sul
+Galaxy S21 il 6 ottobre: versione e processo verificati, dati conservati.
+
+Verifiche locali:
+- `make check`: analisi pulita, 386 test Flutter, controlli Python, SQL e link.
+- `:app:testDevDebugUnitTest`: superato; nuove regressioni su DST (gap,
+  ambiguità, durata e fine ricorrenza) e retry dopo insert con risposta persa.
+- Provider Android reale su emulatore, con sole fixture sintetiche: copia e
+  retry sullo stesso ID, due restore senza duplicati, serie con occorrenza
+  spostata e note, conversione Europe/Rome: PASS. Pulizia delle fixture riuscita.
+  Il test ha riprodotto e corretto due rifiuti del provider nel ripristino delle
+  eccezioni: usare DURATION e lasciare derivare ORIGINAL_ALL_DAY dalla serie.
+- Build release Android arm64 e Web riuscite. Editor renderizzato con
+  font reali alle dimensioni logiche S21, senza overflow.
+- Chrome locale su origine isolata: sentinella SQLite ancora presente dopo
+  refresh e chiusura/riapertura della scheda. Il controllo HTTPS locale resta bloccato dal certificato non
+  attendibile; non è stato aggirato. La prova riuscita è su loopback HTTP,
+  non sul sito pubblico.
+
+Limiti: prova d'uso completa dei sei flussi sul Galaxy e ripristino di serie
+reali su telefono vuoto ancora da completare. Web/stabile non pubblicati:
+richiedono `PUBBLICA`. Contratto e comando del collaudo sintetico in
+[Agenda](docs/architecture/AGENDA.md).
 
 ## Build 225 — Web pubblicata
 

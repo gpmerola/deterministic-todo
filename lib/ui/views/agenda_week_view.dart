@@ -30,6 +30,7 @@ class AgendaWeekView extends StatefulWidget {
     this.onLongPress,
     this.onCreate,
     this.controller,
+    this.onPeriodChanged,
     this.now,
     super.key,
   });
@@ -50,10 +51,11 @@ class AgendaWeekView extends StatefulWidget {
   /// Null where events are read-only (the web mirror).
   final AgendaCreateAt? onCreate;
   final PageController? controller;
+  final ValueChanged<CivilDate>? onPeriodChanged;
   final DateTime Function()? now;
 
-  static const weeksBack = 52;
-  static const weeksAhead = 156;
+  static const weeksBack = 130;
+  static const weeksAhead = 400;
   static const hourHeight = 48.0;
 
   @override
@@ -124,6 +126,7 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
 
   @override
   Widget build(BuildContext context) => PageView.builder(
+    onPageChanged: (index) => widget.onPeriodChanged?.call(_mondayOf(index)),
     key: const PageStorageKey('agenda-week'),
     controller: widget.controller ?? _ownController,
     itemCount: AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
