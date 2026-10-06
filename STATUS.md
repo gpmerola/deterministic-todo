@@ -2,6 +2,22 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 232 — Creazione nella barra superiore
+
+«+» spostato accanto a «Oggi»: rimosso il pulsante flottante che copriva gli
+ultimi giorni. Permessi e salvataggio invariati. Nessun raggruppamento delle
+visite implementato: resta una proposta da definire con l'utente.
+
+`make check` superato: analisi pulita, 388 test Flutter. Il test di creazione
+verifica ora anche l'allineamento con «Oggi» e l'assenza del pulsante flottante.
+Rendering sintetico 360×800 con font reali e azioni normali della shell
+(assistente, calendari, menu) ispezionato: nessun overflow, ultima riga libera.
+Todo Test 2.65.1-dev / versionCode 2232 installata e avviata in-place sul
+Galaxy con `make todo-test`; versione/processo verificati e dati conservati.
+Il controllo visivo è sintetico, non uno screenshot del telefono. Web/stabile
+pubblicati restano alla 229.
+Build Web release 232 riuscita; collaudo browser HTTPS della 232 non eseguito.
+
 ## Build 231 — Quattro settimane correnti
 
 Vista predefinita: quattro settimane dal lunedì corrente, 28 giorni anche

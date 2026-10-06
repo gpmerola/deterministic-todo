@@ -592,6 +592,9 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       filtered: hasFilters,
       onMode: (next) => unawaited(_setMode(next)),
       onToday: _scrollToToday,
+      onCreate: widget.service.canWrite
+          ? () => unawaited(_createEvent())
+          : null,
       today: widget.today,
       zone: mode == AgendaViewMode.list ? zoneText : null,
       onChoose: _chooseCalendars,
@@ -747,60 +750,44 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
               ),
             ],
           );
-    return Stack(
+    return Column(
       children: [
-        Column(
-          children: [
-            header,
-            if (failed)
-              MaterialBanner(
-                content: const Text(
-                  'Aggiornamento non riuscito. Mostro gli ultimi dati disponibili.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: loading ? null : _load,
-                    child: const Text('Riprova'),
-                  ),
-                ],
-              ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: SizedBox(
-                      key: _listViewport,
-                      child: RefreshIndicator(onRefresh: _load, child: body),
-                    ),
-                  ),
-                  // Grids have a period title on the left of their first
-                  // row; the zone sits on its right, where there is room
-                  // (in the header it was cut to "Londo…", build 217).
-                  if (mode != AgendaViewMode.list)
-                    Positioned(
-                      top: 1,
-                      right: 12,
-                      child: IgnorePointer(
-                        child: _ZoneLabel(text: zoneText, loading: loading),
-                      ),
-                    ),
-                ],
-              ),
+        header,
+        if (failed)
+          MaterialBanner(
+            content: const Text(
+              'Aggiornamento non riuscito. Mostro gli ultimi dati disponibili.',
             ),
-          ],
-        ),
-        if (widget.service.canWrite)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton.small(
-              key: const ValueKey('agenda-new-event'),
-              heroTag: 'agenda-new-event',
-              tooltip: 'Nuovo evento',
-              onPressed: () => unawaited(_createEvent()),
-              child: const Icon(Icons.add),
-            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : _load,
+                child: const Text('Riprova'),
+              ),
+            ],
           ),
+        Expanded(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: SizedBox(
+                  key: _listViewport,
+                  child: RefreshIndicator(onRefresh: _load, child: body),
+                ),
+              ),
+              // Grids have a period title on the left of their first
+              // row; the zone sits on its right, where there is room
+              // (in the header it was cut to "Londo…", build 217).
+              if (mode != AgendaViewMode.list)
+                Positioned(
+                  top: 1,
+                  right: 12,
+                  child: IgnorePointer(
+                    child: _ZoneLabel(text: zoneText, loading: loading),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -824,6 +811,7 @@ class _AgendaHeader extends StatelessWidget {
     this.onSearch,
     this.onSettings,
     this.onCapture,
+    this.onCreate,
     this.failures = 0,
     this.onFailures,
     this.onBackup,
@@ -840,6 +828,7 @@ class _AgendaHeader extends StatelessWidget {
   final int failures;
   final VoidCallback? onFailures;
   final VoidCallback? onCapture;
+  final VoidCallback? onCreate;
   final String? zone;
   final int visible;
   final int total;
@@ -918,6 +907,14 @@ class _AgendaHeader extends StatelessWidget {
               tooltip: 'Oggi',
               onPressed: onToday,
               icon: AgendaTodayIcon(day: today.day),
+            ),
+          if (onCreate != null)
+            IconButton(
+              key: const ValueKey('agenda-new-event'),
+              tooltip: 'Nuovo evento',
+              visualDensity: VisualDensity.compact,
+              onPressed: onCreate,
+              icon: Icon(Icons.add, color: theme.colorScheme.primary),
             ),
           // The list has no period title: the zone stays here. Grids show
           // it beside their title (see AgendaView).

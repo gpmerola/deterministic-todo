@@ -16,6 +16,10 @@ settimane, senza query a mesi interi né nuove dipendenze. La preferenza v3
 migra una volta il vecchio «Mese» a «4 settimane» e conserva le altre viste;
 una successiva scelta esplicita di «Mese» resta memorizzata.
 
+Dalla build 232 il «+» per creare un evento è nella barra superiore, accanto
+a «Oggi», con gli stessi permessi e flusso di salvataggio. Il pulsante flottante
+sulla griglia è rimosso; nessun raggruppamento automatico delle visite.
+
 - L'editor attende la conferma della scrittura prima di chiudersi, blocca i
   doppi tap e conserva i campi in caso di errore. Le bozze `editor_draft:agenda:*`
   usano SQLite locale, debounce di 300 ms e flush alla pausa/uscita; nessun

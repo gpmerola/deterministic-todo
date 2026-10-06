@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.65.1 (build 232) — Todo Test
+
+- Agenda: pulsante «+» nella barra superiore, accanto a «Oggi»; nessun
+  pulsante flottante sopra gli ultimi giorni del calendario.
+
 ## 2.65.0 (build 231) — Todo Test
 
 - Vista Agenda predefinita di quattro settimane: corrente e tre successive,

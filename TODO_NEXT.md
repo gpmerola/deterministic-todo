@@ -1,5 +1,10 @@
 # TODO e handover
 
+## P1 — Creazione in alto, build 232
+
+- [x] «+» nella barra superiore; ultime celle libere. Test e rendering verificati (STATUS).
+- [ ] Proposta da concordare: raggruppamento solo visivo delle visite consecutive, espandibile e senza nascondere pause/sovrapposizioni.
+
 ## P1 — Quattro settimane correnti, build 231
 
 - [x] Predefinito: settimana corrente più tre; mese ancora selezionabile.

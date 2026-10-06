@@ -688,6 +688,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(
+      tester.getCenter(find.byKey(const ValueKey('agenda-new-event'))).dy,
+      tester.getCenter(find.byKey(const ValueKey('agenda-today'))).dy,
+    );
     await tester.tap(find.byKey(const ValueKey('agenda-new-event')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-event-save')));
