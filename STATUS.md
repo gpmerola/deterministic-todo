@@ -19,14 +19,40 @@ Verifiche locali:
 - Build release Android arm64 e Web riuscite. Editor renderizzato con
   font reali alle dimensioni logiche S21, senza overflow.
 - Chrome locale su origine isolata: sentinella SQLite ancora presente dopo
-  refresh e chiusura/riapertura della scheda. Il controllo HTTPS locale resta bloccato dal certificato non
-  attendibile; non è stato aggirato. La prova riuscita è su loopback HTTP,
-  non sul sito pubblico.
+  refresh e chiusura/riapertura della scheda. Il certificato HTTPS locale non
+  attendibile non è stato aggirato; collaudo HTTPS pubblico dopo il rilascio sotto.
 
 Limiti: prova d'uso completa dei sei flussi sul Galaxy e ripristino di serie
-reali su telefono vuoto ancora da completare. Web/stabile non pubblicati:
-richiedono `PUBBLICA`. Contratto e comando del collaudo sintetico in
+reali su telefono vuoto ancora da completare. Contratto e comando del collaudo sintetico in
 [Agenda](docs/architecture/AGENDA.md).
+
+### Pubblicazione coordinata 229
+
+Dopo `PUBBLICA`, Web, APK diretti stabili e track interno Google Play pubblicati
+dal commit `05fdf3a45803a03fc3d3ae680d2b13442c0c56eb`:
+[run 37469093626](https://github.com/gpmerola/deterministic-todo/actions/runs/37469093626)
+interamente verde, inclusa parità degli endpoint pubblici 2.64.0+229.
+Il primo run `37467757345` è stato annullato prima della pubblicazione: il
+bundle Play compilava, ma il task `testPlayReleaseUnitTest` non esiste nella
+configurazione Android corrente. Corretto in `testPlayDebugUnitTest`; verifica
+locale con 19 test app e 8 runtracker, tutti superati. Nessun numero Play è
+stato consumato dal tentativo interrotto.
+
+Scaricati e verificati tutti i quattro APK pubblici: SHA-256 corrispondenti al
+manifest, package stabile, versione 2.64.0 e firma identica all'APK arm64 della
+2.40.1 precedente. VersionCode: universale 229, ARM32 1229, ARM64 2229, x86_64
+4229; ARM64 precedente 2179, quindi aggiornamento compatibile per versione e
+firma. Questo controllo non sostituisce un'installazione reale del canale direct.
+Play ha accettato il bundle nel track interno; propagazione al tester e
+installazione non sono state verificate. Sul Galaxy resta Todo Test 2229 e il
+fallback Play resta disabilitato.
+
+Chrome sul sito HTTPS pubblico: Impostazioni mostra 2.64.0 (229). Una task
+sintetica creata e modificata sulla 225 è rimasta visibile, inclusa la modifica,
+dopo il deploy, refresh e chiusura/riapertura della scheda. Sentinella poi
+spostata nel cestino. Il test è stato svolto online, senza isolare il recupero
+dalla sincronizzazione; la persistenza locale isolata è coperta dalla prova
+loopback sopra. Nessun contenuto personale esportato nel repository.
 
 ## Build 225 — Web pubblicata
 

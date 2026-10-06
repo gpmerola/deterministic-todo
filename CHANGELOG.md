@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.64.0 (build 229) — Todo Test
+## 2.64.0 (build 229) — Web, APK stabili, Play interno e Todo Test
 
 - Agenda: editor con bozza locale recuperabile, protezione all'uscita,
   attesa del salvataggio e campi conservati dopo un errore.

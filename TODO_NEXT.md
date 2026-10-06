@@ -4,6 +4,7 @@
 
 - [x] Editor, bozze, errori, destinazioni, navigazione, filtri, date finali e copie recuperabili implementati.
 - [x] Verifiche automatiche, provider sintetico e installazione Galaxy; esiti e limiti in STATUS.
+- [x] Dopo `PUBBLICA`: Web, APK stabili e track interno Play 229 pubblicati; identità, hash e firme verificati (STATUS).
 - [ ] Riscontro sul Galaxy e ripristino di serie reali su telefono vuoto.
 
 
