@@ -2,6 +2,21 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 234 — Pause fino a 15 minuti tra visite
+
+Corretta la soglia troppo restrittiva della 233: nella vista quattro settimane
+le visite possono avere una pausa da zero a 15 minuti inclusi tra fine e inizio
+successivo. Restano il minimo di tre visite, il riconoscimento dei titoli e lo
+stesso calendario; sovrapposizioni e pause maggiori interrompono il gruppo.
+Gli orari degli eventi originali restano visibili nell’elenco espanso.
+
+`make check` superato: analisi pulita e 398 test Flutter, inclusa regressione
+con pause di 0, 5, 14, 15 minuti e separazione a 16 minuti.
+Todo Test 2.66.1-dev / versionCode 2234 installata e avviata in-place sul
+Galaxy con `make todo-test`; versione e processo verificati, dati conservati.
+Build Web release riuscita. Nessun nuovo collaudo visivo sul telefono o HTTPS;
+Web/stabile pubblicati restano alla 229.
+
 ## Build 233 — Calendario, visite compatte e icona Home
 
 «Agenda» diventa «Calendario» nell’interfaccia; nessuna migrazione dei dati.

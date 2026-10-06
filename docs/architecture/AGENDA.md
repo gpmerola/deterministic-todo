@@ -6,13 +6,15 @@ legata alla rinomina.
 
 ## Visite compatte e collegamento Home — build 233
 
-Solo la vista a quattro settimane raggruppa tre o più visite contigue (fine
-uguale all'inizio successivo) dello stesso insieme ordinato di calendari.
+Solo la vista a quattro settimane raggruppa tre o più visite dello stesso
+insieme ordinato di calendari. Dalla build 234 la pausa tra fine e inizio
+successivo può essere compresa tra zero e 15 minuti inclusi (nella 233
+era richiesta la contiguità esatta).
 Riconoscimento prudente tramite etichette visita/visite, consulto/consultazione,
 consultation, appointment, assessment e follow-up. Titoli non riconosciuti,
 eventi di giornata intera, task, inviti senza risposta, modifiche Web in attesa,
 eventi a cavallo di giorni e sovrapposizioni visibili restano singoli. Una pausa
-interrompe il gruppo. La trasformazione è pura, senza persistenza: conserva
+superiore a 15 minuti interrompe il gruppo. La trasformazione è pura, senza persistenza: conserva
 gli oggetti originali e non modifica provider, mirror, backup o sincronizzazione.
 Il blocco mostra entrambi gli orari completi e il numero di visite; un tap
 apre una lista degli originali, selezionabili per il dettaglio normale.

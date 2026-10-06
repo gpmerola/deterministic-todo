@@ -72,7 +72,9 @@ List<CalendarVisitItem> calendarVisitItems(
       continue;
     }
     if (run.isNotEmpty &&
-        (!run.last.end.isAtSameMomentAs(entry.start) ||
+        (entry.start.isBefore(run.last.end) ||
+            entry.start.difference(run.last.end) >
+                const Duration(minutes: 15) ||
             !sameCalendars(run.last, entry))) {
       flush();
     }

@@ -106,8 +106,9 @@ settimana, 3 giorni ed elenco. Il cambio
 vista conserva la data selezionata; i filtri attivi sono espliciti e azzerabili.
 
 Nella vista a quattro settimane, almeno tre visite consecutive dello stesso
-calendario diventano un blocco con intervallo e numero di visite. Toccandolo
-si vedono tutti gli orari e si apre il singolo evento. Pause, sovrapposizioni
+calendario, con pause fino a 15 minuti tra la fine di una visita e l’inizio
+della successiva, diventano un blocco con intervallo e numero di visite. Toccandolo
+si vedono tutti gli orari e si apre il singolo evento. Pause oltre 15 minuti, sovrapposizioni
 e altri tipi di appuntamento restano separati; nessun evento viene modificato.
 Su Android, **Calendario → ⋮ → Aggiungi alla schermata Home** propone un'icona
 che apre direttamente questa sezione, previa conferma del launcher.

@@ -38,16 +38,29 @@ void main() {
     expect(identical(result.single.entries[1], entries[1]), true);
     expect(result.single.end, DateTime(2026, 10, 6, 9, 45));
   });
-  test('gaps, different calendars and unrelated titles separate groups', () {
-    for (final entries in [
-      [visit(0), visit(15), visit(45)],
-      [visit(0), visit(15), visit(30, calendar: 'other')],
-      [visit(0), visit(15, title: 'Riunione team'), visit(30)],
-      [visit(0), visit(15)],
-    ]) {
-      expect(calendarVisitItems(entries, day).every((i) => !i.grouped), true);
+  test('gaps up to 15 minutes group and preserve original times', () {
+    for (final gap in [0, 5, 14, 15]) {
+      final entries = [visit(0), visit(15 + gap), visit(30 + gap * 2)];
+      final result = calendarVisitItems(entries, day);
+      expect(result, hasLength(1));
+      expect(result.single.grouped, true);
+      expect(result.single.entries, orderedEquals(entries));
+      expect(result.single.end, entries.last.end);
     }
   });
+  test(
+    'gaps over 15 minutes, calendars and unrelated titles separate groups',
+    () {
+      for (final entries in [
+        [visit(0), visit(15), visit(46)],
+        [visit(0), visit(15), visit(30, calendar: 'other')],
+        [visit(0), visit(15, title: 'Riunione team'), visit(30)],
+        [visit(0), visit(15)],
+      ]) {
+        expect(calendarVisitItems(entries, day).every((i) => !i.grouped), true);
+      }
+    },
+  );
   test('overlaps with other calendars are never hidden by a group', () {
     final entries = [
       visit(0),

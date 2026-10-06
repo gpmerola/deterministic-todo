@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.66.1 (build 234) — Todo Test
+
+- Corretto il raggruppamento: sono ammesse pause fino a 15 minuti inclusi
+  tra la fine di una visita e l’inizio della successiva. Orari originali
+  conservati; sovrapposizioni e pause maggiori separano i gruppi.
+
 ## 2.66.0 (build 233) — Todo Test
 
 - «Agenda» si chiama ora «Calendario» in navigazione, filtri e messaggi.

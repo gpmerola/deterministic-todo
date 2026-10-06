@@ -1,5 +1,9 @@
 # TODO e handover
 
+## P1 — Intervallo visite, build 234
+
+- [x] Raggruppamento esteso alle pause da zero a 15 minuti inclusi tra fine e inizio; orari originali conservati.
+
 ## P1 — Calendario e collegamento Home, build 233
 
 - [x] «Agenda» rinominata «Calendario» nell’interfaccia, identificatori persistenti invariati.
