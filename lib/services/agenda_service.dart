@@ -19,9 +19,9 @@ enum AgendaAccess {
   noMirror,
 }
 
-/// A whole month per screen is the default (build 205); the choice is kept.
+/// Four Monday-first weeks are the default (build 231); the choice is kept.
 /// [threeDays] (build 220): today and the next two days, to scale.
-enum AgendaViewMode { threeDays, week, twoWeeks, month, list }
+enum AgendaViewMode { threeDays, week, twoWeeks, fourWeeks, month, list }
 
 /// Access to every calendar the Android system provider holds, including
 /// Outlook/Exchange accounts synced by their own apps. Events are read on
@@ -34,9 +34,8 @@ class AgendaService {
   /// `{calendarId: shown}` chosen in Agenda; device-local, never synced.
   static const calendarChoicesKey = 'agenda_calendar_choices';
 
-  /// Renamed in build 205 when Month became the default again, so a stored
-  /// two-week choice from earlier builds does not override it once.
-  static const viewModeKey = 'agenda_view_mode_v2';
+  /// Version 3 migrates the former month default to four weeks once.
+  static const viewModeKey = 'agenda_view_mode_v3';
 
   /// The user's main calendar ("Nuovi eventi in"), used by + and by task
   /// exports; set only explicitly.
@@ -289,17 +288,34 @@ class AgendaService {
         ),
       );
 
-  /// Month grid unless the list was chosen explicitly.
+  /// Four current/future weeks; preserve other explicitly selected views.
   Future<AgendaViewMode> viewMode() async => lastMode = await _readMode();
 
   Future<AgendaViewMode> _readMode() async {
     final row = await (_database.select(
       _database.appSettings,
     )..where((setting) => setting.key.equals(viewModeKey))).getSingleOrNull();
-    return AgendaViewMode.values.firstWhere(
-      (mode) => mode.name == row?.value,
-      orElse: () => AgendaViewMode.month,
+    if (row != null) {
+      return AgendaViewMode.values.firstWhere(
+        (mode) => mode.name == row.value,
+        orElse: () => AgendaViewMode.fourWeeks,
+      );
+    }
+    // One-time move from the old month default. Other saved views survive;
+    // choosing Month again writes v3 and remains an explicit preference.
+    final legacy =
+        await (_database.select(_database.appSettings)
+              ..where((setting) => setting.key.equals('agenda_view_mode_v2')))
+            .getSingleOrNull();
+    final previous = AgendaViewMode.values.firstWhere(
+      (mode) => mode.name == legacy?.value,
+      orElse: () => AgendaViewMode.fourWeeks,
     );
+    final mode = previous == AgendaViewMode.month
+        ? AgendaViewMode.fourWeeks
+        : previous;
+    await _saveMode(mode);
+    return mode;
   }
 
   Future<void> saveViewMode(AgendaViewMode mode) {

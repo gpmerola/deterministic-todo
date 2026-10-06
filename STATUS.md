@@ -2,6 +2,26 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 231 — Quattro settimane correnti
+
+Vista predefinita: quattro settimane dal lunedì corrente, 28 giorni anche
+a cavallo di mesi e anni; «Oggi» ripristina questo intervallo. Scorrimento a
+pagine di 28 giorni. La griglia delle due settimane è parametrizzata e riusata;
+«Mese» rimane disponibile. Preferenza `agenda_view_mode_v3`: migrazione una
+tantum del vecchio mese a quattro settimane, altre scelte conservate; una
+nuova selezione esplicita del mese resta memorizzata.
+
+`make check` superato, analisi pulita e 388 test Flutter: coperti numero e
+confini delle celle, paginazione, Oggi, cambio d'anno e migrazione preferenze.
+Rendering sintetico 360×800 con font reali ispezionato: quattro righe,
+intestazione compatta senza sovrapposizione al fuso. Nessun altro intervento
+di riduzione delle barre o dei caratteri.
+Todo Test 2.65.0-dev / versionCode 2231 installata e avviata in-place sul
+Galaxy con `make todo-test`; dati conservati, versione e processo verificati.
+L'ispezione visiva resta quella sintetica, non uno screenshot del telefono.
+Web/stabile pubblicati restano alla 229.
+Build Web release 231 riuscita; collaudo browser HTTPS della 231 non eseguito.
+
 ## Build 230 — Agenda più compatta
 
 Riepilogo dei calendari nascosti e «Azzera filtri» spostati nel pannello

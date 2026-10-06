@@ -304,6 +304,56 @@ void main() {
     expect(find.text('Apri impostazioni'), findsOneWidget);
   });
 
+  test(
+    'old month migrates once; explicit month and other views survive',
+    () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      await db
+          .into(db.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(
+              key: 'agenda_view_mode_v2',
+              value: 'month',
+            ),
+          );
+      final service = _Service(db);
+      expect(await service.viewMode(), AgendaViewMode.fourWeeks);
+      await service.saveViewMode(AgendaViewMode.month);
+      expect(await _Service(db).viewMode(), AgendaViewMode.month);
+      await (db.delete(
+        db.appSettings,
+      )..where((s) => s.key.equals(AgendaService.viewModeKey))).go();
+      await db
+          .into(db.appSettings)
+          .insertOnConflictUpdate(
+            AppSettingsCompanion.insert(
+              key: 'agenda_view_mode_v2',
+              value: 'list',
+            ),
+          );
+      expect(await _Service(db).viewMode(), AgendaViewMode.list);
+    },
+  );
+
+  testWidgets('four weeks begin on Monday across year boundaries', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: _Service(db), today: CivilDate(2027, 1, 3)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('agenda-day-2026-12-28')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2027-01-24')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2027-01-25')), findsNothing);
+  });
+
   testWidgets(
     'mode switch keeps the selected day and filters reset explicitly',
     (tester) async {

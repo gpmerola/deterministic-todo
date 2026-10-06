@@ -101,7 +101,8 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 
 La sezione **Agenda** riunisce i calendari già sincronizzati dal telefono:
 Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
-mese (predefinito), 2 settimane, settimana, 3 giorni ed elenco. Il cambio
+4 settimane (predefinito: corrente più le tre successive), mese, 2 settimane,
+settimana, 3 giorni ed elenco. Il cambio
 vista conserva la data selezionata; i filtri attivi sono espliciti e azzerabili.
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

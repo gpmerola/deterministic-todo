@@ -1,5 +1,10 @@
 # TODO e handover
 
+## P1 — Quattro settimane correnti, build 231
+
+- [x] Predefinito: settimana corrente più tre; mese ancora selezionabile.
+- [x] 388 test, migrazione preferenze e rendering a dimensioni telefono verificati (STATUS).
+
 ## P1 — Agenda compatta, build 230
 
 - [x] Riepilogo e reset nel pannello Calendari; fasce delle date leggermente distinte.

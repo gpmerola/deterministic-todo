@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.65.0 (build 231) — Todo Test
+
+- Vista Agenda predefinita di quattro settimane: corrente e tre successive,
+  dal lunedì, anche a cavallo del mese. Più altezza per ogni giornata.
+- «Mese» resta selezionabile; la vecchia preferenza mensile passa una volta
+  alla nuova vista. Le altre viste scelte esplicitamente vengono conservate.
+
 ## 2.64.1 (build 230) — Todo Test
 
 - Agenda: riepilogo dei calendari nascosti e «Azzera filtri» spostati nel

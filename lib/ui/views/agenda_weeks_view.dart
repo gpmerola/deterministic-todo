@@ -13,9 +13,7 @@ import 'agenda_month_view.dart';
 CivilDate mondayOf(CivilDate day) =>
     day.addDays(-(day.asLocalDate.weekday - DateTime.monday));
 
-/// Default Agenda view: two weeks per screen, so each day has room for
-/// several events with their start time. Swipe sideways for the next or
-/// previous fortnight; each page reads the provider only when built.
+/// Two or four Monday-first weeks. Each page reads only its visible range.
 class AgendaWeeksView extends StatefulWidget {
   const AgendaWeeksView({
     required this.today,
@@ -24,10 +22,14 @@ class AgendaWeeksView extends StatefulWidget {
     required this.peekDays,
     required this.colors,
     required this.onOpenDay,
+    this.weekCount = 2,
     this.controller,
     this.onPeriodChanged,
     super.key,
   });
+
+  final int weekCount;
+  int get pageDays => weekCount * 7;
 
   final CivilDate today;
   final int revision;
@@ -40,14 +42,13 @@ class AgendaWeeksView extends StatefulWidget {
 
   static const pagesBack = 26;
   static const pagesAhead = 78;
-  static const days = 14;
 
   @override
   State<AgendaWeeksView> createState() => _AgendaWeeksViewState();
 }
 
 class _AgendaWeeksViewState extends State<AgendaWeeksView> {
-  /// Starts on the current fortnight when no controller is given.
+  /// Starts on the current week when no controller is given.
   late final PageController _ownController = PageController(
     initialPage: AgendaWeeksView.pagesBack,
   );
@@ -66,7 +67,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
 
   CivilDate _firstOf(int page) => mondayOf(
     widget.today,
-  ).addDays((page - AgendaWeeksView.pagesBack) * AgendaWeeksView.days);
+  ).addDays((page - AgendaWeeksView.pagesBack) * widget.pageDays);
 
   @override
   void didUpdateWidget(covariant AgendaWeeksView oldWidget) {
@@ -78,7 +79,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
       _loading.clear();
       _failed.clear();
     } else if (oldWidget.revision != widget.revision) {
-      // Keep showing the old fortnight until its refetch lands.
+      // Keep showing the old weeks until its refetch lands.
       _generation++;
       _stale.addAll(_pages.keys);
       _loading.clear();
@@ -90,10 +91,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
     if (!_loading.add(page)) return;
     final generation = _generation;
     try {
-      final result = await widget.loadDays(
-        _firstOf(page),
-        AgendaWeeksView.days,
-      );
+      final result = await widget.loadDays(_firstOf(page), widget.pageDays);
       if (!mounted || generation != _generation) return;
       setState(() {
         _pages[page] = result;
@@ -120,7 +118,7 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
       final first = _firstOf(page);
       var days = _pages[page];
       if (days == null) {
-        days = widget.peekDays(first, AgendaWeeksView.days);
+        days = widget.peekDays(first, widget.pageDays);
         if (days != null) _pages[page] = days;
       }
       if ((days == null || _stale.contains(page)) && !_failed.contains(page)) {
@@ -128,7 +126,8 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
           if (mounted) unawaited(_fetch(page));
         });
       }
-      return AgendaFortnight(
+      return AgendaWeeksPage(
+        weekCount: widget.weekCount,
         first: first,
         today: widget.today,
         days: days ?? const [],
@@ -140,9 +139,10 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
   );
 }
 
-/// Two Monday-first weeks filling the available height.
-class AgendaFortnight extends StatelessWidget {
-  const AgendaFortnight({
+/// Monday-first weeks filling the available height.
+class AgendaWeeksPage extends StatelessWidget {
+  const AgendaWeeksPage({
+    this.weekCount = 2,
     required this.first,
     required this.today,
     required this.days,
@@ -152,6 +152,7 @@ class AgendaFortnight extends StatelessWidget {
     super.key,
   });
 
+  final int weekCount;
   final CivilDate first;
   final CivilDate today;
   final List<AgendaDay> days;
@@ -162,11 +163,11 @@ class AgendaFortnight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final last = first.addDays(AgendaWeeksView.days - 1);
+    final last = first.addDays(weekCount * 7 - 1);
     final sameMonth = first.month == last.month;
     final range =
         '${DateFormat(sameMonth ? 'd' : 'd MMM', 'it').format(first.asLocalDate)}'
-        ' – ${DateFormat('d MMMM yyyy', 'it').format(last.asLocalDate)}';
+        ' – ${DateFormat(weekCount == 4 ? 'd MMM yyyy' : 'd MMMM yyyy', 'it').format(last.asLocalDate)}';
     final byDate = {for (final day in days) day.date: day};
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,7 +181,7 @@ class AgendaFortnight extends StatelessWidget {
           ),
         ),
         const AgendaWeekdayHeader(),
-        for (var week = 0; week < 2; week++)
+        for (var week = 0; week < weekCount; week++)
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -205,7 +206,7 @@ class AgendaFortnight extends StatelessWidget {
   }
 }
 
-/// One day of a grid (2 weeks or month): number, then every entry that fits
+/// One day of a grid (2/4 weeks or month): number, then every entry that fits
 /// the cell's height, the last slot becoming "+N". [outside] dims days of
 /// the neighbouring month.
 class AgendaDayCell extends StatelessWidget {

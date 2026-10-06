@@ -12,6 +12,7 @@ import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
 import 'package:deterministic_todo/ui/views/agenda_month_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
+import 'package:deterministic_todo/ui/views/agenda_weeks_view.dart';
 import 'package:deterministic_todo/ui/views/today_agenda_strip.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
@@ -1444,7 +1445,7 @@ void main() {
     // In grids the zone sits beside the period title, on the right, where
     // it is not cut (build 218).
     final zone = tester.getCenter(find.byKey(const ValueKey('agenda-zone')));
-    final title = tester.getCenter(find.text('Ottobre 2026'));
+    final title = tester.getCenter(find.text('5 ott – 1 nov 2026'));
     expect((zone.dy - title.dy).abs(), lessThan(12));
     expect(zone.dx, greaterThan(title.dx));
     await tester.tap(find.byKey(const ValueKey('agenda-more')));
@@ -1465,7 +1466,7 @@ void main() {
     expect(zoneLabel('America/New_York', -14400), 'America/New_York · UTC−4');
   });
 
-  testWidgets('il mese è predefinito; la vista a 2 settimane mostra il fuso', (
+  testWidgets('quattro settimane correnti predefinite, paginazione e Oggi', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -1497,8 +1498,18 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(await service.viewMode(), AgendaViewMode.month);
-    expect(find.text('Ottobre 2026'), findsOneWidget);
+    expect(await service.viewMode(), AgendaViewMode.fourWeeks);
+    expect(find.text('5 ott – 1 nov 2026'), findsOneWidget);
+    expect(find.byType(AgendaDayCell), findsNWidgets(28));
+    expect(find.byKey(const ValueKey('agenda-day-2026-10-05')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2026-11-01')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2026-11-02')), findsNothing);
+    await tester.drag(find.byType(PageView).first, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('2 – 29 nov 2026'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agenda-today')));
+    await tester.pumpAndSettle();
+    expect(find.text('5 ott – 1 nov 2026'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('agenda-mode')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-mode-twoWeeks')));

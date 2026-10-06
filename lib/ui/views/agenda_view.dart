@@ -100,7 +100,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     }
   }
 
-  AgendaViewMode mode = AgendaViewMode.month;
+  AgendaViewMode mode = AgendaViewMode.fourWeeks;
 
   /// Recognised device zone, always shown; null only if Android cannot tell.
   String? zone;
@@ -291,7 +291,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       hideHolidays: (service.lastFilter ?? AgendaFilter.none).hideHolidays,
     );
     filter = service.lastFilter ?? AgendaFilter.none;
-    mode = service.lastMode ?? AgendaViewMode.month;
+    mode = service.lastMode ?? AgendaViewMode.fourWeeks;
     zone = service.lastZoneLabel;
     days = _peekDays(widget.today, dayCount) ?? const [];
   }
@@ -405,10 +405,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
         );
       case AgendaViewMode.twoWeeks:
+      case AgendaViewMode.fourWeeks:
         weeksPage.dispose();
         weeksPage = replacement(
           AgendaWeeksView.pagesBack +
-              (daysBetween(selectedDay, mondayOf(today)) / 14).floor(),
+              (daysBetween(selectedDay, mondayOf(today)) /
+                      (next == AgendaViewMode.fourWeeks ? 28 : 14))
+                  .floor(),
           AgendaWeeksView.pagesBack + AgendaWeeksView.pagesAhead,
         );
       case AgendaViewMode.list:
@@ -453,7 +456,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         ),
       );
     }
-    if (mode == AgendaViewMode.twoWeeks && weeksPage.hasClients) {
+    if ((mode == AgendaViewMode.twoWeeks || mode == AgendaViewMode.fourWeeks) &&
+        weeksPage.hasClients) {
       unawaited(
         weeksPage.animateToPage(
           AgendaWeeksView.pagesBack,
@@ -663,12 +667,15 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                 ? (start, {end}) => _createEvent(start: start, end: end)
                 : null,
           )
-        : mode == AgendaViewMode.twoWeeks
+        : mode == AgendaViewMode.twoWeeks || mode == AgendaViewMode.fourWeeks
         ? AgendaWeeksView(
+            key: ValueKey(mode),
+            weekCount: mode == AgendaViewMode.fourWeeks ? 4 : 2,
             today: widget.today,
             revision: revision,
             controller: weeksPage,
-            onPeriodChanged: (day) => _periodChanged(day, 14),
+            onPeriodChanged: (day) =>
+                _periodChanged(day, mode == AgendaViewMode.fourWeeks ? 28 : 14),
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -856,6 +863,11 @@ class _AgendaHeader extends StatelessWidget {
       Icons.date_range_outlined,
       '2 settimane',
       '2 sett.',
+    ),
+    AgendaViewMode.fourWeeks: (
+      Icons.calendar_view_month,
+      '4 settimane',
+      '4 sett.',
     ),
     AgendaViewMode.month: (Icons.calendar_view_month, 'Mese', 'Mese'),
     AgendaViewMode.list: (Icons.view_agenda_outlined, 'Elenco', 'Elenco'),

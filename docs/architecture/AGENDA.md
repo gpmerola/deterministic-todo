@@ -8,6 +8,14 @@ dall'NHS e dalle università.
 
 ## Affidabilità e uso quotidiano — build 229
 
+Dalla build 231 la vista predefinita mostra quattro settimane: dal lunedì
+della settimana corrente alla domenica della terza successiva, esattamente
+28 giorni anche a cavallo di mese e anno. Scorrimento laterale di 28 giorni;
+«Oggi» riporta alla settimana corrente. Riusa la griglia parametrica delle due
+settimane, senza query a mesi interi né nuove dipendenze. La preferenza v3
+migra una volta il vecchio «Mese» a «4 settimane» e conserva le altre viste;
+una successiva scelta esplicita di «Mese» resta memorizzata.
+
 - L'editor attende la conferma della scrittura prima di chiudersi, blocca i
   doppi tap e conserva i campi in caso di errore. Le bozze `editor_draft:agenda:*`
   usano SQLite locale, debounce di 300 ms e flush alla pausa/uscita; nessun
@@ -130,7 +138,7 @@ quell'account non compare; non esiste un aggiramento lato app.
   cambia settimana, da un anno indietro a tre avanti. Toccando un evento si apre
   il dettaglio, toccando l'intestazione di un giorno la vista giorno, toccando
   uno spazio libero un nuovo evento alla mezz'ora toccata.
-- **Mese a schermo intero (build 205, predefinito).** Ogni mese occupa tutta
+- **Mese a schermo intero (build 205; opzionale dalla 231).** Ogni mese occupa tutta
   l'altezza: le righe (5 o 6 settimane, dal lunedì) si dividono lo spazio e
   ogni giorno mostra tutte le voci che ci stanno, poi «+N». I giorni dei mesi
   vicini completano le settimane, attenuati. Dalla build 206 si cambia mese
