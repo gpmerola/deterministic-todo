@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.67.0 (build 235) — Todo Test
+
+- Raggruppamento visite esteso a tutte le viste: giorno, tre giorni,
+  settimana, due/quattro settimane, mese ed elenco. Soglia di 15 minuti
+  invariata; ogni gruppo permette di aprire i singoli eventi originali.
+
 ## 2.66.1 (build 234) — Todo Test
 
 - Corretto il raggruppamento: sono ammesse pause fino a 15 minuti inclusi

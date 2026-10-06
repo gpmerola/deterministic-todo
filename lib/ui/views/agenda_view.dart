@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/agenda_request.dart';
+import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_backup.dart';
 import '../../services/agenda_service.dart';
@@ -16,6 +17,7 @@ import 'agenda_event_flows.dart';
 import 'agenda_month_view.dart';
 import 'agenda_week_view.dart';
 import 'agenda_weeks_view.dart';
+import 'calendar_visit_group.dart';
 
 /// Read-only agenda that merges every calendar the phone already syncs
 /// (Google, Outlook/Exchange work accounts…). Android only.
@@ -691,6 +693,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           )
         : mode == AgendaViewMode.month
         ? AgendaMonthView(
+            onOpenEntry: _showEvent,
             today: widget.today,
             revision: revision,
             controller: monthPage,
@@ -1083,26 +1086,35 @@ class _AgendaDaySection extends StatelessWidget {
             ),
           )
         else
-          for (final entry in day.entries)
-            // Already over today: dimmed, so what is left stands out.
-            Opacity(
-              opacity:
-                  day.date == today &&
-                      !entry.allDay &&
-                      entry.end.isBefore(DateTime.now())
-                  ? 0.5
-                  : 1,
-              child: AgendaEntryTile(
-                entry: entry,
-                day: day.date,
-                color: colors[entry.calendarIds.first],
-                calendarNames: [
-                  for (final id in entry.calendarIds) names[id] ?? '',
-                ],
-                onTap: () => onOpen(entry),
-                onLongPress: () => onQuick(entry),
+          for (final item in calendarVisitItems(day.entries, day.date))
+            if (item.grouped)
+              CalendarVisitGroup(
+                item: item,
+                color:
+                    colors[item.first.calendarIds.first] ??
+                    theme.colorScheme.primary,
+                onOpen: (entry) async => onOpen(entry),
+              )
+            else
+              // Already over today: dimmed, so what is left stands out.
+              Opacity(
+                opacity:
+                    day.date == today &&
+                        !item.first.allDay &&
+                        item.first.end.isBefore(DateTime.now())
+                    ? 0.5
+                    : 1,
+                child: AgendaEntryTile(
+                  entry: item.first,
+                  day: day.date,
+                  color: colors[item.first.calendarIds.first],
+                  calendarNames: [
+                    for (final id in item.first.calendarIds) names[id] ?? '',
+                  ],
+                  onTap: () => onOpen(item.first),
+                  onLongPress: () => onQuick(item.first),
+                ),
               ),
-            ),
         const Divider(height: 1),
       ],
     );

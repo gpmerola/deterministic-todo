@@ -105,7 +105,7 @@ Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
 settimana, 3 giorni ed elenco. Il cambio
 vista conserva la data selezionata; i filtri attivi sono espliciti e azzerabili.
 
-Nella vista a quattro settimane, almeno tre visite consecutive dello stesso
+In tutte le viste del Calendario, almeno tre visite consecutive dello stesso
 calendario, con pause fino a 15 minuti tra la fine di una visita e l’inizio
 della successiva, diventano un blocco con intervallo e numero di visite. Toccandolo
 si vedono tutti gli orari e si apre il singolo evento. Pause oltre 15 minuti, sovrapposizioni

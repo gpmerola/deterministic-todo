@@ -78,38 +78,67 @@ class CalendarVisitGroup extends StatelessWidget {
             border: Border(left: BorderSide(color: color, width: 2)),
             borderRadius: BorderRadius.circular(2),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '${_time(item.first.start)}–',
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: 10,
-                  height: 1.2,
-                  color: agendaAccentText(color, scheme),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 180) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${_time(item.first.start)}–${_time(item.end)} · ${item.entries.length} visite',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      ),
+                      const Icon(Icons.expand_more, size: 18),
+                    ],
+                  ),
+                );
+              }
+              return FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '${_time(item.first.start)}–',
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 10,
+                          height: 1.2,
+                          color: agendaAccentText(color, scheme),
+                        ),
+                      ),
+                      Text(
+                        _time(item.end),
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 10,
+                          height: 1.2,
+                          color: agendaAccentText(color, scheme),
+                        ),
+                      ),
+                      Text(
+                        '${item.entries.length} visite',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                _time(item.end),
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: 10,
-                  height: 1.2,
-                  color: agendaAccentText(color, scheme),
-                ),
-              ),
-              Text(
-                '${item.entries.length} visite',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 10,
-                  height: 1.2,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),

@@ -21,11 +21,13 @@ class AgendaMonthView extends StatefulWidget {
     required this.peekDays,
     required this.colors,
     required this.onOpenDay,
+    this.onOpenEntry,
     this.controller,
     this.onPeriodChanged,
     super.key,
   });
 
+  final Future<void> Function(AgendaEntry)? onOpenEntry;
   final CivilDate today;
 
   /// Changes whenever calendars, choices or the underlying data may differ.
@@ -151,6 +153,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
         });
       }
       return AgendaMonthPage(
+        onOpenEntry: widget.onOpenEntry,
         month: month,
         today: widget.today,
         days: days ?? const [],
@@ -171,9 +174,11 @@ class AgendaMonthPage extends StatelessWidget {
     required this.colors,
     required this.onDay,
     this.failed = false,
+    this.onOpenEntry,
     super.key,
   });
 
+  final Future<void> Function(AgendaEntry)? onOpenEntry;
   final CivilDate month;
   final CivilDate today;
   final List<AgendaDay> days;
@@ -212,6 +217,8 @@ class AgendaMonthPage extends StatelessWidget {
                       builder: (context) {
                         final date = start.addDays(row * 7 + column);
                         return AgendaDayCell(
+                          groupVisits: true,
+                          onOpenEntry: onOpenEntry,
                           date: date,
                           today: today,
                           entries: byDate[date]?.entries ?? const [],

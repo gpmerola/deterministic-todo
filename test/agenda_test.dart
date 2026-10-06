@@ -13,6 +13,7 @@ import 'package:deterministic_todo/ui/views/agenda_month_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_weeks_view.dart';
+import 'package:deterministic_todo/ui/views/calendar_visit_group.dart';
 import 'package:deterministic_todo/ui/views/today_agenda_strip.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
@@ -64,6 +65,42 @@ final picked = <String?>[];
 void main() {
   setUpAll(() => initializeDateFormatting('it'));
   const first = CivilDate(2026, 10, 5);
+
+  for (final mode in AgendaViewMode.values) {
+    testWidgets('visit groups expand in ${mode.name}', (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final service = _FakeAgendaService(db, [
+        for (var i = 0; i < 3; i++)
+          event(
+            'visit-$i',
+            'gmail',
+            'Visita sintetica $i',
+            DateTime(2026, 10, 5, 9, i * 30),
+            DateTime(2026, 10, 5, 9, i * 30 + 15),
+          ),
+      ]);
+      await service.saveViewMode(mode);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AgendaView(service: service, today: first),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final group = find.byType(CalendarVisitGroup).first;
+      expect(group, findsOneWidget);
+      await tester.ensureVisible(group);
+      await tester.tap(group);
+      await tester.pumpAndSettle();
+      expect(find.text('09:30 – 09:45'), findsOneWidget);
+      await tester.tap(find.text('Visita sintetica 1'));
+      await tester.pumpAndSettle();
+      expect(find.text('Visita sintetica 1'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   test('mostra una sola volta la stessa riunione su due account', () {
     final days = buildAgenda(

@@ -2,6 +2,27 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 235 — Raggruppamento in tutte le viste
+
+Gruppi di visite disponibili in giorno, tre giorni, settimana, due/quattro
+settimane, mese ed elenco, con le stesse regole di eleggibilità e pausa massima
+di 15 minuti. Le viste orarie conservano la scala del tempo: il blocco va dalla
+prima all’ultima visita, mentre il pannello espanso mostra gli orari originali.
+I proxy usati per la geometria non vengono passati all’editor o salvati.
+Il riepilogo si adatta alla larghezza: tre righe nelle celle strette, una riga
+con indicatore di espansione negli spazi larghi.
+
+Test di flusso per tutte le modalità: espansione e apertura del singolo evento;
+nel giorno verificata anche l’identità dell’oggetto originale e la sua durata.
+Rendering sintetico 360×800 delle sei modalità della schermata principale
+eseguito; settimana, tre giorni, due settimane, mese ed elenco ispezionati.
+`make check` superato: analisi pulita, 405 test Flutter e controlli strumenti,
+SQL e documentazione. Todo Test 2.67.0-dev / versionCode 2235 installata e
+avviata in-place sul Galaxy con `make todo-test`; versione/processo verificati
+e dati conservati. Il collaudo visivo è sintetico, non sul telefono.
+Build Android e Web release riuscite. Nessun nuovo
+collaudo browser HTTPS; Web/stabile pubblicati restano alla 229.
+
 ## Build 234 — Pause fino a 15 minuti tra visite
 
 Corretta la soglia troppo restrittiva della 233: nella vista quattro settimane

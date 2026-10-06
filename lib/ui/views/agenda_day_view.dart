@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_view.dart' show AgendaTodayIcon;
+import 'calendar_visit_group.dart';
 
 typedef AgendaDaysLoader =
     Future<List<AgendaDay>> Function(CivilDate first, int days);
@@ -325,7 +327,15 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
       for (final entry in entries)
         if (entry.allDay) entry,
     ];
-    final blocks = layoutDayTimeline(entries, widget.day);
+    final items = calendarVisitItems(entries, widget.day);
+    final groups = {
+      for (final item in items)
+        if (item.grouped) item.first.instanceId: item,
+    };
+    final blocks = layoutDayTimeline(
+      items.map((item) => item.timelineEntry).toList(),
+      widget.day,
+    );
     scale = TimelineScale.forBlocks(
       blocks,
       hourHeight: AgendaDayPage.hourHeight,
@@ -437,6 +447,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                           block,
                           constraints.maxWidth,
                           clashing,
+                          groups[block.entry.instanceId],
                         ),
                       if (widget.day == widget.today)
                         _nowLine(context, constraints.maxWidth),
@@ -508,6 +519,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     TimelineBlock block,
     double width,
     Set<String> clashing,
+    CalendarVisitItem? group,
   ) {
     final slot = timelineSlot(block, width - _gutter - 4);
     final scheme = Theme.of(context).colorScheme;
@@ -521,18 +533,20 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
       left: _gutter + slot.left,
       width: slot.width - 2,
       height: scale.y(block.endMinute) - scale.y(block.startMinute) - 2,
-      child: _Block(
-        entry: block.entry,
-        color: color,
-        onTap: _open,
-        onLongPress: widget.onLongPress == null
-            ? null
-            : (entry) async {
-                await widget.onLongPress!(entry);
-                await _load();
-              },
-        clash: clashing.contains(block.entry.instanceId),
-      ),
+      child: group != null
+          ? CalendarVisitGroup(item: group, color: color, onOpen: _open)
+          : _Block(
+              entry: block.entry,
+              color: color,
+              onTap: _open,
+              onLongPress: widget.onLongPress == null
+                  ? null
+                  : (entry) async {
+                      await widget.onLongPress!(entry);
+                      await _load();
+                    },
+              clash: clashing.contains(block.entry.instanceId),
+            ),
     );
   }
 

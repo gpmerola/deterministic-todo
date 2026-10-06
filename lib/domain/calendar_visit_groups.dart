@@ -10,6 +10,18 @@ final class CalendarVisitItem {
   bool get grouped => entries.length >= 3;
   AgendaEntry get first => entries.first;
   DateTime get end => entries.last.end;
+
+  /// Geometry only: never pass a group proxy to an editor or persistence.
+  AgendaEntry get timelineEntry => grouped
+      ? AgendaEntry(
+          instanceId: first.instanceId,
+          calendarIds: first.calendarIds,
+          title: '${entries.length} visite',
+          start: first.start,
+          end: end,
+          allDay: false,
+        )
+      : first;
 }
 
 // Conservative labels, not patient names or fuzzy title similarity.

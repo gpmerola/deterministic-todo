@@ -6,7 +6,8 @@ legata alla rinomina.
 
 ## Visite compatte e collegamento Home — build 233
 
-Solo la vista a quattro settimane raggruppa tre o più visite dello stesso
+Dalla build 235 tutte le viste (giorno, tre giorni, settimana, due e quattro
+settimane, mese ed elenco) raggruppano tre o più visite dello stesso
 insieme ordinato di calendari. Dalla build 234 la pausa tra fine e inizio
 successivo può essere compresa tra zero e 15 minuti inclusi (nella 233
 era richiesta la contiguità esatta).
@@ -19,6 +20,10 @@ gli oggetti originali e non modifica provider, mirror, backup o sincronizzazione
 Il blocco mostra entrambi gli orari completi e il numero di visite; un tap
 apre una lista degli originali, selezionabili per il dettaglio normale.
 Il conteggio «+N» conta eventi nascosti, non gruppi.
+Nelle viste orarie il blocco copre l’intervallo dalla prima all’ultima visita,
+senza alterare la scala del tempo. La geometria usa un proxy solo di presentazione;
+il tap apre sempre gli eventi originali, mai il proxy. Giorno ricarica dopo
+l’apertura del dettaglio come per i singoli eventi.
 
 Android: «Calendario → ⋮ → Aggiungi alla schermata Home» usa
 [`ShortcutManager.requestPinShortcut`](https://developer.android.com/reference/android/content/pm/ShortcutManager#requestPinShortcut(android.content.pm.ShortcutInfo,%20android.content.IntentSender)),

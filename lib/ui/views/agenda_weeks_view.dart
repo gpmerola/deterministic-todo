@@ -196,7 +196,7 @@ class AgendaWeeksPage extends StatelessWidget {
                 for (var column = 0; column < 7; column++)
                   Expanded(
                     child: AgendaDayCell(
-                      groupVisits: weekCount == 4,
+                      groupVisits: true,
                       onOpenEntry: onOpenEntry,
                       date: first.addDays(week * 7 + column),
                       today: today,

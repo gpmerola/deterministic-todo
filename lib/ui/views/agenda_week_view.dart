@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
 import 'agenda_word_wrap.dart';
+import 'calendar_visit_group.dart';
 
 /// Day columns with hours to scale, like Google Calendar's week view: free
 /// slots are visible at a glance. Seven days from Monday, or [dayCount] = 3
@@ -232,10 +234,14 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     final dates = [
       for (var i = 0; i < widget.dayCount; i++) widget.monday.addDays(i),
     ];
+    final itemsByDate = {
+      for (final date in dates)
+        date: calendarVisitItems(byDate[date]?.entries ?? const [], date),
+    };
     final blocksByDate = {
       for (final date in dates)
         date: layoutDayTimeline(
-          byDate[date]?.entries ?? const <AgendaEntry>[],
+          itemsByDate[date]!.map((item) => item.timelineEntry).toList(),
           date,
           minMinutes: 25,
         ),
@@ -357,6 +363,10 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                         date,
                         byDate[date]?.entries ?? const [],
                         blocksByDate[date]!,
+                        {
+                          for (final item in itemsByDate[date]!)
+                            if (item.grouped) item.first.instanceId: item,
+                        },
                       ),
                     ),
                 ],
@@ -414,6 +424,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     CivilDate date,
     List<AgendaEntry> entries,
     List<TimelineBlock> blocks,
+    Map<String, CalendarVisitItem> groups,
   ) {
     final theme = Theme.of(context);
     final clashing = agendaOverlaps(entries).keys.toSet();
@@ -517,13 +528,21 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                       scale.y(block.endMinute) - scale.y(block.startMinute) - 1,
                   left: timelineSlot(block, width).left + 0.5,
                   width: timelineSlot(block, width).width - 1,
-                  child: _block(
-                    context,
-                    block.entry,
-                    widget.colors[block.entry.calendarIds.first] ??
-                        theme.colorScheme.primary,
-                    clash: clashing.contains(block.entry.instanceId),
-                  ),
+                  child: groups[block.entry.instanceId] != null
+                      ? CalendarVisitGroup(
+                          item: groups[block.entry.instanceId]!,
+                          color:
+                              widget.colors[block.entry.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                          onOpen: widget.onOpen,
+                        )
+                      : _block(
+                          context,
+                          block.entry,
+                          widget.colors[block.entry.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                          clash: clashing.contains(block.entry.instanceId),
+                        ),
                 ),
               if (_dragDate == date && _drag != null)
                 Positioned(

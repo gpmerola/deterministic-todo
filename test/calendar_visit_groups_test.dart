@@ -1,6 +1,7 @@
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/calendar_visit_groups.dart';
 import 'package:deterministic_todo/domain/task.dart';
+import 'package:deterministic_todo/ui/views/agenda_day_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_weeks_view.dart';
 import 'package:deterministic_todo/ui/views/calendar_visit_group.dart';
 import 'package:flutter/material.dart';
@@ -145,6 +146,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(identical(selected, entries[1]), true);
   });
+  testWidgets('day timeline expands groups and opens the original visit', (
+    tester,
+  ) async {
+    final entries = [visit(0), visit(30), visit(60)];
+    AgendaEntry? opened;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaDayTimeline(
+            day: day,
+            today: day,
+            loadDays: (_, _) async => [AgendaDay(day, entries)],
+            peekDays: (_, _) => [AgendaDay(day, entries)],
+            colors: const {},
+            onOpen: (entry) async {
+              opened = entry;
+            },
+            onCreate: null,
+            now: () => DateTime(2026, 10, 6, 9),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final group = find.byType(CalendarVisitGroup);
+    expect(group, findsOneWidget);
+    await tester.ensureVisible(group);
+    await tester.tap(group);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(entries[1].title));
+    await tester.pumpAndSettle();
+    expect(identical(opened, entries[1]), true);
+    expect(opened!.end, DateTime(2026, 10, 6, 9, 45));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('ungrouped views retain every visit and overflow counts events', (
     tester,
   ) async {

@@ -1,5 +1,9 @@
 # TODO e handover
 
+## P1 — Raggruppamento in tutte le viste, build 235
+
+- [x] Gruppi espandibili in giorno, tre giorni, settimana, due/quattro settimane, mese ed elenco; scala oraria conservata.
+
 ## P1 — Intervallo visite, build 234
 
 - [x] Raggruppamento esteso alle pause da zero a 15 minuti inclusi tra fine e inizio; orari originali conservati.
