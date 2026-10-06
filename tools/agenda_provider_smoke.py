@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run the native Agenda smoke harness only on an authorized emulator.
 
-Builds a temporary test entrypoint in Todo Test on the emulator. The normal
-phone installation is untouched. Existing APK deliverables are restored after building the harness.
+Builds a test entrypoint in the separate Todo Validation package on the
+emulator. Normal Todo Test data and version codes are untouched. Existing APK deliverables are restored after building the harness.
 """
 import argparse
 from pathlib import Path
@@ -10,7 +10,7 @@ import subprocess
 import shutil
 import tempfile
 import time
-from todo_test_fast import DEV_BUILD_OFFSET, read_version, signing_environment
+from todo_test_fast import read_version, signing_environment
 
 
 def main():
@@ -24,8 +24,10 @@ def main():
         return subprocess.check_output(['adb', '-s', args.serial, *parts], text=True, timeout=60)
     if adb('shell', 'getprop', 'ro.kernel.qemu').strip() != '1':
         raise SystemExit('Emulator identity not verified')
-    package = 'app.deterministic.todo.deterministic_todo.dev'
+    package = 'app.deterministic.todo.deterministic_todo.dev.validation'
     _, build = read_version((root / 'pubspec.yaml').read_text())
+    environment = signing_environment(root)
+    environment['ORG_GRADLE_PROJECT_todoValidation'] = 'true'
     apk = root / 'build/app/outputs/flutter-apk/app-arm64-v8a-dev-release.apk'
     # Preserve normal deliverables; never leave a test entrypoint as an OTA APK.
     with tempfile.TemporaryDirectory(prefix='agenda-smoke-') as folder:
@@ -35,9 +37,9 @@ def main():
             shutil.copy2(output, saved / output.name)
         try:
             subprocess.run(['flutter', 'build', 'apk', '--release', '--flavor', 'dev',
-                            '--split-per-abi', f'--build-number={DEV_BUILD_OFFSET + build}',
+                            '--split-per-abi', f'--build-number={build}',
                             '--target=integration_test/agenda_provider_smoke.dart'],
-                           cwd=root, env=signing_environment(root), check=True)
+                           cwd=root, env=environment, check=True)
             harness = saved / 'harness.apk'
             shutil.copy2(apk, harness)
         finally:

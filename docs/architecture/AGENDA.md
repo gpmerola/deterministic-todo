@@ -48,13 +48,12 @@ Verifica: `make check`, `:app:testDevDebugUnitTest`, build release Android/Web.
 Regressioni in `test/agenda_hardening_test.dart`, `AgendaTimeZonesTest.java` e
 `AgendaCopyOperationTest.java`. Il collaudo riproducibile
 `python3 tools/agenda_provider_smoke.py --serial emulator-5554` rifiuta i
-telefoni reali: installa un entrypoint sintetico sul solo emulatore, verifica
+telefoni reali: usa il package separato `.dev.validation` sul solo emulatore, verifica
 copia/retry, ripristino ripetuto, relazione serie/occorrenza modificata, note e
 fusi, poi rimuove i propri eventi. Usa un database Todo in memoria e conserva
 gli APK di distribuzione preesistenti. Richiede emulatore arm64 acceso, SDK,
 JDK 17 e firma Todo Test locale. Esito atteso: `Agenda native provider smoke:
-PASS`; un fallimento non autorizza cancellazioni dei calendari. Per ripristinare
-l'app ordinaria sull'emulatore usare `make todo-test` con il suo seriale.
+PASS`; un fallimento non autorizza cancellazioni dei calendari. Il package Todo Test ordinario non viene sostituito.
 Restano distinti il test sintetico e il ripristino di serie reali su un telefono
 vuoto, che richiede un collaudo dedicato senza alterare i calendari personali.
 
