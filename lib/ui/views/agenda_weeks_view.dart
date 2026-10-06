@@ -15,7 +15,7 @@ import 'calendar_visit_group.dart';
 CivilDate mondayOf(CivilDate day) =>
     day.addDays(-(day.asLocalDate.weekday - DateTime.monday));
 
-/// Two or four Monday-first weeks. Each page reads only its visible range.
+/// Two, three or four Monday-first weeks. Each page reads only its visible range.
 class AgendaWeeksView extends StatefulWidget {
   const AgendaWeeksView({
     required this.today,

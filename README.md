@@ -101,9 +101,11 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 
 La sezione **Calendario** riunisce i calendari già sincronizzati dal telefono:
 Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
-4 settimane (predefinito: corrente più le tre successive), mese, 2 settimane,
+4 settimane (predefinito iniziale: corrente più le tre successive), mese,
+3 settimane (corrente più due), 2 settimane,
 settimana, 3 giorni ed elenco. Il cambio
-vista conserva la data selezionata; i filtri attivi sono espliciti e azzerabili.
+vista conserva la data selezionata. L’ultima vista scelta viene salvata sul
+dispositivo e ripristinata alla riapertura; i filtri sono espliciti e azzerabili.
 
 In tutte le viste del Calendario, almeno tre visite consecutive dello stesso
 calendario, con pause fino a 15 minuti tra la fine di una visita e l’inizio

@@ -21,7 +21,22 @@ enum AgendaAccess {
 
 /// Four Monday-first weeks are the default (build 231); the choice is kept.
 /// [threeDays] (build 220): today and the next two days, to scale.
-enum AgendaViewMode { threeDays, week, twoWeeks, fourWeeks, month, list }
+enum AgendaViewMode {
+  threeDays,
+  week,
+  twoWeeks,
+  threeWeeks,
+  fourWeeks,
+  month,
+  list;
+
+  int get gridWeeks => switch (this) {
+    twoWeeks => 2,
+    threeWeeks => 3,
+    fourWeeks => 4,
+    _ => 0,
+  };
+}
 
 /// Access to every calendar the Android system provider holds, including
 /// Outlook/Exchange accounts synced by their own apps. Events are read on

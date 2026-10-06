@@ -2,6 +2,22 @@
 
 Aggiornato il 6 ottobre 2026.
 
+## Build 236 — Tre settimane e ultima vista ricordata
+
+Nuova modalità «3 settimane», con la settimana corrente e le due successive:
+21 giorni dal lunedì, paginazione di 21 giorni e «Oggi» che ripristina il
+periodo corrente. Riusa la griglia esistente e il raggruppamento visite.
+La preferenza era già persistente in SQLite; anche `threeWeeks` viene salvata
+con il nome nella stessa chiave, senza migrazione né reset delle altre scelte.
+Test aggiunti per confini a cavallo d’anno, 21 celle, paging, «Oggi» e ripristino
+di ogni modalità scelta dal menu dopo la creazione di una nuova istanza del
+Calendario e del servizio. Il test comune dei gruppi include la nuova modalità.
+`make check` superato: analisi statica pulita e 408 test Flutter, oltre ai
+controlli strumenti, SQL e documentazione. Build Android e Web release riuscite.
+Todo Test 2.68.0-dev / versionCode 2236 installata e avviata in-place sul Galaxy
+con `make todo-test`; versione/processo verificati, dati conservati. Nessun
+nuovo collaudo visivo sul telefono né browser HTTPS. Web/stabile restano 229.
+
 ## Build 235 — Raggruppamento in tutte le viste
 
 Gruppi di visite disponibili in giorno, tre giorni, settimana, due/quattro

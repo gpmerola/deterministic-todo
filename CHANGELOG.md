@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.68.0 (build 236) — Todo Test
+
+- Aggiunta la vista «3 settimane»: corrente più due, con pagine di 21 giorni
+  e raggruppamento visite. L’ultima vista scelta resta quella predefinita
+  alla riapertura, come già previsto per le altre modalità.
+
 ## 2.67.0 (build 235) — Todo Test
 
 - Raggruppamento visite esteso a tutte le viste: giorno, tre giorni,

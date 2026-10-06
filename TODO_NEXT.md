@@ -1,5 +1,10 @@
 # TODO e handover
 
+## P1 — Tre settimane e preferenza vista, build 236
+
+- [x] Vista tre settimane, paging di 21 giorni, «Oggi» e raggruppamento visite.
+- [x] Ripristino dell’ultima vista già presente; verifica aggiunta per ogni scelta dal menu e nuova istanza del Calendario.
+
 ## P1 — Raggruppamento in tutte le viste, build 235
 
 - [x] Gruppi espandibili in giorno, tre giorni, settimana, due/quattro settimane, mese ed elenco; scala oraria conservata.

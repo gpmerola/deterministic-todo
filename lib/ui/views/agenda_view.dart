@@ -409,12 +409,12 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
         );
       case AgendaViewMode.twoWeeks:
+      case AgendaViewMode.threeWeeks:
       case AgendaViewMode.fourWeeks:
         weeksPage.dispose();
         weeksPage = replacement(
           AgendaWeeksView.pagesBack +
-              (daysBetween(selectedDay, mondayOf(today)) /
-                      (next == AgendaViewMode.fourWeeks ? 28 : 14))
+              (daysBetween(selectedDay, mondayOf(today)) / (next.gridWeeks * 7))
                   .floor(),
           AgendaWeeksView.pagesBack + AgendaWeeksView.pagesAhead,
         );
@@ -460,8 +460,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         ),
       );
     }
-    if ((mode == AgendaViewMode.twoWeeks || mode == AgendaViewMode.fourWeeks) &&
-        weeksPage.hasClients) {
+    if ((mode.gridWeeks > 0) && weeksPage.hasClients) {
       unawaited(
         weeksPage.animateToPage(
           AgendaWeeksView.pagesBack,
@@ -675,16 +674,15 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                 ? (start, {end}) => _createEvent(start: start, end: end)
                 : null,
           )
-        : mode == AgendaViewMode.twoWeeks || mode == AgendaViewMode.fourWeeks
+        : mode.gridWeeks > 0
         ? AgendaWeeksView(
             key: ValueKey(mode),
-            weekCount: mode == AgendaViewMode.fourWeeks ? 4 : 2,
+            weekCount: mode.gridWeeks,
             onOpenEntry: _showEvent,
             today: widget.today,
             revision: revision,
             controller: weeksPage,
-            onPeriodChanged: (day) =>
-                _periodChanged(day, mode == AgendaViewMode.fourWeeks ? 28 : 14),
+            onPeriodChanged: (day) => _periodChanged(day, mode.gridWeeks * 7),
             colors: colors,
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
@@ -861,6 +859,11 @@ class _AgendaHeader extends StatelessWidget {
       Icons.date_range_outlined,
       '2 settimane',
       '2 sett.',
+    ),
+    AgendaViewMode.threeWeeks: (
+      Icons.calendar_view_month,
+      '3 settimane',
+      '3 sett.',
     ),
     AgendaViewMode.fourWeeks: (
       Icons.calendar_view_month,

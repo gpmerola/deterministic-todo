@@ -1536,6 +1536,86 @@ void main() {
     expect(zoneLabel('America/New_York', -14400), 'America/New_York · UTC−4');
   });
 
+  testWidgets('three weeks show 21 days, page by 21 and return to Today', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _FakeAgendaService(db, const []);
+    await service.saveViewMode(AgendaViewMode.threeWeeks);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(
+            service: service,
+            today: const CivilDate(2026, 12, 30),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AgendaDayCell), findsNWidgets(21));
+    expect(find.byKey(const ValueKey('agenda-day-2026-12-28')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2027-01-17')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2027-01-18')), findsNothing);
+    await tester.drag(find.byType(PageView).first, const Offset(-700, 0));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('agenda-day-2027-01-18')), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-day-2027-02-07')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agenda-today')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('agenda-day-2026-12-28')), findsOneWidget);
+  });
+
+  testWidgets(
+    'each view selected from the menu survives a fresh Calendar instance',
+    (tester) async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      Future<void> open() async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AgendaView(
+                service: _FakeAgendaService(db, const []),
+                today: first,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await open();
+      for (final mode in AgendaViewMode.values) {
+        await tester.tap(find.byKey(const ValueKey('agenda-mode')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('agenda-mode-${mode.name}')));
+        await tester.pumpAndSettle();
+        await open();
+        expect(await _FakeAgendaService(db, const []).viewMode(), mode);
+        if (mode.gridWeeks > 0) {
+          expect(
+            tester
+                .widget<AgendaWeeksView>(find.byType(AgendaWeeksView))
+                .weekCount,
+            mode.gridWeeks,
+          );
+        } else if (mode == AgendaViewMode.month) {
+          expect(find.byType(AgendaMonthView), findsOneWidget);
+        } else if (mode == AgendaViewMode.list) {
+          expect(
+            find.byKey(const ValueKey('agenda-list:2026-10-05')),
+            findsOneWidget,
+          );
+        } else {
+          expect(find.byType(AgendaWeekView), findsOneWidget);
+        }
+      }
+    },
+  );
+
   testWidgets('quattro settimane correnti predefinite, paginazione e Oggi', (
     tester,
   ) async {

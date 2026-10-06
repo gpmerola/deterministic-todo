@@ -4,9 +4,21 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Tre settimane e vista memorizzata — build 236
+
+`threeWeeks` riusa `AgendaWeeksView` con 21 giorni: dal lunedì della settimana
+corrente fino alla domenica della seconda successiva, anche tra mesi/anni.
+Paginazione di 21 giorni; «Oggi» torna alla settimana corrente. Cambio vista
+conserva la data selezionata. Il raggruppamento visite è attivo anche qui.
+La scelta dal menu continua a salvare il nome della modalità in SQLite
+(`agenda_view_mode_v3`): una nuova istanza legge l’ultima scelta. Nessuna
+migrazione o modifica delle preferenze esistenti; quattro settimane resta
+il valore iniziale quando manca una preferenza. Testano il ripristino tutte
+le modalità scelte dal menu, oltre a 21 celle, cambio anno, paging e «Oggi».
+
 ## Visite compatte e collegamento Home — build 233
 
-Dalla build 235 tutte le viste (giorno, tre giorni, settimana, due e quattro
+Dalla build 235 tutte le viste (giorno, tre giorni, settimana, due, tre e quattro
 settimane, mese ed elenco) raggruppano tre o più visite dello stesso
 insieme ordinato di calendari. Dalla build 234 la pausa tra fine e inizio
 successivo può essere compresa tra zero e 15 minuti inclusi (nella 233
