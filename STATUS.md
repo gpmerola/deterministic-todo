@@ -18,8 +18,16 @@ Test di ricorrenza reale su Google, serie di prova creata dall'assistente:
 «Modifica nel calendario» → «Solo questa» sull'occorrenza del 17 ottobre ha
 creato l'eccezione sul telefono, caricata dal sync adapter in circa 1 minuto;
 la Google Calendar API mostra il titolo «… MOD» solo sul 17, 24 e 31 intatti.
-Eliminazione di un'occorrenza modificata e della serie non ancora provate sul
-telefono reale: interrotte perché l'utente stava usando il telefono.
+Seconda parte (con il telefono libero): «Elimina» sull'occorrenza del 17 già
+modificata ha marcato l'eccezione annullata (`eventStatus=2`), senza far
+ricomparire l'originale; «Solo questa» sul 24 ha creato un'eccezione
+annullata. Entrambe caricate da Google; l'API mostrava solo il 31. Serie di
+prova poi eliminata via Google Calendar API. Non provata dall'app «Tutta la
+serie» su Google: durante la navigazione un tocco automatico in alto a destra
+ha probabilmente approvato una notifica di Microsoft Authenticator comparsa in
+quel punto; test sullo schermo interrotto e utente avvisato.
+Rilievo UX: un'occorrenza modificata non mostra «Evento ricorrente» e non
+offre la scelta solo questa/tutta la serie.
 
 Le due attività con «identitÃ » sono state corrette dal Web pubblico
 («identità»), con data e ricorrenza invariate.
