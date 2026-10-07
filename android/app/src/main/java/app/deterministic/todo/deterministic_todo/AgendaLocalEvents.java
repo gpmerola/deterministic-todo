@@ -6,6 +6,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.CalendarContract;
 import android.provider.CalendarContract.Events;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Full events of Todo's own phone calendar for the Supabase backup (build
@@ -103,6 +105,7 @@ final class AgendaLocalEvents {
         Map<Long, Map<String, Object>> byOldId = new HashMap<>();
         for (Map<String, Object> event : events) byOldId.put(number(event.get("id")), event);
         Set<String> done = new HashSet<>();
+        Set<Long> keyed = new HashSet<>();
         int inserted = 0;
         for (Map<String, Object> event : restoreOrder(events)) {
             Long oldId = number(event.get("id"));
@@ -120,6 +123,7 @@ final class AgendaLocalEvents {
             } else {
                 Long parent = ids.get(originalId);
                 if (parent == null) continue;
+                if (keyed.add(parent)) keySeries(context, calendarId, parent);
                 uri = resolver.insert(
                     ContentUris.withAppendedId(Events.CONTENT_EXCEPTION_URI, parent),
                     values(calendarId, event, true));
@@ -130,6 +134,42 @@ final class AgendaLocalEvents {
             }
         }
         return inserted;
+    }
+
+    /**
+     * The provider pairs an exception with its series through `_sync_id`.
+     * A series on a local calendar has none, and an exception written
+     * against it removes every other occurrence from Instances: a restored
+     * series showed only its changed occurrences. Like device_calendar_plus
+     * 0.9 (#153), give the series a key first, as the stand-in sync adapter
+     * of the local account (the column is read-only otherwise). An existing
+     * key is kept; the provider copies a new one to exceptions already
+     * linked by `original_id`.
+     */
+    static void keySeries(Context context, String calendarId, long seriesId) {
+        ContentResolver resolver = context.getContentResolver();
+        String accountName;
+        String accountType;
+        try (Cursor calendar = resolver.query(CalendarContract.Calendars.CONTENT_URI,
+                new String[] {CalendarContract.Calendars.ACCOUNT_NAME,
+                    CalendarContract.Calendars.ACCOUNT_TYPE},
+                CalendarContract.Calendars._ID + " = ?", new String[] {calendarId}, null)) {
+            if (calendar == null || !calendar.moveToFirst()) return;
+            accountName = calendar.getString(0);
+            accountType = calendar.getString(1);
+        }
+        // Synced calendars belong to their adapter: never write their keys.
+        if (!CalendarContract.ACCOUNT_TYPE_LOCAL.equals(accountType)) return;
+        Uri asAdapter = Events.CONTENT_URI.buildUpon()
+            .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, accountType)
+            .build();
+        ContentValues key = new ContentValues();
+        key.put(Events._SYNC_ID, "todo-series:" + UUID.randomUUID());
+        resolver.update(asAdapter, key,
+            Events._ID + " = ? AND " + Events._SYNC_ID + " IS NULL",
+            new String[] {Long.toString(seriesId)});
     }
 
     /**

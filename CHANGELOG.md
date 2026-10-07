@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.70.0 (build 241) — Todo Test
+
+- Calendario: eliminare «solo questa» su un'occorrenza già modificata la
+  annulla davvero; prima ricompariva l'occorrenza originale.
+- Calendario: «tutta la serie» funziona anche partendo da un'occorrenza
+  modificata.
+- Ripristino del backup del Calendario: le serie con occorrenze modificate
+  mostrano di nuovo tutte le occorrenze, non solo quelle modificate.
+- `device_calendar_plus` 0.10: eliminazioni e modifiche di serie su Google ed
+  Exchange arrivano al server invece di tornare al sync successivo.
+- Web e Android: `drift` 2.35 con `drift_worker.js` e `sqlite3.wasm`
+  aggiornati e verificati sui dati creati dal motore precedente.
+- All'apertura «Nessuna attività» non compare più prima che il database
+  abbia risposto.
+
 ## 2.69.0 (build 240) — Todo Test
 
 - Corretto: gli import di backup JSON e Todoist leggevano il file come

@@ -4,6 +4,36 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Serie, occorrenze modificate e ripristino — build 241
+
+`device_calendar_plus` 0.10: `updateEvent`/`deleteEvent` agiscono su un solo
+evento o una sola occorrenza (`instanceId`); le serie passano da
+`updateRecurring`/`deleteRecurring`. La 0.9 porta al server di Google/Exchange
+le eliminazioni e le modifiche di serie, che prima tornavano al sync
+successivo, e non fa più sparire le altre occorrenze modificandone una in un
+calendario locale.
+
+Un'occorrenza già modificata è una riga eccezione con un id proprio, senza
+«@». `AgendaService` la risolve con `seriesOccurrence` (nativo) nello slot
+«serieId@inizioOriginale»:
+
+- «solo questa», eliminazione: `cancelOccurrence` marca l'eccezione
+  `STATUS_CANCELED`, come il Calendario di Android. Cancellare la riga
+  avrebbe fatto ricomparire l'occorrenza originale;
+- «tutta la serie», modifica o eliminazione: si usa la serie, non la riga.
+
+Ripristino del backup: il provider abbina le eccezioni alla serie tramite
+`_sync_id`. Una serie del calendario locale «Todo» non ne ha, e un'eccezione
+inserita contro di essa toglieva dalle Instances tutte le altre occorrenze:
+una serie ripristinata mostrava solo le occorrenze modificate.
+`AgendaLocalEvents.keySeries` assegna prima un `_sync_id` come sync adapter
+dell'account locale (mai su calendari sincronizzati), come fa la libreria.
+
+Verificato su emulatore con `tools/agenda_provider_smoke.py`: ripristino con
+occorrenze visibili, modifica ed eliminazione di una occorrenza senza effetti
+sulla serie, eliminazione della serie da un'occorrenza modificata, nessun
+evento sintetico residuo. Regressioni Dart in `agenda_occurrence_delete_test.dart`.
+
 ## Conferme temporanee e contrasto — build 238
 
 La conferma di `hide` imposta `persist: false`, durata 6 secondi e X; svuota

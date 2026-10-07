@@ -968,7 +968,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 ),
                             child: KeyedSubtree(
                               key: ValueKey('page-$pageIdentity'),
-                              child: _content(tasks),
+                              child: _content(tasks, loaded: snapshot.hasData),
                             ),
                           ),
                         ),
@@ -1455,7 +1455,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
-  Widget _content(List<Task> all) {
+  /// [loaded] is false until SQLite answers: the web database can take
+  /// seconds to open, and an early "Nessuna attività" looks like data loss.
+  Widget _content(List<Task> all, {bool loaded = true}) {
     if (section == AppSection.settings) {
       return ListenableBuilder(
         listenable: steps,
@@ -1557,7 +1559,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       duration: _microMotion,
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
-      child: visible.isEmpty
+      child: visible.isEmpty && !loaded
+          ? SizedBox.shrink(key: ValueKey('loading-${section.name}'))
+          : visible.isEmpty
           ? EmptyViewLabel(
               section == AppSection.completed
                   ? 'Nessuna attività completata'

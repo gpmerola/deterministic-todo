@@ -253,50 +253,50 @@ packages:
     dependency: "direct main"
     description:
       name: device_calendar_plus
-      sha256: "31bca1f0055741d5a7b7a8138936af4035f5ace81532ae00a755207899c22d81"
+      sha256: bf639338c557e0b1e2c0a3ce1fdf202cf9b2fdf71467036da61c17784f3dd769
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.1"
+    version: "0.10.1"
   device_calendar_plus_android:
     dependency: transitive
     description:
       name: device_calendar_plus_android
-      sha256: "7143fa08a3e1b57a1c81f478af1f4c6a1c47eee768fd5d322a69ed7abb43dcf8"
+      sha256: "98c15947e20819a18fe31e1104a9a13f466afd65c52a5d6c43cb5c8c017c3fc4"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.1"
+    version: "0.9.1"
   device_calendar_plus_ios:
     dependency: transitive
     description:
       name: device_calendar_plus_ios
-      sha256: e261e7238d46ca6d1f07fda86a3c4abdd0ff02cef08313c401a2eb203db30d62
+      sha256: "69f2635c4d147515a0894fd9926a2f6d43d16734a136560d1c2a7f5ce60c7a75"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.0"
+    version: "0.9.1"
   device_calendar_plus_platform_interface:
     dependency: transitive
     description:
       name: device_calendar_plus_platform_interface
-      sha256: "474169d6d32654e190c2f1d50c82a0090d475c33c904177f96af831ba46c306e"
+      sha256: "2fed23f4ee9cf517e1a21585828d452d4c76aa8e346be8eea3ec1536fe90fa15"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.0"
+    version: "0.8.0"
   drift:
     dependency: "direct main"
     description:
       name: drift
-      sha256: "3a3f1f6f905037d7426e4c445854139fd6a3d592135f7c96d7931682b73d16f4"
+      sha256: a21a6a7a9e6a0bcabdf47a9af4247c556d38dc9bfe9f05c4fdf72a488bb57eab
       url: "https://pub.dev"
     source: hosted
-    version: "2.34.3"
+    version: "2.35.1"
   drift_dev:
     dependency: "direct dev"
     description:
       name: drift_dev
-      sha256: "735aad3c34215805c66bd518c8812fa4f83b5534b2c13c4092c970c04a7e9983"
+      sha256: e0d16aaa21f3408cbe2dd4bfc56c36cea43e53a537e6613b91380c0924b3bd30
       url: "https://pub.dev"
     source: hosted
-    version: "2.34.5"
+    version: "2.35.1"
   fake_async:
     dependency: transitive
     description:
@@ -539,10 +539,10 @@ packages:
     dependency: "direct main"
     description:
       name: idb_shim
-      sha256: "3448298f244bc76a14aca71461eeab6add2b8a877930521c42c2e8b71b644590"
+      sha256: "110fe0514a52dc8da5414df42405a8f9e880dfac3e84852fdab8e5559ee6ad07"
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.6+2"
+    version: "2.9.11"
   integration_test:
     dependency: "direct dev"
     description: flutter
@@ -1013,10 +1013,10 @@ packages:
     dependency: "direct dev"
     description:
       name: sqlite3
-      sha256: "64b2c63c8232dd20d14b34105a81ebfd74320442e8451f836179ec89986aa478"
+      sha256: "4c7fe79840389aaeaf05fd093f795b631b5a98e2bd28d54e555c100f4a9c7a1c"
       url: "https://pub.dev"
     source: hosted
-    version: "3.5.1"
+    version: "3.5.2"
   sqlparser:
     dependency: transitive
     description:
@@ -1297,6 +1297,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
+  yaml_edit:
+    dependency: transitive
+    description:
+      name: yaml_edit
+      sha256: "07c9e63ba42519745182b88ca12264a7ba2484d8239958778dfe4d44fe760488"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.4"
   yet_another_json_isolate:
     dependency: transitive
     description:

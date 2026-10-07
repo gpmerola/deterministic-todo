@@ -80,7 +80,7 @@ void main() {
       ).thenAnswer((_) async => 'event-1');
       when(
         () => calendar.updateEvent(
-          eventId: any(named: 'eventId'),
+          instanceId: any(named: 'instanceId'),
           title: any(named: 'title'),
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),
@@ -111,7 +111,7 @@ void main() {
       ).called(1);
       verify(
         () => calendar.updateEvent(
-          eventId: 'event-1',
+          instanceId: 'event-1',
           title: any(named: 'title'),
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),

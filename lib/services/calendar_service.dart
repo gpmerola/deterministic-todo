@@ -82,7 +82,7 @@ class CalendarService {
       eventId = decoded['event_id']! as String;
       calendarName = decoded['calendar_name']! as String;
       await _calendar.updateEvent(
-        eventId: eventId,
+        instanceId: eventId,
         title: task.title,
         description: Patch.set(description),
         startDate: start,

@@ -1249,6 +1249,23 @@ void main() {
     await db.close();
   });
 
+  testWidgets('Oggi non dichiara vuoto prima che SQLite risponda', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    await tester.pumpWidget(TodoApp(repository: repository));
+
+    // First frame: the stream has not emitted yet.
+    expect(find.text('Nessuna attività'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('Nessuna attività'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
   testWidgets('Data nell editor riprogramma e salva l attività', (
     tester,
   ) async {

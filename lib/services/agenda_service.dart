@@ -593,7 +593,7 @@ class AgendaService {
         : Patch.set(_blankToNull(value)!);
     if (series) {
       await _calendar.updateRecurring(
-        instanceId,
+        await _seriesInstance(instanceId),
         EventSpan.allEvents,
         title: draft.title.trim(),
         start: draft.start,
@@ -605,7 +605,7 @@ class AgendaService {
       );
     } else {
       await _calendar.updateEvent(
-        eventId: instanceId,
+        instanceId: instanceId,
         title: draft.title.trim(),
         startDate: draft.start,
         endDate: draft.end,
@@ -620,12 +620,34 @@ class AgendaService {
 
   /// Deletes one occurrence, or with [series] the whole series.
   Future<void> deleteEvent(String instanceId, {bool series = false}) async {
+    final occurrence = await _seriesInstance(instanceId);
     if (series) {
-      await _calendar.deleteRecurring(instanceId, EventSpan.allEvents);
+      await _calendar.deleteRecurring(occurrence, EventSpan.allEvents);
+    } else if (occurrence != instanceId) {
+      // A changed occurrence: mark its exception canceled. Deleting the
+      // row would bring the original occurrence back.
+      final changed = await _channel.invokeMethod<int>('cancelOccurrence', {
+        'eventId': instanceId,
+      });
+      if (changed != 1) throw StateError('Occurrence not canceled');
     } else {
-      await _calendar.deleteEvent(eventId: instanceId);
+      await _calendar.deleteEvent(instanceId: instanceId);
     }
     _events.clear();
+  }
+
+  /// [instanceId] itself, or for a changed occurrence (listed under its own
+  /// bare id) the plugin id of the series slot it replaced.
+  Future<String> _seriesInstance(String instanceId) async {
+    if (instanceId.contains('@')) return instanceId;
+    try {
+      return await _channel.invokeMethod<String>('seriesOccurrence', {
+            'eventId': instanceId,
+          }) ??
+          instanceId;
+    } on MissingPluginException {
+      return instanceId;
+    }
   }
 
   /// Todo tasks flagged "Mostra in agenda" in [first, first + days).

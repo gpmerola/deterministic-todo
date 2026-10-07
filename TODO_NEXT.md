@@ -12,11 +12,10 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - [ ] Controllare a mano, nell'app, se attività importate in passato da
   Todoist o da backup hanno accenti alterati («Ã©» al posto di «é»): il bug
   di decodifica è corretto dalla build 240.
-- [ ] `drift`/`sqlite3`/`idb_shim` restano bloccati alla versione del lock:
-  `web/drift_worker.js` e `web/sqlite3.wasm` sono stati compilati una volta e
-  vanno rigenerati insieme, con verifica Web di build release, HTTPS e
-  persistenza dopo refresh.
-- [ ] `device_calendar_plus` 0.8 → 0.10: richiede collaudo del Calendario reale.
+- [ ] Web pubblica dopo `PUBBLICA`: confermare su HTTPS reale che la sessione
+  (cassaforte web 2.x) e i dati (drift 2.35) restino dopo il refresh.
+- [ ] Calendario 241 sul Galaxy: provare con un evento reale una modifica e
+  un'eliminazione di una singola occorrenza e verificare su Google/Outlook.
 - [ ] Proseguire la divisione di `lib/main.dart` (`_TaskShellState`) e
   `lib/ui/views/agenda_view.dart` in controller più piccoli.
 - [ ] Facoltativo, solo su decisione esplicita: migrazione Room che elimini le

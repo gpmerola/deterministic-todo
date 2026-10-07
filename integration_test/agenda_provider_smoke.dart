@@ -16,6 +16,7 @@ Future<void> main() async {
   String phase = 'copy';
   String? cleanupId;
   final seriesCleanup = <String>[];
+  String? seriesParent;
   try {
     if (await service.requestAccess() != AgendaAccess.granted) {
       throw StateError('Permission missing');
@@ -110,7 +111,13 @@ Future<void> main() async {
                   r['title'] == 'QA229-exception',
             )
             .toList();
-    seriesCleanup.addAll(restored.reversed.map((r) => r['id'].toString()));
+    seriesCleanup.addAll([
+      for (final r in restored)
+        if (r['title'] == 'QA229-exception') r['id'].toString(),
+    ]);
+    for (final r in restored) {
+      if (r['title'] == 'QA229-series') seriesParent = r['id'].toString();
+    }
     phase = 'series_count_${restored.length}';
     if (restored.length != 2) throw StateError('Series restore');
     phase = 'series_relation';
@@ -130,6 +137,72 @@ Future<void> main() async {
         0) {
       throw StateError('Series retry duplicated');
     }
+    // One occurrence of a series: editing or deleting it must leave the
+    // other occurrences alone (fixed in device_calendar_plus 0.9).
+    phase = 'occurrence_edit';
+    Future<List<Map<Object?, Object?>>> seriesRows() async => [
+      for (final row in (await channel.invokeListMethod<Map<Object?, Object?>>(
+        'instances',
+        {
+          'start': seriesStart - 3600000,
+          'end': seriesStart + const Duration(days: 21).inMilliseconds,
+          'calendarIds': [target.id],
+        },
+      ))!)
+        if ('${row['title']}'.startsWith('QA229-') &&
+            row['title'] != 'QA229-retry' &&
+            row['canceled'] != true)
+          row,
+    ];
+    List<String> titles(List<Map<Object?, Object?>> rows) =>
+        [for (final row in rows) '${row['title']}']..sort();
+    final before = await seriesRows();
+    phase = 'occurrence_list_${before.length}';
+    if (titles(before).join(',') !=
+        'QA229-exception,QA229-series,QA229-series') {
+      throw StateError('Series occurrences');
+    }
+    final firstId = before
+        .firstWhere((r) => r['start'] == seriesStart)['instanceId']
+        .toString();
+    await service.updateEvent(
+      firstId,
+      AgendaEventDraft(
+        calendarId: target.id,
+        title: 'QA229-single',
+        start: DateTime.fromMillisecondsSinceEpoch(seriesStart),
+        end: DateTime.fromMillisecondsSinceEpoch(seriesStart + 3600000),
+      ),
+    );
+    final edited = await seriesRows();
+    phase = 'occurrence_edited';
+    if (titles(edited).join(',') !=
+        'QA229-exception,QA229-series,QA229-single') {
+      throw StateError('Occurrence edit touched the series');
+    }
+    phase = 'occurrence_delete';
+    await service.deleteEvent(
+      edited
+          .firstWhere((r) => r['title'] == 'QA229-single')['instanceId']
+          .toString(),
+    );
+    final deleted = await seriesRows();
+    if (titles(deleted).join(',') != 'QA229-exception,QA229-series') {
+      throw StateError('Occurrence delete touched the series');
+    }
+    // The whole series, chosen from one of its changed occurrences.
+    phase = 'series_delete_from_exception';
+    await service.deleteEvent(
+      deleted
+          .firstWhere((r) => r['title'] == 'QA229-exception')['instanceId']
+          .toString(),
+      series: true,
+    );
+    if ((await seriesRows()).isNotEmpty) {
+      throw StateError('Series delete left occurrences');
+    }
+    seriesCleanup.clear();
+    seriesParent = null;
     phase = 'zone';
     final zones = await service.timeZones();
     if (!zones.contains('Europe/Rome')) throw StateError('Missing zone');
@@ -158,12 +231,30 @@ Future<void> main() async {
         status = 'FAIL_CLEANUP';
       }
     }
+    // A bare series ID is refused by deleteEvent since the plugin's 0.10.
+    if (seriesParent != null) {
+      try {
+        await service.deleteEvent(seriesParent, series: true);
+      } catch (_) {
+        status = 'FAIL_CLEANUP';
+      }
+    }
     if (cleanupId != null) {
       try {
         await service.deleteEvent(cleanupId);
       } catch (_) {
         status = 'FAIL_CLEANUP';
       }
+    }
+    // Nothing synthetic may survive the run.
+    try {
+      final left = (await channel.invokeListMethod<Map<Object?, Object?>>(
+        'localEvents',
+        {'calendarId': (await service.localCalendar())!.id},
+      ))!.where((r) => '${r['title']}'.startsWith('QA229-'));
+      if (left.isNotEmpty && status == 'PASS') status = 'FAIL_LEFTOVER';
+    } catch (_) {
+      if (status == 'PASS') status = 'FAIL_LEFTOVER_CHECK';
     }
     await db.close();
   }

@@ -2,6 +2,34 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Build 241 — Calendario: serie e occorrenze, drift 2.35
+
+`device_calendar_plus` 0.8 → 0.10 (`eventId` → `instanceId`; l'app usava già
+ID di occorrenza e API di serie). Il test di fumo nativo su emulatore
+(`tools/agenda_provider_smoke.py`, eventi sintetici) è stato esteso e ha
+rivelato tre difetti preesistenti, ora corretti e coperti:
+
+1. serie ripristinata dal backup con un'eccezione: il provider non generava
+   più le altre occorrenze (manca `_sync_id` sui calendari locali). Riprodotto
+   anche con `adb content insert`; corretto assegnando la chiave prima;
+2. «elimina solo questa» su un'occorrenza modificata la riportava
+   all'originale; ora l'eccezione è marcata annullata;
+3. «tutta la serie» da un'occorrenza modificata falliva sull'ID dell'eccezione.
+
+Esito finale `PASS`, nessun evento sintetico residuo. Non provato su eventi
+reali Google/Exchange: le scritture sono state fatte solo sull'emulatore.
+
+Web: `drift` 2.34 → 2.35 con `drift_worker.js` (release drift-2.35.1) e
+`sqlite3.wasm` (sqlite3-3.5.2). Su `http://localhost` (contesto sicuro, non
+HTTPS pubblico), stesso profilo Chrome: attività creata con la build 240,
+letta dalla 241; attività creata con la 241 sopravvive al refresh. Trovato
+che la vista mostrava «Nessuna attività» prima della prima risposta di
+SQLite: corretto, test di regressione. Il ritardo osservato (~10–20 s) era in
+una scheda `hidden`, quindi non misura la velocità reale.
+
+Galaxy: Todo Test 2241 installata, Calendario reale letto correttamente.
+`make check` 426 test, test JVM Android verdi.
+
 ## Build 240 — Cassaforte cifrata 10 e import UTF-8
 
 `flutter_secure_storage` 9 → 10 (non 11: la 11 rifiuta i dati v9 non migrati).

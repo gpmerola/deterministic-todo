@@ -94,6 +94,14 @@ public final class AgendaChannel {
                     localEvents(app, call, result);
                     return;
                 }
+                if (call.method.equals("seriesOccurrence")) {
+                    seriesOccurrence(app, call, result);
+                    return;
+                }
+                if (call.method.equals("cancelOccurrence")) {
+                    cancelOccurrence(app, call, result);
+                    return;
+                }
                 if (!call.method.equals("instances")) {
                     result.notImplemented();
                     return;
@@ -119,6 +127,73 @@ public final class AgendaChannel {
                     }
                 });
             });
+    }
+
+    /**
+     * For a changed occurrence (an exception row, listed under its own bare
+     * id), the plugin id of the series slot it replaces: "seriesId@originalStart".
+     * Null for anything else. Deleting the exception row itself would bring
+     * the original occurrence back, and series operations need the series.
+     */
+    private static void seriesOccurrence(Context app, io.flutter.plugin.common.MethodCall call,
+                                         MethodChannel.Result result) {
+        String eventId = call.argument("eventId");
+        if (eventId == null) {
+            result.error("invalid_arguments", "Missing event", null);
+            return;
+        }
+        Handler main = new Handler(Looper.getMainLooper());
+        IO.execute(() -> {
+            try (android.database.Cursor cursor = app.getContentResolver().query(
+                    CalendarContract.Events.CONTENT_URI,
+                    new String[] {CalendarContract.Events.ORIGINAL_ID,
+                        CalendarContract.Events.ORIGINAL_INSTANCE_TIME},
+                    CalendarContract.Events._ID + " = ? AND " + CalendarContract.Events.DELETED + " = 0",
+                    new String[] {eventId}, null)) {
+                String value = null;
+                if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0) && !cursor.isNull(1)) {
+                    value = cursor.getLong(0) + "@" + cursor.getLong(1);
+                }
+                String answer = value;
+                main.post(() -> result.success(answer));
+            } catch (SecurityException denied) {
+                main.post(() -> result.error("permission_denied", "Calendar access denied", null));
+            } catch (RuntimeException error) {
+                main.post(() -> result.error("query_failed", "Calendar query failed", null));
+            }
+        });
+    }
+
+    /**
+     * Deletes one changed occurrence the way Android's own Calendar does: the
+     * exception row stays, marked canceled, so the series slot stays empty
+     * and a synced calendar uploads the cancellation. Returns rows changed.
+     */
+    private static void cancelOccurrence(Context app, io.flutter.plugin.common.MethodCall call,
+                                         MethodChannel.Result result) {
+        String eventId = call.argument("eventId");
+        if (eventId == null) {
+            result.error("invalid_arguments", "Missing event", null);
+            return;
+        }
+        Handler main = new Handler(Looper.getMainLooper());
+        IO.execute(() -> {
+            try {
+                android.content.ContentValues values = new android.content.ContentValues();
+                values.put(CalendarContract.Events.STATUS, CalendarContract.Events.STATUS_CANCELED);
+                int changed = app.getContentResolver().update(
+                    CalendarContract.Events.CONTENT_URI, values,
+                    CalendarContract.Events._ID + " = ? AND "
+                        + CalendarContract.Events.ORIGINAL_ID + " IS NOT NULL AND "
+                        + CalendarContract.Events.DELETED + " = 0",
+                    new String[] {eventId});
+                main.post(() -> result.success(changed));
+            } catch (SecurityException denied) {
+                main.post(() -> result.error("permission_denied", "Calendar access denied", null));
+            } catch (RuntimeException error) {
+                main.post(() -> result.error("query_failed", "Calendar update failed", null));
+            }
+        });
     }
 
     /** Backup and restore of Todo's own calendar, off the main thread. */
