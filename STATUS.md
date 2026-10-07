@@ -16,9 +16,13 @@ Il collaudo `agenda_provider_smoke.py --reminders` su emulatore ha verificato
 notifica reale, mancata duplicazione, soppressione dopo eliminazione o
 spostamento e disattivazione; fixture ripulite. Nessuna nuova dipendenza.
 
-Galaxy: al primo controllo le notifiche risultano disabilitate e il telefono
-è bloccato; concessione dei permessi e ricezione di un avviso sul dispositivo
-reale ancora da verificare. Doze prolungato e reboot fisico non collaudati.
+Galaxy: dopo lo sblocco, notifiche consentite e permesso «Sveglie e
+promemoria» attivato dalle impostazioni Android. Verificato un allarme Todo
+`RTC_WAKEUP`, `window=0`, `exactAllowReason=permission` già programmato dal
+piano reale, senza leggere titoli/note. Ricezione fisica verificata con un
+unico evento sintetico in un calendario locale temporaneo: inizio a +30 minuti
+40 secondi, notifica arrivata al termine dei 40 secondi; evento e calendario
+rimossi dopo il test. Doze prolungato e reboot fisico restano da osservare.
 La release stabile rimane quella indicata sotto.
 
 ## Release stabile 244 — pubblicata il 7 ottobre 2026
