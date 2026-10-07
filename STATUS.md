@@ -13,7 +13,8 @@ errore. Test di regressione: fallisce con il codice precedente.
 `AiCaptureActions` estratto da `main.dart` (1.758 → circa 1.600 righe
 dall'inizio della revisione) con test. `make todo-test` usa
 `--split-debug-info`: APK arm64 locale da 25,0 a 23,6 MB, simboli in
-`build/private-symbols/`.
+`build/private-symbols/`. Galaxy: 2242 installata via ADB (dopo due
+tentativi interrotti dalla connessione Tailscale), avvio senza crash.
 
 ## Build 241 — Calendario: serie e occorrenze, drift 2.35
 
