@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.68.3 (build 239) — Todo Test
+
+- Passi: il controllo al minuto non ridisegna più tutta la schermata e
+  ricarica obiettivo e preferenze solo alla riapertura; la logica è uscita
+  da `main.dart` in un controller dedicato con test.
+- Calendario: alla riapertura le sette letture iniziali (fuso, vista, filtri,
+  calendari, scelte) partono insieme invece che una dopo l'altra.
+- Test dell'editor data reso indipendente dal giorno in cui gira.
+- Dipendenze compatibili aggiornate (`supabase_flutter` 2.18, `url_launcher`,
+  `device_calendar_plus` 0.8.1). Rimosso lo script di analisi Movimento
+  archiviato; documentazione snellita (TODO_NEXT solo voci aperte, nuovo
+  HANDOFF, cronologia Movimento in `docs/archive/`).
+
 ## 2.68.2 (build 238) — Todo Test
 
 - «Nascosto in Todo» ora scompare dopo 6 secondi, si può chiudere con X

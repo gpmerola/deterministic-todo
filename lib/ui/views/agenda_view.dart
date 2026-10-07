@@ -186,13 +186,18 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         });
         return;
       }
-      final nextZone = await widget.service.deviceZoneLabel();
-      final nextMode = await widget.service.viewMode();
-      final nextFilter = await widget.service.filter();
-      final nextCalendars = await widget.service.calendars();
+      // Independent reads: run together so a resume waits for the slowest
+      // one instead of their sum.
+      final (nextZone, nextMode, nextFilter, nextCalendars, choices) = await (
+        widget.service.deviceZoneLabel(),
+        widget.service.viewMode(),
+        widget.service.filter(),
+        widget.service.calendars(),
+        widget.service.calendarChoices(),
+      ).wait;
       final nextHidden = hiddenAgendaCalendars(
         nextCalendars,
-        await widget.service.calendarChoices(),
+        choices,
         hideHolidays: nextFilter.hideHolidays,
       );
       // The month view reads each month itself; only the list needs a window.

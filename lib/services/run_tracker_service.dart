@@ -15,6 +15,19 @@ final class DailyMovementProgress {
   final String collectionStatus;
   final String coverage;
   final DateTime? lastImport;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DailyMovementProgress &&
+      other.day == day &&
+      other.steps == steps &&
+      other.collectionStatus == collectionStatus &&
+      other.coverage == coverage &&
+      other.lastImport == lastImport;
+
+  @override
+  int get hashCode =>
+      Object.hash(day, steps, collectionStatus, coverage, lastImport);
 }
 
 /// Daily step count only: GPS sessions, Amazfit and diagnostics are archived

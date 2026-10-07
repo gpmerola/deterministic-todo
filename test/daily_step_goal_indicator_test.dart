@@ -11,6 +11,23 @@ void main() {
     );
   });
 
+  test('progresso identico non richiede di ridisegnare la shell', () {
+    final read = DateTime(2026, 10, 7, 9);
+    const base = DailyMovementProgress(day: '2026-10-07', steps: 4200);
+    expect(
+      DailyMovementProgress(day: '2026-10-07', steps: 4200, lastImport: read),
+      DailyMovementProgress(day: '2026-10-07', steps: 4200, lastImport: read),
+    );
+    expect(
+      base,
+      isNot(const DailyMovementProgress(day: '2026-10-07', steps: 4201)),
+    );
+    expect(
+      base,
+      isNot(const DailyMovementProgress(day: '2026-10-08', steps: 4200)),
+    );
+  });
+
   testWidgets('mostra progresso compatto e celebra il completamento', (
     tester,
   ) async {

@@ -29,17 +29,10 @@ sessione Supabase, Android Keystore, permessi, notifiche e diagnostica di Todo
 Test non leggono né modificano quelli della build Play. Disinstallare Todo Test
 non elimina i dati della build Play.
 
-La parola “allineate” ha una semantica precisa:
-
-- le attività Todo convergono attraverso Supabase quando ciascun client è
-  abilitato, aperto e autenticato; i database SQLite non sono condivisi;
-- Movimento, diagnostica, permessi SAF/Health Connect e chiavi Keystore **non
-  vengono sincronizzati** fra le app;
-- i report Movimento storici della build Play restano immutabili su Drive e i
-  nuovi report di Todo Test usano la stessa cartella principale. L'analisi può
-  concatenare temporalmente i segmenti, ma non li importa nel database `.dev`;
-- la chiave Huami deve essere inserita separatamente tramite UI e non deve mai
-  essere copiata con ADB, file, log o repository.
+La parola “allineate” ha una semantica precisa: le attività Todo convergono
+attraverso Supabase quando ciascun client è abilitato, aperto e autenticato; i
+database SQLite non sono condivisi. Passi, permessi e chiavi Keystore (inclusa
+la chiave dell'assistente ✨) **non vengono sincronizzati** fra le app.
 
 ## Prima installazione
 
@@ -60,15 +53,10 @@ La parola “allineate” ha una semantica precisa:
    ```
 
 3. Aprire **Todo Test**, autenticarsi a Supabase e attendere il riallineamento
-   delle task. Autorizzare Health Connect e scegliere la cartella Drive solo
-   se questo è il client che deve eseguire i test Movimento.
-4. La chiave Bip U resta nel Keystore della build Play: inserirla nuovamente in
-   Todo Test tramite la UI, senza esportarla in file o log.
+   delle task. Concedere attività fisica solo per il contapassi.
 
-La cartella SAF da selezionare è la radice **Deterministic Todo Movement
-Tests**, non `01 Sessions`, `02 Passive`, `03 Intensive`, `04 App diagnostics`,
-`05 Bip U` né `00 Archive pre-build-120`. Le sottocartelle vengono risolte o
-create automaticamente.
+Le istruzioni storiche per Health Connect, cartella Drive e chiave Bip U sono
+nel tag `archive/movimento-completo-b189`.
 
 ## Aggiornamenti successivi
 

@@ -1265,7 +1265,9 @@ void main() {
     await tester.tap(find.text('Riprogramma attività'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ActionChip, 'Senza data'));
-    await tester.pump(const Duration(milliseconds: 300));
+    // Until the dialog transition ends, a day cell near the screen centre
+    // does not receive taps: the outcome depended on today's date.
+    await tester.pumpAndSettle();
 
     expect(find.byType(DatePickerDialog), findsOneWidget);
     final now = DateTime.now();

@@ -110,10 +110,12 @@ resto vive in librerie separate, testabili senza avviare l'app:
 | `ui/quick_add_sheet.dart` | composer rapido e bozza locale |
 | `ui/shell/app_update_flow.dart` | controllo e installazione aggiornamenti |
 | `ui/shell/civil_day_clock.dart` | giorno civile corrente |
+| `ui/shell/daily_steps_controller.dart` | passi del giorno, obiettivo e celebrazione |
 
 Le viste ricevono le righe già filtrate e un `tileBuilder`: non dipendono dalla
-shell né dall'editor. Movimento, impostazioni ed editor restano parti della
-libreria `main.dart`; Movimento non è stato modificato.
+shell né dall'editor. Dalla build 239 i passi sono un `ChangeNotifier`
+ascoltato solo da anello e Impostazioni: il controllo al minuto non ridisegna
+più l'intera shell e notifica solo se passi o obiettivo cambiano.
 
 ## Verifica
 

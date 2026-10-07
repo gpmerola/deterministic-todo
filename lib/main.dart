@@ -57,6 +57,7 @@ import 'ui/quick_add_sheet.dart';
 import 'ui/search.dart';
 import 'ui/shell/app_update_flow.dart';
 import 'ui/shell/civil_day_clock.dart';
+import 'ui/shell/daily_steps_controller.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
@@ -431,16 +432,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   bool backgroundSnapshotTaken = false;
   Timer? updateTimer;
-  Timer? movementRefreshTimer;
   bool appIsForeground = true;
   final Set<String> recentlySyncedTaskIds = {};
   StreamSubscription<Set<String>>? remoteTaskSubscription;
   Timer? remoteHighlightTimer;
   List<Project> quickAddProjects = const [];
   String? lastQuickProjectId;
-  DailyMovementProgress? dailyMovement;
-  int dailyStepGoal = 10000;
-  String? celebratedGoalDay;
+  late final steps = DailyStepsController(
+    database: widget.repository.db,
+    onGoalReached: _celebrateStepGoal,
+  );
 
   @override
   void initState() {
@@ -495,60 +496,36 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       });
     }
     if (widget.enablePlatformServices && isAndroidPlatform) {
-      movementRefreshTimer = Timer.periodic(
-        RunTrackerService.foregroundRefreshInterval,
-        (_) {
-          if (appIsForeground) unawaited(_refreshDailyMovement());
-        },
-      );
+      steps.startPeriodicRefresh(() => appIsForeground);
     }
   }
 
   Future<void> _refreshDailyMovement() async {
-    if (!isAndroidPlatform) return;
-    final results = await Future.wait<Object?>([
-      RunTrackerService.dailyMovement(),
-      RunTrackerService.getStepGoal(),
-      (widget.repository.db.select(widget.repository.db.appSettings)
-            ..where((row) => row.key.equals('step_goal_celebrated_day')))
-          .getSingleOrNull(),
-    ]);
+    if (isAndroidPlatform) await steps.refresh();
+  }
+
+  void _celebrateStepGoal() {
     if (!mounted) return;
-    final movement = results[0] as DailyMovementProgress?;
-    final goal = results[1] as int;
-    final savedCelebration = results[2] as AppSetting?;
-    celebratedGoalDay ??= savedCelebration?.value;
-    final reachedNow = movement != null && movement.steps >= goal;
-    final shouldCelebrate = reachedNow && celebratedGoalDay != movement.day;
-    setState(() {
-      dailyMovement = movement;
-      dailyStepGoal = goal;
-      if (shouldCelebrate) celebratedGoalDay = movement.day;
-    });
-    if (shouldCelebrate) {
-      await _savePreference('step_goal_celebrated_day', movement.day);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Obiettivo passi raggiunto! Ottimo lavoro ★'),
-          duration: Duration(seconds: 4),
-          showCloseIcon: true,
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Obiettivo passi raggiunto! Ottimo lavoro ★'),
+        duration: Duration(seconds: 4),
+        showCloseIcon: true,
+      ),
+    );
   }
 
   Future<void> _showDailySteps() => showDailyStepsSheet(
     context,
-    progress: dailyMovement,
-    goal: dailyStepGoal,
+    progress: steps.progress,
+    goal: steps.goal,
     enableSteps: () async {
       await RunTrackerService.requestStepPermission();
       await _refreshDailyMovement();
     },
     editGoal: () async {
-      final value = await showStepGoalDialog(context, dailyStepGoal);
-      if (value != null) await _setDailyStepGoal(value);
+      final value = await showStepGoalDialog(context, steps.goal);
+      if (value != null) await steps.setGoal(value);
     },
   );
 
@@ -584,15 +561,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       showDragHandle: true,
       builder: (_) => TaskEditor(task: task, repository: widget.repository),
     );
-  }
-
-  Future<void> _setDailyStepGoal(int value) async {
-    final goal = await RunTrackerService.setStepGoal(value);
-    if (!mounted) return;
-    setState(() {
-      dailyStepGoal = goal;
-      if ((dailyMovement?.steps ?? 0) < goal) celebratedGoalDay = null;
-    });
   }
 
   Future<void> _initializeProjectCaches() async {
@@ -767,7 +735,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
-    movementRefreshTimer?.cancel();
+    steps.dispose();
     remoteHighlightTimer?.cancel();
     remoteTaskSubscription?.cancel();
     dayClock
@@ -1077,11 +1045,15 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 3,
                                 ),
-                                child: DailyStepGoalIndicator(
-                                  key: const ValueKey('daily-step-goal'),
-                                  steps: dailyMovement?.steps ?? 0,
-                                  goal: dailyStepGoal,
-                                  onTap: _showDailySteps,
+                                child: ListenableBuilder(
+                                  listenable: steps,
+                                  builder: (context, _) =>
+                                      DailyStepGoalIndicator(
+                                        key: const ValueKey('daily-step-goal'),
+                                        steps: steps.progress?.steps ?? 0,
+                                        goal: steps.goal,
+                                        onTap: _showDailySteps,
+                                      ),
                                 ),
                               ),
                             if (widget.syncService != null)
@@ -1486,14 +1458,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   Widget _content(List<Task> all) {
     if (section == AppSection.settings) {
-      return SettingsView(
-        repository: widget.repository,
-        syncClient: widget.syncClient,
-        syncService: widget.syncService,
-        checkForUpdates: _checkForUpdates,
-        showCompleted: () => _navigateTo(AppSection.completed),
-        dailyStepGoal: dailyStepGoal,
-        onDailyStepGoalChanged: _setDailyStepGoal,
+      return ListenableBuilder(
+        listenable: steps,
+        builder: (context, _) => SettingsView(
+          repository: widget.repository,
+          syncClient: widget.syncClient,
+          syncService: widget.syncService,
+          checkForUpdates: _checkForUpdates,
+          showCompleted: () => _navigateTo(AppSection.completed),
+          dailyStepGoal: steps.goal,
+          onDailyStepGoalChanged: steps.setGoal,
+        ),
       );
     }
     if (section == AppSection.agenda) {

@@ -51,7 +51,8 @@ un arresto vengono recuperati come blocchi immutabili al checkpoint seguente.
 ## Analisi offline riproducibile
 
 I blocchi scaricati da Drive si analizzano senza ADB e senza accedere al
-telefono:
+telefono. Lo script è stato rimosso dal branch attivo il 7 ottobre 2026;
+recuperarlo dal tag `archive/movimento-completo-b189`:
 
 ```sh
 python3 tools/analyze_movement_intensive.py ~/Downloads/intensive_*.jsonl

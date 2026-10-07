@@ -1,6 +1,29 @@
 # Stato corrente
 
-Aggiornato il 6 ottobre 2026.
+Aggiornato il 7 ottobre 2026.
+
+## Build 239 — Manutenzione, passi e Calendario più leggeri
+
+Revisione di struttura richiesta dall'utente il 7 ottobre 2026. Il test
+«Data nell editor riprogramma» falliva solo quando il giorno di domani cadeva
+al centro dello schermo: il tocco arrivava durante l'animazione del dialogo.
+Ora attende la fine della transizione. Passi estratti in
+`DailyStepsController`: nessuna ricostruzione della shell a passi invariati;
+obiettivo e preferenza della celebrazione riletti solo alla riapertura. Letture
+iniziali del Calendario in parallelo. `make check` (419 test Flutter, strumenti,
+link, SQL) e `make check-generated` verdi.
+
+Dipendenze: solo aggiornamenti compatibili. `flutter_secure_storage` 11 (che
+sblocca `package_info_plus` 10, `share_plus` 13, `file_picker` 13) e `drift`
+2.35 non sono stati applicati: richiedono rispettivamente prova della
+migrazione della sessione sul Galaxy e rigenerazione di `web/drift_worker.js`
+con collaudo Web (TODO_NEXT).
+
+Galaxy: `make todo-test` ha installato in place Todo Test 2.68.3-dev
+(`versionCode` 2239) via ADB, dati conservati. Anello passi visibile e
+aggiornato in Oggi; Calendario aperto con fuso, vista «3 sett.» memorizzata e
+filtri ripristinati; nessun crash nel buffer `crash`. Non osservato un intero
+tick con cambio passi né una celebrazione reale.
 
 ## Second Brain — attivato il 6 ottobre 2026
 

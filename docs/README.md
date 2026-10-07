@@ -20,7 +20,9 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
   in sola lettura, duplicati, link riunioni, privacy.
 - [Movimento archiviato](archive/MOVIMENTO.md): cosa resta del modulo Android
   (solo passi), cosa è archiviato nel tag `archive/movimento-completo-b189` e
-  come ripristinarlo. Documenti storici GPS/Amazfit in `archive/`.
+  come ripristinarlo. Documenti storici GPS/Amazfit in `archive/`, insieme
+  all'[handoff storico](archive/HANDOFF_2026-08.md) e alla
+  [cronologia performance Movimento](archive/MOVIMENTO_PERFORMANCE.md).
 
 L'hotspot noto è `lib/data/sync/sync_service.dart`; dalla build 189 viste,
 ricerca, composer e aggiornamenti sono stati estratti da `lib/main.dart`
