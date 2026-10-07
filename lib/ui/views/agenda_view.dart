@@ -9,12 +9,16 @@ import '../../domain/agenda_request.dart';
 import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_backup.dart';
+import '../../services/agenda_reminders.dart';
 import '../../services/agenda_service.dart';
+import '../../services/platform_runtime_native.dart'
+    if (dart.library.js_interop) '../../services/platform_runtime_web.dart';
 import 'agenda_backup_sheet.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_event_flows.dart';
 import 'agenda_month_view.dart';
+import 'agenda_reminder_sheet.dart';
 import 'agenda_week_view.dart';
 import 'agenda_weeks_view.dart';
 import 'calendar_visit_group.dart';
@@ -223,6 +227,11 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         revision++;
         loading = false;
       });
+      if (isAndroidPlatform) {
+        unawaited(
+          AgendaReminders(widget.service).foreground(requestPermission: true),
+        );
+      }
     } catch (_) {
       // Deliberately not logged: messages may carry event details.
       if (!mounted || generation != _generation) return;
@@ -584,6 +593,16 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     ].join(' · ');
     final backup = AgendaBackup.current;
     final header = _AgendaHeader(
+      onReminders: isAndroidPlatform
+          ? () => showModalBottomSheet<void>(
+              context: context,
+              showDragHandle: true,
+              isScrollControlled: true,
+              builder: (_) => AgendaReminderSheet(
+                reminders: AgendaReminders(widget.service),
+              ),
+            )
+          : null,
       backupPending: AgendaBackup.pending.value != null,
       onBackup: backup == null
           ? null
@@ -829,10 +848,12 @@ class _AgendaHeader extends StatelessWidget {
     this.onFailures,
     this.onBackup,
     this.backupPending = false,
+    this.onReminders,
   });
 
   /// Supabase backup of Todo's own Agenda data (phone only).
   final VoidCallback? onBackup;
+  final VoidCallback? onReminders;
 
   /// The account holds a backup this phone has not restored yet.
   final bool backupPending;
@@ -1001,6 +1022,7 @@ class _AgendaHeader extends StatelessWidget {
           if (onSearch != null ||
               onSettings != null ||
               onBackup != null ||
+              onReminders != null ||
               onPinCalendar != null)
             PopupMenuButton<String>(
               key: const ValueKey('agenda-more'),
@@ -1009,9 +1031,19 @@ class _AgendaHeader extends StatelessWidget {
                 if (value == 'search') onSearch?.call();
                 if (value == 'settings') onSettings?.call();
                 if (value == 'backup') onBackup?.call();
+                if (value == 'reminders') onReminders?.call();
                 if (value == 'pinCalendar') onPinCalendar?.call();
               },
               itemBuilder: (_) => [
+                if (onReminders != null)
+                  const PopupMenuItem(
+                    value: 'reminders',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.notifications_outlined),
+                      title: Text('Promemoria'),
+                    ),
+                  ),
                 if (onPinCalendar != null)
                   const PopupMenuItem(
                     value: 'pinCalendar',

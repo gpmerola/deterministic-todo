@@ -16,6 +16,7 @@ from todo_test_fast import read_version, signing_environment
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--serial', default='emulator-5554')
+    parser.add_argument('--reminders', action='store_true', help='Test local reminder delivery/cancellation')
     args = parser.parse_args()
     if not args.serial.startswith('emulator-'):
         raise SystemExit('Only an emulator is allowed')
@@ -38,7 +39,8 @@ def main():
         try:
             subprocess.run(['flutter', 'build', 'apk', '--release', '--flavor', 'dev',
                             '--split-per-abi', f'--build-number={build}',
-                            '--target=integration_test/agenda_provider_smoke.dart'],
+                            ('--target=integration_test/agenda_reminder_smoke.dart' if args.reminders
+                             else '--target=integration_test/agenda_provider_smoke.dart')],
                            cwd=root, env=environment, check=True)
             harness = saved / 'harness.apk'
             shutil.copy2(apk, harness)
@@ -51,10 +53,14 @@ def main():
         adb('install', '-r', str(harness))
     adb('shell', 'pm', 'grant', package, 'android.permission.READ_CALENDAR')
     adb('shell', 'pm', 'grant', package, 'android.permission.WRITE_CALENDAR')
+    if args.reminders:
+        if int(adb('shell', 'getprop', 'ro.build.version.sdk').strip()) >= 33:
+            adb('shell', 'pm', 'grant', package, 'android.permission.POST_NOTIFICATIONS')
+        adb('shell', 'appops', 'set', package, 'SCHEDULE_EXACT_ALARM', 'allow')
     adb('shell', 'am', 'force-stop', package)
     # Read only the new harness process and fixed result marker, never general logs.
     adb('shell', 'am', 'start', '-W', '-n', package + '/app.deterministic.todo.deterministic_todo.MainActivity')
-    for _ in range(30):
+    for _ in range(60 if args.reminders else 30):
         pid = adb('shell', 'pidof', package).strip()
         if pid:
             log = adb('logcat', '-d', '--pid=' + pid, '-s', 'flutter:I')
@@ -64,7 +70,7 @@ def main():
                     print('Agenda native provider smoke: ' + result)
                     return 0 if result == 'PASS' else 1
         time.sleep(1)
-    raise SystemExit('No native smoke result within 30 seconds')
+    raise SystemExit('No native smoke result within the test deadline')
 
 if __name__ == '__main__':
     raise SystemExit(main())

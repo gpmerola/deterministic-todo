@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/local/database.dart';
 import '../data/sync/secure_supabase_storage.dart';
 import '../services/agenda_phone_sync.dart';
+import '../services/agenda_reminders.dart';
 import '../services/agenda_service.dart';
 import 'background_session_storage.dart';
 
@@ -27,6 +28,17 @@ Future<void> startAgendaBackground() async {
 }
 
 Future<String> runAgendaBackground(String reason) async {
+  if (reason == 'reminders') {
+    final database = AppDatabase();
+    try {
+      await AgendaReminders(AgendaService(database)).refresh();
+      return 'done';
+    } catch (_) {
+      return 'retry';
+    } finally {
+      await database.close();
+    }
+  }
   const url = String.fromEnvironment('SUPABASE_URL');
   const key = String.fromEnvironment('SUPABASE_ANON_KEY');
   if (url.isEmpty || key.isEmpty) return 'stop';

@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.71.0 (build 245) — Todo Test
+
+- Calendario: promemoria locali 30 minuti prima di tutti gli eventi con orario
+  visibili, inclusi quelli già presenti. Attivi per default, disattivabili da
+  **Calendario → ⋮ → Promemoria**; filtri e unione dei duplicati rispettati.
+- Il pannello segnala notifiche bloccate o permesso «Sveglie e promemoria»
+  mancante. Gli eventi tutto il giorno sono esclusi; gli avvisi delle altre
+  app calendario restano indipendenti. Nessuna modifica agli account.
+
 ## 2.70.3 (build 244) — Todo Test
 
 - Calendario: un'occorrenza modificata da sola resta «Evento ricorrente»;

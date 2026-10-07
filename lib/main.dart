@@ -28,6 +28,7 @@ import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
 import 'services/agenda_phone_sync.dart';
+import 'services/agenda_reminders.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
 import 'services/agenda_web_service.dart';
@@ -485,6 +486,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       await _refreshDailyMovement();
       unawaited(agendaSync?.attach());
       unawaited(agendaSync?.foreground());
+      if (isAndroidPlatform) {
+        unawaited(
+          AgendaReminders(agendaService).foreground(requestPermission: true),
+        );
+      }
       await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
       await _showDailyPerformanceReminder();
@@ -696,6 +702,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         unawaited(_checkForUpdates(automatic: true));
       }
       unawaited(agendaSync?.foreground());
+      if (isAndroidPlatform) {
+        unawaited(
+          AgendaReminders(agendaService).foreground(requestPermission: true),
+        );
+      }
     } else if (isBackgroundLifecycle(state)) {
       // Sync pause/resume is owned by [bindSyncToLifecycle].
       appIsForeground = false;
@@ -1208,6 +1219,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     );
     if (created == null || created == 0 || !mounted) return;
     unawaited(agendaSync?.changed());
+    if (isAndroidPlatform) {
+      unawaited(AgendaReminders(agendaService).foreground());
+    }
     final batch = aiActions.lastCreated;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1276,6 +1290,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     )..where((t) => t.id.equals(id))).getSingle();
     await AgendaTaskLinks(db).setShown(task, true);
     unawaited(agendaSync?.changed());
+    if (isAndroidPlatform) {
+      unawaited(AgendaReminders(agendaService).foreground());
+    }
   }
 
   Future<void> _showUniversalCommand() => showSearch<void>(
@@ -1353,7 +1370,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             onSearch: _showUniversalCommand,
             onCapture: isAndroidPlatform ? _openAiCapture : null,
             onSettings: () => _navigateTo(AppSection.settings),
-            onChanged: () => unawaited(agendaSync?.changed()),
+            onChanged: () {
+              unawaited(agendaSync?.changed());
+              if (isAndroidPlatform) {
+                unawaited(AgendaReminders(agendaService).foreground());
+              }
+            },
           ),
         ),
       );

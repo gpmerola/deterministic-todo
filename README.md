@@ -99,6 +99,12 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 
 ## Calendario (Android)
 
+**Calendario → ⋮ → Promemoria**: avviso locale 30 minuti prima di tutti gli
+eventi con orario visibili, anche già presenti; attivo per default e
+disattivabile. Consenti notifiche e «Sveglie e promemoria» in Android per
+riceverlo puntualmente. Esclusi gli eventi tutto il giorno; gli avvisi delle
+altre app restano indipendenti. [Dettagli](docs/architecture/PROMEMORIA_CALENDARIO.md).
+
 Il Calendario ha una palette dedicata: superfici neutre, fasce delle date
 in grigio-azzurro e accenti blu per «Oggi» e comandi. I colori dei calendari
 restano distinti, con fondi più tenui per gli eventi, nei temi chiaro e scuro.

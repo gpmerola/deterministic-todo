@@ -4,6 +4,12 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Promemoria locali — build 245
+
+**Calendario → ⋮ → Promemoria** controlla un avviso a 30 minuti per tutti gli
+eventi con orario visibili, anche già presenti. Dettagli, permessi e collaudo:
+[PROMEMORIA_CALENDARIO](PROMEMORIA_CALENDARIO.md).
+
 ## Serie, occorrenze modificate e ripristino — build 241
 
 `device_calendar_plus` 0.10: `updateEvent`/`deleteEvent` agiscono su un solo

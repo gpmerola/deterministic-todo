@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'agenda_backup.dart';
 import 'agenda_mirror.dart';
+import 'agenda_reminders.dart';
 import 'agenda_requests.dart';
 import 'agenda_service.dart';
 
@@ -66,6 +67,10 @@ class AgendaPhoneSync {
   /// in or no calendar access: the jobs are cancelled until the app
   /// schedules them again).
   Future<String> background(String reason) async {
+    if (reason == 'reminders') {
+      await AgendaReminders(service).refresh();
+      return 'done';
+    }
     if (client.auth.currentSession == null) return 'stop';
     if (await service.access() != AgendaAccess.granted) return 'stop';
     final handled = await processor.process();

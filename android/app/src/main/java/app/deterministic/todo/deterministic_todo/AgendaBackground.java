@@ -153,9 +153,13 @@ public final class AgendaBackground {
      * and no Dart. Null when the calendar cannot be read.
      */
     static String fingerprint(Context context, long now) {
+        return fingerprint(context, now, 31, 92);
+    }
+
+    static String fingerprint(Context context, long now, int pastDays, int futureDays) {
         Uri.Builder uri = CalendarContract.Instances.CONTENT_URI.buildUpon();
-        ContentUris.appendId(uri, now - 31 * DAY_MS);
-        ContentUris.appendId(uri, now + 92 * DAY_MS);
+        ContentUris.appendId(uri, now - pastDays * DAY_MS);
+        ContentUris.appendId(uri, now + futureDays * DAY_MS);
         String[] projection = {
             CalendarContract.Instances.EVENT_ID,
             CalendarContract.Instances.CALENDAR_ID,

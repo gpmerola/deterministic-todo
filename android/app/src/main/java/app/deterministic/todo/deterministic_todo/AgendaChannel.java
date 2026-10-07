@@ -62,6 +62,28 @@ public final class AgendaChannel {
         Context app = context.getApplicationContext();
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/agenda")
             .setMethodCallHandler((call, result) -> {
+                if (call.method.equals("beginReminders")) {
+                    result.success(AgendaReminders.begin(app));
+                    return;
+                }
+                if (call.method.equals("reminderStatus")) {
+                    result.success(AgendaReminders.status(app));
+                    return;
+                }
+                if (call.method.equals("replaceReminders")) {
+                    Handler main = new Handler(Looper.getMainLooper());
+                    IO.execute(() -> {
+                        try {
+                            AgendaReminders.replace(app, ((Number) call.argument("generation")).longValue(),
+                                Boolean.TRUE.equals(call.argument("enabled")),
+                                Boolean.TRUE.equals(call.argument("accessible")), call.argument("events"));
+                            main.post(() -> result.success(null));
+                        } catch (Exception error) {
+                            main.post(() -> result.error("reminders_failed", "Impossibile aggiornare i promemoria.", null));
+                        }
+                    });
+                    return;
+                }
                 if (call.method.equals("timeZones")) {
                     List<String> zones = new ArrayList<>(ZoneId.getAvailableZoneIds());
                     java.util.Collections.sort(zones);

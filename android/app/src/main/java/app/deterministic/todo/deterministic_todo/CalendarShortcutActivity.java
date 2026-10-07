@@ -16,6 +16,39 @@ public class CalendarShortcutActivity extends FlutterActivity {
 
     @Override public void configureFlutterEngine(FlutterEngine engine) {
         super.configureFlutterEngine(engine);
+        new MethodChannel(engine.getDartExecutor().getBinaryMessenger(),
+            "app.deterministic.todo/agenda_reminder_permissions").setMethodCallHandler((call, result) -> {
+                if (!call.method.equals("request") && !call.method.equals("requestOnce")) {
+                    result.notImplemented(); return;
+                }
+                boolean automatic = call.method.equals("requestOnce");
+                android.content.SharedPreferences preferences = AgendaReminders.prefs(this);
+                if (automatic && preferences.getBoolean("permission_asked", false)) {
+                    result.success(null); return;
+                }
+                preferences.edit().putBoolean("permission_asked", true).apply();
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    if (!automatic && preferences.getBoolean("notification_requested", false)
+                        && !shouldShowRequestPermissionRationale(android.Manifest.permission.POST_NOTIFICATIONS)) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName()));
+                    } else {
+                        preferences.edit().putBoolean("notification_requested", true).apply();
+                        requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 7310);
+                    }
+                } else if (!automatic) {
+                    if (!Boolean.TRUE.equals(AgendaReminders.status(this).get("notifications"))) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName())
+                            .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, AgendaReminders.CHANNEL));
+                    } else if (!AgendaReminders.exact(this) && android.os.Build.VERSION.SDK_INT >= 31) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                            android.net.Uri.parse("package:" + getPackageName())));
+                    }
+                }
+                result.success(null);
+            });
         if (getIntent() != null) launch.accept(getIntent().getAction(), getPackageName());
         channel = new MethodChannel(engine.getDartExecutor().getBinaryMessenger(),
                 "app.deterministic.todo/calendar_shortcut");

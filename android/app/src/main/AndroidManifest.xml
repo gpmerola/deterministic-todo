@@ -6,6 +6,8 @@
     <!-- Agenda background job: network constraint and the persisted hourly job. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -47,6 +49,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths" />
         </provider>
+        <receiver android:name=".AgendaReminderReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.TIME_SET"/>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/>
+            </intent-filter>
+        </receiver>
+        <service android:name=".AgendaReminderJob" android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
         <service
             android:name=".AgendaBackgroundJob"
             android:exported="false"

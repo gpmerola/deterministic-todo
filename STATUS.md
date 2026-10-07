@@ -2,6 +2,25 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Build 245 — Promemoria Calendario
+
+Todo Test 2.71.0 / versionCode 2245 installata in-place sul Galaxy con
+`make todo-test`; app aperta, dati conservati. Promemoria locali a 30 minuti
+attivi per default per tutti gli eventi con orario visibili, inclusi quelli
+preesistenti; interruttore in Calendario → ⋮ → Promemoria.
+Contratto: [PROMEMORIA_CALENDARIO](docs/architecture/PROMEMORIA_CALENDARIO.md).
+
+Verifiche: `make check` (437 test Flutter, analisi, strumenti, SQL, link),
+`make check-generated`, test JVM dev e build release Android superati.
+Il collaudo `agenda_provider_smoke.py --reminders` su emulatore ha verificato
+notifica reale, mancata duplicazione, soppressione dopo eliminazione o
+spostamento e disattivazione; fixture ripulite. Nessuna nuova dipendenza.
+
+Galaxy: al primo controllo le notifiche risultano disabilitate e il telefono
+è bloccato; concessione dei permessi e ricezione di un avviso sul dispositivo
+reale ancora da verificare. Doze prolungato e reboot fisico non collaudati.
+La release stabile rimane quella indicata sotto.
+
 ## Release stabile 244 — pubblicata il 7 ottobre 2026
 
 Dopo `PUBBLICA`, workflow coordinato
