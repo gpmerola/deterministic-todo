@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show OrderingTerm, QueryRow;
+import 'package:drift/drift.dart' show QueryRow;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
@@ -22,7 +22,6 @@ import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
 import 'domain/agenda.dart';
-import 'domain/ai_capture.dart';
 import 'domain/link_syntax.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
@@ -32,6 +31,7 @@ import 'services/agenda_phone_sync.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
 import 'services/agenda_web_service.dart';
+import 'services/ai_capture_actions.dart';
 import 'services/ai_settings.dart';
 import 'services/calendar_service.dart';
 import 'services/calendar_shortcut_service.dart';
@@ -1165,124 +1165,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
-  /// What the assistant may use: today, zone, projects, writable calendars
-  /// shown in Agenda and their next 14 days of events (filters applied).
-  Future<AiCaptureContext> _aiContext() async {
-    final now = DateTime.now();
-    final db = widget.repository.db;
-    final projects =
-        await (db.select(db.projects)
-              ..where((p) => p.isArchived.equals(false))
-              ..orderBy([(p) => OrderingTerm(expression: p.position)]))
-            .get();
-    final zone = await agendaService.deviceZoneLabel();
-    var calendars = const <({String id, String name})>[];
-    String? defaultCalendar;
-    var upcoming =
-        const <({String title, DateTime start, DateTime end, bool allDay})>[];
-    if (await agendaService.access() == AgendaAccess.granted) {
-      final all = await agendaService.calendars();
-      final hidden = hiddenAgendaCalendars(
-        all,
-        await agendaService.calendarChoices(),
-        hideHolidays: (await agendaService.filter()).hideHolidays,
-      );
-      calendars = [
-        for (final calendar in all)
-          if (calendar.writable && !hidden.contains(calendar.id))
-            (id: calendar.id, name: calendar.name),
-      ];
-      // A separate ✨ calendar, if chosen and still writable, wins.
-      final aiCalendar = await agendaService.aiEventCalendar();
-      defaultCalendar = calendars.any((c) => c.id == aiCalendar)
-          ? aiCalendar
-          : defaultEventCalendar(
-              all,
-              await agendaService.lastEventCalendar(),
-              hidden: hidden,
-            );
-      final today = DateTime(now.year, now.month, now.day);
-      final events = await agendaService.events(
-        today,
-        today.add(const Duration(days: 14)),
-        [
-          for (final calendar in all)
-            if (!hidden.contains(calendar.id)) calendar.id,
-        ],
-      );
-      upcoming = [
-        for (final entry in mergeAgendaEntries(
-          events: events,
-          calendars: all,
-          hiddenCalendarIds: hidden,
-          filter: await agendaService.filter(),
-        ).take(80))
-          (
-            title: entry.title,
-            start: entry.start,
-            end: entry.end,
-            allDay: entry.allDay,
-          ),
-      ];
-    }
-    return AiCaptureContext(
-      now: now,
-      zoneLabel: zone,
-      projects: [for (final p in projects) (id: p.id, name: p.name)],
-      calendars: calendars,
-      defaultCalendarId: defaultCalendar,
-      upcoming: upcoming,
-    );
-  }
-
-  /// Writes confirmed proposals with the ✨ marker; dated tasks are also
-  /// shown in the Agenda so the link between list and calendar is visible.
-  /// Items written by the last ✨ creation, for its Annulla action.
-  ({List<String> tasks, List<String> events}) _lastAiCreated = (
-    tasks: const [],
-    events: const [],
+  late final aiActions = AiCaptureActions(
+    repository: widget.repository,
+    agenda: agendaService,
   );
-
-  Future<int> _createAiProposals(List<AiProposal> items) async {
-    final db = widget.repository.db;
-    final links = AgendaTaskLinks(db);
-    final taskIds = <String>[];
-    final eventIds = <String>[];
-    _lastAiCreated = (tasks: taskIds, events: eventIds);
-    var created = 0;
-    for (final item in items) {
-      if (item.kind == AiProposalKind.task) {
-        final id = await widget.repository.create(
-          markAiTitle(item.title),
-          showDate: item.date?.toString(),
-          projectId: item.projectId,
-          notes: item.storedNotes(),
-        );
-        taskIds.add(id);
-        if (item.date != null) {
-          final task = await (db.select(
-            db.tasks,
-          )..where((t) => t.id.equals(id))).getSingle();
-          await links.setShown(task, true);
-        }
-      } else {
-        final eventId = await agendaService.createEvent(
-          AgendaEventDraft(
-            calendarId: item.calendarId!,
-            title: markAiTitle(item.title),
-            start: item.start!,
-            end: item.end!,
-            allDay: item.allDay,
-            location: item.location,
-            notes: item.storedNotes(),
-          ),
-        );
-        eventIds.add(eventId);
-      }
-      created++;
-    }
-    return created;
-  }
 
   Future<void> _openAiCapture() async {
     final settings = AiSettings();
@@ -1310,8 +1196,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         builder: (_) => AiCapturePage(
           client: AiClient(settings),
           providerLabel: config.provider.label,
-          loadContext: _aiContext,
-          create: _createAiProposals,
+          loadContext: aiActions.context,
+          create: aiActions.create,
           calendarColors: {
             for (final calendar
                 in agendaService.lastCalendars ?? const <AgendaCalendar>[])
@@ -1322,7 +1208,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     );
     if (created == null || created == 0 || !mounted) return;
     unawaited(agendaSync?.changed());
-    final batch = _lastAiCreated;
+    final batch = aiActions.lastCreated;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 8),
@@ -1339,26 +1225,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   /// Removes one ✨ batch: tasks go to the trash (recoverable), events are
   /// deleted from their calendar.
-  Future<void> _undoAiCreation(
-    ({List<String> tasks, List<String> events}) batch,
-  ) async {
-    final db = widget.repository.db;
-    var failed = 0;
-    for (final id in batch.tasks) {
-      final task = await (db.select(
-        db.tasks,
-      )..where((t) => t.id.equals(id))).getSingleOrNull();
-      if (task != null && task.deletedAt == null) {
-        await widget.repository.softDelete(task);
-      }
-    }
-    for (final id in batch.events) {
-      try {
-        await agendaService.deleteEvent(id);
-      } catch (_) {
-        failed++;
-      }
-    }
+  Future<void> _undoAiCreation(AiCreatedBatch batch) async {
+    final failed = await aiActions.undo(batch);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -132,6 +132,44 @@ void main({bool includeDesktop = true}) {
     );
   }
 
+  testWidgets('a corrupt draft does not block the editor', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repo = TaskRepository(db, deviceId: 'fixture');
+    final id = await repo.create('Titolo intatto');
+    // Valid JSON, wrong shape: the restore throws a TypeError.
+    await EditorDrafts(db).write(id, {'title': 42});
+    await tester.pumpWidget(
+      TodoApp(repository: repo, enablePlatformServices: false),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Titolo intatto'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('task-editor-title')))
+          .controller!
+          .text,
+      'Titolo intatto',
+    );
+    // The broken draft is gone and new edits are saved as a draft again.
+    await tester.enterText(
+      find.byKey(const ValueKey('task-editor-description')),
+      'Nuova bozza',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect((await EditorDrafts(db).read(id))?['notes'], 'Nuova bozza');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await db.close();
+  });
+
   testWidgets(
     'desktop closes after save and restores draft without reverting a remote field',
     (tester) async {

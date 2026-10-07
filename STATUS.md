@@ -2,6 +2,19 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Build 242 — Bozze dell'editor e struttura
+
+Una bozza di forma errata lanciava durante il ripristino lasciando
+`restoringDraft = true`: l'editor si apriva ma nessuna modifica successiva
+veniva più salvata come bozza. Ora la bozza è letta per intero prima di
+applicarla, il flag torna sempre falso, la bozza illeggibile viene rimossa e
+la diagnostica registra `editor_draft_restore_failed` con il solo tipo di
+errore. Test di regressione: fallisce con il codice precedente.
+`AiCaptureActions` estratto da `main.dart` (1.758 → circa 1.600 righe
+dall'inizio della revisione) con test. `make todo-test` usa
+`--split-debug-info`: APK arm64 locale da 25,0 a 23,6 MB, simboli in
+`build/private-symbols/`.
+
 ## Build 241 — Calendario: serie e occorrenze, drift 2.35
 
 `device_calendar_plus` 0.8 → 0.10 (`eventId` → `instanceId`; l'app usava già

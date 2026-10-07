@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.70.1 (build 242) — Todo Test
+
+- Editor: una bozza illeggibile disattivava in silenzio il salvataggio delle
+  bozze successive; ora viene scartata, l'editor resta intatto e l'errore
+  (solo il tipo) finisce nella diagnostica.
+- La logica di ✨ Assistente (contesto, creazione, annullamento) è uscita da
+  `main.dart` in `AiCaptureActions`, con test.
+- `make todo-test` separa i simboli Dart come la CI: APK di prova circa
+  1,3 MB più leggero.
+
 ## 2.70.0 (build 241) — Todo Test
 
 - Calendario: eliminare «solo questa» su un'occorrenza già modificata la

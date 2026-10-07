@@ -80,28 +80,73 @@ class _TaskEditorState extends State<TaskEditor> {
     title.addListener(_onEditorTextChanged);
     notes.addListener(_onEditorTextChanged);
     showDate.addListener(_onEditorTextChanged);
-    unawaited(_restoreDraft().catchError((Object _) {}));
+    unawaited(
+      _restoreDraft().catchError((Object error) {
+        // A corrupt draft must not block the editor, but losing it should
+        // be visible in diagnostics: type only, never its text.
+        return DiagnosticLogService.instance.event(
+          'editor_draft_restore_failed',
+          level: 'warning',
+          fields: {'error_type': error.runtimeType.toString()},
+        );
+      }),
+    );
   }
 
   Future<void> _restoreDraft() async {
     final draft = await drafts.read(widget.task.id);
     if (!mounted || draft == null || !_matchesTask(baseline)) return;
-    restoringDraft = true;
-    setState(() {
-      baseline = Task.fromJson(
-        Map<String, dynamic>.from(draft['baseline'] as Map),
+    // Read every field before touching the editor: a draft of the wrong
+    // shape must leave it untouched instead of half restored.
+    final ({
+      Task baseline,
+      String title,
+      String? notes,
+      String date,
+      String recurrence,
+      int priority,
+      String? projectId,
+      String? sectionId,
+      bool dateCleared,
+    })
+    value;
+    try {
+      value = (
+        baseline: Task.fromJson(
+          Map<String, dynamic>.from(draft['baseline'] as Map),
+        ),
+        title: draft['title'] as String,
+        notes: draft['notes'] as String?,
+        date: draft['date'] as String? ?? '',
+        recurrence: draft['recurrence'] as String,
+        priority: draft['priority'] as int,
+        projectId: draft['projectId'] as String?,
+        sectionId: draft['sectionId'] as String?,
+        dateCleared: draft['dateCleared'] == true,
       );
-      title.replaceMarkdown(draft['title'] as String);
-      notes.replaceMarkdown(draft['notes'] as String?);
-      showDate.text = draft['date'] as String? ?? '';
-      recurrence = draft['recurrence'] as String;
-      priority = draft['priority'] as int;
-      projectId = draft['projectId'] as String?;
-      projectSectionId = draft['sectionId'] as String?;
-      dateExplicitlyCleared = draft['dateCleared'] == true;
-      draftRestored = true;
-    });
-    restoringDraft = false;
+    } on Object {
+      // Unreadable: it would fail on every opening and is useless anyway.
+      await drafts.remove(widget.task.id);
+      rethrow;
+    }
+    restoringDraft = true;
+    try {
+      setState(() {
+        baseline = value.baseline;
+        title.replaceMarkdown(value.title);
+        notes.replaceMarkdown(value.notes);
+        showDate.text = value.date;
+        recurrence = value.recurrence;
+        priority = value.priority;
+        projectId = value.projectId;
+        projectSectionId = value.sectionId;
+        dateExplicitlyCleared = value.dateCleared;
+        draftRestored = true;
+      });
+    } finally {
+      // Otherwise later edits would never be saved as a draft again.
+      restoringDraft = false;
+    }
   }
 
   Future<bool> preserveDraft() async {

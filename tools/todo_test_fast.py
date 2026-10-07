@@ -100,6 +100,9 @@ def build(root: Path, version: str, build_number: int) -> Path:
         "--build-number", str(DEV_BUILD_OFFSET + build_number),
         "--dart-define=DISTRIBUTION_CHANNEL=dev",
         "--dart-define-from-file=supabase/config.json",
+        # Same as CI: Dart symbols stay on the Mac (build/ is not committed),
+        # about 1 MB less to send to the phone.
+        "--split-debug-info=build/private-symbols/dev-arm64",
     ], cwd=root, env=signing_environment(root))
     apk = root / "build/app/outputs/flutter-apk/app-dev-release.apk"
     if not apk.is_file() or apk.stat().st_size == 0:

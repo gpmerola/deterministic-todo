@@ -20,7 +20,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
   `lib/ui/views/agenda_view.dart` in controller più piccoli.
 - [ ] Facoltativo, solo su decisione esplicita: migrazione Room che elimini le
   tabelle archiviate `run_sessions`, `track_points`, `bip_u_activity_samples`.
-- [ ] Facoltativo: `--split-debug-info` in `make todo-test` (~1,2 MB di simboli).
 
 ## P1 — Riscontri dell'utente sul Galaxy
 

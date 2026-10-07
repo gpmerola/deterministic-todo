@@ -111,6 +111,7 @@ resto vive in librerie separate, testabili senza avviare l'app:
 | `ui/shell/app_update_flow.dart` | controllo e installazione aggiornamenti |
 | `ui/shell/civil_day_clock.dart` | giorno civile corrente |
 | `ui/shell/daily_steps_controller.dart` | passi del giorno, obiettivo e celebrazione |
+| `services/ai_capture_actions.dart` | ✨: contesto, creazione e annullamento |
 
 Le viste ricevono le righe già filtrate e un `tileBuilder`: non dipendono dalla
 shell né dall'editor. Dalla build 239 i passi sono un `ChangeNotifier`
