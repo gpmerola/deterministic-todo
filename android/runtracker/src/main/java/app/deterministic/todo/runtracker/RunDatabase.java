@@ -9,11 +9,12 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 /**
- * Schema unchanged since the movement archive: GPS sessions, Bip U samples and
- * daily estimates stay on disk untouched; only step tables are still written.
+ * Only the phone step tables remain. Version 6 deletes the data of the
+ * archived movement features (GPS sessions and points, Bip U samples, daily
+ * estimates), at the user's request of 7 October 2026; migrations 1-5 stay
+ * so any older database still upgrades.
  */
-@Database(entities = {RunSession.class, TrackPoint.class, DailyMovement.class,
-    BipUActivitySample.class, LocalStepMinute.class, LocalStepState.class}, version = 5, exportSchema = false)
+@Database(entities = {LocalStepMinute.class, LocalStepState.class}, version = 6, exportSchema = false)
 public abstract class RunDatabase extends RoomDatabase {
     private static volatile RunDatabase instance;
     public abstract RunDao runs();
@@ -47,6 +48,15 @@ public abstract class RunDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("DROP TABLE IF EXISTS `track_points`");
+            database.execSQL("DROP TABLE IF EXISTS `run_sessions`");
+            database.execSQL("DROP TABLE IF EXISTS `bip_u_activity_samples`");
+            database.execSQL("DROP TABLE IF EXISTS `daily_movement`");
+        }
+    };
+
     public static RunDatabase get(Context context) {
         RunDatabase current = instance;
         if (current != null) return current;
@@ -54,7 +64,7 @@ public abstract class RunDatabase extends RoomDatabase {
             if (instance == null) {
                 instance = Room.databaseBuilder(
                     context.getApplicationContext(), RunDatabase.class, "run_tracker.sqlite"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build();
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build();
             }
             return instance;
         }

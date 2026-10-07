@@ -33,16 +33,4 @@ public interface RunDao {
 
     @Query("SELECT * FROM local_step_minutes WHERE startMillis >= :start AND startMillis < :end ORDER BY startMillis")
     List<LocalStepMinute> localStepMinutes(long start, long end);
-
-    // Archived tables: read/written only by migration tests, never by the app.
-    @Insert long insertSession(RunSession session);
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void upsertDailyMovement(DailyMovement movement);
-
-    @Query("SELECT * FROM daily_movement WHERE day = :day AND zoneId = :zoneId ORDER BY updatedAtMillis DESC LIMIT 1")
-    DailyMovement dailyMovement(String day, String zoneId);
-
-    @Query("SELECT * FROM run_sessions WHERE id = :id LIMIT 1")
-    RunSession session(long id);
 }

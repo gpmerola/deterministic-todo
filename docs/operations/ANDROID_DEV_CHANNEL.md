@@ -128,7 +128,8 @@ con `cd android && ./gradlew --stop`; non è necessario né utile mentre una bui
 - Prima di attivare il monitor passivo o intensivo in Todo Test, fermarlo nella
   build Play. Due client attivi produrrebbero raccolte e upload concorrenti.
 - I report già caricati su Drive e tutti i dati locali della build Play restano
-  invariati. Non occorre migrare la baseline esistente per conservarla.
+  invariati finché la build Play non riceve una versione ≥ 243, che cancella
+  i dati di Movimento archiviato anche lì ([MOVIMENTO](../archive/MOVIMENTO.md)).
 - Per tornare al canale stabile, fermare i servizi di Todo Test e riaprire la
   build Play. La promozione di una modifica a Play continua a usare il normale
   bundle firmato da Google Play App Signing.

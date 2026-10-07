@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.70.2 (build 243) — Todo Test
+
+- Cancellati dal telefono, su richiesta, i dati di Movimento archiviato:
+  sessioni e punti GPS, campioni Bip U, stime giornaliere, preferenze, file
+  e chiave Bip U. Restano i passi e l'obiettivo giornaliero.
+
 ## 2.70.1 (build 242) — Todo Test
 
 - Editor: una bozza illeggibile disattivava in silenzio il salvataggio delle

@@ -18,4 +18,12 @@ public class MovementArchiveCleanupTest {
             assertTrue(tag, tag.startsWith(prefix) && tag.endsWith("Worker"));
         assertEquals(5, MovementArchiveCleanup.ARCHIVED_WORKERS.size());
     }
+
+    @Test public void neverDeletesWhatTheStepCounterReads() {
+        for (String kept : MovementArchiveCleanup.KEPT_PREFERENCES) {
+            assertFalse(kept, MovementArchiveCleanup.ARCHIVED_PREFERENCES.contains(kept));
+            assertFalse(kept, kept.startsWith(MovementArchiveCleanup.ARCHIVED_PREFERENCE_PREFIX));
+        }
+        assertEquals("daily_step_goal", MovementArchiveCleanup.STEP_GOAL);
+    }
 }

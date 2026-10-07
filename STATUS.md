@@ -2,6 +2,17 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Build 243 — Dati di Movimento cancellati
+
+Su permesso esplicito dell'utente: `run_tracker.sqlite` schema 6 elimina le
+quattro tabelle archiviate; `MovementArchiveCleanup` v2 (in background)
+rimuove preferenze, file, chiave Bip U e compatta il database. Test JVM sugli
+elenchi (nulla di ciò che il contapassi legge) e test strumentale su emulatore
+`migrationToV6DropsArchivedDataAndKeepsSteps` verdi (3/3).
+
+Le due attività con «identitÃ » sono state corrette dal Web pubblico
+(«identità»), con data e ricorrenza invariate.
+
 ## Release stabile 242 — pubblicata il 7 ottobre 2026
 
 Dopo `PUBBLICA` dell'utente, workflow coordinato

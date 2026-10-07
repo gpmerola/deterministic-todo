@@ -22,7 +22,7 @@ public class LocalStepStorageTest {
 
     private RunDatabase open() {
         return Room.databaseBuilder(context, RunDatabase.class, name)
-            .addMigrations(RunDatabase.MIGRATION_4_5).allowMainThreadQueries().build();
+            .addMigrations(RunDatabase.MIGRATION_4_5, RunDatabase.MIGRATION_5_6).allowMainThreadQueries().build();
     }
     @Before public void setup() {
         context = InstrumentationRegistry.getInstrumentation().getContext();
@@ -59,26 +59,29 @@ public class LocalStepStorageTest {
         assertEquals(120_000, db.runs().localStepState().importedThroughMillis);
     }
 
-    @Test public void migrationFromV4PreservesSessionAndDailySubtotal() {
-        RunSession session = new RunSession(); session.startedAtMillis = 60_000;
-        session.activityType = "walk"; long id = db.runs().insertSession(session);
-        DailyMovement day = new DailyMovement(); day.day = "2026-01-01";
-        day.zoneId = "UTC"; day.steps = 123; db.runs().upsertDailyMovement(day);
+    @Test public void migrationToV6DropsArchivedDataAndKeepsSteps() {
+        db.runs().insertLocalStepState(new LocalStepState());
+        db.runs().importLocalStepMinutes(List.of(minute(60_000, 42)), 120_000);
         db.close();
         try (SQLiteDatabase old = SQLiteDatabase.openDatabase(context.getDatabasePath(name).getPath(), null, 0)) {
-            old.execSQL("DROP TABLE local_step_minutes");
-            old.execSQL("DROP TABLE local_step_state");
-            old.execSQL("ALTER TABLE daily_movement RENAME TO synthetic_new_daily");
-            old.execSQL("CREATE TABLE daily_movement (day TEXT NOT NULL, zoneId TEXT NOT NULL, source TEXT NOT NULL, steps INTEGER NOT NULL, estimatedDistanceMeters REAL NOT NULL, estimatedActiveCalories REAL NOT NULL, updatedAtMillis INTEGER NOT NULL, PRIMARY KEY(day, zoneId, source))");
-            old.execSQL("INSERT INTO daily_movement SELECT day, zoneId, source, steps, estimatedDistanceMeters, estimatedActiveCalories, updatedAtMillis FROM synthetic_new_daily");
-            old.execSQL("DROP TABLE synthetic_new_daily");
-            old.setVersion(4);
+            // Synthetic version 5 tables of the archived features, with a row each.
+            old.execSQL("CREATE TABLE run_sessions (id INTEGER PRIMARY KEY, activityType TEXT)");
+            old.execSQL("CREATE TABLE track_points (id INTEGER PRIMARY KEY, sessionId INTEGER)");
+            old.execSQL("CREATE TABLE bip_u_activity_samples (timestampMillis INTEGER, source TEXT)");
+            old.execSQL("CREATE TABLE daily_movement (day TEXT, steps INTEGER)");
+            old.execSQL("INSERT INTO run_sessions VALUES (1, 'walk')");
+            old.execSQL("INSERT INTO track_points VALUES (1, 1)");
+            old.execSQL("INSERT INTO bip_u_activity_samples VALUES (60000, 'synthetic')");
+            old.execSQL("INSERT INTO daily_movement VALUES ('2026-01-01', 123)");
+            old.setVersion(5);
         }
         db = open();
-        assertEquals("walk", db.runs().session(id).activityType);
-        assertEquals(123, db.runs().dailyMovement("2026-01-01", "UTC").steps);
-        assertEquals(0, db.runs().dailyMovement("2026-01-01", "UTC").modelVersion);
-        db.runs().insertLocalStepState(new LocalStepState());
-        assertNotNull(db.runs().localStepState());
+        assertEquals(42, db.runs().localSteps(0, 120_000));
+        assertEquals(120_000, db.runs().localStepState().importedThroughMillis);
+        try (var cursor = db.getOpenHelper().getReadableDatabase().query(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN "
+                    + "('run_sessions', 'track_points', 'bip_u_activity_samples', 'daily_movement')")) {
+            assertEquals(0, cursor.getCount());
+        }
     }
 }

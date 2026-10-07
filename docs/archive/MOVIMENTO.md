@@ -56,16 +56,25 @@ plugin Kotlin. Permessi rimossi dall'app: posizione, servizio in primo piano
 
 ## Dati sul dispositivo
 
-Il database `run_tracker.sqlite` mantiene lo schema 5 e **tutti i dati**:
-sessioni, punti GPS, campioni Bip U, stime giornaliere. Solo le tabelle dei passi
-continuano a essere scritte. Anche le preferenze e la chiave Bip U nel Keystore
-restano; nessun dato viene cancellato o inviato altrove.
+Dalla build 243, su richiesta esplicita dell'utente del 7 ottobre 2026, i dati
+delle funzioni archiviate sono **cancellati** dal telefono:
 
-Al primo avvio della build 190, `MovementArchiveCleanup` annulla una sola volta i
-lavori WorkManager delle classi archiviate e l'iscrizione al riconoscimento
-attività. Il servizio intensivo, se attivo, si ferma con l'aggiornamento e non
-viene più riavviato. L'import dei passi non viene mai annullato (test
-`MovementArchiveCleanupTest`).
+- `run_tracker.sqlite` passa allo schema 6 (`MIGRATION_5_6`): eliminate le
+  tabelle `run_sessions`, `track_points`, `bip_u_activity_samples` e
+  `daily_movement`, poi `VACUUM`;
+- `MovementArchiveCleanup` versione 2 elimina le preferenze archiviate (elenco
+  in `ARCHIVED_PREFERENCES`), le chiavi del vecchio profilo tranne
+  `daily_step_goal`, le cartelle `files/movement_intensive` e
+  `cache/runtracker` e la chiave Keystore `bip_u_auth_key_encryption`.
+
+Restano i minuti dei passi (`local_step_minutes`, `local_step_state`), le
+preferenze `local_step_recording` e `phone_daily_steps` e l'obiettivo. La build
+Play disabilitata non è toccata finché non riceve una build ≥ 243. Un
+ripristino del codice dal tag non recupera questi dati.
+
+La versione 1 della pulizia (build 190) aveva annullato una sola volta i lavori
+WorkManager delle classi archiviate e l'iscrizione al riconoscimento attività;
+l'import dei passi non viene mai annullato (test `MovementArchiveCleanupTest`).
 
 ## Ripristino
 

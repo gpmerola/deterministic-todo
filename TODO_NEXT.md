@@ -9,17 +9,13 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 - [ ] `flutter_secure_storage` 10 → 11: la release stabile 242 (con la 10) è
   pubblicata; prima verificare che Play e APK diretto l'abbiano installata.
-- [ ] Correggere «identitÃ » in due attività ricorrenti (in attesa di conferma).
-- [ ] Cancellare i dati archiviati di Movimento (tabelle Room, chiave Bip U,
-  preferenze, file): richiesto dall'utente, bloccato dal controllo automatico
-  delle azioni irreversibili; serve un permesso esplicito nella sessione.
+- [ ] Galaxy: installare la 243 e verificare via `dumpsys`/provider che le
+  tabelle archiviate siano sparite e l'anello passi funzioni.
 - [ ] Test di ricorrenza reale: serie «Prova ricorrenza Todo (test)» già su
   Google Calendar; quando il Galaxy torna raggiungibile, modificare ed
   eliminare singole occorrenze dall'app, verificare su Google, poi cancellarla.
 - [ ] Proseguire la divisione di `lib/main.dart` (`_TaskShellState`) e
   `lib/ui/views/agenda_view.dart` in controller più piccoli.
-- [ ] Facoltativo, solo su decisione esplicita: migrazione Room che elimini le
-  tabelle archiviate `run_sessions`, `track_points`, `bip_u_activity_samples`.
 
 ## P1 — Riscontri dell'utente sul Galaxy
 

@@ -150,7 +150,8 @@ separato dal dominio Todo e mai sincronizzato con Supabase.
 
 Il vecchio modulo **Movimento** (sessioni GPS, Amazfit Bip U, Health Connect,
 distanza e calorie stimate, export Drive) è archiviato nel tag
-`archive/movimento-completo-b189`; contenuto, dati conservati e ripristino in
+`archive/movimento-completo-b189`. Dalla build 243 i suoi dati sono cancellati
+dal telefono; dettagli e ripristino del codice in
 [Movimento archiviato](docs/archive/MOVIMENTO.md).
 
 ## Import e reimport Todoist
