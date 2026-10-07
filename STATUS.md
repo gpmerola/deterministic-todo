@@ -2,6 +2,16 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Release stabile 244 — pubblicata il 7 ottobre 2026
+
+Dopo `PUBBLICA`, workflow coordinato
+[37615368356](https://github.com/gpmerola/deterministic-todo/actions/runs/37615368356)
+verde in tutti i job (Play interno, Web, APK diretti, parità).
+`release-info.json`: 2.70.3, build 244, commit `6dc3a15`. Include la
+cancellazione dei dati di Movimento (243): vale anche per Play e APK diretto
+quando installano questa versione. Disponibilità Play sul singolo dispositivo
+non verificata.
+
 ## Build 244 — Occorrenze modificate riconosciute come serie
 
 Il rilievo UX del test reale: la query nativa espone `changedOccurrence`
