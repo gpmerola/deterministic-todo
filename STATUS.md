@@ -10,6 +10,17 @@ rimuove preferenze, file, chiave Bip U e compatta il database. Test JVM sugli
 elenchi (nulla di ciò che il contapassi legge) e test strumentale su emulatore
 `migrationToV6DropsArchivedDataAndKeepsSteps` verdi (3/3).
 
+Galaxy (ADB riattivato da Debug wireless su LAN, poi `tcpip 5555`): 2243
+installata, nessun crash; `run_tracker.sqlite` da 5.036 a 1.404 KB
+(`dumpsys meminfo`), anello passi funzionante.
+
+Test di ricorrenza reale su Google, serie di prova creata dall'assistente:
+«Modifica nel calendario» → «Solo questa» sull'occorrenza del 17 ottobre ha
+creato l'eccezione sul telefono, caricata dal sync adapter in circa 1 minuto;
+la Google Calendar API mostra il titolo «… MOD» solo sul 17, 24 e 31 intatti.
+Eliminazione di un'occorrenza modificata e della serie non ancora provate sul
+telefono reale: interrotte perché l'utente stava usando il telefono.
+
 Le due attività con «identitÃ » sono state corrette dal Web pubblico
 («identità»), con data e ricorrenza invariate.
 

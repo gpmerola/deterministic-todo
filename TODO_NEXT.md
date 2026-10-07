@@ -9,11 +9,9 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 - [ ] `flutter_secure_storage` 10 → 11: la release stabile 242 (con la 10) è
   pubblicata; prima verificare che Play e APK diretto l'abbiano installata.
-- [ ] Galaxy: installare la 243 e verificare via `dumpsys`/provider che le
-  tabelle archiviate siano sparite e l'anello passi funzioni.
-- [ ] Test di ricorrenza reale: serie «Prova ricorrenza Todo (test)» già su
-  Google Calendar; quando il Galaxy torna raggiungibile, modificare ed
-  eliminare singole occorrenze dall'app, verificare su Google, poi cancellarla.
+- [ ] Test di ricorrenza reale, seconda parte: sulla serie «Prova ricorrenza
+  Todo (test)» (Google, 17/24/31 ottobre) eliminare «solo questa» sul 17 già
+  modificato («MOD») e sul 24, verificare su Google, poi eliminare la serie.
 - [ ] Proseguire la divisione di `lib/main.dart` (`_TaskShellState`) e
   `lib/ui/views/agenda_view.dart` in controller più piccoli.
 
