@@ -9,9 +9,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 - [ ] `flutter_secure_storage` 10 → 11: la release stabile 242 (con la 10) è
   pubblicata; prima verificare che Play e APK diretto l'abbiano installata.
-- [ ] Calendario: un'occorrenza modificata (riga eccezione) non mostra
-  «Evento ricorrente» né la scelta solo questa/tutta la serie; usare
-  `seriesOccurrence` anche per il dettaglio.
 - [ ] «Tutta la serie» dall'app su un calendario Google reale: provata solo su
   emulatore.
 - [ ] Test UI via ADB: mai toccare la fascia alta dello schermo dove compaiono

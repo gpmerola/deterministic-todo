@@ -22,6 +22,13 @@ Un'occorrenza già modificata è una riga eccezione con un id proprio, senza
   avrebbe fatto ricomparire l'occorrenza originale;
 - «tutta la serie», modifica o eliminazione: si usa la serie, non la riga.
 
+Dalla build 244 la query `instances` legge anche `ORIGINAL_ID` e passa
+`changedOccurrence`: `AgendaEntry.recurring` è vero anche per queste righe,
+così il dettaglio mostra «Evento ricorrente» e i flussi chiedono la portata.
+Verificato su Google reale (build 243): modifica di una sola occorrenza,
+eliminazione di un'occorrenza modificata (eccezione annullata) e di
+un'occorrenza normale arrivano al server senza toccare le altre.
+
 Ripristino del backup: il provider abbina le eccezioni alla serie tramite
 `_sync_id`. Una serie del calendario locale «Todo» non ne ha, e un'eccezione
 inserita contro di essa toglieva dalle Instances tutte le altre occorrenze:

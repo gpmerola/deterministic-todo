@@ -47,6 +47,7 @@ public final class AgendaChannel {
         CalendarContract.Instances.SELF_ATTENDEE_STATUS,
         CalendarContract.Instances.EVENT_TIMEZONE,
         CalendarContract.Instances.IS_ORGANIZER,
+        CalendarContract.Instances.ORIGINAL_ID,
     };
 
     private AgendaChannel() {}
@@ -284,6 +285,8 @@ public final class AgendaChannel {
                 row.put("timeZone", eventZone);
                 // Unknown counts as organizer: local events have no attendees.
                 row.put("organizer", cursor.isNull(12) || cursor.getInt(12) == 1);
+                // An occurrence changed on its own: still part of its series.
+                row.put("changedOccurrence", !cursor.isNull(13));
                 if (!allDay) row.put("eventZoneTimes", eventZoneTimes(begin, finish, eventZone, zone));
                 rows.add(row);
             }

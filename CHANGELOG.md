@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.70.3 (build 244) — Todo Test
+
+- Calendario: un'occorrenza modificata da sola resta «Evento ricorrente»;
+  modifica, eliminazione e «Nascondi» tornano a chiedere «solo questa» o
+  «tutta la serie».
+
 ## 2.70.2 (build 243) — Todo Test
 
 - Cancellati dal telefono, su richiesta, i dati di Movimento archiviato:

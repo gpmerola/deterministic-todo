@@ -1,4 +1,5 @@
 import 'package:deterministic_todo/data/local/database.dart';
+import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:drift/native.dart';
@@ -72,5 +73,34 @@ void main() {
     verify(() => calendar.deleteEvent(instanceId: '5@2000'));
     // An id with "@" is already a series slot: no native lookup.
     expect(native.where((c) => c.method == 'seriesOccurrence'), hasLength(1));
+  });
+
+  test('una occorrenza modificata resta parte della serie', () {
+    Map<Object?, Object?> row(String id, {bool changed = false}) => {
+      'instanceId': id,
+      'calendarId': 'cal',
+      'title': 'Visita',
+      'start': DateTime(2026, 10, 17, 7).millisecondsSinceEpoch,
+      'end': DateTime(2026, 10, 17, 8).millisecondsSinceEpoch,
+      if (changed) 'changedOccurrence': true,
+    };
+    const calendar = AgendaCalendar(
+      id: 'cal',
+      name: 'Personale',
+      accountName: 'me@example.com',
+      writable: true,
+    );
+    List<AgendaEntry> merged(Map<Object?, Object?> source) =>
+        mergeAgendaEntries(
+          events: [agendaEventFromRow(source)],
+          calendars: const [calendar],
+          hiddenCalendarIds: const {},
+        );
+
+    // Exception rows carry a bare id: before this, Todo treated them as
+    // one-off events and offered no "Tutta la serie".
+    expect(merged(row('77', changed: true)).single.recurring, isTrue);
+    expect(merged(row('12')).single.recurring, isFalse);
+    expect(merged(row('5@2000')).single.recurring, isTrue);
   });
 }

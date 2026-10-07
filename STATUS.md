@@ -2,6 +2,13 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Build 244 — Occorrenze modificate riconosciute come serie
+
+Il rilievo UX del test reale: la query nativa espone `changedOccurrence`
+(riga con `ORIGINAL_ID`) e `AgendaEntry.recurring` lo considera. Test Dart e
+test di fumo su emulatore (`occurrence_flag`) verdi; nessun evento sintetico
+residuo. Galaxy: 2244 installata via ADB, avvio senza crash.
+
 ## Build 243 — Dati di Movimento cancellati
 
 Su permesso esplicito dell'utente: `run_tracker.sqlite` schema 6 elimina le

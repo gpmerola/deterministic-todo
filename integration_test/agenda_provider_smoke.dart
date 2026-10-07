@@ -180,6 +180,13 @@ Future<void> main() async {
         'QA229-exception,QA229-series,QA229-single') {
       throw StateError('Occurrence edit touched the series');
     }
+    phase = 'occurrence_flag';
+    final single = edited.firstWhere((r) => r['title'] == 'QA229-single');
+    final normal = edited.firstWhere((r) => r['title'] == 'QA229-series');
+    if (single['changedOccurrence'] != true ||
+        normal['changedOccurrence'] == true) {
+      throw StateError('Changed occurrence flag');
+    }
     phase = 'occurrence_delete';
     await service.deleteEvent(
       edited

@@ -207,6 +207,7 @@ final class AgendaSourceEvent {
     this.timeZone,
     this.eventZoneTimes,
     this.isOrganizer = true,
+    this.changedOccurrence = false,
   });
 
   final String instanceId;
@@ -237,6 +238,10 @@ final class AgendaSourceEvent {
 
   /// False for invitations organised by someone else: not editable here.
   final bool isOrganizer;
+
+  /// One occurrence of a series changed on its own: an exception row,
+  /// listed under its own id without `@`.
+  final bool changedOccurrence;
 }
 
 /// A Todo task flagged for the Agenda: dates only, so shown all day.
@@ -401,6 +406,7 @@ final class AgendaEntry {
     this.timeZone,
     this.eventZoneTimes,
     this.isOrganizer = true,
+    this.changedOccurrence = false,
     this.taskId,
     this.completed = false,
     this.unanswered = false,
@@ -427,8 +433,12 @@ final class AgendaEntry {
   final String? eventZoneTimes;
   final bool isOrganizer;
 
-  /// Occurrence of a recurring series (instance ids carry `@timestamp`).
-  bool get recurring => instanceId.contains('@');
+  /// See [AgendaSourceEvent.changedOccurrence].
+  final bool changedOccurrence;
+
+  /// Occurrence of a recurring series: instance ids carry `@timestamp`,
+  /// except an occurrence changed on its own, which is still part of it.
+  bool get recurring => instanceId.contains('@') || changedOccurrence;
 
   /// First is the calendar used for colour; the rest are duplicates merged in.
   final List<String> calendarIds;
@@ -664,6 +674,7 @@ final class _MutableEntry {
     timeZone: source.timeZone,
     eventZoneTimes: source.eventZoneTimes,
     isOrganizer: source.isOrganizer,
+    changedOccurrence: source.changedOccurrence,
     unanswered: anyUnanswered && !anyAnswered,
     key: key,
   );
@@ -687,6 +698,7 @@ AgendaSourceEvent agendaEventFromRow(Map<Object?, Object?> row) =>
       timeZone: row['timeZone'] as String?,
       eventZoneTimes: row['eventZoneTimes'] as String?,
       isOrganizer: row['organizer'] as bool? ?? true,
+      changedOccurrence: row['changedOccurrence'] as bool? ?? false,
     );
 
 /// The device zone as the Agenda shows it: always the IANA id, never an
