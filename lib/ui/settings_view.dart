@@ -74,14 +74,12 @@ class SettingsView extends StatelessWidget {
   }
 
   Future<void> _importBackup(BuildContext context) async {
-    final picked = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
-      withData: true,
     );
-    if (picked == null || !context.mounted) return;
-    final bytes = picked.files.single.bytes;
-    final source = await readPickedText(bytes, picked.files.single.path);
+    if (picked.isEmpty || !context.mounted) return;
+    final source = decodePickedText(await picked.single.readAsBytes());
     final service = ExportService(repository.db);
     final preview = await service.preview(source);
     if (!context.mounted) return;
@@ -125,14 +123,12 @@ class SettingsView extends StatelessWidget {
   Future<void> _importTodoist(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final picked = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
-        withData: true,
       );
-      if (picked == null || !context.mounted) return;
-      final bytes = picked.files.single.bytes;
-      final source = await readPickedText(bytes, picked.files.single.path);
+      if (picked.isEmpty || !context.mounted) return;
+      final source = decodePickedText(await picked.single.readAsBytes());
       const service = TodoistImportService();
       // JSON e normalizzazione possono essere costosi su export grandi. Su
       // Android compute usa un isolate; sul Web mantiene la stessa API.

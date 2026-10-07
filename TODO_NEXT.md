@@ -7,10 +7,11 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P1 — Manutenzione aperta (revisione del 7 ottobre 2026)
 
-- [ ] `flutter_secure_storage` 9 → 11 blocca anche `package_info_plus` 10,
-  `share_plus` 13 e `file_picker` 13 (vincolo comune `win32`). Contiene
-  sessione Supabase e chiave AI: aggiornare solo con una build Todo Test che
-  dimostri sul Galaxy che sessione e chiave sopravvivono alla migrazione.
+- [ ] `flutter_secure_storage` 10 → 11 solo dopo una release stabile con la 10
+  (build ≥ 240) installata su ogni client: la 11 non legge i dati v9.
+- [ ] Controllare a mano, nell'app, se attività importate in passato da
+  Todoist o da backup hanno accenti alterati («Ã©» al posto di «é»): il bug
+  di decodifica è corretto dalla build 240.
 - [ ] `drift`/`sqlite3`/`idb_shim` restano bloccati alla versione del lock:
   `web/drift_worker.js` e `web/sqlite3.wasm` sono stati compilati una volta e
   vanno rigenerati insieme, con verifica Web di build release, HTTPS e

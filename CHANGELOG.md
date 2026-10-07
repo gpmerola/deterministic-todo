@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.69.0 (build 240) — Todo Test
+
+- Corretto: gli import di backup JSON e Todoist leggevano il file come
+  Latin-1, quindi le lettere accentate diventavano coppie di simboli. Ora
+  il file è decodificato in UTF-8 (anche con BOM) e un file non UTF-8 viene
+  rifiutato invece di essere alterato.
+- Cassaforte cifrata (`flutter_secure_storage`) 9 → 10 con migrazione
+  automatica di sessione e chiave ✨; aggiornate `file_picker` 13,
+  `share_plus` 13 e `package_info_plus` 10.
+- Il testo della pagina Assistente AI ora dice esattamente cosa viene
+  inviato al fornitore.
+
 ## 2.68.3 (build 239) — Todo Test
 
 - Passi: il controllo al minuto non ridisegna più tutta la schermata e

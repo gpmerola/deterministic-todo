@@ -137,11 +137,11 @@ class _AiSettingsViewState extends State<AiSettingsView> {
               children: [
                 Text(
                   'La chiave resta cifrata solo su questo telefono: non va '
-                  'nei backup, nei log né su Supabase. Per ora nessuna '
-                  'funzione la usa; le future funzioni AI chiederanno '
-                  'conferma prima di inviare qualunque testo e non '
-                  'invieranno mai eventi del calendario senza un tuo '
-                  'consenso esplicito.',
+                  'nei backup, nei log né su Supabase. La usa ✨ Assistente: '
+                  'solo quando premi «Interpreta» invia al fornitore il tuo '
+                  'testo, i nomi di progetti e calendari e titolo e orario '
+                  'dei prossimi eventi. Nulla viene creato senza la tua '
+                  'revisione.',
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),

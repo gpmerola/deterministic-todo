@@ -38,8 +38,7 @@ import 'services/calendar_shortcut_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/performance_monitor.dart';
-import 'services/picked_file_reader_native.dart'
-    if (dart.library.js_interop) 'services/picked_file_reader_web.dart';
+import 'services/picked_text.dart';
 import 'services/platform_runtime_native.dart'
     if (dart.library.js_interop) 'services/platform_runtime_web.dart';
 import 'services/run_tracker_service.dart';

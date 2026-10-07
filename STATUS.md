@@ -2,6 +2,23 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Build 240 — Cassaforte cifrata 10 e import UTF-8
+
+`flutter_secure_storage` 9 → 10 (non 11: la 11 rifiuta i dati v9 non migrati).
+Sul Galaxy, installando 2240 sopra 2239, il log riporta «Non-biometric migration
+completed successfully! Migrated 4 items»; dopo la migrazione e dopo un
+riavvio a freddo l'app resta sincronizzata senza login e la chiave DeepSeek
+è ancora presente. Il formato web della 2.x coincide con la 1.x (stessa chiave
+`FlutterSecureStorage`, AES-GCM, nessun wrap key): nessuna migrazione nel
+browser, da confermare alla prossima Web pubblicata.
+
+Trovato durante l'aggiornamento di `file_picker`: i lettori nativo e web
+decodificavano i file scelti con `String.fromCharCodes`, cioè Latin-1, mentre
+l'export scrive UTF-8. Un backup reimportato o un export Todoist con accenti
+sarebbe stato alterato. Ora `decodePickedText` decodifica UTF-8 con test.
+Eventuali import passati con accenti non sono stati controllati (nessuna
+ispezione del database personale). `make check` verde, 422 test.
+
 ## Build 239 — Manutenzione, passi e Calendario più leggeri
 
 Revisione di struttura richiesta dall'utente il 7 ottobre 2026. Il test
