@@ -2,6 +2,27 @@
 
 Aggiornato il 7 ottobre 2026.
 
+## Release stabile 242 — pubblicata il 7 ottobre 2026
+
+Dopo `PUBBLICA` dell'utente, workflow coordinato
+[37606976898](https://github.com/gpmerola/deterministic-todo/actions/runs/37606976898)
+verde in tutti i job: verifica, Play interno, Web, APK diretti e parità.
+`release-info.json`: 2.70.1, build 242, commit `88171c6`. Sul profilo Chrome
+reale (HTTPS) la Web 242 si apre senza nuovo login, Impostazioni mostra
+2.70.1 (242), «Sincronizzato · 11:33» e i dati sono presenti: sessione
+(cassaforte web 2.x) e database (drift 2.35) superano l'aggiornamento. La
+disponibilità Play sul singolo dispositivo non è stata verificata.
+
+Database personale ispezionato su autorizzazione dell'utente (copia Web,
+sola lettura): due sole attività con accenti alterati, entrambe ricorrenti
+(«identitÃ »). Non corrette in attesa di conferma.
+
+Cancellazione dei dati archiviati di Movimento richiesta dall'utente: non
+eseguita, bloccata dal controllo automatico delle azioni irreversibili.
+Test di ricorrenza su evento reale: serie di prova creata su Google Calendar
+(17/24/31 ottobre, 7:00), test sul telefono sospeso perché il Galaxy è
+diventato irraggiungibile via ADB (porta 5555 rifiutata).
+
 ## Build 242 — Bozze dell'editor e struttura
 
 Una bozza di forma errata lanciava durante il ripristino lasciando

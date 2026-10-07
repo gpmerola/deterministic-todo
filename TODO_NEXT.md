@@ -7,15 +7,15 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P1 — Manutenzione aperta (revisione del 7 ottobre 2026)
 
-- [ ] `flutter_secure_storage` 10 → 11 solo dopo una release stabile con la 10
-  (build ≥ 240) installata su ogni client: la 11 non legge i dati v9.
-- [ ] Controllare a mano, nell'app, se attività importate in passato da
-  Todoist o da backup hanno accenti alterati («Ã©» al posto di «é»): il bug
-  di decodifica è corretto dalla build 240.
-- [ ] Web pubblica dopo `PUBBLICA`: confermare su HTTPS reale che la sessione
-  (cassaforte web 2.x) e i dati (drift 2.35) restino dopo il refresh.
-- [ ] Calendario 241 sul Galaxy: provare con un evento reale una modifica e
-  un'eliminazione di una singola occorrenza e verificare su Google/Outlook.
+- [ ] `flutter_secure_storage` 10 → 11: la release stabile 242 (con la 10) è
+  pubblicata; prima verificare che Play e APK diretto l'abbiano installata.
+- [ ] Correggere «identitÃ » in due attività ricorrenti (in attesa di conferma).
+- [ ] Cancellare i dati archiviati di Movimento (tabelle Room, chiave Bip U,
+  preferenze, file): richiesto dall'utente, bloccato dal controllo automatico
+  delle azioni irreversibili; serve un permesso esplicito nella sessione.
+- [ ] Test di ricorrenza reale: serie «Prova ricorrenza Todo (test)» già su
+  Google Calendar; quando il Galaxy torna raggiungibile, modificare ed
+  eliminare singole occorrenze dall'app, verificare su Google, poi cancellarla.
 - [ ] Proseguire la divisione di `lib/main.dart` (`_TaskShellState`) e
   `lib/ui/views/agenda_view.dart` in controller più piccoli.
 - [ ] Facoltativo, solo su decisione esplicita: migrazione Room che elimini le
