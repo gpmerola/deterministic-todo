@@ -1,129 +1,353 @@
-# Attività deterministiche
+# Deterministic Todo
 
-Applicazione Flutter nativa per Android, macOS e Windows. Non contiene target web, analytics, pubblicità, AI o collaborazione. Il principio è: **“Ogni attività resta dove l’hai messa. Ogni regola fa esattamente ciò che dichiara.”**
+Gestore personale di attività Flutter, offline-first e senza pubblicità,
+analytics o collaborazione. Android è l’app nativa principale; macOS e Windows
+usano la stessa interfaccia dal browser.
 
-Distribuita con licenza [MIT](LICENSE).
+Distribuito con licenza [MIT](LICENSE).
 
-## Avvio facile con doppio clic
+Passi: dalla build 190 Android conserva solo il conteggio quotidiano dei passi
+del telefono; GPS, Amazfit, Health Connect e diagnostica Movimento sono
+[archiviati](docs/archive/MOVIMENTO.md) per ridurre peso e consumo di batteria.
 
-I launcher sono nella cartella principale, così sono immediatamente visibili:
+Dalla build 172 la sincronizzazione applica solo i campi modificati e impedisce
+che il cambio di giorno ripubblichi copie vecchie. **Impostazioni → Dati e
+manutenzione → Storico attività** conserva 90 giorni di revisioni locali,
+consultabili, esportabili e ripristinabili per singola attività. Architettura,
+privacy e limiti: [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
-- macOS: doppio clic su `AVVIA_MAC.command`;
-- controllo macOS: `CONTROLLA_REQUISITI_MAC.command` distingue Xcode completo dai soli Command Line Tools;
-- Android da macOS: collega il telefono o avvia un emulatore, poi doppio clic su `AVVIA_ANDROID.command`;
-- APK senza Android SDK locale: `SCARICA_APK_ANDROID.command` scarica la build ARM64 per Galaxy S21; `INSTALLA_APK_ANDROID.command` la installa via ADB quando disponibile oppure apre la cartella da trasferire al telefono;
-- Windows: doppio clic su `AVVIA_WINDOWS.bat`;
-- per generare file installabili: usa `CREA_APP_INSTALLABILI.command` su macOS oppure `CREA_APP_WINDOWS.bat` su Windows.
-- senza Xcode locale: usa `SCARICA_APP_MAC.command`; scarica e apre l'ultima build prodotta dal repository GitHub privato.
-- dopo il primo download: usa semplicemente `APRI_ATTIVITA_MAC.command` per aprire l'app; se manca, avvia automaticamente il download.
+La build 179 corregge una scansione remota incompleta causata dall'ordinamento
+delle pagine e rende osservabili pagine, righe e conflitti. Diagnosi, test e
+limiti: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
+Disponibilità effettiva Android/Web: [STATUS](STATUS.md).
 
-Al primo avvio il sistema può chiedere di autorizzare l’esecuzione. Su macOS, se Finder la blocca, fai clic destro sul file `.command`, scegli **Apri**, quindi conferma **Apri**.
+La build 189 fa dipendere la pianificazione dalla sola data, definisce le viste
+una sola volta in SQLite, rimuove `due_date` e il riconoscimento dell'Inbox per
+nome: un vecchio progetto "Inbox" si converte con **Azioni progetto → Sposta in
+Inbox**. Dettagli: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
 
-### Propagare una modifica a macOS e Android
+La build 180 corregge il ripristino di attività dopo un invio incerto: la scelta
+fatta nello storico supera gli intenti precedenti e conserva le modifiche
+successive. Cronologia e ricevute restano protette; dettagli nel
+[contratto di sincronizzazione](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
-Android è il primo canale di collaudo. Ogni incremento funzionale completo e verificato incrementa obbligatoriamente versione e build in `pubspec.yaml`; il push su un branch `agent/**` avvia automaticamente test, compilazione firmata, APK separati per CPU, pubblicazione `latest` e verifica del manifest pubblico. Non serve più avviare manualmente la pubblicazione ordinaria. Verify, build APK separata e macOS restano manuali per evitare di compilare due volte lo stesso commit; il workflow manuale con conferma `PUBBLICA` è un recupero controllato.
+## Piattaforme
 
-L'app Android controlla il piccolo manifest pubblico a ogni apertura, dopo il primo frame e senza bloccare l'interfaccia. Se trova una versione superiore, seleziona l’APK per la CPU, verifica SHA-256 e lo scarica dentro l’app senza aprire GitHub. Il controllo manuale resta nelle Impostazioni. Android richiede comunque una sola conferma di sistema finale: un'app installata fuori dal Play Store non può sostituirsi silenziosamente.
+- **Android 8 o successivo:** app firmata, aggiornata automaticamente tramite
+  il manifest pubblico e APK separati per CPU (minimo API 26).
+- **Browser desktop:** web app Flutter pubblicata su GitHub Pages. Usa la stessa
+  struttura minimale di Android con un adattamento per mouse, tastiera e
+  schermi larghi; conserva un database SQLite locale persistente e si
+  sincronizza con Android tramite Supabase.
+- **macOS e Windows nativi:** non più distribuiti. I vecchi launcher e target
+  sono stati rimossi per evitare versioni divergenti.
 
-Perché una modifica sia visibile, il numero versione/build deve essere nuovo: il workflow rifiuta una release duplicata invece di pubblicare un aggiornamento invisibile. `RELEASE_REPO_TOKEN` resta limitato in scrittura al solo repository `deterministic-todo-releases`; chiave di firma e password restano nei GitHub Actions Secrets.
+URL web previsto:
 
-### macOS senza sudo o Mac App Store
+`https://gpmerola.github.io/deterministic-todo/`
 
-Scarica `Xcode.xip` dalla pagina [Apple Developer Downloads](https://developer.apple.com/download/all/) con un Apple Account gratuito, estrailo e sposta `Xcode.app` in `~/Applications/`. Apri Xcode una volta per accettare licenza e componenti. I launcher rilevano questa posizione e impostano `DEVELOPER_DIR` soltanto per il processo corrente: non chiamano `sudo` e non cambiano `xcode-select` globale. Apple conferma che `xcodebuild` è incluso soltanto nell'app Xcode completa; i Command Line Tools non bastano.
+Le attività storiche rimaste senza data e non assegnate a un progetto sono
+gestibili da **Impostazioni → Attività senza data**. Possono essere rimosse
+singolarmente o tutte insieme; la cancellazione viene sincronizzata e resta
+recuperabile dal Cestino finché questo non viene svuotato esplicitamente.
 
-## Architettura
+Informativa privacy:
 
-La UI usa sempre SQLite locale tramite Drift. `TaskRepository` applica comandi transazionali e registra la stessa modifica nell'outbox persistente. Il repository contiene `SyncService`, merge Lamport, migrazione Supabase e accesso persistente: dopo un solo collegamento la sessione viene conservata nel keychain/keystore e rinnovata automaticamente. La sincronizzazione live richiede ancora un progetto Supabase configurato e una prova reale tra due dispositivi. Le regole complete sono in [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md); il prossimo lavoro è in [TODO_NEXT.md](TODO_NEXT.md).
+`https://gpmerola.github.io/deterministic-todo/privacy.html`
 
-Directory principali:
+### Aprirla automaticamente con Chrome
 
-- `lib/domain`: tipi e regole pure;
-- `lib/data/local`: schema SQLite Drift e migrazione iniziale;
-- `lib/data/sync`: conflitti e worker offline-first;
-- `lib/services`: notifiche e import/export;
-- `lib/main.dart`: bootstrap e UI adattiva italiana;
-- `supabase/migrations`: schema PostgreSQL, funzione di merge e RLS.
+In Chrome apri **⋮ → Impostazioni → All’avvio**, scegli **Apri una pagina
+specifica o un insieme di pagine**, premi **Aggiungi una nuova pagina** e
+incolla l’URL web qui sopra. Da quel momento la web app si aprirà come scheda
+ogni volta che avvii Chrome.
 
-## Avvio locale
+## Uso quotidiano
 
-Richiede Flutter stable 3.44 o compatibile e Dart 3.12.
+Al primo accesso da un nuovo browser vai in **Impostazioni**, inserisci la stessa
+email e la stessa password personale usate su Android e premi **Collega**. La
+sessione resta memorizzata nel browser; non usare la password GitHub.
+
+SQLite locale resta la fonte immediata dell’interfaccia. Supabase replica task,
+progetti, sezioni, ricorrenze e tombstone tra dispositivi senza bloccare l’uso
+offline. Non aprire la web app in navigazione in incognito e non cancellare i
+dati del sito se vuoi conservare la copia offline.
+
+Per togliere la pianificazione, apri l’attività, premi **Senza data** (oppure la
+**X** accanto alla data) e **Salva**. La scelta resta anche dopo la riapertura:
+un’attività di progetto rimane nel progetto e non compare più in Oggi o Prossime.
+Puoi assegnarle di nuovo una data dal pulsante **Data**.
+
+## Funzioni principali
+
+- Oggi, Prossime e Progetti con UI minimale;
+- date civili senza ora, stabili tra fusi e ora legale;
+- linguaggio naturale italiano evidenziato (`oggi`, `domani`, `ogni martedì`,
+  `ogni 3 giorni`, `ogni terzo martedì`, date annuali e altre varianti);
+- data odierna implicita nelle nuove attività del composer; nell’editor la
+  scelta **Senza data** resta salvata, con comportamento identico su Android e Web;
+- ricorrenze che generano la prossima occorrenza al completamento;
+- priorità P1–P4 con ordinamento automatico;
+- Undo e Cestino per attività, progetti e sezioni;
+- descrizioni e link Todoist leggibili senza URL estesi;
+- import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
+- backup JSON versionato con attività, progetti, sezioni e preferenze Todo;
+  ripristino atomico e compatibilità con il formato precedente; export CSV;
+- export esplicito verso Google Calendar esclusivamente su Android.
+- contapassi Android isolato: passi del telefono tramite la Recording API
+  locale e obiettivo giornaliero, in un archivio Room separato.
+
+## Calendario (Android)
+
+**Calendario → ⋮ → Promemoria**: avviso locale 30 minuti prima di tutti gli
+eventi con orario visibili, anche già presenti; attivo per default e
+disattivabile. Consenti notifiche e «Sveglie e promemoria» in Android per
+riceverlo puntualmente. Esclusi gli eventi tutto il giorno; gli avvisi delle
+altre app restano indipendenti. [Dettagli](docs/architecture/PROMEMORIA_CALENDARIO.md).
+
+Il Calendario ha una palette dedicata: superfici neutre, fasce delle date
+in grigio-azzurro e accenti blu per «Oggi» e comandi. I colori dei calendari
+restano distinti, con fondi più tenui per gli eventi, nei temi chiaro e scuro.
+I testi degli eventi restano a piena opacità anche nei giorni passati.
+La conferma «Nascosto in Todo» sparisce dopo 6 secondi, con X e «Annulla»;
+gli eventi nascosti restano ripristinabili da «Calendari e filtri».
+
+La sezione **Calendario** riunisce i calendari già sincronizzati dal telefono:
+Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
+4 settimane (predefinito iniziale: corrente più le tre successive), mese,
+3 settimane (corrente più due), 2 settimane,
+settimana, 3 giorni ed elenco. Il cambio
+vista conserva la data selezionata. L’ultima vista scelta viene salvata sul
+dispositivo e ripristinata alla riapertura; i filtri sono espliciti e azzerabili.
+
+In tutte le viste del Calendario, almeno tre visite consecutive dello stesso
+calendario, con pause fino a 15 minuti tra la fine di una visita e l’inizio
+della successiva, diventano un blocco con intervallo e numero di visite. Toccandolo
+si vedono tutti gli orari e si apre il singolo evento. Pause oltre 15 minuti, sovrapposizioni
+e altri tipi di appuntamento restano separati; nessun evento viene modificato.
+Su Android, **Calendario → ⋮ → Aggiungi alla schermata Home** propone un'icona
+che apre direttamente questa sezione, previa conferma del launcher.
+
+L'editor conserva una bozza locale recuperabile e rimane aperto se il
+salvataggio fallisce. Mostra calendario di destinazione, data finale e durata;
+Android permette di scegliere un fuso IANA per nuovi eventi. Una copia «solo
+in Todo» è indipendente dall'originale, che viene nascosto soltanto in Todo;
+un tentativo ripetuto aggiorna la stessa copia. «Nascondi» offre «Annulla».
+
+Con sincronizzazione attiva, il telefono invia a Supabase una copia per il
+Web; le scritture Web vengono applicate dal telefono. Il backup Agenda
+comprende gli eventi del calendario locale e le scelte, mentre le bozze
+restano sul dispositivo. I calendari esterni continuano a usare la propria
+sincronizzazione. Dettagli e limiti: [agenda unificata](docs/architecture/AGENDA.md).
+
+## Passi (Android)
+
+L'anello nell'AppBar mostra i passi del giorno civile rispetto all'obiettivo
+(10.000 se non impostato, da 1.000 a 100.000). Toccandolo si apre un pannello
+con il totale, lo stato della raccolta, il pulsante per concedere il permesso
+**Attività fisica** quando manca e la modifica dell'obiettivo, disponibile anche
+in **Impostazioni**.
+
+I passi vengono dalla Recording API locale di Play Services, senza account,
+GPS, Bluetooth o servizi in primo piano. Android importa i minuti completi ogni
+3 ore in background; con l'app visibile l'anello si aggiorna una volta al
+minuto. I dati restano sul dispositivo nel database `run_tracker.sqlite`,
+separato dal dominio Todo e mai sincronizzato con Supabase.
+
+Il vecchio modulo **Movimento** (sessioni GPS, Amazfit Bip U, Health Connect,
+distanza e calorie stimate, export Drive) è archiviato nel tag
+`archive/movimento-completo-b189`. Dalla build 243 i suoi dati sono cancellati
+dal telefono; dettagli e ripristino del codice in
+[Movimento archiviato](docs/archive/MOVIMENTO.md).
+
+## Import e reimport Todoist
+
+Da **Impostazioni → Dati e manutenzione → Importa da Todoist** seleziona il JSON
+più recente.
+
+- **Aggiorna** aggiunge e aggiorna i record Todoist senza duplicati.
+- **Sostituisci** ricostruisce progetti, sezioni e attività provenienti da
+  Todoist, eliminando quelle assenti dal nuovo export. Le task create
+  direttamente nell’app restano intatte.
+
+Titolo, descrizione, link Markdown, progetto, sezione, priorità, data civile e
+ricorrenza sono conservati. Commenti, allegati, filtri, reminder e sotto-attività
+non sono ancora modellati.
+
+## Sincronizzazione Supabase
+
+La configurazione client usa soltanto Project URL e publishable key. Sono valori
+pubblici protetti dalle policy RLS; una `service_role` non deve mai entrare nel
+client. Sul progetto personale devono essere state applicate, nell’ordine:
+
+1. `supabase/migrations/202608040001_initial.sql`;
+2. `supabase/migrations/202608040002_todoist_import.sql`;
+3. `supabase/migrations/202608050001_realtime_sync.sql`;
+4. `supabase/migrations/202608080001_references.sql`;
+5. `supabase/migrations/202608310001_purge_trash.sql`;
+6. `supabase/migrations/202609110001_safe_purge.sql`;
+7. `supabase/migrations/202609110002_ledger_privileges.sql`;
+8. `supabase/migrations/202609110003_task_fingerprints.sql`;
+9. `supabase/migrations/202609110004_sync_overview.sql`;
+10. `supabase/migrations/202610040001_agenda_mirror.sql` (Agenda sul Web);
+11. `supabase/migrations/202610050001_agenda_requests.sql` (modifiche
+    all'Agenda dal Web).
+
+Procedura e recovery: [registro delle eliminazioni](docs/operations/SAFE_PURGE.md).
+
+Le modifiche locali vengono inviate appena entrano nell’outbox. Supabase
+Realtime avvisa immediatamente gli altri dispositivi, che aggiornano SQLite e
+quindi l’interfaccia senza ricaricare la pagina. Il canale si riapre dopo
+errori o timeout; il controllo ogni dieci minuti mentre l'app è visibile rimane come
+recupero dopo assenza di rete o sospensione del processo.
+Gli eventi ravvicinati vengono accorpati e scaricano soltanto gli ID cambiati.
+Il client conserva il massimo contatore Lamport osservato e applica gli intenti
+per campo alla versione remota corrente con UPDATE condizionale. L'outbox viene
+riconosciuta soltanto dopo conferma; una modifica concorrente causa rilettura,
+mentre un esito incerto conserva le copie nello storico per una scelta esplicita.
+
+Il composer accetta data e ricorrenza naturali insieme a `#Nome progetto` e
+`p1`–`p4`, ricorda il progetto recente ma parte sempre senza priorità e rende
+leggibili i link incollati. Su desktop `Esc` torna indietro; selezionare una
+task apre sulla destra l'editor completo senza un
+secondo dialogo. Invio fisico conferma il titolo sia in creazione sia in modifica;
+nelle descrizioni rimane un normale a capo. Non sono attive scorciatoie globali
+di creazione o ricerca: `Esc` chiude o torna indietro senza interferire con la
+scrittura. Clic destro e pressione lunga
+aprono le sole azioni essenziali.
+Gli avvisi temporanei possono essere chiusi immediatamente con la `X`; quando
+si completa una ricorrenza mostrano anche la data della prossima occorrenza.
+In Oggi, le attività non concluse nei giorni precedenti restano visibili in un
+gruppo Arretrate separato, senza modificare automaticamente la loro data.
+La cancellazione tramite swipe richiede un gesto lungo da destra verso sinistra:
+la riga rivela chiaramente Cestino, conferma la soglia con feedback tattile e si
+riassesta con un movimento controllato; Undo rimane disponibile.
+Il completamento usa invece una spunta circolare immobile: conferma subito il
+tocco e chiude gradualmente la riga soltanto dopo aver mostrato il risultato,
+senza rimbalzi o cambi di dimensione del controllo.
+Titolo e descrizione rispondono con un feedback leggero sull'intera riga; gli
+stati vuoti restano una sola riga discreta. Sul Web una sincronizzazione non
+interrompe la bozza aperta nel pannello laterale.
+La ricerca copre anche progetti e URL, offre filtri compatti e mostra prima
+le attività attive, fino a 100 risultati. “Salute dati”
+nelle Impostazioni raccoglie sync, outbox, backup, quantità locali e versione
+senza aggiungere indicatori alla home. Dalla build 154 conserva nell'apertura
+corrente anche fase e ora dell'ultimo problema Todo, retry, recupero e ultimo
+successo, senza mostrare o registrare contenuto delle attività.
+Il bundle diagnostico rolling su Drive, configurato dalla scheda Movimento, è
+archiviato dalla build 190: la diagnostica Todo resta locale e leggibile via ADB.
+Priorità, date e ricorrenze hanno anche descrizioni accessibili indipendenti
+dal colore; l'app rispetta testo di sistema, alto contrasto e navigazione da
+tastiera. Sul Web SQLite WebAssembly e il worker Drift vengono precaricati,
+mentre le inizializzazioni indipendenti partono in parallelo.
+
+La creazione di nuovi account è disabilitata nel progetto Supabase. I dispositivi
+esistenti si collegano con l’account personale già creato.
+
+## Aggiornamenti
+
+Ogni modifica funzionale verificata incrementa versione e build.
+
+- L'unico workflow `Publish Android and Web Release` esegue analisi e test una
+  volta, compila entrambe le piattaforme e pubblica Android soltanto dopo che il
+  nuovo client web è online.
+- `release-info.json` sul sito e il manifest Android devono dichiarare la stessa
+  versione, build e commit; la pipeline li confronta dopo la pubblicazione.
+- Il browser riceve la versione nuova senza installer.
+
+La build Android diretta controlla gli aggiornamenti all’avvio e ogni sei ore
+mentre è in primo piano. La build Google Play interroga l’API ufficiale dopo il
+primo frame e al ritorno in primo piano: se esiste una nuova versione, mostra il
+prompt flessibile dello Store senza interrompere l’uso. Il controllo manuale è
+disponibile nelle Impostazioni. Il browser aggiorna la pagina direttamente dal
+sito.
+
+Per sviluppo rapido il flavor Android `dev` appare come **Todo Test** e si
+installa accanto alla versione Google Play senza toccarne dati o firma.
+Database, sessione, Keystore, permessi e servizi sono separati; procedura ADB e
+passaggio sicuro sono in
+[`docs/operations/ANDROID_DEV_CHANNEL.md`](docs/operations/ANDROID_DEV_CHANNEL.md).
+Sul telefono di collaudo Todo Test è l'unico client da usare; la build Play è
+conservata disabilitata come fallback. Non sono intercambiabili in-place e non
+condividono database, Keystore, permessi o diagnostica. Solo le attività Todo
+convergono tramite Supabase quando un client viene aperto e autenticato.
+
+## Sviluppo
+
+Richiede Flutter stable 3.44.7 o compatibile e Dart 3.12.
+
+La [mappa della documentazione](docs/README.md) distingue fonti correnti,
+architettura, runbook ed evidenze storiche. Il controllo locale canonico è:
 
 ```sh
 flutter pub get
-dart run build_runner build
-flutter analyze
-flutter test
-flutter run -d macos       # su macOS
-flutter run -d windows     # su Windows
-flutter run -d <android-device-id>
+make check-generated
+make check
 ```
-
-Il database è creato nella directory Application Support della piattaforma con WAL e foreign key abilitate. Il device UUID è nel secure storage di sistema.
-
-## Collegamento Supabase persistente
-
-La build configurata mostra in Impostazioni il collegamento a un account personale. Si crea o collega l'account una sola volta su ogni dispositivo; il refresh della sessione è automatico e la sessione è salvata nel secure storage nativo. “Scollega questo dispositivo” è l'unica azione che rimuove volontariamente la sessione locale. Non esiste ancora pairing tramite QR/codice né un registro server per revocare a distanza un singolo dispositivo.
-
-URL e publishable key Supabase sono configurazioni client pubbliche incluse in `supabase/config.json`; non concedono poteri amministrativi e le tabelle restano protette da RLS. Chi pubblica un fork deve collegarlo a un proprio progetto Supabase. Non usare mai `service_role` nel client.
-
-Prima di usare la sincronizzazione, eseguire una volta nell'SQL Editor, come proprietario del progetto, `supabase/migrations/202608040001_initial.sql`. I launcher e le build CI passano automaticamente la configurazione tramite `--dart-define-from-file=supabase/config.json`. Per una configurazione alternativa:
 
 ```sh
-flutter run -d macos \
-  --dart-define-from-file=supabase/config.example.json
+flutter pub get
+flutter run -d chrome --dart-define-from-file=supabase/config.json
+flutter run -d <android-device-id> --dart-define-from-file=supabase/config.json
 ```
 
-Le policy RLS limitano entrambe le tabelle a `auth.uid() = user_id`. `merge_task` accetta soltanto record dell'utente autenticato e aggiorna solo se `(logical_version, device_id)` è maggiore. La chiave pubblica può stare nella configurazione di build; sessioni e device ID sono nel keychain/keystore. Nessuna chiave amministrativa è necessaria o ammessa.
-
-## Inserimento rapido e agenda Android
-
-La riga “Nuova attività” crea con Invio e interpreta localmente, senza rete, espressioni italiane comuni: `oggi`, `domani`, `dopodomani`, giorni della settimana, date `GG/MM`, mesi in lettere e orari con `alle` o `ore`. Per esempio `Dentista domani alle 9:30` salva titolo, giorno e ora in un solo gesto. Un orario senza data indica oggi. Prima di salvare, una riga di anteprima mostra la pianificazione riconosciuta. Il parser rimuove dal titolo soltanto le espressioni riconosciute e rifiuta date impossibili.
-
-“Prossime” raggruppa le attività pianificate giorno per giorno. Su Android l'icona calendario di ogni attività datata consente di crearla o aggiornarla esplicitamente nel Google Calendar primario; non avviene alcun export automatico. L'ingranaggio nell'AppBar apre Impostazioni anche sugli schermi mobili.
-
-Su telefono, il pulsante `+` apre un composer compatto dal bordo inferiore, sopra la tastiera: titolo, riconoscimento naturale e invio restano in un solo passaggio. Le espressioni comprese — per esempio `oggi`, `domani`, `venerdì` e `alle 18:30` — vengono evidenziate in tempo reale e poi rimosse dal titolo; una sintassi non valida non riceve il falso segnale visivo.
-
-La navigazione Android è ridotta a **Oggi**, **Prossime** e **Completate**. Inbox e In attesa restano stati compatibili nel database e nella versione desktop, ma non occupano spazio nella barra mobile; le attività Inbox senza data compaiono in Oggi. Prossime genera pigramente giorni fino a dieci anni, segnala i cambi di mese/anno e offre **Vai a data** per saltare immediatamente lontano nel calendario.
-
-Le Impostazioni mostrano lo stato reale del worker: sincronizzazione in corso, numero di modifiche in attesa, ultimo completamento o errore. Trigger simultanei di accesso, riconnessione e timer confluiscono in una sola esecuzione, evitando lavoro di rete duplicato. Modificare data/ora ripianifica la notifica; eliminare una task la annulla sempre.
-
-## Build installabili
+Build locali:
 
 ```sh
-flutter build macos --release
-flutter build windows --release
-flutter build apk --release
-# distribuzione Android raccomandata, circa 19–23 MB per file:
-flutter build apk --release --split-per-abi
-# oppure Android App Bundle:
-flutter build appbundle --release
+flutter build web --release --dart-define-from-file=supabase/config.json
+flutter build apk --release --split-per-abi \
+  --dart-define-from-file=supabase/config.json
 ```
 
-Windows va compilato su Windows con Visual Studio 2022 e workload “Desktop development with C++”. macOS va compilato su macOS con Xcode/CocoaPods. Android richiede Android SDK e JDK compatibile con Gradle (JDK 17–25 per il wrapper generato). Firma e identity di distribuzione vanno configurate localmente prima della pubblicazione.
+Struttura canonica:
 
-La CI Android usa una chiave release stabile salvata esclusivamente nei GitHub Actions Secrets e genera APK separati `arm64-v8a`, `armeabi-v7a` e `x86_64`. Il fallback universale serve soltanto a portare updater precedenti alla versione capace di scegliere l’ABI. Regole, misure e procedura completa sono in [docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md](docs/ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md).
+- `lib/domain/`: date, ricorrenze e parser puro;
+- `lib/data/local/`: schema Drift e connessioni SQLite native/web;
+- `lib/data/sync/`: outbox, conflitti Lamport e Supabase;
+- `lib/services/`: import/export, diagnostica, calendario e aggiornamenti;
+- `lib/ui/`: impostazioni, editor, task, componenti testuali e link;
+- `assets/branding/`: sorgenti SVG canoniche dell'icona, da cui derivano i PNG
+  Android e web;
+- `web/`: shell browser e asset SQLite WebAssembly;
+- `android/`: client Android;
+- `android/runtracker/`: contapassi nativo (Recording API) e database Room;
+- `supabase/migrations/`: schema remoto e RLS;
+- `tools/launchers/`: utilità Android opzionali.
 
-## Dati, notifiche e backup
+## Dati, privacy e limiti
 
-Localmente sono salvati task, note, date, ricorrenze, tombstone, impostazioni e outbox. Finché Supabase e pairing non sono configurati, nessun task viene sincronizzato remotamente. Nessun contenuto viene inviato altrove o scritto nei log.
+Titoli e note restano nel database locale e, dopo il collegamento, nel progetto
+Supabase personale. Non entrano nei log. La diagnostica registra soltanto
+conteggi e metriche tecniche in due blocchi rotanti da 512 KiB: file applicativi
+su Android e IndexedDB nel browser. Sul canale Android di collaudo questi eventi
+minimizzati confluiscono nel bundle privato Drive già autorizzato; un provider
+ADB protetto espone soltanto il riepilogo tecnico del sync e non apre SQLite.
 
-Le notifiche sono locali e vengono pianificate per task con data “Mostra il” e ora; completamento ed eliminazione le annullano. Android ripristina le pianificazioni dopo riavvio tramite il receiver del plugin. Permessi e database dei fusi orari sono inizializzati soltanto quando viene programmata la prima notifica, quindi non rallentano l’avvio ordinario. Il permesso negato non impedisce l'uso dell'app.
+Il Cestino conserva tombstone sincronizzati. La cancellazione simultanea e
+definitiva di dispositivo e cloud non è ancora offerta: richiede una funzione
+Supabase transazionale. Il reset locale richiede prima di scollegare Supabase,
+altrimenti i dati verrebbero scaricati nuovamente.
 
-Su Android, “Salva + calendario” crea esplicitamente un evento nel calendario Google primario già configurato sul dispositivo; in assenza di Google usa il primo calendario modificabile secondo un ordine stabile. L’ID restituito dal provider Android viene conservato localmente: ripetere il comando aggiorna lo stesso evento e non crea duplicati. Non esiste importazione automatica dal calendario e SQLite resta la fonte di verità. Il fuso viene letto come identificatore IANA nativo (`Europe/London`, per esempio), funziona offline e segue le regole DST senza dipendere da Google o dall’orologio di rete.
+Il punto di ingresso per riprendere lo sviluppo è
+[docs/HANDOFF.md](docs/HANDOFF.md). La documentazione tecnica è in
+[docs/ARCHITETTURA.md](docs/ARCHITETTURA.md), le procedure sono in
+[docs/operations/](docs/operations/), lo stato corrente in [STATUS.md](STATUS.md),
+le versioni in [CHANGELOG.md](CHANGELOG.md) e il lavoro residuo in
+[TODO_NEXT.md](TODO_NEXT.md).
 
-Impostazioni consente export JSON completo/versionato, export CSV e import JSON. Prima dell'import mostra conteggi di aggiunte, aggiornamenti e record invariati; vince solo una versione logica superiore, quindi non avvengono sovrascritture silenziose.
+### Todo: editor e sincronizzazione
 
-## Limiti noti della prima versione
+Descrizione e collegamenti sono direttamente accessibili nell’editor; le bozze
+restano locali. Prossime riparte in cima al cambio schermata e carica 30 giorni
+per volta. Il pulsante cloud mostra gli elementi in attesa e rimanda allo storico.
+Contratto, migrazione server e collaudo sintetico: [Todo UX hardening](docs/architecture/TODO_UX_HARDENING.md).
 
-- Il collegamento account è persistente, ma QR/codice monouso, revoca remota del singolo dispositivo e verifica end-to-end contro un progetto Supabase reale non sono ancora completati.
-- Lo stato sync nell'interfaccia è informativo ma non è ancora collegato in tempo reale allo stream del worker.
-- Il cestino conserva correttamente tombstone, ma manca la schermata di ripristino.
-- La selezione multipla e l'undo generale non sono ancora implementati.
-- Le ricorrenze da calendario sono generate dal motore idempotente, ma manca ancora il job periodico che estende automaticamente l'orizzonte.
-- La cifratura dei backup è predisposta come confine di servizio, non implementata.
+Backup e gestione delle richieste: [contratto Todo](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).
 
-## Verifica
+La sincronizzazione dalla build 177 confronta impronte delle versioni prima di
+scaricare le attività; protocollo, compatibilità e recovery sono descritti in
+[sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
 
-`flutter analyze` applica lint rigorosi. `flutter test` copre date civili/DST, anni bisestili, mensili ancorati, arretrati, conflitti, persistenza/outbox, tombstone, idempotenza delle ricorrenze e creazione rapida UI. Le verifiche effettivamente eseguite sono registrate in [COMPLETATO.md](COMPLETATO.md).
-
-Per riprendere il lavoro in una nuova sessione, iniziare da [TODO_NEXT.md](TODO_NEXT.md).
+Dalla build 178 un controllo unificato evita le richieste delle tabelle invariate;
+SQLite 10 conserva le impronte con invalidazione transazionale. Stato e collaudi
+sono in [STATUS](STATUS.md).

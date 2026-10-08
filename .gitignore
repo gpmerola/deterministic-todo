@@ -46,3 +46,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local validation intermediates and SQL test dependencies
+/temp/
+/tools/sql-tests/node_modules/
+
+# Kotlin compiler local session/cache files
+/android/.kotlin/
