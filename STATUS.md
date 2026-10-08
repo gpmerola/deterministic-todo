@@ -2,7 +2,7 @@
 
 Aggiornato l'8 ottobre 2026.
 
-## Build 247 — Identità Web e cache
+## Build 247 — Web pubblicato e Todo Test verificato
 
 Causa dell'incidente Web 246 verificata: due schede eseguivano JavaScript
 precedente al fix dei null, mentre `version.json` dichiarava 246. Refresh senza
@@ -16,10 +16,17 @@ Chrome dell'identità e build Web release. In Chrome locale la sentinella
 SQLite sopravvive al refresh e le impostazioni mostrano 2.71.2 (247).
 Todo Test 2247 installata e aperta in-place con `make todo-test`, dati
 conservati. Il provider diagnostico conferma sync riuscita dalla 2247, zero
-modifiche in attesa e zero conflitti. La 247 è stata provata su localhost
-(secure context); il suo collaudo HTTPS resta da eseguire dopo pubblicazione.
-La correzione preventiva Web richiede pubblicazione
-con conferma `PUBBLICA`; il recovery della 246 pubblicata è già riuscito.
+modifiche in attesa e zero conflitti.
+
+Dopo conferma `PUBBLICA`, [pipeline Web 37764145949](https://github.com/gpmerola/deterministic-todo/actions/runs/37764145949)
+completata: 2.71.2 / build 247, sorgente `c508f5b`. Verificati via HTTPS
+`release-info.json`, hash SHA-256 di bootstrap e JavaScript, e URL effettivi
+caricati da Chrome. La UI mostra 2.71.2 (247). La task segnalata rimane senza
+data e senza ripetizione dopo refresh normale e chiusura/riapertura della
+scheda; il sync della 247 scarica zero righe, con zero pending, conflitti e
+bucket divergenti. Diagnostica persistente verificata. Nessuna modifica manuale
+alla task o al database; gli altri tab e il browser non sono stati chiusi.
+Questa pubblicazione riguarda solo Web; nessuna nuova release Play.
 
 ## Build 246 — Valori cancellati dal server
 
