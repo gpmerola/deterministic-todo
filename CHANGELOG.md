@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.71.1 (build 246) — Todo Test
+
+- Sync: un valore cancellato sul server (data, ricorrenza, chiave
+  d'occorrenza, completamento, progetto o sezione, genitore e colore dei
+  progetti) ora arriva anche sugli altri dispositivi; prima la copia locale
+  conservava il valore vecchio con la stessa versione, per esempio
+  un'attività ricorrente solo su Android o una «Sposta in Inbox» che sul Web
+  lasciava la data. Al primo sync dopo l'aggiornamento un pull completo, una
+  sola volta, riallinea le copie già divergenti al server.
+- Lo stesso difetto è corretto nel ripristino di una versione di progetto
+  dallo storico e nell'import del backup JSON.
+
 ## 2.71.0 (build 245) — Todo Test
 
 - Calendario: promemoria locali 30 minuti prima di tutti gli eventi con orario

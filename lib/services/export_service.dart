@@ -243,7 +243,9 @@ class ExportService {
           db.projects,
         )..where((r) => r.id.equals(row.id))).getSingleOrNull();
         if (old == null || row.logicalVersion > old.logicalVersion) {
-          await db.into(db.projects).insertOnConflictUpdate(row);
+          await db
+              .into(db.projects)
+              .insertOnConflictUpdate(row.toCompanion(false));
         }
       }
       for (final row in backup.sections) {
@@ -252,7 +254,9 @@ class ExportService {
           db.projectSections,
         )..where((r) => r.id.equals(row.id))).getSingleOrNull();
         if (old == null || row.logicalVersion > old.logicalVersion) {
-          await db.into(db.projectSections).insertOnConflictUpdate(row);
+          await db
+              .into(db.projectSections)
+              .insertOnConflictUpdate(row.toCompanion(false));
         }
       }
       for (final task in backup.tasks) {

@@ -728,17 +728,22 @@ class SyncService {
         stage = SyncStage.overview;
         _reportProgress(cycle, stage, entries.length);
         final overview = await SyncOverview.fetch(client, _requests);
+        final repair = await needsRemoteNullRepair(db);
         stage = SyncStage.projects;
         _reportProgress(cycle, stage, entries.length);
-        await _syncProjects(overview);
+        await _syncProjects(repair ? null : overview);
         stage = SyncStage.taskPull;
         _reportProgress(cycle, stage, entries.length);
-        final buckets = await changedTaskBuckets(
-          db,
-          client,
-          _requests,
-          fingerprints: overview?.tasks,
-        );
+        // Fingerprints compare stamps, not content: rows already diverged at
+        // an equal version need one complete pull to be rewritten.
+        final buckets = repair
+            ? null
+            : await changedTaskBuckets(
+                db,
+                client,
+                _requests,
+                fingerprints: overview?.tasks,
+              );
         for (final bucket in buckets ?? <String?>[null]) {
           await for (final page in remotePages(
             client,
@@ -764,6 +769,7 @@ class SyncService {
             );
           }
         }
+        if (repair) await markRemoteNullRepaired(db);
         if (overview != null && buckets != null) {
           divergedBuckets = await unresolvedTaskBuckets(
             db,

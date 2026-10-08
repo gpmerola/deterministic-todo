@@ -11,6 +11,11 @@ import 'task_sync_writer.dart';
 /// One SQLite transaction and a bounded set of queries per page, not per row.
 /// Re-read versions/intents inside the transaction so local edits always win
 /// while pending; no pre-network local snapshot is used for the write decision.
+/// Rows are written as companions with `nullToAbsent: false`: a data class
+/// upsert omits null columns from `DO UPDATE SET`, so a remote cleared date,
+/// recurrence or completion would never reach an existing local row. An equal
+/// version is re-applied too: the same stamp must mean the same content, and
+/// this repairs rows diverged by that omission (unchanged rows record nothing).
 Future<Set<String>> mergeRemoteBatch(
   AppDatabase db,
   String table,
@@ -67,7 +72,7 @@ Future<Set<String>> mergeRemoteBatch(
                   old.read<int>('logical_version'),
                   old.read<String>('device_id'),
                 ),
-              ) <=
+              ) <
               0) {
         continue;
       }
@@ -99,17 +104,21 @@ Future<Set<String>> mergeRemoteBatch(
         if (table == 'tasks') {
           batch.insertAllOnConflictUpdate(
             db.tasks,
-            changed.map(taskFromRemote),
+            changed.map((r) => taskFromRemote(r).toCompanion(false)),
           );
         } else if (table == 'projects') {
           batch.insertAllOnConflictUpdate(
             db.projects,
-            changed.map((r) => Project.fromJson(projectJson(r))),
+            changed.map(
+              (r) => Project.fromJson(projectJson(r)).toCompanion(false),
+            ),
           );
         } else {
           batch.insertAllOnConflictUpdate(
             db.projectSections,
-            changed.map((r) => ProjectSection.fromJson(projectJson(r))),
+            changed.map(
+              (r) => ProjectSection.fromJson(projectJson(r)).toCompanion(false),
+            ),
           );
         }
       });
@@ -118,3 +127,20 @@ Future<Set<String>> mergeRemoteBatch(
     return changed.map((r) => r['id'] as String).toSet();
   });
 }
+
+/// Set on a fresh database and after the first complete pull of build 246.
+/// Until then, rows merged by older builds may hold stale values where the
+/// server had cleared a column, at the same version and device.
+const remoteNullRepairKey = 'sync_repair:remote_nulls_v1';
+
+Future<bool> needsRemoteNullRepair(AppDatabase db) async =>
+    await (db.select(
+      db.appSettings,
+    )..where((r) => r.key.equals(remoteNullRepairKey))).getSingleOrNull() ==
+    null;
+
+Future<void> markRemoteNullRepaired(AppDatabase db) => db
+    .into(db.appSettings)
+    .insertOnConflictUpdate(
+      AppSettingsCompanion.insert(key: remoteNullRepairKey, value: '1'),
+    );

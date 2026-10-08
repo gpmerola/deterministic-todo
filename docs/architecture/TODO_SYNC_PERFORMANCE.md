@@ -78,6 +78,17 @@ registro `purged_entities`. Le modifiche dopo lo snapshot server sono recuperate
 tramite Realtime o il controllo successivo. Il confronto presuppone l'invariante
 già esistente: ogni modifica del contenuto incrementa la versione Lamport.
 
+Fino alla build 245 il merge scriveva le righe remote come data class Drift:
+l'upsert omette le colonne `null` da `DO UPDATE SET`, quindi una data, una
+ricorrenza, un completamento o un genitore cancellati sul server restavano
+nella copia locale, con la stessa versione e lo stesso dispositivo autore
+(caso reale: attività ricorrente su Android ma non sul Web). L'impronta, che
+non guarda il contenuto, non poteva ripararla. Dalla build 246 il merge scrive
+companion con `nullToAbsent: false` e riapplica anche le righe a versione
+uguale (una riga identica non produce revisioni). Un database aggiornato, senza
+il marker `sync_repair:remote_nulls_v1`, esegue una sola volta un pull completo
+di attività e progetti; un database nuovo nasce con il marker.
+
 Ogni pagina viene confrontata in una transazione SQLite con query aggregate per
 versioni, intenti pendenti e marker di eliminazione. Solo le righe nuove o più
 recenti vengono scritte; il contatore Lamport è osservato una volta per pagina.

@@ -144,6 +144,13 @@ class AppDatabase extends _$AppDatabase {
       await _installFingerprintCache(this);
       await _installRevisionTriggers(this);
       await _installProjectIntents(this);
+      // Nothing merged by older builds: no equal-version repair pull needed.
+      await into(appSettings).insert(
+        AppSettingsCompanion.insert(
+          key: 'sync_repair:remote_nulls_v1',
+          value: '1',
+        ),
+      );
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 10) await _installFingerprintCache(this);

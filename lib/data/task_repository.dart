@@ -812,11 +812,15 @@ class TaskRepository {
             : e.value,
     };
     if (table == 'projects') {
-      await db.into(db.projects).insertOnConflictUpdate(Project.fromJson(json));
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(Project.fromJson(json).toCompanion(false));
     } else {
       await db
           .into(db.projectSections)
-          .insertOnConflictUpdate(ProjectSection.fromJson(json));
+          .insertOnConflictUpdate(
+            ProjectSection.fromJson(json).toCompanion(false),
+          );
     }
     await (db.delete(
       db.outboxEntries,
