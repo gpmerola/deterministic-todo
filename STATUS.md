@@ -2,6 +2,19 @@
 
 Aggiornato l'8 ottobre 2026.
 
+## Collaudo Android ↔ Web della 247
+
+Completate su una fixture sintetica le modifiche nei due sensi, cancellazione
+della data e del progetto, passaggio in Inbox, storico locale su entrambi i
+client, persistenza dopo refresh e propagazione della rimozione nel Cestino.
+Nessuna regressione osservata; fixture recuperabile nel Cestino, dati reali
+invariati. [Evidenza e passi di ripresa](docs/diagnostics/2026-10-08-todo-cross-device-smoke.md).
+
+Resta la chiusura completa di Chrome: sospesa prima di agire perché il browser
+ha una sessione attiva con videocamera e microfono. Attendere conferma che la
+sessione è terminata; il refresh e la riapertura di una scheda non equivalgono
+al riavvio completo del browser.
+
 ## Build 247 — Web pubblicato e Todo Test verificato
 
 Causa dell'incidente Web 246 verificata: due schede eseguivano JavaScript

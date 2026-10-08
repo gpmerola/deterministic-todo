@@ -45,15 +45,16 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P0 — Convergenza Android ↔ Web
 
-- [ ] Ricaricare le schede Web e verificare convergenza con l'ultima Todo Test,
-  incluso lo storico della singola attività.
+- [ ] Completare la persistenza dopo chiusura **completa** di Chrome quando
+  la sessione attiva con videocamera/microfono è terminata. Modifiche nei due
+  sensi, storico, Inbox e refresh già verificati su fixture sintetica:
+  [esiti e ripresa](docs/diagnostics/2026-10-08-todo-cross-device-smoke.md).
 - [ ] Sul Galaxy e sul Web convertire con **Sposta in Inbox** il vecchio
   progetto "Inbox", dopo aver aggiornato e ricaricato entrambi i client.
 - [ ] Collaudi Web sul profilo Chrome reale ([WEB](docs/operations/WEB.md)):
-  persistenza dopo chiusura completa; import/export JSON con fixture
-  sintetica; diagnostica persistente dopo refresh; **Senza data** su una
-  fixture di progetto; **Attività senza data**, Inbox e **Svuota cestino**
-  convergenti sugli altri dispositivi.
+  import/export JSON con fixture sintetica; rimozione dalla vista
+  **Attività senza data** e **Svuota cestino** con dati esclusivamente di prova
+  e autorizzazione specifica per la cancellazione permanente.
 
 ## P0 — Passaggio definitivo da Todoist
 
