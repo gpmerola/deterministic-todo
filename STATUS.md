@@ -1,6 +1,18 @@
 # Stato corrente
 
-Aggiornato il 7 ottobre 2026.
+Aggiornato l'8 ottobre 2026.
+
+## Build 246 — Valori cancellati dal server
+
+Todo Test 2.71.1 / versionCode 2246 installata in-place sul Galaxy con
+`make todo-test`; dati conservati. Il merge applica ora le colonne cancellate
+sul server e, una sola volta, riallinea con un pull completo le righe divergenti
+a versione uguale ([dettagli](docs/architecture/TODO_SYNC_PERFORMANCE.md)).
+`make check` (442 test) e `make check-generated` superati. Sul Galaxy
+`todo_sync_debug` riporta sync riuscita con build 2246, 0 in attesa, 0
+conflitti. Da verificare a vista: «hinge» in Inbox senza data né ricorrenza
+sul telefono. Il Web resta alla stabile 244 e mantiene la data finché una
+release stabile (`PUBBLICA`) non porta la correzione.
 
 ## Build 245 — Promemoria Calendario
 
