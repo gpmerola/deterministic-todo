@@ -2,6 +2,25 @@
 
 Aggiornato l'8 ottobre 2026.
 
+## Build 247 — Identità Web e cache
+
+Causa dell'incidente Web 246 verificata: due schede eseguivano JavaScript
+precedente al fix dei null, mentre `version.json` dichiarava 246. Refresh senza
+cache: pull di 599 task riuscito, zero conflitti e zero modifiche in attesa;
+refresh successivi convergenti. La task segnalata risulta senza data e senza
+ripetizione. Dettagli e recovery in [WEB](docs/operations/WEB.md).
+
+La 247 incorpora l'identità Web e separa gli URL degli asset per contenuto.
+Verificati `make check` (443 test Flutter), `make check-generated`, test
+Chrome dell'identità e build Web release. In Chrome locale la sentinella
+SQLite sopravvive al refresh e le impostazioni mostrano 2.71.2 (247).
+Todo Test 2247 installata e aperta in-place con `make todo-test`, dati
+conservati. Il provider diagnostico conferma sync riuscita dalla 2247, zero
+modifiche in attesa e zero conflitti. La 247 è stata provata su localhost
+(secure context); il suo collaudo HTTPS resta da eseguire dopo pubblicazione.
+La correzione preventiva Web richiede pubblicazione
+con conferma `PUBBLICA`; il recovery della 246 pubblicata è già riuscito.
+
 ## Build 246 — Valori cancellati dal server
 
 Todo Test 2.71.1 / versionCode 2246 installata in-place sul Galaxy con
@@ -11,8 +30,8 @@ a versione uguale ([dettagli](docs/architecture/TODO_SYNC_PERFORMANCE.md)).
 `make check` (442 test) e `make check-generated` superati. Sul Galaxy
 `todo_sync_debug` riporta sync riuscita con build 2246, 0 in attesa, 0
 conflitti. Da verificare a vista: «hinge» in Inbox senza data né ricorrenza
-sul telefono. Il Web resta alla stabile 244 e mantiene la data finché una
-release stabile (`PUBBLICA`) non porta la correzione.
+sul telefono. Il Web è stato successivamente pubblicato alla 246; incidente cache e
+recovery descritti sopra.
 
 ## Build 245 — Promemoria Calendario
 

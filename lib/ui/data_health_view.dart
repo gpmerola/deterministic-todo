@@ -105,7 +105,7 @@ class DataHealthView extends StatelessWidget {
                       ).format(DateTime.parse(data.backup!).toLocal()),
               ),
               FutureBuilder<PackageInfo>(
-                future: PackageInfo.fromPlatform(),
+                future: appPackageInfo(),
                 builder: (context, package) => _HealthRow(
                   ok: true,
                   icon: Icons.verified_outlined,

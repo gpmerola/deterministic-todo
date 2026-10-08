@@ -371,7 +371,7 @@ class SettingsView extends StatelessWidget {
     children: [
       SyncAccountCard(client: syncClient, syncService: syncService),
       FutureBuilder<PackageInfo>(
-        future: PackageInfo.fromPlatform(),
+        future: appPackageInfo(),
         builder: (context, snapshot) => ListTile(
           leading: const Icon(Icons.system_update_outlined),
           title: Text(

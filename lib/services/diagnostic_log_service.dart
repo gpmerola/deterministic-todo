@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import 'app_package_info.dart';
 import 'diagnostic_store.dart';
 import 'diagnostic_store_native.dart'
     if (dart.library.js_interop) 'diagnostic_store_web.dart';
@@ -38,7 +38,7 @@ class DiagnosticLogService {
     if (_initialized) return;
     _store = await createDiagnosticStore(maxBytes: _maxBytes);
     try {
-      final package = await PackageInfo.fromPlatform();
+      final package = await appPackageInfo();
       _version = package.version;
       _build = package.buildNumber;
     } on Object {

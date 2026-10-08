@@ -34,6 +34,7 @@ import 'services/agenda_tasks.dart';
 import 'services/agenda_web_service.dart';
 import 'services/ai_capture_actions.dart';
 import 'services/ai_settings.dart';
+import 'services/app_package_info.dart';
 import 'services/calendar_service.dart';
 import 'services/calendar_shortcut_service.dart';
 import 'services/diagnostic_log_service.dart';

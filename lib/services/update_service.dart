@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:ota_update/ota_update.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
+import 'app_package_info.dart';
 import 'platform_runtime_native.dart'
     if (dart.library.js_interop) 'platform_runtime_web.dart';
 
@@ -84,7 +84,7 @@ class UpdateService {
     if (platform is! Map<String, Object?> || platform['url'] is! String) {
       return null;
     }
-    final current = await PackageInfo.fromPlatform();
+    final current = await appPackageInfo();
     if (!isNewerRelease(
       candidateVersion: remoteVersion,
       candidateBuild: remoteBuild,
@@ -125,7 +125,7 @@ class UpdateService {
   }
 
   static Future<bool> stillApplies(AvailableUpdate update) async {
-    final installed = await PackageInfo.fromPlatform();
+    final installed = await appPackageInfo();
     return isNewerRelease(
       candidateVersion: update.version,
       candidateBuild: update.build,

@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.71.2 (build 247) — Todo Test
+
+- Web: versione e build provengono dal bundle eseguito, anche nella diagnostica
+  e nel controllo aggiornamenti; un `version.json` più recente non può più
+  etichettare come nuova una scheda che sta eseguendo codice in cache.
+- Il comando canonico `make build-web`, usato da entrambe le pipeline Web,
+  incorpora l'identità da `pubspec.yaml` e aggiunge un hash agli URL di
+  bootstrap e JavaScript per separare le copie nella cache del browser.
+
 ## 2.71.1 (build 246) — Todo Test
 
 - Sync: un valore cancellato sul server (data, ricorrenza, chiave

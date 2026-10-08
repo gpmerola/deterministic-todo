@@ -50,9 +50,7 @@ jobs:
           git diff --exit-code
           flutter analyze
           flutter test
-          flutter build web --release --no-pub --no-wasm-dry-run \
-            --base-href /deterministic-todo/ \
-            --dart-define-from-file=supabase/config.json
+          python3 tools/build_web.py
           VERSION="$VERSION" BUILD="$BUILD" python3 - <<'PY'
           import json
           import os

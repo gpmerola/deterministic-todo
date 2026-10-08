@@ -36,3 +36,7 @@ check-sql:
 	node tools/sql-tests/agenda_backup.mjs
 	node tools/sql-tests/agenda_requests.mjs
 	node tools/sql-tests/second_brain.mjs
+
+.PHONY: build-web
+build-web:
+	python3 tools/build_web.py
