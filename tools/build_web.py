@@ -22,7 +22,8 @@ def fingerprint_assets(directory: Path) -> None:
         original = path.read_text(encoding='utf-8')
         if name not in original:
             raise ValueError(f'{parent} does not reference {name}')
-        path.write_text(original.replace(name, target), encoding='utf-8')
+        pattern = re.escape(name) + r'(?:\?v=[0-9a-f]{64})?'
+        path.write_text(re.sub(pattern, target, original), encoding='utf-8')
 
 
 def main() -> None:

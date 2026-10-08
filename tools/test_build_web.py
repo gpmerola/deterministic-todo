@@ -24,6 +24,11 @@ class WebAssetTest(unittest.TestCase):
             self.assertEqual(first[1].split('?')[0], second[1].split('?')[0])
             self.assertEqual((root / second[1].split('?')[0]).read_text(), 'version=247; repair=true;')
             self.assertEqual(second, build('version=247; repair=true;'))
+            index = (root / 'index.html').read_bytes()
+            bootstrap = (root / 'flutter_bootstrap.js').read_bytes()
+            fingerprint_assets(root)
+            self.assertEqual(index, (root / 'index.html').read_bytes())
+            self.assertEqual(bootstrap, (root / 'flutter_bootstrap.js').read_bytes())
 
     def test_unexpected_loader_fails_instead_of_publishing_unversioned_code(self):
         with tempfile.TemporaryDirectory() as tmp:
