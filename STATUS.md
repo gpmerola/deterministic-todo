@@ -17,8 +17,23 @@ riprodotto con la 249, assente con la 250; rientri ripetuti e refresh conservano
 progetto, sezione e attività. Nessun errore JavaScript nella build corretta.
 Test unitari coprono anche scroll, entrambi i percorsi Indietro e stati
 indipendenti tra sezioni/progetti. Verifica locale su origine loopback separata;
-nessun dato reale o storage del sito pubblico modificato. HTTPS e collaudo sul
-sito pubblico restano subordinati alla pubblicazione Web autorizzata.
+nessun dato reale modificato durante la verifica locale. Dopo autorizzazione
+esplicita, pubblicazione Web completata e collaudo HTTPS nel profilo Chrome
+reale superato: progetto sintetico «Collaudo Web 250», sezione e attività
+persistono dopo refresh; chiusura sezione → Indietro → rientro → riapertura
+non produce grigio né errori JavaScript. La fixture autorizzata resta disponibile
+nel profilo. Identità del manifest e hash di bootstrap/main verificati; il
+browser carica gli URL con gli stessi hash.
+
+Pipeline [Verify](https://github.com/gpmerola/deterministic-todo/actions/runs/38170176990),
+[Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/38170173974)
+e [Web](https://github.com/gpmerola/deterministic-todo/actions/runs/38170607839)
+verdi sul commit `a7301f9`. APK rolling Todo Test 2.72.2 / 2250 pubblicato:
+verificati SHA-256, package `.dev`, versione e commit. `make todo-test` ha
+compilato, ma l’installazione è rimasta bloccata via IPv4 ed è fallita anche
+forzando IPv6; successiva lettura del Galaxy conferma ancora 2.72.1 / 2249.
+Aggiornamento disponibile nell’updater; installazione e collaudo fisico della
+250 non completati. Nessuna pubblicazione Play.
 
 Il tentativo iniziale di test Android in Todo Validation non è partito per
 ADB offline. Il runner Flutter ha tentato un cleanup sul package base invece
