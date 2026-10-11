@@ -1,6 +1,32 @@
 # Stato corrente
 
-Aggiornato l'11 ottobre 2026.
+Aggiornato il 12 ottobre 2026.
+
+## Build 252 — Inserimento rapido più chiaro
+
+Todo Test 2.73.1 / versionCode 2252 installata in-place e aperta sul Galaxy
+con `make todo-test`; versione riletta dal package Android. Anteprima della
+data effettiva, ricorrenza, progetto e priorità, inclusi i token nel titolo.
+Errori di parsing visibili prima dell'invio, invio vuoto disabilitato e
+avanzamento durante il salvataggio. La chiusura della tastiera durante l'invio
+non chiude il composer; una risposta negativa conserva il testo per riprovare.
+Contratto: [UX Todo](docs/architecture/TODO_UX_HARDENING.md).
+
+Passati `make check-generated`, `make check` (452 test Flutter, analisi,
+strumenti, SQL, link), build Web release e APK release arm64. Test dedicati
+su larghezze 400/1200: anteprima e dati salvati coerenti, data implicita,
+ricorrenza, precedenza di progetto/priorità nel testo, errori, doppio invio,
+chiusura tastiera durante invio e recupero della bozza dopo risposta negativa.
+Il test tastiera è fallito prima della correzione e passato dopo. La build 251
+è stata installata durante il collaudo locale e poi sostituita dalla 252.
+
+Chrome, origine loopback isolata con fixture sintetica: anteprima ispezionata,
+data non valida bloccata, creazione e persistenza dopo refresh verificate,
+anche dopo aggiornamento alla build finale. La prova HTTPS locale è bloccata
+dal certificato non attendibile; nessun avviso di sicurezza è stato aggirato.
+Il Web pubblico resta alla 250. Il flusso completo di inserimento sulla UI
+fisica del Galaxy resta da collaudare: installazione/avvio non equivalgono
+alla verifica della tastiera e del salvataggio reali. Nessuna pubblicazione Play.
 
 ## Build 250 — Rientro nei Progetti Web
 

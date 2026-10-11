@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.73.1 (build 252) — Todo Test
+
+- Inserimento rapido: anteprima della data effettiva (anche quella odierna
+  implicita), ricorrenza, nome del progetto e priorità, comprese le scelte
+  scritte con `#progetto` e `p1`–`p4`.
+- Date e ricorrenze non valide vengono segnalate nel campo prima dell'invio;
+  un titolo vuoto non può essere inviato. Durante il salvataggio compaiono
+  un indicatore di avanzamento e il blocco degli invii ripetuti. La chiusura
+  della tastiera durante l’invio non chiude il foglio; un invio non riuscito
+  lascia il testo disponibile per riprovare.
+
 ## 2.72.2 (build 250) — Todo Test
 
 - Progetti: corretto il rientro nel dettaglio dopo scorrimento o apertura/chiusura

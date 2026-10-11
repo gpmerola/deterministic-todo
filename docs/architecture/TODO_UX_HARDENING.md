@@ -136,3 +136,18 @@ riproducono il difetto prima del fix con entrambi i percorsi Indietro,
 controllano il ripristino dello scroll e l'indipendenza di sezioni, gruppo senza
 sezione e progetti. Il collaudo Web usa progetti e attività sintetici su
 un’origine locale separata, con verifica dopo refresh.
+
+## Anteprima inserimento rapido (build 252)
+
+Il composer mostra data civile completa (oggi quando non specificata),
+ricorrenza, progetto e priorità effettivi. Applica prima `parseQuickAddMetadata`
+e poi `QuickAddParser`, come la creazione: i token nel testo prevalgono sui
+selettori. L'anteprima resta locale e non modifica titolo o dati.
+Il composer segnala gli errori di parsing prima dell'invio e richiede un titolo
+valido; non applica il fallback silenzioso a oggi della funzione di pianificazione.
+Durante l'invio il titolo è in sola lettura e il pulsante mostra l'avanzamento.
+La chiusura della tastiera durante l’invio non chiude il composer.
+Una risposta negativa mantiene testo e bozza disponibili per riprovare.
+Invio da tastiera rivalida il testo corrente anche prima del frame successivo.
+Test: `test/quick_add_preview_test.dart`, insieme alle regressioni del composer
+in `test/widget_test.dart` e `test/todo_ux_hardening_test.dart`.
