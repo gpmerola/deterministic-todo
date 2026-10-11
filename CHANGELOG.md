@@ -2,12 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.72.0 (build 248) — Todo Test
+## 2.72.1 (build 249) — Todo Test
 
 - All'apertura e al ritorno nell'app Android, avviso dedicato per nuove visite
   urgenti del Calendario nei prossimi 90 giorni: «visita urgente», «Follow-up
   urgente», «Urgent Consultation» e altre etichette visita esplicite. Escluse
   diciture negative, eventi terminati, annullati e nascosti dai filtri.
+- Titolo con «URGENTE» all’inizio, leggibile anche nel banner compatto Samsung.
 - Canale «Nuove visite urgenti» ad alta importanza, icona di allerta e accento
   rosso; riepilogo senza dati personali, tap sul Calendario. Una segnalazione
   per occorrenza, anche dopo riavvio; indipendente dai promemoria 30 minuti prima.

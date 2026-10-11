@@ -51,8 +51,8 @@ final class AgendaUrgentVisits {
             open.setAction(context.getPackageName() + ".OPEN_CALENDAR");
             PendingIntent tap = PendingIntent.getActivity(context, 7305, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            String title = fresh.size() == 1 ? "⚠ NUOVA VISITA URGENTE"
-                : "⚠ " + fresh.size() + " NUOVE VISITE URGENTI";
+            String title = fresh.size() == 1 ? "⚠ URGENTE: nuova visita"
+                : "⚠ URGENTI: " + fresh.size() + " nuove visite";
             String text = "Apri il Calendario per controllare le visite urgenti aggiunte.";
             Notification notification = new Notification.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_urgent_visit_notification)

@@ -898,7 +898,8 @@ che usa sempre lo stesso identificatore Android.
 
 Il canale Android **Nuove visite urgenti** è indipendente dall'interruttore
 «Avvisa 30 minuti prima»: si può disattivare dalle impostazioni notifiche di
-Android. Alta importanza, icona triangolare, accento rosso, titolo evidente e
+Android. Alta importanza, icona triangolare, accento rosso, «URGENTE» all’inizio
+del titolo (249: leggibile anche nel banner compatto Samsung) e
 riepilogo senza nomi o dettagli clinici; tap apre Calendario. Banner, suono e
 aspetto effettivo dipendono dalle impostazioni Android/Samsung, compreso Non
 disturbare. Nessun full-screen intent o superamento delle preferenze Android.

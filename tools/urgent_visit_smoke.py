@@ -22,7 +22,7 @@ def main():
     package = 'app.deterministic.todo.deterministic_todo.dev.validation'
 
     def adb(*parts):
-        return subprocess.check_output(['adb', '-s', args.serial, *parts], text=True, timeout=60)
+        return subprocess.check_output(['adb', '-s', args.serial, *parts], text=True, timeout=300 if parts[0] == 'install' else 60)
 
     if adb('get-state').strip() != 'device':
         raise SystemExit('Authorized device required')

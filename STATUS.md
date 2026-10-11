@@ -2,7 +2,7 @@
 
 Aggiornato l'11 ottobre 2026.
 
-## Build 248 — Nuove visite urgenti del Calendario
+## Build 249 — Nuove visite urgenti del Calendario
 
 Riconoscimento dalle etichette esplicite nei titoli, verificato tramite lettura
 autorizzata con output ridotto alle sole parole di classificazione. Controllo
@@ -16,17 +16,20 @@ strumenti, SQL e documentazione) e `:app:testDevDebugUnitTest`. Sul Galaxy,
 invio, duplicati nello stesso batch e nelle chiamate successive, conservazione
 della memoria dopo una lista vuota, esclusione di eventi terminati. Android
 conferma una notifica attiva e canale con importanza 4. Il test non accede ai
-calendari e lascia una notifica sintetica per eventuale ispezione visiva.
+calendari. Dopo l’ispezione visiva Todo Validation è stata fermata,
+rimuovendo la sua notifica sintetica.
 
-Todo Test 2.72.0 / versionCode 2248 installata e aperta in-place con
+Todo Test 2.72.1 / versionCode 2249 installata e aperta in-place con
 `make todo-test`; versione riletta dal package Android. Dati conservati,
 provider diagnostico accessibile (`state=recovered`).
 
-La resa del banner con schermo sbloccato non è ancora verificata visivamente:
-al collaudo il telefono non esponeva una finestra in primo piano. Samsung/Non
-disturbare e le preferenze del canale possono influenzarla. Nessuna pubblicazione
-Web o Play prevista da questo intervento; tali canali restano alla versione
-precedente.
+Il banner è stato poi verificato a schermo sbloccato su Todo Validation:
+Samsung lo presenta in formato compatto e troncava «NUOVA VISITA URGENTE».
+La build 249 porta «URGENTE» all'inizio: secondo screenshot sul Galaxy
+conferma la parola interamente visibile e harness nuovamente PASS. Il
+canale conserva importanza 4; le preferenze Samsung/Non disturbare restano
+rispettate. Nessuna pubblicazione Web o Play prevista da questo intervento;
+tali canali restano alla versione precedente.
 
 ## Collaudo Android ↔ Web della 247
 
