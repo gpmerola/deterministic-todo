@@ -17,7 +17,11 @@ strumenti, SQL, link), build Web release e APK release arm64. Test dedicati
 su larghezze 400/1200: anteprima e dati salvati coerenti, data implicita,
 ricorrenza, precedenza di progetto/priorità nel testo, errori, doppio invio,
 chiusura tastiera durante invio e recupero della bozza dopo risposta negativa.
-Il test tastiera è fallito prima della correzione e passato dopo. La build 251
+Il test tastiera è fallito prima della correzione e passato dopo. La prima Verify CI ha rilevato un test Calendario preesistente dipendente
+  dall'ora: un evento di 15 minuti creato alle 23:49 UTC attraversava mezzanotte
+  e compariva su due giorni. La fixture del test opacità ora fissa data, ora e
+  giorno della vista; nessuna modifica al comportamento del Calendario.
+La build 251
 è stata installata durante il collaudo locale e poi sostituita dalla 252.
 
 Chrome, origine loopback isolata con fixture sintetica: anteprima ispezionata,
@@ -25,6 +29,10 @@ data non valida bloccata, creazione e persistenza dopo refresh verificate,
 anche dopo aggiornamento alla build finale. La prova HTTPS locale è bloccata
 dal certificato non attendibile; nessun avviso di sicurezza è stato aggirato.
 Il Web pubblico resta alla 250. Nessuna pubblicazione Play.
+[Pipeline Todo Test](https://github.com/gpmerola/deterministic-todo/actions/runs/38185511948)
+completata sul commit funzionale `f3bdef0`: manifest rolling 252 coerente per
+versione, canale e commit; SHA-256 dell'APK scaricato verificato. I commit
+successivi aggiornano solo prove e fixture, senza modificare l'app pubblicata.
 
 Collaudo fisico completato nel package isolato `.dev.validation`, compilato
 in release dal medesimo codice e installato senza usare il runner Flutter

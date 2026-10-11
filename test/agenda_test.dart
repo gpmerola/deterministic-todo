@@ -1621,7 +1621,8 @@ void main() {
   ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
-    final start = DateTime.now().subtract(const Duration(days: 1));
+    // Keep the fixture within one civil day even when CI runs near midnight.
+    final start = DateTime(2026, 10, 5, 10);
     final service = _FakeAgendaService(db, [
       event(
         'past',
