@@ -196,6 +196,8 @@ class _ProjectsViewState extends State<ProjectsView> {
     children: [
       for (final section in sections)
         ExpansionTile(
+          // Expansion state must not share the ListView's scroll-offset slot.
+          key: PageStorageKey('project-section-$projectId-${section.id}'),
           initiallyExpanded: true,
           title: Text(section.name),
           trailing: _sectionActions(section, sections),
@@ -214,6 +216,7 @@ class _ProjectsViewState extends State<ProjectsView> {
         ),
       if (tasks.any((item) => item.sectionId == null))
         ExpansionTile(
+          key: PageStorageKey('project-unsectioned-$projectId'),
           initiallyExpanded: true,
           title: const Text('Senza sezione'),
           children: [

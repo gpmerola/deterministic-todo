@@ -119,3 +119,20 @@ non dimostra RLS, Realtime o autenticazione in produzione. Esiti hardware,
 pubblicazione e limiti ancora aperti sono riportati in [STATUS](../../STATUS.md).
 
 Applicazione e recovery: [runbook del registro](../operations/SAFE_PURGE.md).
+
+
+## Rientro nei Progetti (build 250)
+
+La `ListView` del progetto conserva l'offset con `PageStorageKey` per progetto.
+Ogni `ExpansionTile` deve avere una propria `PageStorageKey`, basata su UUID
+di progetto e sezione; il gruppo «Senza sezione» usa un prefisso distinto.
+Senza queste chiavi, `Expansible` ereditava l'identità della lista: la memoria
+poteva contenere un `double` (scroll) dove era atteso un `bool` (aperto/chiuso),
+o viceversa. Alla riapertura il cast falliva e in release appariva grigio.
+
+Il fix riguarda solo memoria temporanea della UI: nessuna migrazione o modifica
+di attività, sezioni o progetti. I test in `test/project_navigation_test.dart`
+riproducono il difetto prima del fix con entrambi i percorsi Indietro,
+controllano il ripristino dello scroll e l'indipendenza di sezioni, gruppo senza
+sezione e progetti. Il collaudo Web usa progetti e attività sintetici su
+un’origine locale separata, con verifica dopo refresh.

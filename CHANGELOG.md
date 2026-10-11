@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.72.2 (build 250) — Todo Test
+
+- Progetti: corretto il rientro nel dettaglio dopo scorrimento o apertura/chiusura
+  di una sezione. Lo stato delle sezioni e la posizione della lista usavano
+  la stessa memoria della pagina, provocando un errore di tipo e una schermata
+  grigia in release. Ora ogni sezione, incluso «Senza sezione», ha una chiave
+  stabile distinta; scorrimento e apertura restano indipendenti tra progetti.
+
 ## 2.72.1 (build 249) — Todo Test
 
 - All'apertura e al ritorno nell'app Android, avviso dedicato per nuove visite

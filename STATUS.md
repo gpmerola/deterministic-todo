@@ -2,6 +2,32 @@
 
 Aggiornato l'11 ottobre 2026.
 
+## Build 250 — Rientro nei Progetti Web
+
+Riprodotto nel browser sulla build precedente con fixture locale sintetica:
+Progetti → progetto → chiudi sezione → indietro → riapri progetto produce un
+riquadro grigio e `TypeError: false: type 'bool' is not a subtype of type
+'double?'`. Causa: `ExpansionTile` e `ListView` condividevano la stessa chiave
+PageStorage. Correzione: chiavi stabili distinte per sezione e gruppo senza
+sezione, senza toccare dati o schema.
+
+`make check-generated`, `make check` (449 test, analisi, strumenti, SQL e link)
+e build Web release superati. In Chrome, stessa fixture prima/dopo: errore
+riprodotto con la 249, assente con la 250; rientri ripetuti e refresh conservano
+progetto, sezione e attività. Nessun errore JavaScript nella build corretta.
+Test unitari coprono anche scroll, entrambi i percorsi Indietro e stati
+indipendenti tra sezioni/progetti. Verifica locale su origine loopback separata;
+nessun dato reale o storage del sito pubblico modificato. HTTPS e collaudo sul
+sito pubblico restano subordinati alla pubblicazione Web autorizzata.
+
+Il tentativo iniziale di test Android in Todo Validation non è partito per
+ADB offline. Il runner Flutter ha tentato un cleanup sul package base invece
+che sul flavor: comando fallito (`device offline`), non ripetuto. Todo Test è
+risultato presente alla 2249; il package base Play risulta assente alla lettura
+successiva, senza una lettura iniziale con cui attribuire il cambiamento.
+Non usare il runner di integrazione sul telefono senza verificare anche il
+package usato dal cleanup; nessuna reinstallazione o riattivazione Play.
+
 ## Build 249 — Nuove visite urgenti del Calendario
 
 Riconoscimento dalle etichette esplicite nei titoli, verificato tramite lettura
