@@ -62,6 +62,18 @@ public final class AgendaChannel {
         Context app = context.getApplicationContext();
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/agenda")
             .setMethodCallHandler((call, result) -> {
+                if (call.method.equals("notifyUrgentVisits")) {
+                    Handler main = new Handler(Looper.getMainLooper());
+                    IO.execute(() -> {
+                        try {
+                            int count = AgendaUrgentVisits.deliver(app, call.argument("events"));
+                            main.post(() -> result.success(count));
+                        } catch (Exception error) {
+                            main.post(() -> result.error("urgent_visits_failed", "Avviso visite urgenti non disponibile.", null));
+                        }
+                    });
+                    return;
+                }
                 if (call.method.equals("beginReminders")) {
                     result.success(AgendaReminders.begin(app));
                     return;

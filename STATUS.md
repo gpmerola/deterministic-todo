@@ -1,6 +1,32 @@
 # Stato corrente
 
-Aggiornato l'8 ottobre 2026.
+Aggiornato l'11 ottobre 2026.
+
+## Build 248 — Nuove visite urgenti del Calendario
+
+Riconoscimento dalle etichette esplicite nei titoli, verificato tramite lettura
+autorizzata con output ridotto alle sole parole di classificazione. Controllo
+all'apertura/ritorno dal background sui prossimi 90 giorni; canale separato ad
+alta importanza, icona triangolare e accento rosso, riepilogo privo di dettagli
+personali. Contratto in [Calendario](docs/architecture/AGENDA.md#avviso-di-nuove-visite-urgenti-248).
+
+Verificati `make check-generated`, `make check` (446 test Flutter, analisi,
+strumenti, SQL e documentazione) e `:app:testDevDebugUnitTest`. Sul Galaxy,
+`tools/urgent_visit_smoke.py` nel package separato Todo Validation: PASS per
+invio, duplicati nello stesso batch e nelle chiamate successive, conservazione
+della memoria dopo una lista vuota, esclusione di eventi terminati. Android
+conferma una notifica attiva e canale con importanza 4. Il test non accede ai
+calendari e lascia una notifica sintetica per eventuale ispezione visiva.
+
+Todo Test 2.72.0 / versionCode 2248 installata e aperta in-place con
+`make todo-test`; versione riletta dal package Android. Dati conservati,
+provider diagnostico accessibile (`state=recovered`).
+
+La resa del banner con schermo sbloccato non è ancora verificata visivamente:
+al collaudo il telefono non esponeva una finestra in primo piano. Samsung/Non
+disturbare e le preferenze del canale possono influenzarla. Nessuna pubblicazione
+Web o Play prevista da questo intervento; tali canali restano alla versione
+precedente.
 
 ## Collaudo Android ↔ Web della 247
 

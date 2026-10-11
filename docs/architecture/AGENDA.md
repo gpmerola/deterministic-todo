@@ -867,3 +867,47 @@ reali su un telefono vuoto.
   `AgendaChannelTest.java`, `AgendaBackgroundTest.java`,
   `AgendaLocalEventsTest.java`, `tools/sql-tests/agenda_requests.mjs` e
   `agenda_backup.mjs`: regressioni.
+
+
+## Avviso di nuove visite urgenti (248)
+
+Solo su Android, avvio e ritorno dal background controllano gli eventi dal
+provider locale nei prossimi 90 giorni civili. Non viene forzata la rete: una
+visita deve essere già arrivata al calendario di sistema. Nessun polling,
+nuovo job o servizio; controlli contemporanei sono accorpati. Filtri e unione
+dei duplicati sono quelli del Calendario. Gli eventi terminati o annullati
+sono esclusi; anche una visita tutto il giorno è ammessa se non terminata.
+
+Il titolo deve contenere una parola intera `urgente`, `urgenti` o `urgent`
+insieme a visita/visite, consulto/consultazione, consultation, appointment,
+assessment o follow-up. `non urgente`, `non-urgent`, `not urgent` e `no urgent`
+escludono l'avviso. Nessuna inferenza da nomi, descrizioni, calendario di
+appartenenza o priorità Todo. Le forme sono state verificate sui titoli con
+lettura autorizzata e output limitato alle sole etichette, senza conservare
+contenuti personali.
+
+Al primo controllo vengono segnalate anche le visite urgenti già presenti e
+ancora future/in corso. In seguito si avvisano soltanto occorrenze non ancora
+segnalate; un evento spostato a un altro orario è una nuova occorrenza. La
+memoria locale contiene soltanto hash di identità/inizio e scadenze, cancellate
+quando l'evento è terminato. Cambiare solo il titolo, nascondere/mostrare un
+evento o riaprire l'app non azzera tale memoria. Il canale nativo serializza
+lettura, notifica e salvataggio; se le notifiche sono bloccate non consuma le
+occorrenze. Un errore tra invio e salvataggio può ritentare lo stesso riepilogo,
+che usa sempre lo stesso identificatore Android.
+
+Il canale Android **Nuove visite urgenti** è indipendente dall'interruttore
+«Avvisa 30 minuti prima»: si può disattivare dalle impostazioni notifiche di
+Android. Alta importanza, icona triangolare, accento rosso, titolo evidente e
+riepilogo senza nomi o dettagli clinici; tap apre Calendario. Banner, suono e
+aspetto effettivo dipendono dalle impostazioni Android/Samsung, compreso Non
+disturbare. Nessun full-screen intent o superamento delle preferenze Android.
+
+Verifiche: `test/agenda_urgent_visits_test.dart` e harness isolato
+`integration_test/agenda_urgent_visit_smoke.dart` (soli dati sintetici, nessuna
+lettura/scrittura del calendario). Esecuzione sul dispositivo autorizzato:
+`python3 tools/urgent_visit_smoke.py --serial SERIAL`; richiede SDK Flutter,
+firma locale e ADB connesso. Installa solo Todo Validation e lascia una
+notifica sintetica per ispezione; output atteso `Urgent visit native smoke:
+PASS`. In caso di FAIL controllare i permessi notifiche di Todo Validation
+e ripetere; non cancellare i dati di Todo Test.

@@ -126,6 +126,9 @@ class _AgendaReminderSheetState extends State<AgendaReminderSheet>
               label: const Text('Consenti in Android'),
             ),
           const Text(
+            'Le nuove visite urgenti hanno un avviso separato all’apertura dell’app. Puoi gestirlo in Android nel canale «Nuove visite urgenti».',
+          ),
+          const Text(
             'Questa scelta vale solo per Todo su questo telefono. Gli eventuali avvisi di Google Calendar o Outlook restano indipendenti.',
           ),
           if (error != null)

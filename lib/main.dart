@@ -31,6 +31,7 @@ import 'services/agenda_phone_sync.dart';
 import 'services/agenda_reminders.dart';
 import 'services/agenda_service.dart';
 import 'services/agenda_tasks.dart';
+import 'services/agenda_urgent_visits.dart';
 import 'services/agenda_web_service.dart';
 import 'services/ai_capture_actions.dart';
 import 'services/ai_settings.dart';
@@ -489,7 +490,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       unawaited(agendaSync?.foreground());
       if (isAndroidPlatform) {
         unawaited(
-          AgendaReminders(agendaService).foreground(requestPermission: true),
+          AgendaReminders(agendaService)
+              .foreground(requestPermission: true)
+              .then((_) => AgendaUrgentVisits(agendaService).foreground()),
         );
       }
       await _checkForUpdates(automatic: true);
@@ -705,7 +708,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       unawaited(agendaSync?.foreground());
       if (isAndroidPlatform) {
         unawaited(
-          AgendaReminders(agendaService).foreground(requestPermission: true),
+          AgendaReminders(agendaService)
+              .foreground(requestPermission: true)
+              .then((_) => AgendaUrgentVisits(agendaService).foreground()),
         );
       }
     } else if (isBackgroundLifecycle(state)) {

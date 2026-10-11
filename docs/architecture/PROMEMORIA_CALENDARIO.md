@@ -82,3 +82,8 @@ contenuti personali; i job ritentano con il backoff Android.
 
 Il test sintetico non equivale a una misura di puntualità dopo molte ore di
 Doze o a un collaudo di reboot fisico del Galaxy.
+
+Dalla build 248 le **nuove visite urgenti** hanno anche un controllo
+all'apertura dell'app, indipendente da questi promemoria e dal relativo
+interruttore. Criteri, deduplicazione, privacy e canale Android in
+[Avviso di nuove visite urgenti](AGENDA.md#avviso-di-nuove-visite-urgenti-248).
