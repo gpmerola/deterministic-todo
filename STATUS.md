@@ -24,9 +24,17 @@ Chrome, origine loopback isolata con fixture sintetica: anteprima ispezionata,
 data non valida bloccata, creazione e persistenza dopo refresh verificate,
 anche dopo aggiornamento alla build finale. La prova HTTPS locale è bloccata
 dal certificato non attendibile; nessun avviso di sicurezza è stato aggirato.
-Il Web pubblico resta alla 250. Il flusso completo di inserimento sulla UI
-fisica del Galaxy resta da collaudare: installazione/avvio non equivalgono
-alla verifica della tastiera e del salvataggio reali. Nessuna pubblicazione Play.
+Il Web pubblico resta alla 250. Nessuna pubblicazione Play.
+
+Collaudo fisico completato nel package isolato `.dev.validation`, compilato
+in release dal medesimo codice e installato senza usare il runner Flutter
+(con cleanup non affidabile, vedi build 250). Nessun collegamento a Supabase o
+lettura dei dati Todo Test. Con tastiera Samsung aperta: errore «Data non valida»
+e pulsante disabilitato per 31/02/2027; correzione a oggi, anteprima leggibile
+con priorità P1, invio e chiusura regolari. Una sola fixture presente dopo
+force-stop/riapertura del package sintetico. Todo Validation infine fermato
+e Todo Test riaperto. Il salvataggio lento/negativo resta coperto dai test
+widget con risposta controllata, non da un guasto artificiale sul telefono.
 
 ## Build 250 — Rientro nei Progetti Web
 
