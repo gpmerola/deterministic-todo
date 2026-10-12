@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.80.0 (build 259) — Todo Test
+
+- Stima lavoro privato: due importi distinti per il mese corrente,
+  **Maturato finora** (appuntamenti terminati) e **Totale previsto del mese**
+  (finora più appuntamenti già programmati, compresi quelli in corso).
+  Mostra anche la quota ancora programmata e due dettagli separati per tariffe
+  ed eventi non valorizzati. Nessuna proiezione oltre le prenotazioni presenti.
+
 ## 2.79.0 (build 258) — Todo Test
 
 - Android: voce discreta **Stima lavoro privato** in Impostazioni. Mostra il

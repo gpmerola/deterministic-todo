@@ -65,8 +65,13 @@ scuri e intermedi, più regressioni su celle passate e lista.
 ## Stima lavoro privato — build 258
 
 Solo Android, **Impostazioni → Stima lavoro privato**, senza importi visibili
-prima del tap. `PrivateEarningsService` legge su richiesta dal provider locale
-gli eventi dal primo giorno del mese civile corrente all'istante di apertura
+prima del tap. Dalla build 259 mostra due misure: **Maturato finora**, per gli
+appuntamenti già terminati, e **Totale previsto del mese**, maturato più quanto
+già programmato (inclusi gli appuntamenti in corso). Mostra anche la quota
+programmata e dettagli separati con i rispettivi eventi non valorizzati.
+Nessuna estrapolazione per giorni liberi o prenotazioni non ancora presenti.
+`PrivateEarningsService` legge su richiesta dal provider locale gli eventi
+dal primo giorno del mese civile corrente al primo del mese successivo escluso
 (fuso del dispositivo). Nessun polling, rete, persistenza dei risultati o
 log dei contenuti. Il pulsante Aggiorna ricalcola anche il mese dopo un cambio
 data. Il Web non espone la funzione: la finestra del mirror può non contenere
@@ -81,9 +86,12 @@ producono un messaggio, mai un falso importo zero.
 
 Tariffario OPUK di settembre 2026 verificato nel Second Brain il 12 ottobre;
 regole e importi in pence in `lib/domain/private_earnings.dart`. La stima è
-lorda, non certifica l'esecuzione della prestazione né l'incasso. Solo eventi
-terminati e iniziati nel mese; esclusi futuri, in corso, annullati, no-show/DNA,
-inviti senza risposta, all-day e task. Riconoscimento da etichette esplicite e
+lorda, non certifica l'esecuzione della prestazione né l'incasso. Il previsto
+assume che tutte le prenotazioni incluse si svolgano. Attribuzione al mese
+della data di inizio: un evento a cavallo di mesi appartiene solo al mese in
+cui inizia. Alla fine esatta dell'evento il valore passa da programmato a
+maturato senza cambiare il totale. Esclusi annullati, no-show/DNA, inviti senza
+risposta, all-day e task da entrambe le misure. Riconoscimento da etichette esplicite e
 durata (non da nomi di persone). Una durata esplicita nel titolo prevale sulla
 durata dello slot se è unica e non supera lo slot, che può includere tempo
 amministrativo. ADHD adulti conta separatamente valutazione e feedback,

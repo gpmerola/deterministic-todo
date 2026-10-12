@@ -35,7 +35,7 @@ class PrivateEarningsService {
     }
     final events = await agenda.events(
       DateTime(asOf.year, asOf.month),
-      asOf,
+      DateTime(asOf.year, asOf.month + 1),
       calendars.map((c) => c.id).toList(),
     );
     // Display visibility is not evidence that a service was not performed.

@@ -24,6 +24,31 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
   String money(int pence) =>
       NumberFormat.currency(locale: 'en_GB', symbol: '£').format(pence / 100);
 
+  Widget breakdown(
+    String label,
+    Map<PrivateFee, int> counts,
+    int unpriced,
+  ) => ExpansionTile(
+    tilePadding: EdgeInsets.zero,
+    title: Text(label),
+    subtitle: Text(
+      '${counts.values.fold(0, (sum, n) => sum + n)} prestazioni · $unpriced eventi non valorizzati',
+    ),
+    children: [
+      for (final fee in PrivateFee.values)
+        if (counts.containsKey(fee))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${counts[fee]} × ${fee.label} · ${money(fee.pence * counts[fee]!)}',
+              ),
+            ),
+          ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
@@ -49,26 +74,32 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                     : 'Stima non disponibile. Riprova tra poco.',
               )
             else if (result != null) ...[
+              const Text('Maturato finora'),
               Text(
                 money(result.pence),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const Text('Lordo stimato finora · non incassi confermati'),
+              const Text('Solo appuntamenti già terminati'),
               const SizedBox(height: 16),
-              for (final fee in PrivateFee.values)
-                if (result.counts.containsKey(fee))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '${result.counts[fee]} × ${fee.label} · ${money(fee.pence * result.counts[fee]!)}',
-                    ),
-                  ),
+              const Text('Totale previsto del mese'),
               Text(
-                '${result.visits} prestazioni riconosciute · ${result.unpriced} eventi non valorizzati',
+                money(result.monthPence),
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              Text(
+                'Finora + ${money(result.scheduledPence)} da appuntamenti già programmati, inclusi quelli in corso',
+              ),
+              const SizedBox(height: 12),
+              const Text('Importi lordi stimati · non incassi confermati'),
+              breakdown('Dettaglio finora', result.counts, result.unpriced),
+              breakdown(
+                'Ancora programmati',
+                result.scheduledCounts,
+                result.scheduledUnpriced,
               ),
               const SizedBox(height: 12),
               Text(
-                'Dal 1° del mese al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Solo appuntamenti terminati dei calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Eventi futuri, annullati e assenze esclusi.',
+                'Solo il mese corrente, secondo la data di inizio degli appuntamenti. Aggiornato al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Annullati e assenze esclusi. Il previsto assume che gli appuntamenti programmati si svolgano.',
               ),
               const SizedBox(height: 8),
               const Text(

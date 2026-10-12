@@ -86,13 +86,24 @@ class PrivateEarnings {
     required this.asOf,
     required this.counts,
     required this.unpriced,
+    required this.scheduledCounts,
+    required this.scheduledUnpriced,
   });
   final DateTime asOf;
   final Map<PrivateFee, int> counts;
   final int unpriced;
+
+  /// Appointments not yet ended, including those currently in progress.
+  final Map<PrivateFee, int> scheduledCounts;
+  final int scheduledUnpriced;
   int get pence =>
       counts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
   int get visits => counts.values.fold(0, (sum, n) => sum + n);
+  int get scheduledPence =>
+      scheduledCounts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
+  int get scheduledVisits =>
+      scheduledCounts.values.fold(0, (sum, n) => sum + n);
+  int get monthPence => pence + scheduledPence;
 }
 
 PrivateEarnings estimatePrivateEarnings(
@@ -100,15 +111,18 @@ PrivateEarnings estimatePrivateEarnings(
   DateTime now,
 ) {
   final start = DateTime(now.year, now.month);
+  final until = DateTime(now.year, now.month + 1);
   final seen = <String>{};
   final counts = <PrivateFee, int>{};
+  final scheduledCounts = <PrivateFee, int>{};
   var unpriced = 0;
+  var scheduledUnpriced = 0;
   for (final entry in entries) {
     if (entry.isTask ||
         entry.allDay ||
         entry.unanswered ||
         entry.start.isBefore(start) ||
-        entry.end.isAfter(now) ||
+        !entry.start.isBefore(until) ||
         !entry.end.isAfter(entry.start) ||
         isCanceledTitle(entry.title)) {
       continue;
@@ -122,15 +136,26 @@ PrivateEarnings estimatePrivateEarnings(
     final key = '${entry.instanceId}|${entry.start.millisecondsSinceEpoch}';
     if (!seen.add(key)) continue;
     final fee = privateFeeFor(entry);
+    final scheduled = entry.end.isAfter(now);
     if (fee == null) {
-      unpriced++;
+      if (scheduled) {
+        scheduledUnpriced++;
+      } else {
+        unpriced++;
+      }
     } else {
-      counts.update(fee, (n) => n + 1, ifAbsent: () => 1);
+      (scheduled ? scheduledCounts : counts).update(
+        fee,
+        (n) => n + 1,
+        ifAbsent: () => 1,
+      );
     }
   }
   return PrivateEarnings(
     asOf: now,
     counts: Map.unmodifiable(counts),
     unpriced: unpriced,
+    scheduledCounts: Map.unmodifiable(scheduledCounts),
+    scheduledUnpriced: scheduledUnpriced,
   );
 }

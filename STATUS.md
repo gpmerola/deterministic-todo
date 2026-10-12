@@ -2,6 +2,20 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 259 — Maturato e previsto del mese
+
+Todo Test 2.80.0 / build 259. La stima privata distingue **Maturato finora** e
+**Totale previsto del mese** (maturato più prenotazioni future e in corso), con
+quota programmata e dettagli separati. Solo appuntamenti con inizio nel mese
+corrente; nessuna proiezione oltre le prenotazioni presenti
+([contratto](docs/architecture/AGENDA.md#stima-lavoro-privato--build-258)).
+`make check` (494 test Flutter, analisi, strumenti, SQL e documentazione),
+`make check-generated` e build Web release superati. Todo Test 2259 installata
+in-place con `make todo-test` al secondo tentativo ADB; versione riletta dal
+package e dati conservati. Widget test delle due cifre, dettagli e Aggiorna
+superati. Prova manuale della scheda sul Galaxy ancora da completare:
+al controllo il telefono mostrava un'altra app, senza forzare interazioni.
+
 ## Build 258 — Stima del lavoro privato nel mese corrente
 
 Todo Test 2.79.0 / build 258. Voce discreta in Impostazioni su Android,

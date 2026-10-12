@@ -71,6 +71,14 @@ class _Agenda extends AgendaService {
           allDay: false,
         ),
       AgendaSourceEvent(
+        instanceId: 'scheduled',
+        calendarId: 'private',
+        title: 'Prima visita',
+        start: DateTime(2026, 10, 20, 10),
+        end: DateTime(2026, 10, 20, 11),
+        allDay: false,
+      ),
+      AgendaSourceEvent(
         instanceId: 'canceled',
         calendarId: 'private',
         title: 'Prima visita',
@@ -155,6 +163,9 @@ void main() {
       expect(result.pence, 24000);
       expect(result.visits, 3);
       expect(result.unpriced, 1);
+      expect(result.scheduledPence, 34000);
+      expect(result.scheduledVisits, 2);
+      expect(result.monthPence, 58000);
       expect(estimatePrivateEarnings([valid], DateTime(2026, 11, 1)).pence, 0);
       expect(
         estimatePrivateEarnings([
@@ -164,6 +175,92 @@ void main() {
       );
     },
   );
+
+  test(
+    'scheduled excludes other months, canceled events and duplicate occurrences',
+    () {
+      final future = entry(
+        'Follow-up',
+        30,
+        id: 'future',
+        start: DateTime(2026, 10, 20),
+      );
+      final result = estimatePrivateEarnings([
+        future,
+        future,
+        entry('Prima visita', 60, id: 'november', start: DateTime(2026, 11)),
+        entry(
+          'Prima visita',
+          60,
+          id: 'september',
+          start: DateTime(2026, 9, 30, 23, 30),
+        ),
+        entry(
+          'Cancelled: Prima visita',
+          60,
+          id: 'canceled',
+          start: DateTime(2026, 10, 20),
+        ),
+        entry('Follow-up - DNA', 30, id: 'dna', start: DateTime(2026, 10, 20)),
+        entry(
+          'Unknown service',
+          30,
+          id: 'unknown',
+          start: DateTime(2026, 10, 20),
+        ),
+        entry(
+          'Prima visita',
+          60,
+          id: 'all-day',
+          allDay: true,
+          start: DateTime(2026, 10, 20),
+        ),
+        entry(
+          'Prima visita',
+          60,
+          id: 'unanswered',
+          unanswered: true,
+          start: DateTime(2026, 10, 20),
+        ),
+        entry(
+          'Follow-up',
+          30,
+          id: 'cross-month',
+          start: DateTime(2026, 10, 31, 23, 45),
+        ),
+      ], now);
+      expect(result.pence, 0);
+      expect(result.unpriced, 0);
+      expect(result.scheduledPence, 22000);
+      expect(result.scheduledVisits, 2);
+      expect(result.scheduledUnpriced, 1);
+      expect(result.monthPence, 22000);
+      final december = estimatePrivateEarnings([
+        entry('Follow-up', 15, start: DateTime(2026, 12, 31, 23, 45)),
+        entry('Follow-up', 30, id: 'january', start: DateTime(2027, 1)),
+      ], DateTime(2026, 12, 1));
+      expect(december.monthPence, 6500);
+    },
+  );
+
+  test('appointment moves from scheduled to accrued exactly at its end', () {
+    final appointment = entry(
+      'Follow-up',
+      30,
+      start: DateTime(2026, 10, 12, 18),
+    );
+    final before = estimatePrivateEarnings([
+      appointment,
+    ], DateTime(2026, 10, 12, 18, 29));
+    final after = estimatePrivateEarnings([
+      appointment,
+    ], DateTime(2026, 10, 12, 18, 30));
+    expect(before.pence, 0);
+    expect(before.scheduledPence, 11000);
+    expect(after.pence, 11000);
+    expect(after.scheduledPence, 0);
+    expect(before.monthPence, after.monthPence);
+  });
 
   test('ADHD package charged by stage without an extra report', () {
     final result = estimatePrivateEarnings([
@@ -183,11 +280,13 @@ void main() {
       final agenda = _Agenda(db);
       final result = await PrivateEarningsService(agenda).load(now: now);
       expect(agenda.from, DateTime(2026, 10));
-      expect(agenda.until, now);
+      expect(agenda.until, DateTime(2026, 11));
       expect(agenda.ids, ['private', 'copy']);
       expect(agenda.reads, 1);
       expect(result.pence, 6500);
       expect(result.visits, 1);
+      expect(result.scheduledPence, 17000);
+      expect(result.monthPence, 23500);
     },
   );
 
@@ -228,7 +327,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Lavoro privato · ottobre'), findsOneWidget);
       expect(find.text('£65.00'), findsOneWidget);
-      expect(find.textContaining('Lordo stimato'), findsOneWidget);
+      expect(find.text('Maturato finora'), findsOneWidget);
+      expect(find.text('Totale previsto del mese'), findsOneWidget);
+      expect(find.text('£235.00'), findsOneWidget);
+      expect(find.textContaining('Finora + £170.00'), findsOneWidget);
+      expect(find.textContaining('Importi lordi stimati'), findsOneWidget);
+      await tester.ensureVisible(find.text('Ancora programmati'));
+      await tester.tap(find.text('Ancora programmati'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1 × Prima visita'), findsOneWidget);
       agenda.fail = true;
       await tester.ensureVisible(find.text('Aggiorna'));
       await tester.tap(find.text('Aggiorna'));
@@ -238,6 +345,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('£65.00'), findsNothing);
+      expect(find.text('£235.00'), findsNothing);
       expect(find.textContaining('Synthetic provider failure'), findsNothing);
     },
   );
