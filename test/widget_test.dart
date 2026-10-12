@@ -1071,7 +1071,12 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('mobile-quick-add-priority')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('P1'));
+    await tester.tap(
+      find.ancestor(
+        of: find.text('P1'),
+        matching: find.byType(CheckedPopupMenuItem<int>),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('mobile-quick-add-submit')));
     await tester.pumpAndSettle();

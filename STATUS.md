@@ -2,6 +2,31 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 253 — Selettori coerenti e responsabilità separate
+
+Todo Test 2.74.0 / versionCode 2253 installata in-place e aperta sul Galaxy
+tramite `make todo-test`. I token di priorità e progetto aggiornano icone,
+tooltip e selezione nei menu; scegliere dal menu aggiorna il token riconosciuto.
+Estratti servizio di creazione rapida, stato di navigazione e componenti
+Calendario (intestazione, selettore calendari e righe). Nessun cambio di schema,
+dipendenza, polling o riordino implicito. La scomposizione di `main.dart` resta
+incrementale; ownership in [HANDOFF](docs/HANDOFF.md).
+
+Superati `make check-generated`, `make check` (460 test Flutter, analisi,
+strumenti, SQL, link), build Web release e APK Android release arm64.
+Test dedicati coprono selettori su larghezze 400/1200, token e default espliciti,
+persistenza, protezione della sezione nel cambio progetto e storia di navigazione.
+Sul Galaxy, package isolato `.dev.validation` con soli dati sintetici:
+P1 → P2 e Alpha → Beta aggiornano testo, anteprima e menu; l'attività salvata
+compare una sola volta in Beta con priorità P2. Indietro e rientro nel progetto
+verificati; package di validazione fermato al termine. Nessun dato Todo Test letto.
+
+Chrome su origine loopback isolata: P1 → P2 verificato, attività salvata e ancora
+presente dopo refresh. HTTPS locale resta non verificato per certificato non
+attendibile; nessun avviso aggirato. Web pubblico ancora alla 250, nessuna
+pubblicazione Play. Esiti delle pipeline del branch e manifest rolling nella
+[PR di consegna](https://github.com/gpmerola/deterministic-todo/pull/2).
+
 ## Build 252 — Inserimento rapido più chiaro
 
 Todo Test 2.73.1 / versionCode 2252 installata in-place e aperta sul Galaxy

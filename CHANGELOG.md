@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.74.0 (build 253) — Todo Test
+
+- Inserimento rapido: colore, tooltip e selezione nei menu mostrano progetto
+  e priorità effettivi anche per `#progetto` e `p1`–`p4` nel testo. Una scelta
+  esplicita dal menu aggiorna il token riconosciuto, lasciando intatti titolo,
+  data e ricorrenza. I menu sono disabilitati durante l'invio.
+- Separati navigazione della shell, persistenza della creazione rapida e
+  componenti del Calendario (filtri, barra comandi, elenco), senza modificare
+  pianificazione, sincronizzazione, schema o comportamento di navigazione.
+
 ## 2.73.1 (build 252) — Todo Test
 
 - Inserimento rapido: anteprima della data effettiva (anche quella odierna

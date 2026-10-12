@@ -8,7 +8,7 @@ import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
-import 'agenda_view.dart' show AgendaTodayIcon;
+import 'agenda_header.dart' show AgendaTodayIcon;
 import 'calendar_visit_group.dart';
 
 typedef AgendaDaysLoader =

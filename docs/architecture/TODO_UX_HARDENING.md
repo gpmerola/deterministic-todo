@@ -151,3 +151,29 @@ Una risposta negativa mantiene testo e bozza disponibili per riprovare.
 Invio da tastiera rivalida il testo corrente anche prima del frame successivo.
 Test: `test/quick_add_preview_test.dart`, insieme alle regressioni del composer
 in `test/widget_test.dart` e `test/todo_ux_hardening_test.dart`.
+
+## Selettori e separazione delle responsabilità (build 253)
+
+Anteprima e selettori condividono il risultato di `parseQuickAddMetadata`.
+Colore, tooltip, valore iniziale e spunta dei menu riflettono il testo corrente,
+anche quando la data non è ancora valida. Una selezione esplicita aggiorna il
+solo token riconosciuto dal parser; senza token aggiorna il default del composer.
+La rimozione manuale di un token torna al default esplicito. Il cambio progetto
+esplicito rimuove la sezione del progetto precedente; il salvataggio conserva
+comunque la protezione che esclude sezioni incompatibili con il progetto parsed.
+
+- `ui/shell/shell_navigation.dart`: cronologia limitata a 20 passaggi,
+  ritorno dall'interno di un progetto, data/finestra/identità di Prossime.
+  La shell conserva la barriera di salvataggio dell'editor prima di navigare.
+- `services/quick_add_service.dart`: cache per l'apertura successiva, parsing,
+  creazione e preferenza dell'ultimo progetto. Nessun `BuildContext`, timer o
+  nuova query rispetto al flusso precedente.
+- `ui/views/agenda_calendar_picker.dart`, `agenda_header.dart` e
+  `agenda_list_widgets.dart`: filtri, comandi e righe estratti dalla vista;
+  `agenda_view.dart` conserva caricamento e orchestrazione, ed esporta i simboli
+  pubblici precedenti per compatibilità. La vista giorno importa l'icona dal
+  modulo dedicato, evitando la dipendenza circolare con la vista principale.
+
+Regressioni: `quick_add_preview_test`, `quick_add_metadata_test`,
+`quick_add_service_test`, `shell_navigation_test`, oltre alle suite esistenti
+per editor, navigazione Progetti, Calendario e cambio data civile.

@@ -97,6 +97,11 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - contapassi Android isolato: passi del telefono tramite la Recording API
   locale e obiettivo giornaliero, in un archivio Room separato.
 
+Nell’inserimento rapido, l’anteprima, il colore della priorità e i menu
+mostrano gli stessi valori, anche quando scrivi `p1` o `#Nome progetto` nel
+titolo. Scegliendo un altro valore dal menu viene aggiornato il relativo token
+nel testo; data e ricorrenza restano invariate.
+
 ## Calendario (Android)
 
 **Calendario → ⋮ → Promemoria**: avviso locale 30 minuti prima di tutti gli

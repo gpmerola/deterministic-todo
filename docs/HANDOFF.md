@@ -42,7 +42,11 @@ e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
 - `lib/data/sync/` — outbox, versioni Lamport, tombstone, Supabase/Realtime.
   Hotspot: `sync_service.dart`.
 - `lib/services/` — calendario, backup, import/export, aggiornamenti, AI.
-- `lib/ui/` — shell (`lib/main.dart`, ancora grande), viste in `ui/views/`.
+- `lib/ui/` — shell (`lib/main.dart`, ancora grande), stato navigazione in
+  `ui/shell/shell_navigation.dart`; creazione rapida in
+  `services/quick_add_service.dart`. Calendario: orchestrazione in
+  `ui/views/agenda_view.dart`, filtri, header ed elenco in moduli separati
+  ([confini](architecture/TODO_UX_HARDENING.md)).
 - `android/app` — canali nativi Calendario, scorciatoia Home, debug provider.
 - `android/runtracker` — contapassi (Room + Recording API, nessun GPS/BLE).
 - `supabase/migrations/` — applicate a mano solo dopo consenso specifico;

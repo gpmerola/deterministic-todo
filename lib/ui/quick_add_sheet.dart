@@ -9,10 +9,13 @@ import '../domain/quick_add_metadata.dart';
 import '../domain/quick_add_parser.dart';
 import '../domain/task.dart';
 import '../services/diagnostic_log_service.dart';
+import '../services/quick_add_service.dart';
 import 'priority_color.dart';
 import 'smart_date_text_controller.dart';
 
-({String? summary, String? error}) _quickAddPreview(
+export '../services/quick_add_service.dart' show QuickAddInput;
+
+({String? summary, String? error, QuickAddMetadata metadata}) _quickAddPreview(
   String value, {
   required int priority,
   required String? projectId,
@@ -43,20 +46,15 @@ import 'smart_date_text_controller.dart';
           ? 'Nessuna priorità'
           : 'Priorità P${5 - metadata.priority}',
     ];
-    return (summary: parts.join(' · '), error: null);
+    return (summary: parts.join(' · '), error: null, metadata: metadata);
   } on FormatException catch (error) {
-    return (summary: null, error: value.trim().isEmpty ? null : error.message);
+    return (
+      summary: null,
+      error: value.trim().isEmpty ? null : error.message,
+      metadata: metadata,
+    );
   }
 }
-
-/// Text and choices of one quick-add submission.
-typedef QuickAddInput = ({
-  String text,
-  String notes,
-  int priority,
-  String? projectId,
-  String? sectionId,
-});
 
 /// Bottom sheet composer. [onSubmit] creates the item and returns false to
 /// keep the sheet open (invalid input). An unsent draft is kept locally in
@@ -141,6 +139,20 @@ Future<void> showQuickAddSheet(
           projectId: projectId,
           projects: availableProjects,
         );
+        final effectivePriority = preview.metadata.priority;
+        final effectiveProject = preview.metadata.projectId;
+        final projectName = availableProjects
+            .where((p) => p.id == effectiveProject)
+            .firstOrNull
+            ?.name;
+        void updateTitle(String text) {
+          if (text == controller.text) return;
+          controller.value = TextEditingValue(
+            text: text,
+            selection: TextSelection.collapsed(offset: text.length),
+          );
+        }
+
         final canSubmit =
             controller.text.trim().isNotEmpty && preview.error == null;
         Future<void> submit() async {
@@ -224,19 +236,26 @@ Future<void> showQuickAddSheet(
                     ),
                     PopupMenuButton<int>(
                       key: const ValueKey('mobile-quick-add-priority'),
-                      tooltip: priority == 1
+                      tooltip: effectivePriority == 1
                           ? 'Nessuna priorità'
-                          : 'Priorità P${5 - priority}',
+                          : 'Priorità P${5 - effectivePriority}',
+                      initialValue: effectivePriority,
+                      enabled: !submitting,
                       icon: Icon(
                         Icons.circle,
                         size: 20,
-                        color: priorityColor(priority),
+                        color: priorityColor(effectivePriority),
                       ),
-                      onSelected: (value) =>
-                          setSheetState(() => priority = value),
+                      onSelected: (value) => setSheetState(() {
+                        priority = value;
+                        updateTitle(
+                          selectQuickAddPriority(controller.text, value),
+                        );
+                      }),
                       itemBuilder: (_) => [
                         for (var raw = 4; raw >= 1; raw--)
-                          PopupMenuItem(
+                          CheckedPopupMenuItem(
+                            checked: raw == effectivePriority,
                             value: raw,
                             child: Row(
                               children: [
@@ -246,8 +265,12 @@ Future<void> showQuickAddSheet(
                                   color: priorityColor(raw),
                                 ),
                                 const SizedBox(width: 10),
-                                Text(
-                                  raw == 1 ? 'Nessuna priorità' : 'P${5 - raw}',
+                                Flexible(
+                                  child: Text(
+                                    raw == 1
+                                        ? 'Nessuna priorità'
+                                        : 'P${5 - raw}',
+                                  ),
                                 ),
                               ],
                             ),
@@ -256,25 +279,46 @@ Future<void> showQuickAddSheet(
                     ),
                     if (availableProjects.isNotEmpty)
                       PopupMenuButton<String>(
-                        tooltip: 'Progetto',
+                        key: const ValueKey('mobile-quick-add-project'),
+                        tooltip: projectName == null
+                            ? 'Progetto'
+                            : 'Progetto: $projectName',
+                        initialValue: effectiveProject ?? '',
+                        enabled: !submitting,
                         icon: Icon(
-                          projectId == null
+                          effectiveProject == null
                               ? Icons.folder_outlined
                               : Icons.folder,
-                          color: projectId == null
+                          color: effectiveProject == null
                               ? null
                               : Theme.of(context).colorScheme.primary,
                         ),
-                        onSelected: (value) => setSheetState(
-                          () => projectId = value.isEmpty ? null : value,
-                        ),
+                        onSelected: (value) => setSheetState(() {
+                          final next = value.isEmpty ? null : value;
+                          if (next != projectId) sectionId = null;
+                          projectId = next;
+                          updateTitle(
+                            selectQuickAddProject(
+                              controller.text,
+                              projectId: next,
+                              projectsByName: {
+                                for (final p in availableProjects.where(
+                                  (p) => !p.isArchived,
+                                ))
+                                  p.name: p.id,
+                              },
+                            ),
+                          );
+                        }),
                         itemBuilder: (_) => [
-                          const PopupMenuItem<String>(
+                          CheckedPopupMenuItem<String>(
+                            checked: effectiveProject == null,
                             value: '',
                             child: Text('Nessun progetto'),
                           ),
                           for (final project in availableProjects)
-                            PopupMenuItem<String>(
+                            CheckedPopupMenuItem<String>(
+                              checked: effectiveProject == project.id,
                               value: project.id,
                               child: Text(project.name),
                             ),

@@ -22,7 +22,6 @@ import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
 import 'domain/agenda.dart';
-import 'domain/link_syntax.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
@@ -44,6 +43,7 @@ import 'services/performance_monitor.dart';
 import 'services/picked_text.dart';
 import 'services/platform_runtime_native.dart'
     if (dart.library.js_interop) 'services/platform_runtime_web.dart';
+import 'services/quick_add_service.dart';
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
 import 'ui/activity_history_view.dart';
@@ -60,6 +60,7 @@ import 'ui/search.dart';
 import 'ui/shell/app_update_flow.dart';
 import 'ui/shell/civil_day_clock.dart';
 import 'ui/shell/daily_steps_controller.dart';
+import 'ui/shell/shell_navigation.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
@@ -374,13 +375,8 @@ class TaskShell extends StatefulWidget {
 }
 
 class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
-  AppSection section = AppSection.today;
-  final List<AppSection> sectionHistory = [];
-  String? selectedUpcomingDate;
-  int upcomingDays = 30;
-  int upcomingVisit = 0;
+  final navigation = ShellNavigation();
   var desktopEditorKey = GlobalKey<_TaskEditorState>();
-  String? selectedProjectId;
   String? selectedDesktopTaskId;
   final search = TextEditingController();
   String? viewStreamKey;
@@ -414,19 +410,19 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   Stream<List<Task>> _visibleTasks() {
     final today = dayClock.today;
-    final start = selectedUpcomingDate == null
+    final start = navigation.selectedUpcomingDate == null
         ? today.addDays(1)
-        : CivilDate.parse(selectedUpcomingDate!);
+        : CivilDate.parse(navigation.selectedUpcomingDate!);
     final key =
-        '${section.name}:$today:$selectedProjectId:$start:$upcomingDays';
+        '${navigation.section.name}:$today:${navigation.selectedProjectId}:$start:${navigation.upcomingDays}';
     if (key != viewStreamKey) {
       viewStreamKey = key;
       viewStream = widget.repository.watchView(
-        view: section.name,
+        view: navigation.section.name,
         today: today.toString(),
-        projectId: selectedProjectId,
+        projectId: navigation.selectedProjectId,
         fromDate: start.toString(),
-        throughDate: start.addDays(upcomingDays - 1).toString(),
+        throughDate: start.addDays(navigation.upcomingDays - 1).toString(),
       );
     }
     return viewStream!;
@@ -438,8 +434,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final Set<String> recentlySyncedTaskIds = {};
   StreamSubscription<Set<String>>? remoteTaskSubscription;
   Timer? remoteHighlightTimer;
-  List<Project> quickAddProjects = const [];
-  String? lastQuickProjectId;
+  late final quickAdd = QuickAddService(widget.repository);
   late final steps = DailyStepsController(
     database: widget.repository.db,
     onGoalReached: _celebrateStepGoal,
@@ -573,23 +568,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeProjectCaches() async {
-    final projects = await widget.repository.db
-        .select(widget.repository.db.projects)
-        .get();
-    await _refreshQuickAddCache(projects: projects);
+    await quickAdd.refresh();
     if (mounted) setState(() {});
-  }
-
-  Future<void> _refreshQuickAddCache({List<Project>? projects}) async {
-    projects ??= await widget.repository.db
-        .select(widget.repository.db.projects)
-        .get();
-    final settings = await (widget.repository.db.select(
-      widget.repository.db.appSettings,
-    )..where((row) => row.key.equals('last_quick_project'))).get();
-    final values = {for (final setting in settings) setting.key: setting.value};
-    quickAddProjects = projects.where((item) => !item.isArchived).toList();
-    lastQuickProjectId = values['last_quick_project'];
   }
 
   Future<void> _runDailyMaintenance() async {
@@ -778,30 +758,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     if (input.text.trim().isEmpty) return false;
     final elapsed = Stopwatch()..start();
     try {
-      final metadata = parseQuickAddMetadata(
-        input.text,
-        defaultPriority: input.priority,
-        defaultProjectId: input.projectId,
-        projectsByName: {
-          for (final project in projects.where((item) => !item.isArchived))
-            project.name: project.id,
-        },
-      );
-      final parsed = parsePlannedQuickTask(metadata.text);
-      final notesText = input.notes.trim();
-      await widget.repository.create(
-        linkifyPlainUrls(parsed.title),
-        showDate: parsed.showDate!.toString(),
-        notes: notesText.isEmpty ? null : linkifyPlainUrls(notesText),
-        recurrence: parsed.recurrence,
-        priority: metadata.priority,
-        projectId: metadata.projectId,
-        sectionId: metadata.projectId == input.projectId
-            ? input.sectionId
-            : null,
-      );
-      await _savePreference('last_quick_project', metadata.projectId ?? '');
-      lastQuickProjectId = metadata.projectId;
+      await quickAdd.create(input, projects: projects);
       if (mounted) setState(() => selectedDesktopTaskId = null);
       elapsed.stop();
       unawaited(
@@ -847,40 +804,31 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     String? sectionId,
   }) async {
     if (!await _closeDesktopEditor() || !mounted) return;
-    final projects = List<Project>.of(quickAddProjects);
+    final projects = List<Project>.of(quickAdd.projects);
     // Refresh in background for the next opening. The current sheet must be
     // mounted immediately, without waiting for SQLite or preferences.
-    unawaited(_refreshQuickAddCache());
+    unawaited(quickAdd.refresh());
     await showQuickAddSheet(
       context,
       projects: projects,
       draftStore: EditorDrafts(widget.repository.db),
       projectId:
           projectId ??
-          (projects.any((item) => item.id == lastQuickProjectId)
-              ? lastQuickProjectId
+          (projects.any((item) => item.id == quickAdd.lastProjectId)
+              ? quickAdd.lastProjectId
               : null),
       sectionId: sectionId,
       onSubmit: (input) => _createFrom(input, projects: projects),
     );
   }
 
-  bool get _canExitFromBack =>
-      section == AppSection.today && sectionHistory.isEmpty;
+  bool get _canExitFromBack => navigation.canExit;
 
   Future<void> _navigateTo(AppSection destination) async {
-    if (destination == section) return;
+    if (destination == navigation.section) return;
     if (!await _closeDesktopEditor() || !mounted) return;
     final elapsed = Stopwatch()..start();
-    setState(() {
-      sectionHistory.add(section);
-      if (sectionHistory.length > 20) sectionHistory.removeAt(0);
-      section = destination;
-      if (destination == AppSection.upcoming) {
-        upcomingVisit++;
-        upcomingDays = 30;
-      }
-    });
+    setState(() => navigation.navigateTo(destination));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       elapsed.stop();
       unawaited(
@@ -901,21 +849,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       await _closeDesktopEditor();
       return;
     }
-    setState(() {
-      if (selectedDesktopTaskId != null) {
-        selectedDesktopTaskId = null;
-      } else if (section == AppSection.projects && selectedProjectId != null) {
-        selectedProjectId = null;
-      } else if (sectionHistory.isNotEmpty) {
-        section = sectionHistory.removeLast();
-        if (section == AppSection.upcoming) {
-          upcomingVisit++;
-          upcomingDays = 30;
-        }
-      } else {
-        section = AppSection.today;
-      }
-    });
+    setState(navigation.back);
   }
 
   @override
@@ -951,8 +885,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               builder: (context, constraints) {
                 final desktop = constraints.maxWidth >= 900;
                 final pageIdentity =
-                    '${section.name}:'
-                    '${section == AppSection.projects ? selectedProjectId ?? 'root' : ''}';
+                    '${navigation.section.name}:'
+                    '${navigation.section == AppSection.projects ? navigation.selectedProjectId ?? 'root' : ''}';
                 final selectedDesktopTask = desktop
                     ? tasks
                           .where((task) => task.id == selectedDesktopTaskId)
@@ -1021,17 +955,17 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                 return Scaffold(
                   // Agenda gives its whole height to the days; search and
                   // settings move into its own header menu.
-                  appBar: section == AppSection.agenda
+                  appBar: navigation.section == AppSection.agenda
                       ? null
                       : AppBar(
                           leadingWidth: desktop ? 80 : null,
                           leading:
                               desktop &&
-                                  section != AppSection.settings &&
-                                  section != AppSection.completed
+                                  navigation.section != AppSection.settings &&
+                                  navigation.section != AppSection.completed
                               ? const SizedBox.shrink()
-                              : section == AppSection.settings ||
-                                    section == AppSection.completed
+                              : navigation.section == AppSection.settings ||
+                                    navigation.section == AppSection.completed
                               ? IconButton(
                                   tooltip: 'Indietro',
                                   onPressed: _handleBack,
@@ -1047,8 +981,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                   child: child,
                                 ),
                             child: Text(
-                              section.label,
-                              key: ValueKey('appbar-title-${section.name}'),
+                              navigation.section.label,
+                              key: ValueKey(
+                                'appbar-title-${navigation.section.name}',
+                              ),
                             ),
                           ),
                           actions: [
@@ -1056,7 +992,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                             // title elsewhere ("Prossi…", build 217).
                             if (widget.enablePlatformServices &&
                                 isAndroidPlatform &&
-                                section == AppSection.today)
+                                navigation.section == AppSection.today)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 3,
@@ -1077,7 +1013,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 service: widget.syncService!,
                                 repository: widget.repository,
                               ),
-                            if (section != AppSection.settings) ...[
+                            if (navigation.section != AppSection.settings) ...[
                               if (widget.enablePlatformServices &&
                                   isAndroidPlatform)
                                 IconButton(
@@ -1104,8 +1040,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       ? Row(
                           children: [
                             NavigationRail(
-                              selectedIndex: primarySections.contains(section)
-                                  ? primarySections.indexOf(section)
+                              selectedIndex:
+                                  primarySections.contains(navigation.section)
+                                  ? primarySections.indexOf(navigation.section)
                                   : null,
                               onDestinationSelected: (index) =>
                                   _navigateTo(primarySections[index]),
@@ -1133,10 +1070,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       : content,
                   floatingActionButton:
                       !desktop &&
-                          section != AppSection.settings &&
-                          section != AppSection.projects &&
-                          section != AppSection.agenda &&
-                          section != AppSection.completed
+                          navigation.section != AppSection.settings &&
+                          navigation.section != AppSection.projects &&
+                          navigation.section != AppSection.agenda &&
+                          navigation.section != AppSection.completed
                       ? FloatingActionButton(
                           tooltip: 'Nuova attività',
                           onPressed: _showQuickAddSheet,
@@ -1145,8 +1082,8 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                       : null,
                   bottomNavigationBar:
                       desktop ||
-                          section == AppSection.settings ||
-                          section == AppSection.completed
+                          navigation.section == AppSection.settings ||
+                          navigation.section == AppSection.completed
                       ? null
                       : Center(
                           heightFactor: 1,
@@ -1159,7 +1096,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                               labelBehavior:
                                   NavigationDestinationLabelBehavior.alwaysShow,
                               selectedIndex: primarySections
-                                  .indexOf(section)
+                                  .indexOf(navigation.section)
                                   .clamp(0, primarySections.length - 1),
                               onDestinationSelected: (index) =>
                                   _navigateTo(primarySections[index]),
@@ -1349,7 +1286,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   /// [loaded] is false until SQLite answers: the web database can take
   /// seconds to open, and an early "Nessuna attività" looks like data loss.
   Widget _content(List<Task> all, {bool loaded = true}) {
-    if (section == AppSection.settings) {
+    if (navigation.section == AppSection.settings) {
       return ListenableBuilder(
         listenable: steps,
         builder: (context, _) => SettingsView(
@@ -1363,7 +1300,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ),
       );
     }
-    if (section == AppSection.agenda) {
+    if (navigation.section == AppSection.agenda) {
       return SafeArea(
         bottom: false,
         child: AgendaPalette(
@@ -1386,13 +1323,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ),
       );
     }
-    if (section == AppSection.projects) {
+    if (navigation.section == AppSection.projects) {
       return ProjectsView(
         repository: widget.repository,
         syncService: widget.syncService,
         tasks: all,
-        selectedProjectId: selectedProjectId,
-        onSelectProject: (id) => setState(() => selectedProjectId = id),
+        selectedProjectId: navigation.selectedProjectId,
+        onSelectProject: (id) =>
+            setState(() => navigation.selectedProjectId = id),
         beforeLeavingProject: () async =>
             await _closeDesktopEditor() && mounted,
         onAddTask: (projectId, sectionId) =>
@@ -1409,35 +1347,33 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     // Membership comes from SQL (`watchView`); here rows are only ordered.
     final visible = List<Task>.of(all)
       ..sort(
-        (a, b) => section == AppSection.upcoming
+        (a, b) => navigation.section == AppSection.upcoming
             ? compareByDateThenPriority(a, b, today.toString())
             : compareByPriority(a, b, today.toString()),
       );
-    if (section == AppSection.upcoming) {
-      final start = selectedUpcomingDate == null
+    if (navigation.section == AppSection.upcoming) {
+      final start = navigation.selectedUpcomingDate == null
           ? today.addDays(1)
-          : CivilDate.parse(selectedUpcomingDate!);
+          : CivilDate.parse(navigation.selectedUpcomingDate!);
       return Column(
         children: [
           UpcomingDateJump(
             today: today,
-            selected: selectedUpcomingDate == null ? null : start,
+            selected: navigation.selectedUpcomingDate == null ? null : start,
             onSelected: (date) => setState(() {
-              selectedUpcomingDate = date.toString();
-              upcomingDays = 30;
-              upcomingVisit++;
+              navigation.selectUpcomingDate(date.toString());
             }),
           ),
           Expanded(
             child: UpcomingTaskList(
               listKey: PageStorageKey(
-                'upcoming-$selectedUpcomingDate-$upcomingVisit',
+                'upcoming-${navigation.selectedUpcomingDate}-${navigation.upcomingVisit}',
               ),
               tasks: visible,
               today: today,
               start: start,
-              days: upcomingDays,
-              onLoadMore: () => setState(() => upcomingDays += 30),
+              days: navigation.upcomingDays,
+              onLoadMore: () => setState(() => navigation.upcomingDays += 30),
               tileBuilder: (task) => TaskTile(
                 key: ValueKey(task.id),
                 task: task,
@@ -1451,33 +1387,35 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       );
     }
     final list = AnimatedSwitcher(
-      key: ValueKey('task-state-motion-${section.name}'),
+      key: ValueKey('task-state-motion-${navigation.section.name}'),
       duration: _microMotion,
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
       child: visible.isEmpty && !loaded
-          ? SizedBox.shrink(key: ValueKey('loading-${section.name}'))
+          ? SizedBox.shrink(key: ValueKey('loading-${navigation.section.name}'))
           : visible.isEmpty
           ? EmptyViewLabel(
-              section == AppSection.completed
+              navigation.section == AppSection.completed
                   ? 'Nessuna attività completata'
                   : 'Nessuna attività',
-              key: ValueKey('empty-${section.name}'),
+              key: ValueKey('empty-${navigation.section.name}'),
             )
-          : section == AppSection.today
+          : navigation.section == AppSection.today
           ? TodayTaskList(
               tasks: visible,
               today: today.toString(),
               tileBuilder: _taskTile,
             )
           : ListView.builder(
-              key: PageStorageKey('task-list-${section.name}'),
+              key: PageStorageKey('task-list-${navigation.section.name}'),
               padding: const EdgeInsets.only(bottom: 24),
               itemCount: visible.length,
               itemBuilder: (context, index) => _taskTile(visible[index]),
             ),
     );
-    if (section != AppSection.today || !_agendaAvailable) return list;
+    if (navigation.section != AppSection.today || !_agendaAvailable) {
+      return list;
+    }
     // Today's remaining appointments above the tasks: one look for both.
     return Column(
       children: [
@@ -1530,9 +1468,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     task: task,
     repository: widget.repository,
     highlightRemote: recentlySyncedTaskIds.contains(task.id),
-    dense: section == AppSection.completed,
+    dense: navigation.section == AppSection.completed,
     showDateMetadata:
-        section != AppSection.today && section != AppSection.upcoming,
+        navigation.section != AppSection.today &&
+        navigation.section != AppSection.upcoming,
     onSelected: MediaQuery.sizeOf(context).width >= 900
         ? () async {
             if (selectedDesktopTaskId == task.id) return;
