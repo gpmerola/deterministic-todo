@@ -32,6 +32,7 @@ todo-test-ci:
 check-sql:
 	npm ci --prefix tools/sql-tests --ignore-scripts --no-audit --no-fund
 	node tools/sql-tests/safe_purge.mjs
+	node tools/sql-tests/task_fingerprints_v2.mjs
 	node tools/sql-tests/agenda_mirror.mjs
 	node tools/sql-tests/agenda_backup.mjs
 	node tools/sql-tests/agenda_requests.mjs

@@ -49,6 +49,7 @@ class SyncSnapshot {
     this.lastRecovery,
     this.retryAt,
     this.consecutiveFailures = 0,
+    this.alignment,
   });
   final SyncPhase phase;
   final int pending;
@@ -61,6 +62,30 @@ class SyncSnapshot {
   final DateTime? lastRecovery;
   final DateTime? retryAt;
   final int consecutiveFailures;
+
+  /// Result of the last complete check against the server; null until one ran.
+  final SyncAlignment? alignment;
+}
+
+/// Server alignment measured by bucket fingerprints after a complete pull.
+/// [divergedBuckets] counts groups of tasks still different from the server
+/// without pending local changes. Not polled: refreshed only by sync cycles.
+class SyncAlignment {
+  const SyncAlignment(
+    this.divergedBuckets, {
+    required this.checkedAt,
+    required this.contentChecked,
+    this.repaired = false,
+  });
+  final int divergedBuckets;
+  final DateTime checkedAt;
+
+  /// False when the server only offers v1 fingerprints (versions, no content).
+  final bool contentChecked;
+
+  /// True after a user-requested complete pull.
+  final bool repaired;
+  bool get aligned => divergedBuckets == 0;
 }
 
 class SyncService {
@@ -135,6 +160,7 @@ class SyncService {
   bool _activeSnapshotStarted = false;
   bool _activeHasUploads = false;
   bool _pullAllRequested = false;
+  SyncAlignment? _alignment;
   bool _paused = false;
   bool _flushUploads = false;
   int _consecutiveFailures = 0;
@@ -172,6 +198,23 @@ class SyncService {
 
   void _emit(SyncSnapshot snapshot) {
     if (_disposed) return;
+    // Every phase carries the last measured alignment; only a sync updates it.
+    if (snapshot.alignment == null && _alignment != null) {
+      snapshot = SyncSnapshot(
+        snapshot.phase,
+        pending: snapshot.pending,
+        lastSuccess: snapshot.lastSuccess,
+        error: snapshot.error,
+        stage: snapshot.stage,
+        lastFailure: snapshot.lastFailure,
+        lastError: snapshot.lastError,
+        lastFailureStage: snapshot.lastFailureStage,
+        lastRecovery: snapshot.lastRecovery,
+        retryAt: snapshot.retryAt,
+        consecutiveFailures: snapshot.consecutiveFailures,
+        alignment: _alignment,
+      );
+    }
     _latest = snapshot;
     _state.add(snapshot);
   }
@@ -515,6 +558,17 @@ class SyncService {
     });
   }
 
+  /// Explicit user repair: the next full check ignores bucket fingerprints
+  /// and rewrites every remote row with an equal or newer version. Pending
+  /// local changes still win; nothing is deleted or uploaded implicitly.
+  Future<void> repairAlignment() async {
+    if (_disposed) return;
+    await (db.delete(
+      db.appSettings,
+    )..where((r) => r.key.equals(remoteNullRepairKey))).go();
+    await sync(freshSnapshot: true);
+  }
+
   Future<void> purgeRemoteTrash() =>
       _runScoped(_purgeRemoteTrashScoped, cancelIsSuccess: false);
 
@@ -734,16 +788,19 @@ class SyncService {
         await _syncProjects(repair ? null : overview);
         stage = SyncStage.taskPull;
         _reportProgress(cycle, stage, entries.length);
-        // Fingerprints compare stamps, not content: rows already diverged at
-        // an equal version need one complete pull to be rewritten.
-        final buckets = repair
+        // v2 fingerprints include content, so a row diverged at an equal
+        // version changes its bucket. v1 servers compare stamps only and
+        // need a complete pull (repair) to rewrite such rows.
+        final changed = repair
             ? null
             : await changedTaskBuckets(
                 db,
                 client,
                 _requests,
                 fingerprints: overview?.tasks,
+                version: overview?.taskVersion ?? taskFingerprintV1,
               );
+        final buckets = changed?.buckets;
         for (final bucket in buckets ?? <String?>[null]) {
           await for (final page in remotePages(
             client,
@@ -770,12 +827,36 @@ class SyncService {
           }
         }
         if (repair) await markRemoteNullRepaired(db);
-        if (overview != null && buckets != null) {
+        if (changed != null) {
+          divergedBuckets = await unresolvedTaskBuckets(
+            db,
+            changed.remote,
+            changed.buckets,
+            _requests,
+            version: changed.version,
+          );
+          _alignment = SyncAlignment(
+            divergedBuckets,
+            checkedAt: DateTime.now().toUtc(),
+            contentChecked: changed.version >= taskFingerprintV2,
+          );
+        } else if (repair && overview != null) {
+          // After the complete pull, measure every server bucket once.
           divergedBuckets = await unresolvedTaskBuckets(
             db,
             overview.tasks,
-            buckets,
+            [
+              for (final item in overview.tasks)
+                (item as Map)['bucket'] as String,
+            ],
             _requests,
+            version: overview.taskVersion,
+          );
+          _alignment = SyncAlignment(
+            divergedBuckets,
+            checkedAt: DateTime.now().toUtc(),
+            contentChecked: overview.taskVersion >= taskFingerprintV2,
+            repaired: true,
           );
         }
         stage = SyncStage.purgePull;
@@ -822,6 +903,7 @@ class SyncService {
           lastError: _lastError,
           lastFailureStage: _lastFailureStage,
           lastRecovery: _lastRecoveryAt,
+          alignment: _alignment,
         ),
       );
       unawaited(

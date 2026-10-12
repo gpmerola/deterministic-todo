@@ -46,8 +46,10 @@ class _Fixture {
           request: request,
           headers: {'content-type': 'application/json'},
         );
-        if (request.url.path.endsWith('/todo_task_fingerprints_v1') ||
-            request.url.path.endsWith('/todo_sync_overview_v1')) {
+        // Optional RPCs (v1 and content v2) are absent: full pull path.
+        if (RegExp(
+          r'/todo_(task_fingerprints|sync_overview)_v[12]$',
+        ).hasMatch(request.url.path)) {
           return reply({
             'code': 'PGRST202',
             'message': 'RPC missing',

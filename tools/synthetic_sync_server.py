@@ -11,6 +11,26 @@ from urllib.parse import urlparse, parse_qs
 TABLES = {name: {} for name in ("tasks", "projects", "project_sections", "purged_entities", "sync_operations")}
 LOCK = threading.RLock()
 
+
+# Mirrors lib/data/sync/task_fingerprints.dart (taskRowSignature).
+TEXT_FIELDS = ('title', 'notes', 'item_kind', 'status', 'show_date', 'project_id',
+               'section_id', 'recurrence', 'series_id', 'occurrence_key')
+CONTENT_FIELDS = ('title', 'notes', 'item_kind', 'status', 'show_date', 'priority',
+                  'project_id', 'section_id', 'position', 'recurrence', 'series_id',
+                  'occurrence_key', 'completed_at', 'deleted_at')
+
+
+def task_signature(row, version):
+    stamp = f"{row['id']}:{row['logical_version']}:{row['device_id']}"
+    if version == 1:
+        return stamp + ';'
+    def field(name):
+        value = row.get(name)
+        if value is None:
+            return '-'
+        return f"{len(value)}#{value}" if name in TEXT_FIELDS else str(value)
+    return stamp + ':' + ','.join(field(name) for name in CONTENT_FIELDS) + ';'
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         pass
@@ -56,16 +76,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         rpc = urlparse(self.path).path.rsplit('/', 1)[-1]
-        if rpc in ('todo_task_fingerprints_v1', 'todo_sync_overview_v1'):
+        if rpc in ('todo_task_fingerprints_v1', 'todo_sync_overview_v1',
+                   'todo_task_fingerprints_v2', 'todo_sync_overview_v2'):
+            version = 2 if rpc.endswith('_v2') else 1
             with LOCK:
                 signatures = {}
                 for row in sorted(TABLES['tasks'].values(), key=lambda r: r['id']):
                     bucket = row['id'][:2]
-                    signatures[bucket] = signatures.get(bucket, '') + f"{row['id']}:{row['logical_version']}:{row['device_id']};"
-                fingerprints = [{'bucket': key, 'fingerprint': hashlib.sha256(value.encode()).hexdigest()} for key, value in signatures.items()]
-                if rpc == 'todo_task_fingerprints_v1':
+                    signatures[bucket] = signatures.get(bucket, '') + task_signature(row, version)
+                fingerprints = [{'bucket': key, 'fingerprint': hashlib.sha256(value.encode()).hexdigest()} for key, value in sorted(signatures.items())]
+                if rpc.startswith('todo_task_fingerprints'):
                     return self.reply(fingerprints)
-                overview = {'schema': 1, 'tasks': fingerprints}
+                overview = {'schema': version, 'tasks': fingerprints}
                 for table in ('projects', 'project_sections', 'purged_entities'):
                     values = [f"purged:{r['entity_type']}:{r['entity_id']};" if table == 'purged_entities'
                               else f"{r['id']}:{r['logical_version']}:{r['device_id']};" for r in TABLES[table].values()]

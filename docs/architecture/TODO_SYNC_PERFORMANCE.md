@@ -89,6 +89,49 @@ uguale (una riga identica non produce revisioni). Un database aggiornato, senza
 il marker `sync_repair:remote_nulls_v1`, esegue una sola volta un pull completo
 di attività e progetti; un database nuovo nasce con il marker.
 
+## Impronte v2 con contenuto (build 254)
+
+Il marker riparava una sola volta; una nuova divergenza a versione uguale
+restava invisibile. `todo_task_fingerprints_v2()` e `todo_sync_overview_v2()`
+([migrazione](../../supabase/migrations/202610120001_task_fingerprints_v2.sql),
+additiva) aggiungono alla firma di ogni riga i campi di contenuto:
+`id:versione:dispositivo:<campi>;`, con titolo, note, tipo, stato, data,
+priorità, progetto, sezione, posizione, ricorrenza, serie, chiave occorrenza,
+completamento ed eliminazione. Il testo è prefissato dalla lunghezza in code
+point (`5#hello`), gli interi sono decimali, `null` è `-`, i campi sono separati
+da `,`: nessun testo può imitare un altro campo e `null` differisce da `''`.
+`time_minutes` e `time_zone` sono esclusi perché il client li salva nulli.
+La RPC continua a non restituire contenuti, solo bucket e SHA-256.
+
+SQLite costruisce la stessa stringa in SQL; `taskRowSignature` in
+`lib/data/sync/task_fingerprints.dart` è la definizione di riferimento, replicata
+in `tools/synthetic_sync_server.py`. La fixture sintetica
+`test/fixtures/task_fingerprint_v2.json` (emoji, accenti, separatori, `null` e
+stringa vuota) deve produrre gli stessi digest in PostgreSQL
+(`tools/sql-tests/task_fingerprints_v2.mjs`), SQLite e Dart
+(`test/task_fingerprints_v2_test.dart`).
+
+Il client prova prima la v2 e, se la RPC manca (`PGRST202`/`42883`), usa la v1;
+l'assenza è ricordata per il processo, quindi costa una sola richiesta in più.
+La cache resta nello slot `sync_fp:v1:tasks:<bucket>` mantenuto dai trigger
+esistenti; un digest v2 è salvato come `v2:<hex>` e un valore dell'altra
+versione conta come mancante. Nessuna migrazione SQLite. Con la v2 una riga
+divergente a versione uguale cambia l'impronta del proprio bucket, che viene
+riscaricato e riscritto dal merge a versione uguale al ciclo successivo.
+
+## Stato di allineamento visibile
+
+Dopo ogni controllo completo `SyncSnapshot.alignment` riporta i bucket ancora
+diversi dal server senza modifiche locali in coda (`diverged_buckets`), l'ora e
+se il confronto includeva il contenuto. Impostazioni → Salute dati mostra
+«Allineato» oppure «N gruppi diversi dal server»; con server solo v1 aggiunge
+«solo versioni». Nessun polling: il valore cambia soltanto con i cicli di sync
+già esistenti. Il pulsante «Riscarica tutto dal server» rimuove il marker
+`sync_repair:remote_nulls_v1` e avvia un controllo completo che ignora le
+impronte e misura poi tutti i bucket. Non cancella né invia nulla: una
+differenza che resta dopo la riparazione indica una riga solo locale, da
+indagare con `todo_sync_debug` prima di qualsiasi azione.
+
 Ogni pagina viene confrontata in una transazione SQLite con query aggregate per
 versioni, intenti pendenti e marker di eliminazione. Solo le righe nuove o più
 recenti vengono scritte; il contatore Lamport è osservato una volta per pagina.
@@ -128,12 +171,18 @@ migrazione in produzione. Verificare `authenticated` EXECUTE true, `anon` false,
 e un nuovo ciclo APK tramite i soli metadati diagnostici. Stato effettivo e
 misure hardware sono in [STATUS](../../STATUS.md).
 
+La migrazione v2 si applica allo stesso modo e solo dopo consenso specifico;
+verificare EXECUTE per `authenticated` e non per `anon` su entrambe le funzioni.
+Recovery v2: rimuovere `todo_sync_overview_v2()` e `todo_task_fingerprints_v2()`
+riporta i client alla v1 senza altre modifiche.
+
 Recovery, solo se necessario e autorizzato: rimuovere la sola funzione
 `public.todo_task_fingerprints_v1()` ripristina il pull completo. Non modificare
 attività, registro delle eliminazioni o RLS. Il primo caricamento su dispositivo
 vuoto deve ancora scaricare tutte le attività: il controllo compatto velocizza
 soprattutto archivi già presenti e cambiamenti piccoli, non elimina quel costo.
 
-Test di regressione: `test/sync_pull_performance_test.dart`, suite CAS/data loss,
-`tools/sql-tests/safe_purge.mjs`, `tools/test_todo_sync_timeline.py` e integrazione
+Test di regressione: `test/sync_pull_performance_test.dart`,
+`test/task_fingerprints_v2_test.dart` (incluso il caso «hinge»), suite CAS/data
+loss, `tools/sql-tests/safe_purge.mjs`, `tools/sql-tests/task_fingerprints_v2.mjs`, `tools/test_todo_sync_timeline.py` e integrazione
 Galaxy separata `integration_test/todo_validation_test.dart`.

@@ -38,7 +38,10 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
   con Drive collegato (STATUS).
 - [ ] Un giorno di batteria: il job Calendario a trigger deve fermarsi
   all'impronta quando non cambia nulla.
-- [ ] `diverged_buckets` su più cicli reali prima di progettare una riparazione.
+- [ ] Impronte v2 (build 254): applicare in produzione
+  `supabase/migrations/202610120001_task_fingerprints_v2.sql` solo dopo
+  consenso specifico; poi verificare in Salute dati «Allineato» senza «solo
+  versioni» e `diverged_buckets` su più cicli reali.
 - [ ] Web: velocità di caricamento in una finestra visibile.
 - [ ] Al prossimo avviso sync, non forzare retry: leggere lo stato con il
   provider ADB `todo_sync_debug` (fase, classe errore, outbox, recupero).

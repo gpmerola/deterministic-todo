@@ -53,6 +53,23 @@ class DataHealthView extends StatelessWidget {
                 },
               ),
               _HealthRow(
+                ok: sync?.alignment?.aligned ?? true,
+                icon: Icons.compare_arrows,
+                title: 'Allineamento con il server',
+                value: syncAlignmentLabel(sync?.alignment),
+              ),
+              if (sync?.alignment?.aligned == false)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: OutlinedButton.icon(
+                    onPressed: sync?.phase == SyncPhase.syncing
+                        ? null
+                        : syncService?.repairAlignment,
+                    icon: const Icon(Icons.healing_outlined),
+                    label: const Text('Riscarica tutto dal server'),
+                  ),
+                ),
+              _HealthRow(
                 ok: data.pending == 0,
                 icon: Icons.outbox_outlined,
                 title: 'Modifiche in attesa',
@@ -131,6 +148,22 @@ class DataHealthView extends StatelessWidget {
       );
     },
   );
+}
+
+/// Bucket fingerprints count groups of tasks, not single tasks.
+@visibleForTesting
+String syncAlignmentLabel(SyncAlignment? alignment) {
+  if (alignment == null) return 'Non ancora verificato';
+  final time = DateFormat(
+    'd MMM, HH:mm',
+    'it',
+  ).format(alignment.checkedAt.toLocal());
+  final scope = alignment.contentChecked ? '' : ' · solo versioni';
+  final repaired = alignment.repaired ? ' · dopo download completo' : '';
+  if (alignment.aligned) return 'Allineato · $time$scope$repaired';
+  final n = alignment.divergedBuckets;
+  return '${n == 1 ? '1 gruppo diverso' : '$n gruppi diversi'} dal server'
+      ' · $time$scope$repaired';
 }
 
 String _syncIncidentLabel(SyncSnapshot snapshot) {

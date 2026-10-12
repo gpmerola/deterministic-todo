@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.75.0 (build 254) — Todo Test
+
+- Sincronizzazione: le impronte per gruppo v2 includono il contenuto delle
+  attività, non solo la versione. Una riga diversa dal server a versione uguale
+  (caso «hinge» delle build 246/247) viene riscaricata e riallineata al ciclo
+  successivo. Richiede la migrazione Supabase additiva
+  `202610120001_task_fingerprints_v2.sql`; senza di essa l'app usa la v1.
+- Impostazioni → Salute dati: riga «Allineamento con il server» (allineato
+  oppure N gruppi diversi, con indicazione «solo versioni» se il server non ha
+  la v2) e pulsante «Riscarica tutto dal server» quando serve. Nessun nuovo
+  polling; la riparazione non cancella né invia nulla.
+
 ## 2.74.0 (build 253) — Todo Test
 
 - Inserimento rapido: colore, tooltip e selezione nei menu mostrano progetto

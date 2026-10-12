@@ -1,4 +1,5 @@
 import 'package:deterministic_todo/data/local/database.dart';
+import 'package:deterministic_todo/data/sync/sync_service.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/main.dart';
@@ -8,6 +9,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 void main() {
@@ -1480,9 +1482,39 @@ void main() {
     expect(find.text('Modifiche in attesa'), findsOneWidget);
     expect(find.text('Dati locali'), findsOneWidget);
     expect(find.text('Ultimo backup'), findsOneWidget);
+    expect(find.text('Allineamento con il server'), findsOneWidget);
+    expect(find.text('Non ancora verificato'), findsOneWidget);
+    expect(find.text('Riscarica tutto dal server'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await db.close();
   });
+
+  test(
+    'etichetta di allineamento: gruppi, solo versioni, riparazione',
+    () async {
+      await initializeDateFormatting('it');
+      final at = DateTime.utc(2026, 10, 12, 9);
+      final time = DateFormat('d MMM, HH:mm', 'it').format(at.toLocal());
+      expect(
+        syncAlignmentLabel(
+          SyncAlignment(0, checkedAt: at, contentChecked: true),
+        ),
+        'Allineato · $time',
+      );
+      expect(
+        syncAlignmentLabel(
+          SyncAlignment(1, checkedAt: at, contentChecked: false),
+        ),
+        '1 gruppo diverso dal server · $time · solo versioni',
+      );
+      expect(
+        syncAlignmentLabel(
+          SyncAlignment(3, checkedAt: at, contentChecked: true, repaired: true),
+        ),
+        '3 gruppi diversi dal server · $time · dopo download completo',
+      );
+    },
+  );
 
   testWidgets('rosso di marca solo per il +, accento distinto dagli errori', (
     tester,

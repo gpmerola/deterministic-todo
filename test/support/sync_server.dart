@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-
+import 'package:deterministic_todo/data/sync/task_fingerprints.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -24,6 +24,9 @@ class SyntheticSyncServer {
   int pages = 0;
   bool fingerprints = false;
   bool overview = false;
+
+  /// Serves the v2 (content) RPCs too; otherwise they answer PGRST202.
+  bool contentFingerprints = false;
   int overviewReads = 0;
   int fingerprintReads = 0;
   bool failReceipt = false;
@@ -38,7 +41,9 @@ class SyntheticSyncServer {
   Future<void> Function(String table, String id)? beforeWrite;
   Future<void> Function(String table)? beforeRead;
 
-  List<Map<String, String>> taskFingerprints() {
+  List<Map<String, String>> taskFingerprints({
+    int version = taskFingerprintV1,
+  }) {
     final signatures = <String, StringBuffer>{};
     final rows = tables['tasks']!.values.toList()
       ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
@@ -46,7 +51,7 @@ class SyntheticSyncServer {
       final bucket = (row['id'] as String).substring(0, 2);
       signatures
           .putIfAbsent(bucket, StringBuffer.new)
-          .write('${row['id']}:${row['logical_version']}:${row['device_id']};');
+          .write(taskRowSignature(row, version));
     }
     return [
       for (final e in signatures.entries)
@@ -84,14 +89,20 @@ class SyntheticSyncServer {
           headers: {'content-type': 'application/json'},
         );
         final table = request.url.pathSegments.last;
-        if (table == 'todo_sync_overview_v1') {
+        final v2 = table.endsWith('_v2');
+        if (v2 && !contentFingerprints) {
+          return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
+        }
+        final version = v2 ? taskFingerprintV2 : taskFingerprintV1;
+        if (table == 'todo_sync_overview_v1' ||
+            table == 'todo_sync_overview_v2') {
           if (!overview) {
             return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
           }
           overviewReads++;
           return reply({
-            'schema': 1,
-            'tasks': taskFingerprints(),
+            'schema': version,
+            'tasks': taskFingerprints(version: version),
             for (final name in [
               'projects',
               'project_sections',
@@ -100,12 +111,13 @@ class SyntheticSyncServer {
               name: tableDigest(name),
           });
         }
-        if (table == 'todo_task_fingerprints_v1') {
+        if (table == 'todo_task_fingerprints_v1' ||
+            table == 'todo_task_fingerprints_v2') {
           if (!fingerprints) {
             return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
           }
           fingerprintReads++;
-          return reply(taskFingerprints());
+          return reply(taskFingerprints(version: version));
         }
         if (table == 'sync_operations') {
           if (failReceipt) throw StateError('synthetic receipt failure');

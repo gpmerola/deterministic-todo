@@ -5,25 +5,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../local/database.dart';
 import 'sync_request_scope.dart';
+import 'task_fingerprints.dart';
 
 class SyncOverview {
-  SyncOverview(this.tasks, this.digests);
+  SyncOverview(
+    this.tasks,
+    this.digests, {
+    this.taskVersion = taskFingerprintV1,
+  });
   final List<dynamic> tasks;
   final Map<String, String> digests;
+
+  /// Fingerprint scheme of [tasks]: v2 (`todo_sync_overview_v2`) includes the
+  /// row content, v1 only the version stamps.
+  final int taskVersion;
 
   static Future<SyncOverview?> fetch(
     SupabaseClient client,
     SyncRequestScope scope,
   ) async {
-    dynamic response;
-    try {
-      response = await scope.send(client.rpc('todo_sync_overview_v1'));
-    } on PostgrestException catch (e) {
-      if (e.code == 'PGRST202' || e.code == '42883') return null;
-      rethrow;
-    }
-    final raw = Map<String, dynamic>.from(response as Map);
-    if (raw['schema'] != 1 || raw['tasks'] is! List) {
+    final fetched = await fetchWithFingerprintFallback(
+      client,
+      scope,
+      rpcV2: 'todo_sync_overview_v2',
+      rpcV1: 'todo_sync_overview_v1',
+    );
+    if (fetched == null) return null;
+    final raw = Map<String, dynamic>.from(fetched.value as Map);
+    if (raw['schema'] != fetched.version || raw['tasks'] is! List) {
       throw const FormatException('Invalid sync overview');
     }
     final digests = <String, String>{};
@@ -34,7 +43,11 @@ class SyncOverview {
       }
       digests[table] = digest;
     }
-    return SyncOverview(raw['tasks'] as List, digests);
+    return SyncOverview(
+      raw['tasks'] as List,
+      digests,
+      taskVersion: fetched.version,
+    );
   }
 
   Future<bool> matches(AppDatabase db, String table, SyncRequestScope scope) =>

@@ -2,6 +2,16 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 254 — Impronte con contenuto e allineamento visibile
+
+Todo Test 2.75.0 / build 254. Impronte per gruppo v2 con hash del contenuto,
+fallback automatico alla v1 e riga «Allineamento con il server» in Salute dati
+([dettagli](docs/architecture/TODO_SYNC_PERFORMANCE.md)). `make check` (468
+test Flutter, SQL incluso `task_fingerprints_v2.mjs`, analisi, link) e
+`make check-generated` superati. La migrazione Supabase
+`202610120001_task_fingerprints_v2.sql` è preparata ma **non applicata** in
+produzione: finché manca, il telefono usa la v1 e mostra «solo versioni».
+
 ## Release coordinata 2.74.0 / 253
 
 Dopo conferma esplicita `PUBBLICA`, workflow
