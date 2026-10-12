@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.78.0 (build 257) — Todo Test
+
+- Calendario sul Web: nella finestra «Non applicate dal telefono» il pulsante
+  **Riprova** rimette in coda una richiesta rifiutata con motivo esplicito.
+  Non compare per «Esito sconosciuto», che potrebbe già essere stato applicato.
+- Salute dati: «Ultimo backup» non è più segnalato in rosso quando il backup
+  automatico cifrato è stato controllato nelle ultime due settimane, anche
+  senza un'esportazione manuale. La riga del backup automatico diventa rossa
+  se è più vecchio di due settimane.
+
 ## 2.77.0 (build 256) — Todo Test
 
 - Todoist: pulsante **Verifica** dopo l'import e voce **Verifica con export

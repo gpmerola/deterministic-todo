@@ -1489,6 +1489,17 @@ void main() {
     await db.close();
   });
 
+  test('un backup automatico recente basta anche senza export manuale', () {
+    final now = DateTime.utc(2026, 10, 12, 15);
+    String ago(int days) =>
+        now.subtract(Duration(days: days)).toIso8601String();
+    expect(backupHealthy(manual: null, automatic: null, now: now), isFalse);
+    expect(backupHealthy(manual: null, automatic: ago(0), now: now), isTrue);
+    expect(backupHealthy(manual: null, automatic: ago(14), now: now), isTrue);
+    expect(backupHealthy(manual: null, automatic: ago(15), now: now), isFalse);
+    expect(backupHealthy(manual: ago(400), automatic: null, now: now), isTrue);
+  });
+
   test(
     'etichetta di allineamento: gruppi, solo versioni, riparazione',
     () async {

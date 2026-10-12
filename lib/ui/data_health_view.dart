@@ -116,11 +116,18 @@ class DataHealthView extends StatelessWidget {
                 value: '${data.tasks} attività · ${data.projects} progetti',
               ),
               _HealthRow(
-                ok: data.backup != null,
+                ok: backupHealthy(
+                  manual: data.backup,
+                  automatic: data.auto,
+                  now: DateTime.now(),
+                ),
                 icon: Icons.backup_outlined,
                 title: 'Ultimo backup',
                 value: data.backup == null
-                    ? 'Non ancora esportato'
+                    ? (data.auto == null
+                          ? 'Non ancora esportato'
+                          : 'Copia manuale mai esportata · '
+                                'copre il backup automatico')
                     : DateFormat(
                         'd MMM, HH:mm',
                         'it',
@@ -128,7 +135,11 @@ class DataHealthView extends StatelessWidget {
               ),
               if (isAndroidPlatform)
                 _HealthRow(
-                  ok: data.auto != null,
+                  ok: backupHealthy(
+                    manual: null,
+                    automatic: data.auto,
+                    now: DateTime.now(),
+                  ),
                   icon: Icons.enhanced_encryption_outlined,
                   title: 'Backup automatico cifrato',
                   value: data.auto == null
@@ -165,6 +176,20 @@ class DataHealthView extends StatelessWidget {
       );
     },
   );
+}
+
+/// A manual export ever, or an automatic encrypted backup checked within
+/// two weekly cycles, is enough: the user need not also export by hand.
+@visibleForTesting
+bool backupHealthy({
+  required String? manual,
+  required String? automatic,
+  required DateTime now,
+}) {
+  if (manual != null) return true;
+  final auto = DateTime.tryParse(automatic ?? '');
+  return auto != null &&
+      now.toUtc().difference(auto) <= AutoBackupService.interval * 2;
 }
 
 /// Bucket fingerprints count groups of tasks, not single tasks.

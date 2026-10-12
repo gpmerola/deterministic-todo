@@ -3,6 +3,10 @@ import 'package:intl/intl.dart';
 import 'agenda.dart';
 import 'task.dart' show CivilDate;
 
+/// Set by `claim_agenda_requests_v1` when a claim expired; keep identical.
+const agendaUnknownOutcome =
+    'Esito sconosciuto: controlla il calendario sul telefono.';
+
 /// What the web Agenda asks the phone to do (table `agenda_requests`).
 enum AgendaRequestKind { create, update, delete }
 
@@ -41,6 +45,12 @@ final class AgendaRequest {
   bool get open =>
       status == AgendaRequestStatus.pending ||
       status == AgendaRequestStatus.processing;
+
+  /// Refused by the phone with an explicit reason, so nothing was written and
+  /// sending it again cannot duplicate an event. An expired claim («Esito
+  /// sconosciuto») may have been applied: never offered for retry.
+  bool get retryable =>
+      status == AgendaRequestStatus.failed && error != agendaUnknownOutcome;
 
   static AgendaRequest fromRow(Map<String, Object?> row) => AgendaRequest(
     id: row['id']! as String,

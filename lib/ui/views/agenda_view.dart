@@ -270,18 +270,37 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                             contentPadding: EdgeInsets.zero,
                             title: Text(agendaRequestLabel(request)),
                             subtitle: Text(request.error ?? 'Non applicata.'),
-                            trailing: TextButton(
-                              onPressed: () async {
-                                try {
-                                  await widget.service.dismissRequest(
-                                    request.id,
-                                  );
-                                } catch (_) {
-                                  // Stays listed; the next load retries.
-                                }
-                                setDialogState(() {});
-                              },
-                              child: const Text('Ignora'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (request.retryable)
+                                  TextButton(
+                                    onPressed: () async {
+                                      try {
+                                        await widget.service.retryRequest(
+                                          request.id,
+                                        );
+                                      } catch (_) {
+                                        // Stays listed; can be tried again.
+                                      }
+                                      setDialogState(() {});
+                                    },
+                                    child: const Text('Riprova'),
+                                  ),
+                                TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      await widget.service.dismissRequest(
+                                        request.id,
+                                      );
+                                    } catch (_) {
+                                      // Stays listed; the next load retries.
+                                    }
+                                    setDialogState(() {});
+                                  },
+                                  child: const Text('Ignora'),
+                                ),
+                              ],
                             ),
                           ),
                       ],

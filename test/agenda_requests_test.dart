@@ -378,6 +378,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nuovo «Visita» · gio 8 ott 15:00'), findsOneWidget);
     expect(find.text('Calendario in sola lettura.'), findsOneWidget);
+    expect(find.text('Riprova'), findsOneWidget);
     await tester.tap(find.text('Ignora'));
     await tester.pumpAndSettle();
     expect(service.dismissed, ['r1']);
@@ -385,6 +386,51 @@ void main() {
     await tester.tap(find.text('Chiudi'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('agenda-failures')), findsNothing);
+  });
+
+  testWidgets('Riprova resends a refusal; an unknown outcome cannot', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _QueueService(db)
+      ..failed = [
+        _request(
+          AgendaRequestKind.create,
+          status: AgendaRequestStatus.failed,
+          error: 'Calendario in sola lettura.',
+          payload: agendaRequestPayload(_timed, create: true),
+        ),
+        _request(
+          AgendaRequestKind.delete,
+          id: 'r2',
+          key: '9',
+          status: AgendaRequestStatus.failed,
+          error: agendaUnknownOutcome,
+          payload: const {'title': 'Altro'},
+        ),
+      ];
+    await service.saveViewMode(AgendaViewMode.list);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(
+            service: service,
+            today: const CivilDate(2026, 10, 5),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-failures')));
+    await tester.pumpAndSettle();
+    expect(find.text('Riprova'), findsOneWidget);
+    expect(find.text('Ignora'), findsNWidgets(2));
+    await tester.tap(find.text('Riprova'));
+    await tester.pumpAndSettle();
+    expect(service.retried, ['r1']);
+    expect(find.text('Riprova'), findsNothing);
+    expect(find.text(agendaUnknownOutcome), findsOneWidget);
   });
 }
 
@@ -436,6 +482,8 @@ class _QueueService extends AgendaService {
   _QueueService(super.database);
 
   final dismissed = <String>[];
+  final retried = <String>[];
+  set failed(List<AgendaRequest> value) => _failed = value;
   late List<AgendaRequest> _failed = [
     _request(
       AgendaRequestKind.create,
@@ -453,6 +501,15 @@ class _QueueService extends AgendaService {
 
   @override
   List<AgendaRequest> get failedRequests => _failed;
+
+  @override
+  Future<void> retryRequest(String id) async {
+    retried.add(id);
+    _failed = [
+      for (final r in _failed)
+        if (r.id != id) r,
+    ];
+  }
 
   @override
   Future<void> dismissRequest(String id) async {

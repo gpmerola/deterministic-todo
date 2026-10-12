@@ -391,6 +391,22 @@ class WebAgendaService extends AgendaService {
     await _readRequests();
   }
 
+  /// A new pending copy of a refused request, then the old notice goes.
+  /// The new row gets a new id and creation time: it queues after the rest.
+  @override
+  Future<void> retryRequest(String id) async {
+    final failed = _requests.where((r) => r.id == id).firstOrNull;
+    if (failed == null || !failed.retryable) return;
+    await client.from('agenda_requests').insert({
+      'kind': failed.kind.name,
+      'instance_key': ?failed.instanceKey,
+      'series': failed.series,
+      'payload': failed.payload,
+    });
+    await client.from('agenda_requests').delete().eq('id', id);
+    await _readRequests();
+  }
+
   @override
   Future<void> dismissRequest(String id) async {
     await client.from('agenda_requests').delete().eq('id', id);

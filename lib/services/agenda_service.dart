@@ -103,6 +103,9 @@ class AgendaService {
 
   Future<void> dismissRequest(String id) async {}
 
+  /// Queues a refused web request again (web only).
+  Future<void> retryRequest(String id) async {}
+
   /// Calendars shown in Agenda (choices applied), from memory or storage.
   Future<List<AgendaCalendar>> shownCalendars() async {
     final all = lastCalendars ?? await calendars();

@@ -78,9 +78,10 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - Opzione sincronizzata «Mostra in agenda» (colonna + migrazione Supabase).
 - Calendario dal Web: la coda Web→telefono esiste dalla build 213
   ([AGENDA](docs/architecture/AGENDA.md#modifiche-dal-web-build-213)). Limiti
-  rimasti, da scegliere: note modificabili dal Web (richiede note nella copia
+  rimasti: note modificabili dal Web (richiede note nella copia
   Supabase, decisione di privacy), cambio della ripetizione di una serie,
-  spostamento in un altro calendario, «Riprova» per una richiesta rifiutata.
+  spostamento in un altro calendario. «Riprova» aggiunto nella build 257;
+  le altre tre escluse dall'utente il 12 ottobre 2026.
 - Azioni dirette per elementi rifiutati in Problemi di sincronizzazione.
 - Rimuovere `due_date` da Supabase solo con migrazione approvata.
 - Valutare se `LIKE` solo ASCII basta per le lettere accentate.

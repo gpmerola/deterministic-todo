@@ -75,6 +75,10 @@ importazione transazionale del backup JSON (righe locali più recenti invariate,
 eliminazioni definitive rispettate). Sul Web il backup automatico non è
 disponibile: la copia Web resta la replica Supabase e l'esportazione manuale.
 
+In Salute dati «Ultimo backup» è considerato a posto con un'esportazione
+manuale oppure con un backup automatico controllato nelle ultime due
+settimane; la riga del backup automatico diventa rossa oltre quel limite.
+
 Nessuna nuova dipendenza: cifratura con JCA e Android Keystore in Java
 (`TodoBackupCipher`, `TodoBackupFiles`, `TodoBackupMediaStore`,
 `TodoBackupChannel`), compressione con `java.util.zip`.

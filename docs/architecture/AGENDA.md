@@ -463,7 +463,12 @@ Subito dopo, il telefono carica una nuova copia.
   già applicate, eliminazioni nascoste;
 - un evento «In attesa» ancora in coda si può modificare o eliminare, cioè ritirare;
 - le richieste rifiutate compaiono con l'icona rossa nell'intestazione, con
-  il motivo. «Ignora» toglie solo l'avviso.
+  il motivo. «Ignora» toglie solo l'avviso. Dalla build 257 «Riprova»
+  rimette in coda una copia identica (tipo, occorrenza, serie, payload) come
+  nuova richiesta e poi toglie l'avviso: il telefono la riapplica con le
+  stesse regole. È offerto solo per i rifiuti con motivo esplicito, in cui
+  il telefono non ha scritto nulla; mai per «Esito sconosciuto», che potrebbe
+  essere stato applicato e quindi creare un doppione.
 
 ## Aggiornamento in background (build 213)
 

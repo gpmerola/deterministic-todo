@@ -2,6 +2,16 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 257 — Riprova dal Web e backup in Salute dati
+
+Todo Test 2.78.0 / build 257. «Riprova» per le richieste Calendario rifiutate
+dal telefono con motivo esplicito, mai per «Esito sconosciuto»
+([AGENDA](docs/architecture/AGENDA.md#modifiche-dal-web-build-213)).
+«Ultimo backup» in Salute dati accetta un backup automatico recente.
+`make check` (486 test Flutter, SQL, analisi, link), `make check-generated` e
+build Web release superati. Riscontro dell'utente sulla 256: «Allineato · solo
+versioni», 0 in attesa, backup automatico attivato il 12 ottobre alle 16:09.
+
 ## Build 256 — Verifica dell'import Todoist
 
 Todo Test 2.77.0 / build 256. Report di sola lettura export Todoist ↔
