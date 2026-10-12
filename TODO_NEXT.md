@@ -74,7 +74,11 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - Unione heydoc/Semble (stesso inizio, titoli diversi) solo se richiesta.
 - SLaM: lettura ICS nell'app solo se l'abbonamento Google è troppo lento.
 - Opzione sincronizzata «Mostra in agenda» (colonna + migrazione Supabase).
-- Creazione/modifica Calendario dal Web tramite coda eseguita dal telefono.
+- Calendario dal Web: la coda Web→telefono esiste dalla build 213
+  ([AGENDA](docs/architecture/AGENDA.md#modifiche-dal-web-build-213)). Limiti
+  rimasti, da scegliere: note modificabili dal Web (richiede note nella copia
+  Supabase, decisione di privacy), cambio della ripetizione di una serie,
+  spostamento in un altro calendario, «Riprova» per una richiesta rifiutata.
 - Azioni dirette per elementi rifiutati in Problemi di sincronizzazione.
 - Rimuovere `due_date` da Supabase solo con migrazione approvata.
 - Valutare se `LIKE` solo ASCII basta per le lettere accentate.
