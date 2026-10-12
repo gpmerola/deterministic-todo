@@ -12,8 +12,8 @@ Identità del dispositivo, sessioni, contatori Lamport, ricevute, associazioni a
 calendario, marker di manutenzione e bozze non vengono trasferiti. Movimento
 resta separato. Non è un'immagine del database: storico locale, outbox e registro
 delle eliminazioni non sono inclusi; il ripristino genera nuovi intenti espliciti.
-Il file contiene titoli e note personali in chiaro: esportazione solo esplicita,
-nessun invio automatico o backup cloud aggiunto.
+Il file esportato a mano contiene titoli e note personali in chiaro:
+esportazione solo esplicita. Il backup automatico (sotto) è sempre cifrato.
 
 Prima di scrivere vengono decodificate tutte le righe, verificati formato,
 campi obbligatori e ID duplicati. L'anteprima distingue attività nuove/aggiornate,
@@ -33,6 +33,51 @@ I marker locali di purge prevalgono sul backup. Su un dispositivo nuovo il
 registro server può impedire un ripristino con UUID già eliminato: non cancellare
 la protezione per forzarlo; eventualmente copiare esplicitamente il contenuto in
 un nuovo elemento. Ripristinare un backup non ricollega account o calendari.
+
+## Backup automatico cifrato (Android, build 255)
+
+Una volta attivato da Impostazioni → Dati e manutenzione → Backup automatici,
+il telefono salva ogni settimana una copia cifrata del backup JSON 2, senza
+altre azioni dell'utente. Il controllo avviene soltanto all'apertura e al
+ritorno in primo piano, dopo il lavoro di avvio esistente: nessun timer, job,
+WorkManager o polling. Se il contenuto (escluso `exported_at`) non è cambiato il
+file non viene riscritto, quindi le ultime sei copie coprono più settimane. Un
+errore viene ritentato al massimo una volta al giorno e non blocca l'interfaccia.
+
+**Destinazione scelta: `Documenti/Todo backup` sul telefono, tramite
+MediaStore.** Motivi: i file restano dopo una disinstallazione o la
+cancellazione dei dati dell'app, sono visibili nell'app File e copiabili su un
+computer o in un cloud a scelta dell'utente, non richiedono permessi di
+archiviazione (Android 10+) e non aggiungono un nuovo servizio esterno. Una
+copia su Supabase è stata scartata per ora: stesso fornitore della replica
+principale (non protegge dalla perdita dell'account) e richiederebbe una
+migrazione di produzione. Su Android 8–9 i file vanno nella cartella
+documenti privata dell'app, rimossa con la disinstallazione. L'app elenca,
+ruota e cancella soltanto i propri file `todo-AAAAMMGGTHHMMSSZ.tdb`.
+
+**Cifratura.** Formato `TDB2`: intestazione di 24 byte (magic, identificativo
+della chiave, IV casuale) autenticata come AAD, poi AES‑256‑GCM del JSON
+compresso con gzip. La chiave dati è casuale (256 bit); per i backup non
+presidiati è salvata nelle preferenze dell'app cifrata da una chiave AES non
+esportabile di Android Keystore. All'attivazione l'utente vede il **codice di
+ripristino** (52 caratteri base32 Crockford in gruppi di quattro), unico modo
+per aprire i backup su un altro telefono o dopo una reinstallazione: va
+conservato nel gestore password. Il JSON in chiaro attraversa il canale
+nativo solo in memoria e non viene mai scritto su disco. Una sola chiave
+Android Keystore diversa (preferenze ripristinate da un backup cloud di
+Android) rende la configurazione locale non valida e richiede una nuova
+attivazione; errori transitori del Keystore non cancellano nulla.
+
+**Ripristino.** Dal foglio Backup automatici si sceglie una copia di questa
+installazione oppure «Ripristina da file .tdb»: con una chiave diversa viene
+chiesto il codice. In entrambi i casi segue la stessa anteprima e la stessa
+importazione transazionale del backup JSON (righe locali più recenti invariate,
+eliminazioni definitive rispettate). Sul Web il backup automatico non è
+disponibile: la copia Web resta la replica Supabase e l'esportazione manuale.
+
+Nessuna nuova dipendenza: cifratura con JCA e Android Keystore in Java
+(`TodoBackupCipher`, `TodoBackupFiles`, `TodoBackupMediaStore`,
+`TodoBackupChannel`), compressione con `java.util.zip`.
 
 ## Richieste e chiusura
 
@@ -81,6 +126,14 @@ sequenza di modifiche della stessa entità.
   indicizzato e stream su 10.000 intenti con 20 MB di payload sintetico.
 - `integration_test/todo_validation_test.dart`: stessi casi sul Galaxy nel
   package isolato; nessun database personale o canale Movimento.
+- `test/auto_backup_service_test.dart`: attivazione, cadenza settimanale,
+  contenuto invariato, rotazione, ritentativi, trigger concorrenti, ripristino.
+- `android/app/src/test/.../TodoBackupTest.java`: cifratura, manomissione,
+  chiave diversa, codice di ripristino, rotazione su cartella.
+- `integration_test/auto_backup_smoke.dart`: Keystore e MediaStore reali nel
+  package `.dev.validation`, solo byte sintetici, file rimossi al termine.
+  Compilarlo in release con `-t` e firma Todo Test, installarlo senza runner
+  Flutter e leggere l'esito con `adb logcat -s flutter:V`.
 
 Eseguire `make check`, `make check-generated` e il collaudo isolato documentato in
 [Todo UX hardening](TODO_UX_HARDENING.md). Usare JDK 17 per Gradle.

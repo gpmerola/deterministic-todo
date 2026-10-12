@@ -92,6 +92,8 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - descrizioni e link Todoist leggibili senza URL estesi;
 - import Todoist incrementale oppure **Sostituisci** solo per i dati Todoist;
 - backup JSON versionato con attività, progetti, sezioni e preferenze Todo;
+- su Android, backup automatico settimanale cifrato in Documenti/Todo backup,
+  apribile altrove con il codice di ripristino;
   ripristino atomico e compatibilità con il formato precedente; export CSV;
 - export esplicito verso Google Calendar esclusivamente su Android.
 - contapassi Android isolato: passi del telefono tramite la Recording API

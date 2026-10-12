@@ -23,6 +23,7 @@ class MainActivity : CalendarShortcutActivity() {
         super.configureFlutterEngine(flutterEngine)
         RunTrackerChannel.register(this, flutterEngine)
         RuntimeMetricsChannel.register(flutterEngine)
+        TodoBackupChannel.register(this, flutterEngine)
         AgendaChannel.register(this, flutterEngine)
         updateManager = AppUpdateManagerFactory.create(this)
         updateManager.registerListener(installListener)

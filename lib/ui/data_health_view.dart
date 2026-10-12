@@ -6,7 +6,7 @@ class DataHealthView extends StatelessWidget {
   final TaskRepository repository;
   final SyncService? syncService;
 
-  Future<({int tasks, int projects, int pending, String? backup})>
+  Future<({int tasks, int projects, int pending, String? backup, String? auto})>
   _snapshot() async {
     final tasks = await repository.db.select(repository.db.tasks).get();
     final projects = await repository.db.select(repository.db.projects).get();
@@ -16,7 +16,12 @@ class DataHealthView extends StatelessWidget {
     final backup = await (repository.db.select(
       repository.db.appSettings,
     )..where((row) => row.key.equals('last_backup_at'))).getSingleOrNull();
+    final auto =
+        await (repository.db.select(repository.db.appSettings)
+              ..where((row) => row.key.equals(AutoBackupService.lastAtKey)))
+            .getSingleOrNull();
     return (
+      auto: auto?.value,
       tasks: tasks.length,
       projects: projects.where((item) => !item.isArchived).length,
       pending: pending.length,
@@ -121,6 +126,18 @@ class DataHealthView extends StatelessWidget {
                         'it',
                       ).format(DateTime.parse(data.backup!).toLocal()),
               ),
+              if (isAndroidPlatform)
+                _HealthRow(
+                  ok: data.auto != null,
+                  icon: Icons.enhanced_encryption_outlined,
+                  title: 'Backup automatico cifrato',
+                  value: data.auto == null
+                      ? 'Non attivo: Dati e manutenzione → Backup automatici'
+                      : DateFormat(
+                          'd MMM, HH:mm',
+                          'it',
+                        ).format(DateTime.parse(data.auto!).toLocal()),
+                ),
               FutureBuilder<PackageInfo>(
                 future: appPackageInfo(),
                 builder: (context, package) => _HealthRow(

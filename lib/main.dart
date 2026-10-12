@@ -35,6 +35,7 @@ import 'services/agenda_web_service.dart';
 import 'services/ai_capture_actions.dart';
 import 'services/ai_settings.dart';
 import 'services/app_package_info.dart';
+import 'services/auto_backup_service.dart';
 import 'services/calendar_service.dart';
 import 'services/calendar_shortcut_service.dart';
 import 'services/diagnostic_log_service.dart';
@@ -51,6 +52,7 @@ import 'ui/ai_capture_page.dart';
 import 'ui/ai_settings_view.dart';
 import 'ui/app_section.dart';
 import 'ui/app_undo.dart';
+import 'ui/auto_backup_sheet.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/daily_steps_sheet.dart';
 import 'ui/link_text_editing_controller.dart';
@@ -435,6 +437,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   StreamSubscription<Set<String>>? remoteTaskSubscription;
   Timer? remoteHighlightTimer;
   late final quickAdd = QuickAddService(widget.repository);
+
+  /// Encrypted weekly snapshot; Android Keystore only, never on the Web.
+  late final AutoBackupService? autoBackup =
+      widget.enablePlatformServices && isAndroidPlatform
+      ? AutoBackupService(widget.repository.db)
+      : null;
   late final steps = DailyStepsController(
     database: widget.repository.db,
     onGoalReached: _celebrateStepGoal,
@@ -492,6 +500,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       }
       await _checkForUpdates(automatic: true);
       await _runDailyMaintenance();
+      unawaited(autoBackup?.runIfDue());
       await _showDailyPerformanceReminder();
     });
     if (widget.enablePlatformServices && !isPlayDistribution) {
@@ -685,6 +694,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (updates.isDue(DateTime.now())) {
         unawaited(_checkForUpdates(automatic: true));
       }
+      unawaited(autoBackup?.runIfDue());
       unawaited(agendaSync?.foreground());
       if (isAndroidPlatform) {
         unawaited(
@@ -1293,6 +1303,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           repository: widget.repository,
           syncClient: widget.syncClient,
           syncService: widget.syncService,
+          autoBackup: autoBackup,
           checkForUpdates: _checkForUpdates,
           showCompleted: () => _navigateTo(AppSection.completed),
           dailyStepGoal: steps.goal,

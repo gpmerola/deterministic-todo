@@ -2,6 +2,20 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 255 — Backup automatico cifrato
+
+Todo Test 2.76.0 / build 255. Backup settimanale AES‑256‑GCM in
+Documenti/Todo backup dopo attivazione esplicita, chiave in Android Keystore e
+codice di ripristino ([contratto](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md)).
+`make check` (476 test Flutter, SQL, analisi, link), `make check-generated` e
+27 test JVM dev superati. Sul Galaxy, package isolato `.dev.validation`
+compilato in release e installato senza runner Flutter, soli byte sintetici:
+Keystore e MediaStore reali, scrittura e rotazione, file non leggibile in
+chiaro, apertura con codice (anche minuscolo), codice errato e malformato
+rifiutati, cartella ripulita e package fermato. Nessun dato Todo Test letto.
+Nel telefono il package Play di fallback non risulta più installato
+(`pm list packages -u`): non toccato da questa sessione, da chiarire.
+
 ## Build 254 — Impronte con contenuto e allineamento visibile
 
 Todo Test 2.75.0 / build 254. Impronte per gruppo v2 con hash del contenuto,

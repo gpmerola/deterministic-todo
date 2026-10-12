@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.76.0 (build 255) — Todo Test
+
+- Backup automatico cifrato su Android: una volta attivato da Impostazioni →
+  Dati e manutenzione → Backup automatici, ogni settimana viene salvata in
+  Documenti/Todo backup una copia AES‑256‑GCM del backup JSON, solo se qualcosa
+  è cambiato; restano le ultime sei. Chiave protetta da Android Keystore,
+  codice di ripristino mostrato all'attivazione per aprire i file su un altro
+  telefono. Ripristino con la stessa anteprima del backup JSON. Nessuna nuova
+  dipendenza, nessun timer o job in background.
+- Salute dati mostra la data dell'ultimo backup automatico.
+
 ## 2.75.0 (build 254) — Todo Test
 
 - Sincronizzazione: le impronte per gruppo v2 includono il contenuto delle

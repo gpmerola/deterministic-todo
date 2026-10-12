@@ -9,8 +9,12 @@ class SettingsView extends StatelessWidget {
     required this.onDailyStepGoalChanged,
     this.syncClient,
     this.syncService,
+    this.autoBackup,
     super.key,
   });
+
+  /// Android only: weekly encrypted backups kept on this phone.
+  final AutoBackupService? autoBackup;
 
   final TaskRepository repository;
   final Future<void> Function() checkForUpdates;
@@ -80,6 +84,11 @@ class SettingsView extends StatelessWidget {
     );
     if (picked.isEmpty || !context.mounted) return;
     final source = decodePickedText(await picked.single.readAsBytes());
+    if (context.mounted) await _previewAndImport(context, source);
+  }
+
+  /// Shared by file and automatic backups: preview first, one transaction.
+  Future<void> _previewAndImport(BuildContext context, String source) async {
     final service = ExportService(repository.db);
     final preview = await service.preview(source);
     if (!context.mounted) return;
@@ -118,6 +127,97 @@ class SettingsView extends StatelessWidget {
         );
       }
     }
+  }
+
+  Future<void> _showAutoBackups(
+    BuildContext context,
+    AutoBackupService backups,
+  ) async {
+    final choice = await showModalBottomSheet<Object>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => AutoBackupSheet(backups: backups),
+    );
+    if (choice == null || !context.mounted) return;
+    try {
+      final source = choice is AutoBackupEntry
+          ? await backups.read(choice)
+          : await _decryptPickedBackup(context, backups);
+      if (source != null && context.mounted) {
+        await _previewAndImport(context, source);
+      }
+    } on Object catch (error) {
+      if (context.mounted) {
+        final wrongCode =
+            error is PlatformException &&
+            const {'key_mismatch', 'invalid_code'}.contains(error.code);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              wrongCode
+                  ? 'Codice di ripristino non valido per questo backup. '
+                        'Nessuna modifica è stata salvata.'
+                  : 'Ripristino non riuscito: il file non è un backup '
+                        'leggibile. Nessuna modifica è stata salvata.',
+            ),
+            showCloseIcon: true,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Uses this installation's key first, then asks for the recovery code.
+  Future<String?> _decryptPickedBackup(
+    BuildContext context,
+    AutoBackupService backups,
+  ) async {
+    final picked = await FilePicker.pickFiles(type: FileType.any);
+    if (picked.isEmpty || !context.mounted) return null;
+    final bytes = await picked.single.readAsBytes();
+    try {
+      return await backups.decryptFile(bytes);
+    } on PlatformException catch (error) {
+      if (!const {'key_mismatch', 'not_configured'}.contains(error.code)) {
+        rethrow;
+      }
+    }
+    if (!context.mounted) return null;
+    final code = await _askRecoveryCode(context);
+    if (code == null) return null;
+    return backups.decryptFile(bytes, code: code);
+  }
+
+  Future<String?> _askRecoveryCode(BuildContext context) {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Codice di ripristino'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          autocorrect: false,
+          enableSuggestions: false,
+          textCapitalization: TextCapitalization.characters,
+          decoration: const InputDecoration(
+            hintText: 'XXXX-XXXX-…',
+            helperText: 'Il codice mostrato quando hai attivato i backup',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Apri'),
+          ),
+        ],
+      ),
+    ).whenComplete(controller.dispose);
   }
 
   Future<void> _importTodoist(BuildContext context) async {
@@ -490,6 +590,13 @@ class SettingsView extends StatelessWidget {
             title: const Text('Importa backup'),
             onTap: () => _import(context),
           ),
+          if (autoBackup != null)
+            ListTile(
+              leading: const Icon(Icons.enhanced_encryption_outlined),
+              title: const Text('Backup automatici'),
+              subtitle: const Text('Settimanali e cifrati, in Documenti'),
+              onTap: () => _showAutoBackups(context, autoBackup!),
+            ),
           ListTile(
             leading: const Icon(Icons.task_alt_outlined),
             title: const Text('Importa da Todoist'),

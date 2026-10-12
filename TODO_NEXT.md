@@ -31,6 +31,8 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - [ ] Contapassi: anello e pannello; nessun job archiviato in
   `adb shell dumpsys jobscheduler` per `.dev`, nessuna notifica GPS.
 - [ ] Facoltativo: account k25129662 anche in Samsung Email.
+- [ ] Backup automatici (255): attivarli, salvare il codice di ripristino nel
+  gestore password e controllare il primo file in Documenti/Todo backup.
 
 ## P1 — Osservazioni in corso
 
@@ -78,7 +80,9 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - Valutare se `LIKE` solo ASCII basta per le lettere accentate.
 - RPC Supabase transazionale prima di un «cancella tutto» cloud + dispositivo.
 - Commenti, allegati, etichette, sotto-attività Todoist solo se negli export.
-- Backup cifrato e revoca remota del singolo dispositivo.
+- Revoca remota del singolo dispositivo (il backup cifrato è nella build 255).
+- Backup automatico anche fuori dal telefono (es. Supabase cifrato) solo se
+  richiesto: oggi Documenti/Todo backup, copiabile dall'utente.
 
 ## P2 — Performance
 
