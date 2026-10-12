@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.82.0 (build 261) — Todo Test
+
+- Cache comune per mese, settimana e più settimane: massimo sette pagine per
+  vista; risultati tardivi delle pagine espulse ignorati.
+- Operazioni dopo l'avvio indipendenti: aggiornamenti o passi lenti non
+  trattengono manutenzione e backup; errori isolati e richieste sovrapposte
+  accorpate anche dopo un timeout.
+- Preparato `make benchmark-backup` con fixture sintetiche e misure host;
+  formato, cifratura e preparazione dei backup applicativi invariati.
+
 ## 2.81.0 (build 260) — Todo Test
 
 - Avvio locale indipendente da Supabase e diagnostica; errore di

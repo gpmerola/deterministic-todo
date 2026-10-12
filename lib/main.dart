@@ -63,6 +63,7 @@ import 'ui/search.dart';
 import 'ui/shell/app_update_flow.dart';
 import 'ui/shell/civil_day_clock.dart';
 import 'ui/shell/daily_steps_controller.dart';
+import 'ui/shell/foreground_jobs.dart';
 import 'ui/shell/shell_navigation.dart';
 import 'ui/shell/sync_lifecycle.dart';
 import 'ui/sync_issues_view.dart';
@@ -285,6 +286,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   String? viewStreamKey;
   Stream<List<Task>>? viewStream;
   final updates = AppUpdateFlow();
+  late final foregroundJobs = ForegroundJobs(
+    onFailure: (job, error) => unawaited(
+      DiagnosticLogService.instance.event(
+        'foreground_job_failed',
+        fields: {'phase': job, 'error_type': error.runtimeType.toString()},
+      ),
+    ),
+  );
   final calendarShortcut = CalendarShortcutService();
   late final dayClock = CivilDayClock(now: widget.clock);
 
@@ -365,24 +374,21 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       });
     }
     _bindRemoteServices();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!widget.enablePlatformServices) return;
-      await _refreshDailyMovement();
-      if (isAndroidPlatform) {
-        unawaited(
-          AgendaReminders(agendaService)
-              .foreground(requestPermission: true)
-              .then((_) => AgendaUrgentVisits(agendaService).foreground()),
-        );
-      }
-      await _checkForUpdates(automatic: true);
-      await _runDailyMaintenance();
-      unawaited(autoBackup?.runIfDue());
-      await _showDailyPerformanceReminder();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.enablePlatformServices) return;
+      _runForegroundJobs(initial: true);
     });
     if (widget.enablePlatformServices && !isPlayDistribution) {
       updateTimer = Timer.periodic(const Duration(hours: 6), (_) {
-        if (appIsForeground) unawaited(_checkForUpdates(automatic: true));
+        if (appIsForeground) {
+          unawaited(
+            foregroundJobs.run(
+              'updates',
+              () => _checkForUpdates(automatic: true),
+              timeout: null,
+            ),
+          );
+        }
       });
     }
     if (widget.enablePlatformServices && isAndroidPlatform) {
@@ -599,6 +605,61 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 
+  void _runForegroundJobs({bool initial = false}) {
+    unawaited(foregroundJobs.run('steps', _refreshDailyMovement));
+    if (initial || updates.isDue(DateTime.now())) {
+      // The network request already has a deadline. An update dialog may wait
+      // for the user indefinitely, so it must not be classified as a timeout.
+      unawaited(
+        foregroundJobs.run(
+          'updates',
+          () => _checkForUpdates(automatic: true),
+          timeout: null,
+        ),
+      );
+    }
+    unawaited(
+      foregroundJobs.run('backup', () async {
+        await autoBackup?.runIfDue();
+      }, timeout: const Duration(minutes: 2)),
+    );
+    if (initial) {
+      unawaited(foregroundJobs.run('maintenance', _runDailyMaintenance));
+      unawaited(
+        foregroundJobs.run(
+          'diagnostic_reminder',
+          _showDailyPerformanceReminder,
+        ),
+      );
+    } else {
+      unawaited(
+        foregroundJobs.run(
+          'performance',
+          () => PerformanceMonitor.instance.snapshot(
+            'resumed',
+            widget.repository.db,
+          ),
+        ),
+      );
+      unawaited(
+        foregroundJobs.run('calendar_sync', () async {
+          await agendaSync?.foreground();
+        }),
+      );
+    }
+    if (isAndroidPlatform) {
+      // Preserve the ordering of permission-dependent calendar operations.
+      unawaited(
+        foregroundJobs.run('calendar_reminders', () async {
+          await AgendaReminders(
+            agendaService,
+          ).foreground(requestPermission: true);
+          if (mounted) await AgendaUrgentVisits(agendaService).foreground();
+        }, timeout: null),
+      );
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!widget.enablePlatformServices) return;
@@ -607,22 +668,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       appIsForeground = true;
       backgroundSnapshotTaken = false;
       dayClock.refresh();
-      unawaited(_refreshDailyMovement());
-      unawaited(
-        PerformanceMonitor.instance.snapshot('resumed', widget.repository.db),
-      );
-      if (updates.isDue(DateTime.now())) {
-        unawaited(_checkForUpdates(automatic: true));
-      }
-      unawaited(autoBackup?.runIfDue());
-      unawaited(agendaSync?.foreground());
-      if (isAndroidPlatform) {
-        unawaited(
-          AgendaReminders(agendaService)
-              .foreground(requestPermission: true)
-              .then((_) => AgendaUrgentVisits(agendaService).foreground()),
-        );
-      }
+      _runForegroundJobs();
     } else if (isBackgroundLifecycle(state)) {
       // Sync pause/resume is owned by [bindSyncToLifecycle].
       appIsForeground = false;
@@ -661,6 +707,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
+    foregroundJobs.dispose();
     steps.dispose();
     remoteHighlightTimer?.cancel();
     remoteTaskSubscription?.cancel();

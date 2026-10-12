@@ -41,3 +41,8 @@ check-sql:
 .PHONY: build-web
 build-web:
 	python3 tools/build_web.py
+
+.PHONY: benchmark-backup
+# Synthetic host measurement only; no production database, keys or files.
+benchmark-backup:
+	flutter test test/backup_preparation_benchmark_test.dart --dart-define=RUN_BACKUP_BENCHMARK=true --reporter expanded

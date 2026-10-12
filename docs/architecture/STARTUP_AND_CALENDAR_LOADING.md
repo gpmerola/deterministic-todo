@@ -74,3 +74,33 @@ fluidità e batteria richiedono misure sul dispositivo. La misura diagnostica
 remoto. Un tempo Android `am start -W` misura l'Activity e non certifica da
 solo il primo frame interattivo Flutter. Esiti e numeri sono in
 [diagnostica build 260](../diagnostics/2026-10-12-performance-260.md).
+
+## Pagine e operazioni foreground — build 261
+
+Le viste settimana/tre giorni, mese e due–quattro settimane usano
+`AgendaPageCache`: massimo sette pagine per vista, inclusi errori e richieste
+pendenti. Le letture recenti restano in memoria; la pagina visibile è protetta
+dall'espulsione. Una pagina espulsa viene riletta quando serve. Un risultato
+arrivato dopo espulsione, invalidazione o dispose viene ignorato e non può
+ricreare stato vecchio. La revisione conserva l'anteprima fino al nuovo esito;
+cambio giorno o numero di giorni/settimane cancella le pagine incompatibili.
+Le anteprime provenienti dalla cache del servizio vengono comunque validate
+con una lettura della revisione corrente. Nessun precaricamento aggiunto.
+
+`ForegroundJobs` avvia indipendentemente passi, aggiornamenti, backup,
+manutenzione iniziale e diagnostica. Al resume usa gli stessi identificatori
+per evitare sovrapposizioni. La manutenzione conserva la frequenza precedente
+(all'avvio, una volta al giorno); i backup conservano la propria politica
+settimanale. Promemoria e visite urgenti mantengono l'ordine richiesto dai
+permessi, separati dalle altre operazioni.
+
+Un errore produce soltanto fase e classe dell'errore nella diagnostica locale.
+Scadenza osservazione: 30 secondi, due minuti per il backup. Il timeout non
+annulla IO né consente una seconda scrittura: il lavoro mantiene la propria
+esclusione finché termina davvero. Per aggiornamenti e richieste permessi non
+si applica un timeout all'attesa dell'utente; il controllo HTTP mantiene il
+proprio timeout. Nessun timer periodico nuovo e nessun retry automatico nuovo.
+
+Test: `agenda_page_cache_test.dart`, `foreground_jobs_test.dart` e suite UI
+Calendario. La preparazione dell'ottimizzazione backup è separata:
+[benchmark sintetico](../diagnostics/2026-10-13-backup-preparation.md).

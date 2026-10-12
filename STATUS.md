@@ -1,6 +1,32 @@
 # Stato corrente
 
-Aggiornato il 12 ottobre 2026.
+Aggiornato il 13 ottobre 2026.
+
+## Build 261 — Cache delle viste e operazioni dopo l'avvio
+
+Todo Test 2.82.0 / build 261. Le viste Calendario condividono una cache di
+massimo sette pagine, proteggono la pagina visibile e scartano risultati
+arrivati dopo espulsione o cambio revisione. Passi, aggiornamenti, manutenzione
+e backup procedono indipendentemente, con errori isolati e una sola operazione
+per tipo anche dopo timeout
+([contratto](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md)).
+
+`make check`: analisi, 512 test Flutter, strumenti, SQL e documentazione
+superati; tre benchmark esclusi intenzionalmente dalla suite ordinaria.
+`make check-generated` e build Web release superati. I tre benchmark eseguiti
+separatamente con `make benchmark-backup` passano: preparazione di
+100/1.000/10.000 attività sintetiche, nessuna modifica al backup applicativo
+([misure e prossimo collaudo](docs/diagnostics/2026-10-13-backup-preparation.md)).
+Todo Test 2261 installata in-place con `make todo-test`, dati conservati.
+Sul Galaxy: apertura Calendario, 16 swipe orizzontali (otto avanti/otto
+indietro) e ritorno dal background; controlli della vista presenti dopo la
+prova, sync riuscita build 2261 con zero pendenti/conflitti e una richiesta.
+Il limite di sette pagine e il rigetto delle risposte obsolete sono verificati
+con test deterministici; non è stata misurata la RAM durante gli swipe.
+Persistenza Web della fixture modificata verificata dopo refresh e riapertura
+scheda su HTTP loopback; distribuzione HTTPS locale verificata con curl e
+certificato fidato esplicitamente. Browser HTTPS pubblico non collaudato,
+nessuna pubblicazione Web o release stabile.
 
 ## Build 260 — Avvio locale, ricerca e caricamento Calendario
 

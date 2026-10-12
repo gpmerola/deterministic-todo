@@ -10,6 +10,7 @@ import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
+import 'agenda_page_cache.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
 import 'agenda_word_wrap.dart';
 import 'calendar_visit_group.dart';
@@ -69,20 +70,26 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
   late final PageController _ownController = PageController(
     initialPage: AgendaWeekView.weeksBack,
   );
-  final Map<int, List<AgendaDay>> _weeks = {};
+  final _cache = AgendaPageCache<List<AgendaDay>>();
+
+  @override
+  void initState() {
+    super.initState();
+    _cache.focus((widget.controller ?? _ownController).initialPage);
+    _cache.addListener(_onPagesChanged);
+  }
+
+  void _onPagesChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    _cache.dispose();
     _ownController.dispose();
     super.dispose();
   }
 
-  final Set<int> _loading = {};
-  final Set<int> _failed = {};
-  final Set<int> _stale = {};
-  int _generation = 0;
-
-  /// First day of [page]: Mondays for the week, today ± 3n for 3 days.
   CivilDate _mondayOf(int page) => widget.dayCount == 7
       ? mondayOf(widget.today).addDays((page - AgendaWeekView.weeksBack) * 7)
       : widget.today.addDays(
@@ -92,54 +99,35 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
   @override
   void didUpdateWidget(covariant AgendaWeekView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.today != widget.today) {
-      _generation++;
-      _weeks.clear();
-      _stale.clear();
-      _loading.clear();
-      _failed.clear();
+    if (oldWidget.today != widget.today ||
+        oldWidget.dayCount != widget.dayCount) {
+      _cache.invalidate(clear: true);
     } else if (oldWidget.revision != widget.revision) {
-      _generation++;
-      _stale.addAll(_weeks.keys);
-      _loading.clear();
-      _failed.clear();
+      _cache.invalidate();
     }
   }
 
-  Future<void> _fetch(int page) async {
-    if (!_loading.add(page)) return;
-    final generation = _generation;
-    try {
-      final result = await widget.loadDays(_mondayOf(page), widget.dayCount);
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        _weeks[page] = result;
-        _stale.remove(page);
-        _loading.remove(page);
-      });
-    } catch (_) {
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        _failed.add(page);
-        _loading.remove(page);
-      });
-    }
-  }
+  Future<void> _fetch(int page) => _cache.load(
+    page,
+    () => widget.loadDays(_mondayOf(page), widget.dayCount),
+  );
 
   @override
   Widget build(BuildContext context) => PageView.builder(
-    onPageChanged: (index) => widget.onPeriodChanged?.call(_mondayOf(index)),
+    onPageChanged: (index) {
+      _cache.focus(index);
+      widget.onPeriodChanged?.call(_mondayOf(index));
+    },
     key: const PageStorageKey('agenda-week'),
     controller: widget.controller ?? _ownController,
     itemCount: AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
     itemBuilder: (context, page) {
       final monday = _mondayOf(page);
-      var days = _weeks[page];
-      if (days == null) {
-        days = widget.peekDays(monday, widget.dayCount);
-        if (days != null) _weeks[page] = days;
-      }
-      if ((days == null || _stale.contains(page)) && !_failed.contains(page)) {
+      final days = _cache.read(
+        page,
+        () => widget.peekDays(monday, widget.dayCount),
+      );
+      if (_cache.needsLoad(page)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) unawaited(_fetch(page));
         });

@@ -65,6 +65,11 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P2 — Performance
 
+- Preparazione backup: benchmark sintetico pronto (`make benchmark-backup`).
+  Prima di spostare serializzazione/hash fuori dalla UI, misurare sul Galaxy
+  con database isolato: [baseline host e criteri](docs/diagnostics/2026-10-13-backup-preparation.md).
+
+
 Misurare prima di ottimizzare: cold/warm start, RAM e frame con 100/1.000/10.000
 task, CPU a riposo, latenza del database browser, primo sync e reimport
 Todoist. Baseline in `docs/diagnostics/2026-08-08-web-android.md`. Non

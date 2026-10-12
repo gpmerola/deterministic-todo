@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
+import 'agenda_page_cache.dart';
 import 'agenda_weeks_view.dart' show AgendaDayCell;
 
 /// One whole month per screen, Monday first, like Google Calendar's month
@@ -66,17 +67,22 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   late final PageController _ownController = PageController(
     initialPage: AgendaMonthView.monthsBack,
   );
-  final Map<int, List<AgendaDay>> _months = {};
-  final Set<int> _loading = {};
-  final Set<int> _failed = {};
+  final _cache = AgendaPageCache<List<AgendaDay>>();
 
-  /// Months shown from an older revision until their refetch completes, so a
-  /// reload never blanks the grid.
-  final Set<int> _stale = {};
-  int _generation = 0;
+  @override
+  void initState() {
+    super.initState();
+    _cache.focus((widget.controller ?? _ownController).initialPage);
+    _cache.addListener(_onPagesChanged);
+  }
+
+  void _onPagesChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    _cache.dispose();
     _ownController.dispose();
     super.dispose();
   }
@@ -85,16 +91,9 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
   void didUpdateWidget(covariant AgendaMonthView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.today != widget.today) {
-      _generation++;
-      _months.clear();
-      _stale.clear();
-      _loading.clear();
-      _failed.clear();
+      _cache.invalidate(clear: true);
     } else if (oldWidget.revision != widget.revision) {
-      _generation++;
-      _stale.addAll(_months.keys);
-      _loading.clear();
-      _failed.clear();
+      _cache.invalidate();
     }
   }
 
@@ -106,48 +105,34 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
     ),
   );
 
-  Future<void> _fetch(int page) async {
-    if (!_loading.add(page)) return;
-    final generation = _generation;
-    final month = _monthOf(page);
-    try {
-      final result = await widget.loadDays(
-        AgendaMonthView.gridStart(month),
-        AgendaMonthView.gridDays(month),
-      );
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        _months[page] = result;
-        _stale.remove(page);
-        _loading.remove(page);
-      });
-    } catch (_) {
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        _failed.add(page);
-        _loading.remove(page);
-      });
-    }
-  }
+  Future<void> _fetch(int page) => _cache.load(
+    page,
+    () => widget.loadDays(
+      AgendaMonthView.gridStart(_monthOf(page)),
+      AgendaMonthView.gridDays(_monthOf(page)),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => PageView.builder(
-    onPageChanged: (index) => widget.onPeriodChanged?.call(_monthOf(index)),
+    onPageChanged: (index) {
+      _cache.focus(index);
+      widget.onPeriodChanged?.call(_monthOf(index));
+    },
     key: const PageStorageKey('agenda-months'),
     controller: widget.controller ?? _ownController,
     // Sideways, like the week and day views (build 206).
     itemCount: AgendaMonthView.monthsBack + AgendaMonthView.monthsAhead,
     itemBuilder: (context, page) {
       final month = _monthOf(page);
-      var days = _months[page];
-      if (days == null) {
-        days = widget.peekDays(
+      final days = _cache.read(
+        page,
+        () => widget.peekDays(
           AgendaMonthView.gridStart(month),
           AgendaMonthView.gridDays(month),
-        );
-        if (days != null) _months[page] = days;
-      }
-      if ((days == null || _stale.contains(page)) && !_failed.contains(page)) {
+        ),
+      );
+      if (_cache.needsLoad(page)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) unawaited(_fetch(page));
         });
@@ -158,7 +143,7 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
         today: widget.today,
         days: days ?? const [],
         colors: widget.colors,
-        failed: _failed.contains(page),
+        failed: _cache.failed(page),
         onDay: widget.onOpenDay,
       );
     },

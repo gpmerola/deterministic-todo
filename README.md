@@ -375,3 +375,8 @@ della sincronizzazione; un errore remoto permette di riprovare senza chiudere
 l’app. La ricerca eventi accorpa la digitazione e il calendario riusa gli
 intervalli non modificati tramite notifiche del provider Android. Dettagli e
 limiti in [avvio e caricamento](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md).
+
+Dalla build 261 anche le viste Calendario limitano le pagine conservate in
+memoria; le operazioni dopo l'avvio procedono indipendentemente. Il comando
+`make benchmark-backup` misura la preparazione su sole fixture sintetiche:
+[metodo e limiti](docs/diagnostics/2026-10-13-backup-preparation.md).
