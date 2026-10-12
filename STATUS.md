@@ -2,6 +2,26 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 260 — Avvio locale, ricerca e caricamento Calendario
+
+Todo Test 2.81.0 / build 260. Repository locale disponibile prima dei servizi
+remoti, retry senza ricreare la navigazione; ricerca eventi con debounce e una
+sola richiesta attiva; cache Calendario verificata tramite revisione nativa,
+TTL e invalidazione esplicita. Caricamento agenda e connessione sync separati
+dalla UI e dall'orchestrazione. Corretto il riuso temporaneo delle righe Oggi
+senza data passando a Prossime
+([contratto](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md)).
+
+`make check` (505 test Flutter), `make check-generated`, smoke provider Android
+isolato e build Web release superati. Todo Test 2260 installata con
+`make todo-test`; Calendario e ritorno dal background verificati sul Galaxy,
+sync riuscita con zero intenti pendenti e zero conflitti. Persistenza Web
+verificata su loopback dopo modifica, refresh e riapertura scheda; collaudo
+browser HTTPS pubblico non eseguito. Tre avvii Activity: mediana 322 ms contro
+334 ms precedenti, campione insufficiente per dichiarare un aumento stabile
+di velocità; batteria non misurata
+([evidenza e limiti](docs/diagnostics/2026-10-12-performance-260.md)).
+
 ## Build 259 — Maturato e previsto del mese
 
 Todo Test 2.80.0 / build 259. La stima privata distingue **Maturato finora** e

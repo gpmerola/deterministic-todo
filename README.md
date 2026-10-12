@@ -367,3 +367,11 @@ scaricare le attività; protocollo, compatibilità e recovery sono descritti in
 Dalla build 178 un controllo unificato evita le richieste delle tabelle invariate;
 SQLite 10 conserva le impronte con invalidazione transazionale. Stato e collaudi
 sono in [STATUS](STATUS.md).
+
+### Avvio e caricamento
+
+Dalla build 260 le attività locali sono disponibili prima dell’inizializzazione
+della sincronizzazione; un errore remoto permette di riprovare senza chiudere
+l’app. La ricerca eventi accorpa la digitazione e il calendario riusa gli
+intervalli non modificati tramite notifiche del provider Android. Dettagli e
+limiti in [avvio e caricamento](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md).

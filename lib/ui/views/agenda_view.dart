@@ -17,6 +17,7 @@ import 'agenda_day_view.dart';
 import 'agenda_event_flows.dart';
 import 'agenda_header.dart';
 import 'agenda_list_widgets.dart';
+import 'agenda_load_controller.dart';
 import 'agenda_month_view.dart';
 import 'agenda_reminder_sheet.dart';
 import 'agenda_week_view.dart';
@@ -74,6 +75,8 @@ class AgendaView extends StatefulWidget {
 }
 
 class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
+  late final loader = AgendaLoadController(widget.service);
+  bool _wasBackground = false;
   AgendaAccess? access;
   List<AgendaCalendar> calendars = const [];
   Set<String> hidden = const {};
@@ -148,7 +151,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     AgendaBackup.pending.addListener(_backupChanged);
     listScroll.addListener(_listScrolled);
     _seedFromMemory();
-    unawaited(_load());
+    unawaited(_load(changed: false));
   }
 
   @override
@@ -159,14 +162,22 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Outlook may have synced while the app was in background.
-    if (state == AppLifecycleState.resumed) unawaited(_load());
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      _wasBackground = true;
+    }
+    if (state == AppLifecycleState.resumed && _wasBackground) {
+      _wasBackground = false;
+      unawaited(_load(changed: false));
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     AgendaBackup.pending.removeListener(_backupChanged);
+    loader.dispose();
     monthPage.dispose();
     weeksPage.dispose();
     weekPage.dispose();
@@ -179,57 +190,28 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool changed = true}) async {
     if (!mounted) return;
     final generation = ++_generation;
+    if (changed) widget.service.invalidateEventCache();
     setState(() {
       loading = true;
     });
     try {
-      final nextAccess = await widget.service.access();
-      if (nextAccess != AgendaAccess.granted) {
-        if (!mounted || generation != _generation) return;
-        setState(() {
-          access = nextAccess;
-          loading = false;
-        });
-        return;
-      }
-      // Independent reads: run together so a resume waits for the slowest
-      // one instead of their sum.
-      final (nextZone, nextMode, nextFilter, nextCalendars, choices) = await (
-        widget.service.deviceZoneLabel(),
-        widget.service.viewMode(),
-        widget.service.filter(),
-        widget.service.calendars(),
-        widget.service.calendarChoices(),
-      ).wait;
-      final nextHidden = hiddenAgendaCalendars(
-        nextCalendars,
-        choices,
-        hideHolidays: nextFilter.hideHolidays,
-      );
-      // The month view reads each month itself; only the list needs a window.
-      final nextDays = nextMode == AgendaViewMode.list
-          ? await _readDays(
-              nextCalendars,
-              nextHidden,
-              nextFilter,
-              listFirst,
-              dayCount,
-            )
-          : days;
+      final result = await loader.load(listFirst, dayCount, changed: changed);
       if (!mounted || generation != _generation) return;
       setState(() {
-        access = nextAccess;
-        mode = nextMode;
-        zone = nextZone;
-        calendars = nextCalendars;
-        hidden = nextHidden;
-        filter = nextFilter;
-        days = nextDays;
+        access = result.access;
+        if (result.access == AgendaAccess.granted) {
+          mode = result.mode!;
+          zone = result.zone;
+          calendars = result.calendars!;
+          hidden = result.hidden!;
+          filter = result.filter!;
+          days = result.days ?? days;
+        }
         failed = false;
-        revision++;
+        revision = result.revision;
         loading = false;
       });
       if (isAndroidPlatform) {
@@ -362,22 +344,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     AgendaFilter filter,
     CivilDate first,
     int count,
-  ) async {
-    final events = await widget.service
-        .events(first.asLocalDate, first.addDays(count).asLocalDate, [
-          for (final calendar in calendars)
-            if (!hidden.contains(calendar.id)) calendar.id,
-        ]);
-    return buildAgenda(
-      events: events,
-      tasks: await widget.service.tasks(first, count),
-      calendars: calendars,
-      hiddenCalendarIds: hidden,
-      filter: filter,
-      first: first,
-      days: count,
-    );
-  }
+  ) => loader.readDays(calendars, hidden, filter, first, count);
 
   AgendaEventFlows get _flows => AgendaEventFlows(
     service: widget.service,

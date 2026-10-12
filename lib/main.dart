@@ -7,18 +7,15 @@ import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
 
 import 'background/agenda_background.dart';
 import 'data/editor_drafts.dart';
 import 'data/local/database.dart';
-import 'data/sync/secure_supabase_storage.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
 import 'domain/agenda.dart';
@@ -35,6 +32,7 @@ import 'services/agenda_web_service.dart';
 import 'services/ai_capture_actions.dart';
 import 'services/ai_settings.dart';
 import 'services/app_package_info.dart';
+import 'services/app_runtime.dart';
 import 'services/auto_backup_service.dart';
 import 'services/calendar_service.dart';
 import 'services/calendar_shortcut_service.dart';
@@ -66,6 +64,7 @@ import 'ui/shell/app_update_flow.dart';
 import 'ui/shell/civil_day_clock.dart';
 import 'ui/shell/daily_steps_controller.dart';
 import 'ui/shell/shell_navigation.dart';
+import 'ui/shell/sync_lifecycle.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
@@ -80,6 +79,9 @@ import 'ui/views/today_agenda_strip.dart';
 import 'ui/views/today_view.dart';
 import 'ui/views/upcoming_view.dart';
 
+export 'ui/shell/sync_lifecycle.dart';
+
+part 'ui/shell/bootstrap_app.dart';
 part 'ui/data_health_view.dart';
 part 'ui/settings_view.dart';
 part 'ui/sync_account_card.dart';
@@ -105,147 +107,6 @@ void main() {
   runApp(const BootstrapApp());
 }
 
-class BootstrapApp extends StatefulWidget {
-  const BootstrapApp({super.key});
-
-  @override
-  State<BootstrapApp> createState() => _BootstrapAppState();
-}
-
-class _BootstrapAppState extends State<BootstrapApp> {
-  late final Future<_AppRuntime> initialization = _initialize();
-  AppLifecycleListener? syncLifecycle;
-
-  @override
-  void dispose() {
-    syncLifecycle?.dispose();
-    super.dispose();
-  }
-
-  Future<_AppRuntime> _initialize() async {
-    final startup = Stopwatch()..start();
-    final diagnosticInitialization = DiagnosticLogService.instance
-        .initialize()
-        .catchError((Object _) {
-          // La diagnostica non deve mai impedire l'avvio offline.
-        });
-    final database = AppDatabase();
-    final storedDevice = await (database.select(
-      database.appSettings,
-    )..where((setting) => setting.key.equals('device_id'))).getSingleOrNull();
-    var deviceId = storedDevice?.value;
-    if (deviceId == null) {
-      try {
-        const storage = FlutterSecureStorage();
-        deviceId = await storage.read(key: 'device_id');
-        deviceId ??= const Uuid().v4();
-        await storage.write(key: 'device_id', value: deviceId);
-      } on Object {
-        deviceId = const Uuid().v4();
-      }
-      await database
-          .into(database.appSettings)
-          .insertOnConflictUpdate(
-            AppSettingsCompanion.insert(key: 'device_id', value: deviceId),
-          );
-    }
-
-    final repository = TaskRepository(database, deviceId: deviceId);
-    const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-    const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-    final supabaseInitialization = _initializeSupabase(
-      url: supabaseUrl,
-      key: supabaseKey,
-    );
-    await diagnosticInitialization;
-    final syncClient = await supabaseInitialization;
-    SyncService? syncService;
-    if (syncClient != null) {
-      syncService = SyncService(database, syncClient);
-      // Bind first: an app started in background must not begin a cycle.
-      syncLifecycle = bindSyncToLifecycle(syncService);
-      syncService.start();
-    }
-    PerformanceMonitor.instance.start();
-    startup.stop();
-    unawaited(
-      PerformanceMonitor.instance.snapshot(
-        'startup',
-        database,
-        durationMs: startup.elapsedMilliseconds,
-      ),
-    );
-    return _AppRuntime(repository, syncClient, syncService);
-  }
-
-  Future<SupabaseClient?> _initializeSupabase({
-    required String url,
-    required String key,
-  }) async {
-    if (url.isEmpty || key.isEmpty) return null;
-    await Supabase.initialize(
-      url: url,
-      publishableKey: key,
-      postgrestOptions: const PostgrestClientOptions(
-        requestTimeout: Duration(seconds: 20),
-      ),
-      authOptions: const FlutterAuthClientOptions(
-        localStorage: SecureSupabaseStorage(),
-        autoRefreshToken: true,
-      ),
-    );
-    return Supabase.instance.client;
-  }
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<_AppRuntime>(
-    future: initialization,
-    builder: (context, snapshot) {
-      if (snapshot.hasData) {
-        final runtime = snapshot.requireData;
-        return TodoApp(
-          repository: runtime.repository,
-          syncClient: runtime.syncClient,
-          syncService: runtime.syncService,
-        );
-      }
-      if (snapshot.hasError) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: Scaffold(
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 16),
-                    const Text('Impossibile inizializzare l’app'),
-                    const SizedBox(height: 8),
-                    Text(snapshot.error.runtimeType.toString()),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }
-      return const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
-    },
-  );
-}
-
-class _AppRuntime {
-  const _AppRuntime(this.repository, this.syncClient, this.syncService);
-  final TaskRepository repository;
-  final SupabaseClient? syncClient;
-  final SyncService? syncService;
-}
-
 class TodoApp extends StatelessWidget {
   /// Brand colour: the + button, and red keeps meaning "attention"
   /// (overdue, high priority, delete, errors).
@@ -262,9 +123,13 @@ class TodoApp extends StatelessWidget {
     this.syncService,
     this.enablePlatformServices = true,
     this.clock,
+    this.startupError = false,
+    this.onRetryStartup,
     super.key,
   });
 
+  final bool startupError;
+  final VoidCallback? onRetryStartup;
   final TaskRepository repository;
   final SupabaseClient? syncClient;
   final SyncService? syncService;
@@ -285,6 +150,39 @@ class TodoApp extends StatelessWidget {
     darkTheme: _theme(Brightness.dark),
     highContrastTheme: _theme(Brightness.light, highContrast: true),
     highContrastDarkTheme: _theme(Brightness.dark, highContrast: true),
+    builder: (context, child) => Stack(
+      children: [
+        child!,
+        if (startupError)
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: 8,
+            child: SafeArea(
+              child: Material(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Attività disponibili sul dispositivo. Sincronizzazione non avviata.',
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: onRetryStartup,
+                        child: const Text('Riprova'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
     home: TaskShell(
       repository: repository,
       syncClient: syncClient,
@@ -402,16 +300,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
 
   /// Phone side of the web Agenda (mirror upload, queued web edits); null
   /// elsewhere.
-  late final AgendaPhoneSync? agendaSync =
-      widget.enablePlatformServices &&
-          isAndroidPlatform &&
-          widget.syncClient != null
-      ? AgendaPhoneSync(
-          service: agendaService,
-          client: widget.syncClient!,
-          deviceId: widget.repository.deviceId,
-        )
-      : null;
+  AgendaPhoneSync? agendaSync;
 
   Stream<List<Task>> _visibleTasks() {
     final today = dayClock.today;
@@ -475,25 +364,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         }
       });
     }
-    remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
-      ids,
-    ) {
-      if (!mounted) return;
-      setState(() {
-        recentlySyncedTaskIds
-          ..clear()
-          ..addAll(ids);
-      });
-      remoteHighlightTimer?.cancel();
-      remoteHighlightTimer = Timer(const Duration(milliseconds: 900), () {
-        if (mounted) setState(recentlySyncedTaskIds.clear);
-      });
-    });
+    _bindRemoteServices();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!widget.enablePlatformServices) return;
       await _refreshDailyMovement();
-      unawaited(agendaSync?.attach());
-      unawaited(agendaSync?.foreground());
       if (isAndroidPlatform) {
         unawaited(
           AgendaReminders(agendaService)
@@ -513,6 +387,49 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
     if (widget.enablePlatformServices && isAndroidPlatform) {
       steps.startPeriodicRefresh(() => appIsForeground);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TaskShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.syncService != widget.syncService ||
+        oldWidget.syncClient != widget.syncClient) {
+      _bindRemoteServices();
+    }
+  }
+
+  void _bindRemoteServices() {
+    unawaited(remoteTaskSubscription?.cancel());
+    agendaSync?.detach();
+    agendaSync =
+        widget.enablePlatformServices &&
+            isAndroidPlatform &&
+            widget.syncClient != null
+        ? AgendaPhoneSync(
+            service: agendaService,
+            client: widget.syncClient!,
+            deviceId: widget.repository.deviceId,
+          )
+        : null;
+    remoteTaskSubscription = widget.syncService?.remoteTaskChanges.listen((
+      ids,
+    ) {
+      if (!mounted) return;
+      setState(() {
+        recentlySyncedTaskIds
+          ..clear()
+          ..addAll(ids);
+      });
+      remoteHighlightTimer?.cancel();
+      remoteHighlightTimer = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) setState(recentlySyncedTaskIds.clear);
+      });
+    });
+
+    if (agendaSync != null) {
+      unawaited(agendaSync!.attach());
+      if (appIsForeground) unawaited(agendaSync!.foreground());
     }
   }
 
@@ -887,7 +804,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         child: StreamBuilder<List<Task>>(
           stream: _visibleTasks(),
           builder: (context, snapshot) {
-            final tasks = snapshot.data ?? const [];
+            // StreamBuilder retains the previous stream's data while switching.
+            // A new view must not render rows from the old query (Inbox has no dates).
+            final loaded =
+                snapshot.connectionState == ConnectionState.active ||
+                snapshot.connectionState == ConnectionState.done;
+            final tasks = loaded
+                ? snapshot.data ?? const <Task>[]
+                : const <Task>[];
             final primarySections = [
               AppSection.today,
               AppSection.upcoming,
@@ -932,7 +856,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                                 ),
                             child: KeyedSubtree(
                               key: ValueKey('page-$pageIdentity'),
-                              child: _content(tasks, loaded: snapshot.hasData),
+                              child: _content(
+                                tasks,
+                                loaded: loaded && snapshot.hasData,
+                              ),
                             ),
                           ),
                         ),
@@ -1558,30 +1485,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
 }
-
-/// Pauses and resumes sync from the binding, next to [SyncService.start].
-/// Widget observers are not enough: in background Flutter builds no frames,
-/// so an app started there would never reach the widget that observes it.
-AppLifecycleListener bindSyncToLifecycle(SyncService service) {
-  if (isBackgroundLifecycle(WidgetsBinding.instance.lifecycleState)) {
-    service.pause();
-  }
-  return AppLifecycleListener(
-    onStateChange: (state) {
-      if (isBackgroundLifecycle(state)) {
-        service.pause();
-      } else if (state == AppLifecycleState.resumed) {
-        service.resume();
-      }
-    },
-  );
-}
-
-/// Not visible to the user. `inactive` alone is a transient interruption.
-bool isBackgroundLifecycle(AppLifecycleState? state) =>
-    state == AppLifecycleState.paused ||
-    state == AppLifecycleState.detached ||
-    state == AppLifecycleState.hidden;
 
 class _BackIntent extends Intent {
   const _BackIntent();

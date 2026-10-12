@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/task.dart' show LogicalVersion;
@@ -13,80 +10,19 @@ import '../local/database.dart';
 import 'paged_remote.dart';
 import 'project_sync_writer.dart';
 import 'purge_batch_merge.dart';
+import 'realtime_versions.dart';
 import 'remote_batch_merge.dart';
+import 'sync_connection.dart';
 import 'sync_overview.dart';
+import 'sync_policy.dart';
 import 'sync_request_scope.dart';
+import 'sync_status.dart';
 import 'task_fingerprints.dart';
 import 'task_sync_writer.dart';
 
-enum SyncPhase { disabled, offline, syncing, current, error }
-
-enum SyncStage {
-  idle,
-  overview,
-  projects,
-  taskUpload,
-  receipt,
-  taskPull,
-  taskMerge,
-  purgePull,
-}
-
-final class SyncWriteVerificationException implements Exception {
-  const SyncWriteVerificationException();
-}
-
-class SyncSnapshot {
-  const SyncSnapshot(
-    this.phase, {
-    this.pending = 0,
-    this.lastSuccess,
-    this.error,
-    this.stage = SyncStage.idle,
-    this.lastFailure,
-    this.lastError,
-    this.lastFailureStage,
-    this.lastRecovery,
-    this.retryAt,
-    this.consecutiveFailures = 0,
-    this.alignment,
-  });
-  final SyncPhase phase;
-  final int pending;
-  final DateTime? lastSuccess;
-  final String? error;
-  final SyncStage stage;
-  final DateTime? lastFailure;
-  final String? lastError;
-  final SyncStage? lastFailureStage;
-  final DateTime? lastRecovery;
-  final DateTime? retryAt;
-  final int consecutiveFailures;
-
-  /// Result of the last complete check against the server; null until one ran.
-  final SyncAlignment? alignment;
-}
-
-/// Server alignment measured by bucket fingerprints after a complete pull.
-/// [divergedBuckets] counts groups of tasks still different from the server
-/// without pending local changes. Not polled: refreshed only by sync cycles.
-class SyncAlignment {
-  const SyncAlignment(
-    this.divergedBuckets, {
-    required this.checkedAt,
-    required this.contentChecked,
-    this.repaired = false,
-  });
-  final int divergedBuckets;
-  final DateTime checkedAt;
-
-  /// False when the server only offers v1 fingerprints (versions, no content).
-  final bool contentChecked;
-
-  /// True after a user-requested complete pull.
-  final bool repaired;
-  bool get aligned => divergedBuckets == 0;
-}
+export 'realtime_versions.dart';
+export 'sync_policy.dart';
+export 'sync_status.dart';
 
 class SyncService {
   SyncService(this.db, this.client);
@@ -100,14 +36,10 @@ class SyncService {
   final SupabaseClient client;
   final _state = StreamController<SyncSnapshot>.broadcast();
   final _remoteTaskChanges = StreamController<Set<String>>.broadcast();
-  StreamSubscription<List<ConnectivityResult>>? _connectivity;
-  StreamSubscription<AuthState>? _auth;
   StreamSubscription<Set<String>>? _outbox;
-  RealtimeChannel? _realtime;
   Timer? _timer;
   Timer? _outboxTimer;
   Timer? _realtimeTimer;
-  Timer? _realtimeReconnectTimer;
   Timer? _retryTimer;
   Future<void>? _realtimeRemoval;
   Future<void>? _inFlight;
@@ -219,36 +151,58 @@ class SyncService {
     _state.add(snapshot);
   }
 
+  late final _connection = SyncConnection(
+    client,
+    isActive: () => !_disposed && !_paused,
+    onAuth: _onAuth,
+    onOffline: () {
+      _retryTimer?.cancel();
+      _retryTimer = null;
+      _emit(
+        SyncSnapshot(
+          SyncPhase.offline,
+          pending: _latest.pending,
+          lastSuccess: _latest.lastSuccess,
+        ),
+      );
+    },
+    onOnline: () => unawaited(sync()),
+    onSubscribed: () => unawaited(sync(freshSnapshot: true)),
+    onRecord: _queueRealtimeChange,
+  );
+
+  void _onAuth(AuthState state) {
+    if (_disposed) return;
+    final nextUserId = state.session?.user.id;
+    if (nextUserId != _authenticatedUserId) {
+      _cancelRequests();
+      for (final ids in _pendingRealtimeIds.values) {
+        ids.clear();
+      }
+      for (final versions in _announcedVersions.values) {
+        versions.clear();
+      }
+      unawaited(_removeRealtime());
+    }
+    final shouldSync = shouldSyncForAuthChange(
+      _authenticatedUserId,
+      nextUserId,
+    );
+    _authenticatedUserId = nextUserId;
+    if (nextUserId != null) {
+      unawaited(_subscribeRealtime());
+      if (shouldSync) unawaited(sync());
+    } else {
+      unawaited(_removeRealtime());
+      _emit(const SyncSnapshot(SyncPhase.disabled));
+    }
+  }
+
   void start() {
     if (_disposed || _started) return;
     _started = true;
     _authenticatedUserId = client.auth.currentUser?.id;
-    _auth = client.auth.onAuthStateChange.listen((state) {
-      if (_disposed) return;
-      final nextUserId = state.session?.user.id;
-      if (nextUserId != _authenticatedUserId) {
-        _cancelRequests();
-        for (final ids in _pendingRealtimeIds.values) {
-          ids.clear();
-        }
-        for (final versions in _announcedVersions.values) {
-          versions.clear();
-        }
-        unawaited(_removeRealtime());
-      }
-      final shouldSync = shouldSyncForAuthChange(
-        _authenticatedUserId,
-        nextUserId,
-      );
-      _authenticatedUserId = nextUserId;
-      if (nextUserId != null) {
-        unawaited(_subscribeRealtime());
-        if (shouldSync) unawaited(sync());
-      } else {
-        unawaited(_removeRealtime());
-        _emit(const SyncSnapshot(SyncPhase.disabled));
-      }
-    });
+    _connection.start();
     _outbox = db.watchOutboxOperationIds().listen((operations) {
       final hasNewWork = outboxOperationsChanged(
         _observedOutboxOperations,
@@ -256,22 +210,6 @@ class SyncService {
       );
       _observedOutboxOperations = operations;
       if (operations.isNotEmpty && hasNewWork) _scheduleOutboxSync();
-    });
-    _connectivity = Connectivity().onConnectivityChanged.listen((result) {
-      if (result.contains(ConnectivityResult.none)) {
-        _retryTimer?.cancel();
-        _retryTimer = null;
-        _emit(
-          SyncSnapshot(
-            SyncPhase.offline,
-            pending: _latest.pending,
-            lastSuccess: _latest.lastSuccess,
-          ),
-        );
-      } else if (!_paused) {
-        // In background the next resume performs the check.
-        unawaited(sync());
-      }
     });
     // Started in background: [resume] performs the first check and timer.
     if (_paused) return;
@@ -295,8 +233,6 @@ class SyncService {
     _outboxTimer = null;
     _realtimeTimer?.cancel();
     _realtimeTimer = null;
-    _realtimeReconnectTimer?.cancel();
-    _realtimeReconnectTimer = null;
     _retryTimer?.cancel();
     _retryTimer = null;
     unawaited(_suspendRealtime());
@@ -351,74 +287,7 @@ class SyncService {
     _outboxTimer = Timer(eventDebounce, () => unawaited(sync(pullAll: false)));
   }
 
-  Future<void> _subscribeRealtime() async {
-    if (_disposed) return;
-    final user = client.auth.currentUser;
-    if (!shouldSubscribeRealtime(
-      paused: _paused,
-      hasAuthenticatedUser: user != null,
-      hasChannel: _realtime != null,
-    )) {
-      return;
-    }
-    final authenticatedUser = user!;
-    final filter = PostgresChangeFilter(
-      type: PostgresChangeFilterType.eq,
-      column: 'user_id',
-      value: authenticatedUser.id,
-    );
-    final channel = client.channel('todo-live-${authenticatedUser.id}');
-    for (final table in const ['tasks', 'projects', 'project_sections']) {
-      channel.onPostgresChanges(
-        event: PostgresChangeEvent.all,
-        schema: 'public',
-        table: table,
-        filter: filter,
-        callback: (payload) => _queueRealtimeChange(table, payload),
-      );
-    }
-    _realtime = channel
-      ..subscribe((status, error) {
-        unawaited(_handleRealtimeStatus(channel, status, error));
-      });
-  }
-
-  Future<void> _handleRealtimeStatus(
-    RealtimeChannel channel,
-    RealtimeSubscribeStatus status,
-    Object? error,
-  ) async {
-    if (_disposed || !identical(_realtime, channel)) return;
-    unawaited(
-      DiagnosticLogService.instance.event(
-        'realtime_status',
-        level: shouldReconnectRealtime(status) ? 'warning' : 'info',
-        fields: {'status': status.name},
-      ),
-    );
-    if (status == RealtimeSubscribeStatus.subscribed) {
-      _realtimeReconnectTimer?.cancel();
-      _realtimeReconnectTimer = null;
-      // Events before this point were never delivered: the check must read
-      // the server after the subscription, not join an older snapshot.
-      if (!_disposed && !_paused) unawaited(sync(freshSnapshot: true));
-      return;
-    }
-    if (!shouldReconnectRealtime(status)) return;
-    _realtime = null;
-    try {
-      await client.removeChannel(channel);
-    } on Object {
-      // La riconnessione deve proseguire anche se il vecchio canale è già
-      // irraggiungibile o è stato rimosso dal server.
-    }
-    if (_disposed || _paused || client.auth.currentUser == null) return;
-    _realtimeReconnectTimer?.cancel();
-    _realtimeReconnectTimer = Timer(const Duration(seconds: 2), () {
-      _realtimeReconnectTimer = null;
-      if (!_disposed && !_paused) unawaited(_subscribeRealtime());
-    });
-  }
+  Future<void> _subscribeRealtime() => _connection.subscribe();
 
   void _queueRealtimeChange(String table, PostgresChangePayload payload) =>
       _queueRealtimeRecord(table, payload.newRecord, payload.oldRecord);
@@ -526,13 +395,7 @@ class SyncService {
     }
   }
 
-  Future<void> _removeRealtime() async {
-    _realtimeReconnectTimer?.cancel();
-    _realtimeReconnectTimer = null;
-    final channel = _realtime;
-    _realtime = null;
-    if (channel != null) await client.removeChannel(channel);
-  }
+  Future<void> _removeRealtime() => _connection.disconnect();
 
   /// [freshSnapshot] requires a remote read that starts after this call. A
   /// full check whose remote snapshot is already under way cannot satisfy it.
@@ -1222,209 +1085,12 @@ class SyncService {
     _timer?.cancel();
     _outboxTimer?.cancel();
     _realtimeTimer?.cancel();
-    _realtimeReconnectTimer?.cancel();
     _retryTimer?.cancel();
-    await _connectivity?.cancel();
-    await _auth?.cancel();
+    await _connection.dispose();
     await _outbox?.cancel();
     await _removeRealtime();
     await Future.wait(_operations.toList());
     await _state.close();
     await _remoteTaskChanges.close();
   }
-}
-
-Set<String> distinctEntityIds(Iterable<String> ids) => ids.toSet();
-
-Duration syncRetryDelay(int failureIndex) {
-  const delays = [
-    Duration(seconds: 2),
-    Duration(seconds: 10),
-    Duration(seconds: 30),
-    Duration(minutes: 2),
-  ];
-  return delays[failureIndex.clamp(0, delays.length - 1)];
-}
-
-int? syncOutboxOldestAgeMs(Iterable<int> createdAtMicros, DateTime now) {
-  if (createdAtMicros.isEmpty) return null;
-  final oldest = createdAtMicros.reduce(
-    (left, right) => left < right ? left : right,
-  );
-  final age = now.microsecondsSinceEpoch - oldest;
-  return age <= 0 ? 0 : age ~/ Duration.microsecondsPerMillisecond;
-}
-
-String syncAuthState(Session? session, {DateTime? now}) {
-  if (session == null) return 'missing';
-  final expiresAt = session.expiresAt;
-  if (expiresAt == null) return 'active_unknown_expiry';
-  final seconds =
-      (now ?? DateTime.now().toUtc()).millisecondsSinceEpoch ~/ 1000;
-  if (expiresAt <= seconds) return 'expired';
-  if (expiresAt - seconds <= 60) return 'near_expiry';
-  return 'active';
-}
-
-Future<String> safeSyncNetworkState() async {
-  try {
-    final result = await Connectivity().checkConnectivity();
-    if (result.isEmpty || result.contains(ConnectivityResult.none)) {
-      return 'none';
-    }
-    return result.map((item) => item.name).toSet().join('+');
-  } on Object {
-    return 'unknown';
-  }
-}
-
-String safeSyncErrorClass(Object error) {
-  if (error is SyncPaginationException) return 'pagination';
-  if (error is SyncIntentConflictException) return 'intent_conflict';
-  if (error is SyncConcurrentWriteException) return 'concurrent_write';
-  if (error is SyncWriteVerificationException) return 'write_verification';
-  if (error is PostgrestException) return 'supabase';
-  if (error is AuthRetryableFetchException) return 'auth_transport';
-  if (error is TimeoutException) return 'timeout';
-  if (error is http.ClientException) return 'network';
-  final type = error.runtimeType.toString().toLowerCase();
-  if (type.contains('retryablefetch')) return 'auth_transport';
-  if (type.contains('timeout')) return 'timeout';
-  if (type.contains('socket') ||
-      type.contains('network') ||
-      type.contains('connection') ||
-      type.contains('handshake') ||
-      type.contains('clientexception')) {
-    return 'network';
-  }
-  return 'unexpected';
-}
-
-LogicalVersion? announcedVersion(Map<String, dynamic> record) {
-  final counter = record['logical_version'];
-  final device = record['device_id'];
-  return counter is int && device is String
-      ? LogicalVersion(counter, device)
-      : null;
-}
-
-/// Drops notifications whose announced version this device already has,
-/// such as the echo of its own accepted upload. Anything uncertain is fetched.
-Future<Set<String>> realtimeIdsToFetch(
-  AppDatabase db,
-  String table,
-  Set<String> ids,
-  Map<String, LogicalVersion?> announced,
-) async {
-  if (!const {'tasks', 'projects', 'project_sections'}.contains(table)) {
-    throw ArgumentError('Invalid sync table');
-  }
-  final known = ids.where((id) => announced[id] != null).toList();
-  if (known.isEmpty) return ids;
-  final rows = await db
-      .customSelect(
-        'SELECT id, logical_version, device_id FROM "$table" '
-        'WHERE id IN (SELECT value FROM json_each(?))',
-        variables: [Variable(jsonEncode(known))],
-      )
-      .get();
-  final current = {
-    for (final row in rows)
-      row.read<String>('id'): LogicalVersion(
-        row.read<int>('logical_version'),
-        row.read<String>('device_id'),
-      ),
-  };
-  return {
-    for (final id in ids)
-      if (announced[id] == null ||
-          current[id] == null ||
-          current[id]!.compareTo(announced[id]!) < 0)
-        id,
-  };
-}
-
-bool outboxOperationsChanged(Set<String> previous, Set<String> current) =>
-    previous.length != current.length || !previous.containsAll(current);
-
-/// SQLSTATE classes 22 (data) and 23 (integrity) concern the submitted row.
-/// Auth, RLS, schema and transport errors still abort the whole cycle.
-bool isEntityRejection(PostgrestException error) {
-  final code = error.code;
-  return code != null &&
-      code.length == 5 &&
-      (code.startsWith('22') || code.startsWith('23'));
-}
-
-bool isRecurringOccurrenceConflict(PostgrestException error) =>
-    error.code == '23505' &&
-    error.message.contains('tasks_user_id_series_id_occurrence_key_key');
-
-bool shouldReconnectRealtime(RealtimeSubscribeStatus status) =>
-    switch (status) {
-      RealtimeSubscribeStatus.channelError ||
-      RealtimeSubscribeStatus.closed ||
-      RealtimeSubscribeStatus.timedOut => true,
-      RealtimeSubscribeStatus.subscribed => false,
-    };
-
-bool shouldSubscribeRealtime({
-  required bool paused,
-  required bool hasAuthenticatedUser,
-  required bool hasChannel,
-}) => !paused && hasAuthenticatedUser && !hasChannel;
-
-bool isTransientSyncError(Object error) {
-  if (error is http.ClientException ||
-      error is TimeoutException ||
-      error is AuthRetryableFetchException) {
-    return true;
-  }
-  if (error is SyncConcurrentWriteException) return true;
-  if (error is SyncWriteVerificationException) return true;
-  final type = error.runtimeType.toString().toLowerCase();
-  if (type.contains('socket') ||
-      type.contains('clientexception') ||
-      type.contains('timeout') ||
-      type.contains('handshake') ||
-      type.contains('network') ||
-      type.contains('connection') ||
-      type.contains('retryablefetch')) {
-    return true;
-  }
-  if (error is PostgrestException) {
-    return const {
-      'PGRST000',
-      'PGRST001',
-      'PGRST002',
-      'PGRST003',
-    }.contains(error.code);
-  }
-  return false;
-}
-
-String safeSyncErrorCode(Object error) {
-  if (error is SyncPaginationException) {
-    return 'Allineamento incompleto: ordine dei dati ricevuti non valido';
-  }
-  if (error is SyncIntentConflictException) {
-    return 'Conflitto: scegli la versione nello storico attività';
-  }
-  if (error is PostgrestException) return 'Supabase ${error.code}';
-  final type = safeSyncErrorType(error);
-  if (isTransientSyncError(error)) return 'Rete $type';
-  return type;
-}
-
-/// Known transport types remain stable in minified Web releases. Never include
-/// exception messages, which can contain URLs, credentials or response content.
-String safeSyncErrorType(Object error) {
-  if (error is http.ClientException) return 'ClientException';
-  if (error is TimeoutException) return 'TimeoutException';
-  if (error is AuthRetryableFetchException) {
-    return 'AuthRetryableFetchException';
-  }
-  if (error is SyncPaginationException) return 'SyncPaginationException';
-  if (error is PostgrestException) return 'PostgrestException';
-  return error.runtimeType.toString();
 }

@@ -1094,6 +1094,8 @@ void main() {
     await tester.tap(find.text('cerca'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'ward');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('search-events-header')), findsOneWidget);
     expect(find.text('Ward round'), findsOneWidget);

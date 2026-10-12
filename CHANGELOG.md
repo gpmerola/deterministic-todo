@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.81.0 (build 260) — Todo Test
+
+- Avvio locale indipendente da Supabase e diagnostica; errore di
+  inizializzazione remoto recuperabile con Riprova, senza perdere la vista.
+- Ricerca eventi con attesa di 250 ms, una richiesta attiva e solo l'ultima
+  pendente; cache breve in memoria e retry esplicito.
+- Calendario: letture sovrapposte accorpate, cache invalidata dalle modifiche
+  del provider Android e dalle azioni esplicite; fallback a letture fresche.
+- Corretto il passaggio Oggi → Prossime con attività senza data: non vengono
+  più renderizzate righe appartenenti alla query precedente.
+- Separati avvio, connessione Realtime, politiche di sync e caricamento
+  calendario; protocollo e schema persistente invariati.
+
 ## 2.80.0 (build 259) — Todo Test
 
 - Stima lavoro privato: due importi distinti per il mese corrente,

@@ -8,6 +8,7 @@ import '../domain/agenda.dart';
 import '../domain/quick_add_parser.dart';
 import '../domain/task.dart';
 import 'app_section.dart';
+import 'event_search_controller.dart';
 
 /// Universal command: search, `+` create, `>` open a view, `#` project.
 ///
@@ -27,8 +28,6 @@ class TaskSearchDelegate extends SearchDelegate<void> {
   final Future<List<AgendaEntry>> Function(String text)? searchEvents;
   final Future<void> Function(BuildContext context, AgendaEntry entry)?
   openEvent;
-  String? _eventsKey;
-  Future<List<AgendaEntry>>? _events;
   final TaskRepository repository;
   final ValueChanged<AppSection> onNavigate;
   final Future<void> Function(String raw) onCreate;
@@ -137,51 +136,12 @@ class TaskSearchDelegate extends SearchDelegate<void> {
     );
   }
 
-  /// One provider query per distinct text; filters are task-only.
-  Widget _eventResults(BuildContext context, String text) {
-    if (text.length < 2) return const SizedBox.shrink();
-    if (text != _eventsKey) {
-      _eventsKey = text;
-      _events = searchEvents!(text);
-    }
-    return FutureBuilder<List<AgendaEntry>>(
-      future: _events,
-      builder: (context, snapshot) {
-        final events = snapshot.data ?? const <AgendaEntry>[];
-        if (events.isEmpty) return const SizedBox.shrink();
-        final theme = Theme.of(context);
-        final day = DateFormat('EEE d MMM yyyy', 'it');
-        final clock = DateFormat.Hm('it');
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Text(
-                'Eventi',
-                key: const ValueKey('search-events-header'),
-                style: theme.textTheme.titleSmall,
-              ),
-            ),
-            for (final event in events)
-              ListTile(
-                key: ValueKey('search-event-${event.instanceId}'),
-                leading: const Icon(Icons.event_outlined),
-                title: Text(
-                  event.title.isEmpty ? '(senza titolo)' : event.title,
-                ),
-                subtitle: Text(
-                  event.allDay
-                      ? day.format(event.start)
-                      : '${day.format(event.start)} · ${clock.format(event.start)}',
-                ),
-                onTap: () => openEvent?.call(context, event),
-              ),
-          ],
-        );
-      },
-    );
-  }
+  Widget _eventResults(BuildContext context, String text) => _EventResults(
+    key: const ValueKey('event-search-results'),
+    query: text,
+    search: searchEvents!,
+    open: openEvent,
+  );
 
   Widget _createCommand(BuildContext context, String rawQuery) {
     final command = rawQuery.substring(1).trim();
@@ -243,4 +203,96 @@ enum TaskSearchFilter {
 
   const TaskSearchFilter(this.label);
   final String label;
+}
+
+class _EventResults extends StatefulWidget {
+  const _EventResults({
+    required this.query,
+    required this.search,
+    this.open,
+    super.key,
+  });
+  final String query;
+  final Future<List<AgendaEntry>> Function(String) search;
+  final Future<void> Function(BuildContext, AgendaEntry)? open;
+  @override
+  State<_EventResults> createState() => _EventResultsState();
+}
+
+class _EventResultsState extends State<_EventResults>
+    with WidgetsBindingObserver {
+  late final controller = EventSearchController(widget.search);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    controller.setQuery(widget.query);
+  }
+
+  @override
+  void didUpdateWidget(covariant _EventResults oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    controller.setQuery(widget.query);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) controller.invalidate();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: controller,
+    builder: (context, _) {
+      if (controller.failed) {
+        return ListTile(
+          title: const Text('Ricerca eventi non disponibile'),
+          trailing: TextButton(
+            onPressed: controller.invalidate,
+            child: const Text('Riprova'),
+          ),
+        );
+      }
+      final events = controller.results;
+      if (events.isEmpty) return const SizedBox.shrink();
+      final theme = Theme.of(context);
+      final day = DateFormat('EEE d MMM yyyy', 'it');
+      final clock = DateFormat.Hm('it');
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text(
+              'Eventi',
+              key: const ValueKey('search-events-header'),
+              style: theme.textTheme.titleSmall,
+            ),
+          ),
+          for (final event in events)
+            ListTile(
+              key: ValueKey('search-event-${event.instanceId}'),
+              leading: const Icon(Icons.event_outlined),
+              title: Text(event.title.isEmpty ? '(senza titolo)' : event.title),
+              subtitle: Text(
+                event.allDay
+                    ? day.format(event.start)
+                    : '${day.format(event.start)} · ${clock.format(event.start)}',
+              ),
+              onTap: () async {
+                await widget.open?.call(context, event);
+                if (mounted) controller.invalidate();
+              },
+            ),
+        ],
+      );
+    },
+  );
 }

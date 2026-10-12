@@ -13,8 +13,9 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
   emulatore.
 - [ ] Test UI via ADB: mai toccare la fascia alta dello schermo dove compaiono
   le notifiche; preferire una schermata appena catturata prima di ogni tocco.
-- [ ] Proseguire la divisione di `lib/main.dart` (`_TaskShellState`) e
-  `lib/ui/views/agenda_view.dart` in controller più piccoli.
+- [ ] Proseguire la separazione dei flussi UI di `_TaskShellState` quando
+  modificati: avvio, connessione sync e caricamento Calendario estratti nella
+  build 260 ([confini](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md)).
 
 ## P1 — Osservazioni in corso
 

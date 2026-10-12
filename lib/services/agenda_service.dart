@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -43,8 +44,12 @@ enum AgendaViewMode {
 /// demand and never stored, logged or synchronised; they are written only on
 /// an explicit create, edit or delete.
 class AgendaService {
-  AgendaService(this._database, {DeviceCalendar? calendar})
-    : _calendar = calendar ?? DeviceCalendar.instance;
+  AgendaService(
+    this._database, {
+    DeviceCalendar? calendar,
+    DateTime Function()? now,
+  }) : _calendar = calendar ?? DeviceCalendar.instance,
+       _now = now ?? DateTime.now;
 
   /// `{calendarId: shown}` chosen in Agenda; device-local, never synced.
   static const calendarChoicesKey = 'agenda_calendar_choices';
@@ -77,6 +82,7 @@ class AgendaService {
 
   final AppDatabase _database;
   final DeviceCalendar _calendar;
+  final DateTime Function() _now;
 
   /// Shared with the Supabase backup of the Agenda choices.
   AppDatabase get database => _database;
@@ -131,6 +137,30 @@ class AgendaService {
   String? lastZoneLabel;
   final Map<String, List<AgendaSourceEvent>> _events = {};
   final Map<String, List<AgendaTaskItem>> _tasks = {};
+  final Map<String, (String, DateTime)> _eventFreshness = {};
+  final Map<String, Future<List<AgendaSourceEvent>>> _eventReads = {};
+  int _eventGeneration = 0;
+  static const eventCacheLifetime = Duration(minutes: 2);
+
+  /// Null means invalidation is unavailable: always fall back to fresh reads.
+  Future<String?> providerRevision() async {
+    try {
+      return await _channel.invokeMethod<String>('revision');
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  /// Explicit refresh and writes also invalidate reads already in flight.
+  void invalidateEventCache() {
+    _eventGeneration++;
+    _events.clear();
+    _eventFreshness.clear();
+    _eventReads.clear();
+  }
+
   late final taskLinks = AgendaTaskLinks(_database);
   static const _maxCachedRanges = 64;
 
@@ -199,6 +229,40 @@ class AgendaService {
     List<String> calendarIds,
   ) async {
     if (calendarIds.isEmpty) return const [];
+    final generation = _eventGeneration;
+    final token = await providerRevision();
+    final key = _rangeKey(start, end, calendarIds);
+    final fresh = _eventFreshness[key];
+    if (token != null &&
+        fresh?.$1 == token &&
+        _now().difference(fresh!.$2) >= Duration.zero &&
+        _now().difference(fresh.$2) < eventCacheLifetime &&
+        generation == _eventGeneration &&
+        _events.containsKey(key)) {
+      return _events[key]!;
+    }
+    final readKey = '$generation|$token|$key';
+    final active = _eventReads[readKey];
+    if (active != null) return active;
+    late final Future<List<AgendaSourceEvent>> operation;
+    operation = _readEvents(start, end, calendarIds, key, token, generation)
+        .whenComplete(() {
+          if (identical(_eventReads[readKey], operation)) {
+            _eventReads.remove(readKey);
+          }
+        });
+    _eventReads[readKey] = operation;
+    return operation;
+  }
+
+  Future<List<AgendaSourceEvent>> _readEvents(
+    DateTime start,
+    DateTime end,
+    List<String> calendarIds,
+    String key,
+    String? token,
+    int generation,
+  ) async {
     final rows =
         await _channel.invokeListMethod<Map<Object?, Object?>>('instances', {
           'start': start.millisecondsSinceEpoch,
@@ -207,8 +271,21 @@ class AgendaService {
         }) ??
         const [];
     final result = [for (final row in rows) agendaEventFromRow(row)];
-    if (_events.length >= _maxCachedRanges) _events.clear();
-    _events[_rangeKey(start, end, calendarIds)] = result;
+    // A write or provider notification during the read cannot validate its cache.
+    final after = await providerRevision();
+    if (generation == _eventGeneration) {
+      if (_events.length >= _maxCachedRanges && !_events.containsKey(key)) {
+        final oldest = _events.keys.first;
+        _events.remove(oldest);
+        _eventFreshness.remove(oldest);
+      }
+      _events[key] = result;
+      if (token != null && token == after) {
+        _eventFreshness[key] = (token, _now());
+      } else {
+        _eventFreshness.remove(key);
+      }
+    }
     return result;
   }
 
@@ -422,7 +499,7 @@ class AgendaService {
       description: _blankToNull(draft.notes),
       recurrenceRule: recurrenceRuleFor(draft),
     );
-    _events.clear();
+    invalidateEventCache();
     // The default calendar changes only by explicit choice (Agenda ›
     // Calendari): remembering the last one used let an assistant event move
     // + and exports to "✨ Assistente" (build 211).
@@ -478,7 +555,7 @@ class AgendaService {
         'rrule': recurrenceRuleFor(draft)?.rruleString,
       },
     });
-    _events.clear();
+    invalidateEventCache();
     await hideEvent(entry);
   }
 
@@ -618,7 +695,7 @@ class AgendaService {
         description: patch(draft.notes),
       );
     }
-    _events.clear();
+    invalidateEventCache();
   }
 
   /// Deletes one occurrence, or with [series] the whole series.
@@ -636,7 +713,7 @@ class AgendaService {
     } else {
       await _calendar.deleteEvent(instanceId: instanceId);
     }
-    _events.clear();
+    invalidateEventCache();
   }
 
   /// [instanceId] itself, or for a changed occurrence (listed under its own

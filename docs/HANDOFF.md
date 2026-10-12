@@ -40,7 +40,8 @@ e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
 - `lib/data/local/` — Drift/SQLite (`database.g.dart` è generato:
   `make check-generated`).
 - `lib/data/sync/` — outbox, versioni Lamport, tombstone, Supabase/Realtime.
-  Hotspot: `sync_service.dart`.
+  Connessione in `sync_connection.dart`, politiche in `sync_policy.dart`,
+  orchestrazione in `sync_service.dart`.
 - `lib/services/` — calendario, backup, import/export, aggiornamenti, AI.
 - `lib/ui/` — shell (`lib/main.dart`, ancora grande), stato navigazione in
   `ui/shell/shell_navigation.dart`; creazione rapida in
@@ -55,6 +56,8 @@ e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
   insieme a un aggiornamento di `drift`/`sqlite3`.
 
 Dettagli: [ARCHITETTURA](ARCHITETTURA.md).
+
+Avvio locale/remoto e cache Calendario: [confini e verifiche](architecture/STARTUP_AND_CALENDAR_LOADING.md).
 
 ## Consegna
 

@@ -1,5 +1,7 @@
 // Run only on an Android emulator via tools/agenda_provider_smoke.py.
 // Uses an in-memory Todo DB and uniquely marked synthetic provider events.
+import 'dart:async';
+
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
@@ -45,7 +47,20 @@ Future<void> main() async {
       ))!)
         if (row['title'] == 'QA229-first' || row['title'] == 'QA229-retry') row,
     ];
+    final revisionBefore = await service.providerRevision();
+    if (revisionBefore == null) {
+      throw StateError('Revision observer unavailable');
+    }
     await service.copyInTodo(source, draft('QA229-first'));
+    var revisionAfter = await service.providerRevision();
+    for (var i = 0; revisionAfter == revisionBefore && i < 20; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      revisionAfter = await service.providerRevision();
+    }
+    if (revisionAfter == revisionBefore) {
+      throw StateError('Provider change missed');
+    }
+
     final first = await copies();
     if (first.length != 1 || first.single['copy_key'] == null) {
       throw StateError('First copy');

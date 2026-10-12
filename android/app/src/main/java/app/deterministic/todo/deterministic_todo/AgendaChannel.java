@@ -62,6 +62,11 @@ public final class AgendaChannel {
         Context app = context.getApplicationContext();
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), "app.deterministic.todo/agenda")
             .setMethodCallHandler((call, result) -> {
+                if (call.method.equals("revision")) {
+                    result.success(AgendaRevision.read(app));
+                    return;
+                }
+
                 if (call.method.equals("notifyUrgentVisits")) {
                     Handler main = new Handler(Looper.getMainLooper());
                     IO.execute(() -> {
