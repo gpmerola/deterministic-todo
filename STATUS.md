@@ -24,6 +24,13 @@ Dopo la riapertura di Todo Test 2257, schermata Salute dati dell'utente alle
 0 in attesa, 649 attività e 7 progetti, «Ultimo backup» e backup automatico
 entrambi verdi.
 
+Il 12 ottobre 2026 l'utente ha confermato i riscontri aperti sul Galaxy
+(Calendario build 219–238, scorciatoia launcher, prima modifica reale di un
+evento, pulsante Teams, ripristino backup Calendario, assistente ✨, anteprima
+descrizione, contapassi, account Samsung Email): li usa ogni giorno senza
+problemi. Voci chiuse in TODO_NEXT; resta aperta solo la verifica dei backup
+automatici.
+
 ## Build 256 — Verifica dell'import Todoist
 
 Todo Test 2.77.0 / build 256. Report di sola lettura export Todoist ↔

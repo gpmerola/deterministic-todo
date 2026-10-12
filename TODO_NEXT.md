@@ -18,20 +18,12 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P1 — Riscontri dell'utente sul Galaxy
 
-- [ ] Calendario: riscontro sulle build 219–238 (mese con meno eventi e «+N»,
-  221–224, 226), vista settimana, attività «Mostra in Agenda», evento
-  ricorrente, ricerca dalla lente, titolo e margine della vista giorno.
-- [ ] Conferma del launcher e apertura dalla scorciatoia Calendario (233).
-- [ ] Prima modifica reale di un evento: Google/Outlook senza duplicati.
-- [ ] Pulsante Teams su una riunione reale.
-- [ ] Ripristino del backup Calendario con serie reali su telefono vuoto.
-- [ ] Assistente ✨: scegliere «Nuovi eventi in» e provare una creazione reale;
-  se non gradito, cercare «✨» per rimuovere gli elementi creati.
-- [ ] Anteprima descrizione (188): numero di righe gradito?
-- [ ] Contapassi: anello e pannello a vista. Via ADB il 12 ottobre 2026
-  (build 2256) per `.dev` risultano solo `AgendaBackgroundJob` e
-  `AgendaReminderJob`, nessun job Movimento e nessuna notifica attiva.
-- [ ] Facoltativo: account k25129662 anche in Samsung Email.
+Le altre voci di questa sezione (Calendario 219–238, scorciatoia launcher,
+prima modifica reale di un evento, Teams, ripristino backup Calendario,
+assistente ✨, anteprima descrizione, contapassi, Samsung Email) sono state
+confermate dall'utente il 12 ottobre 2026: uso quotidiano senza problemi
+(STATUS).
+
 - [ ] Backup automatici (255): attivarli, salvare il codice di ripristino nel
   gestore password e controllare il primo file in Documenti/Todo backup.
 
