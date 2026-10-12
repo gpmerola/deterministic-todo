@@ -60,14 +60,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
   **Attività senza data** e **Svuota cestino** con dati esclusivamente di prova
   e autorizzazione specifica per la cancellazione permanente.
 
-## P0 — Passaggio definitivo da Todoist
-
-- esportare un ultimo JSON Todoist e usare **Sostituisci** sul Galaxy;
-- premere **Verifica** nel riepilogo (build 256): deve risultare «Tutto
-  corrisponde»; poi **Verifica con export Todoist** sul browser con lo stesso
-  file e confrontare i due report copiati;
-- non committare mai l'export personale.
-
 ## P2 — Idee e decisioni future
 
 - Fuso diverso alla creazione di un evento (oggi quello del telefono).
