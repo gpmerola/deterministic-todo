@@ -28,8 +28,10 @@ Il 12 ottobre 2026 l'utente ha confermato i riscontri aperti sul Galaxy
 (Calendario build 219–238, scorciatoia launcher, prima modifica reale di un
 evento, pulsante Teams, ripristino backup Calendario, assistente ✨, anteprima
 descrizione, contapassi, account Samsung Email): li usa ogni giorno senza
-problemi. Voci chiuse in TODO_NEXT; resta aperta solo la verifica dei backup
-automatici.
+problemi. Chiusa anche la voce sui backup automatici (255): attivati alle
+15:10 UTC, codice di ripristino salvato dall'utente («fatto ho salvato il
+codice») e primo backup automatico cifrato del 12 ottobre alle 16:09 con spunta
+verde in Salute dati (build 2257). Sezione rimossa da TODO_NEXT.
 
 ## Build 256 — Verifica dell'import Todoist
 

@@ -16,17 +16,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - [ ] Proseguire la divisione di `lib/main.dart` (`_TaskShellState`) e
   `lib/ui/views/agenda_view.dart` in controller più piccoli.
 
-## P1 — Riscontri dell'utente sul Galaxy
-
-Le altre voci di questa sezione (Calendario 219–238, scorciatoia launcher,
-prima modifica reale di un evento, Teams, ripristino backup Calendario,
-assistente ✨, anteprima descrizione, contapassi, Samsung Email) sono state
-confermate dall'utente il 12 ottobre 2026: uso quotidiano senza problemi
-(STATUS).
-
-- [ ] Backup automatici (255): attivarli, salvare il codice di ripristino nel
-  gestore password e controllare il primo file in Documenti/Todo backup.
-
 ## P1 — Osservazioni in corso
 
 - [ ] Second Brain: prima esecuzione automatica oraria e frase da una nuova chat
