@@ -178,7 +178,14 @@ più recente.
   direttamente nell’app restano intatte.
 
 Titolo, descrizione, link Markdown, progetto, sezione, priorità, data civile e
-ricorrenza sono conservati. Commenti, allegati, filtri, reminder e sotto-attività
+ricorrenza sono conservati.
+
+**Verifica** (dalla build 256), dopo l'import oppure da **Verifica con export
+Todoist** in sola lettura: confronta l'export con il database del dispositivo
+e mostra soltanto conteggi (progetti, sezioni, attività attive, date,
+ricorrenze, descrizioni, link, priorità, campi diversi, righe Todoist in più,
+attività create nell'app). Nessun titolo o ID compare nel report, che si può
+copiare per confrontare Android e browser con lo stesso file. Commenti, allegati, filtri, reminder e sotto-attività
 non sono ancora modellati.
 
 ## Sincronizzazione Supabase
@@ -198,7 +205,9 @@ client. Sul progetto personale devono essere state applicate, nell’ordine:
 9. `supabase/migrations/202609110004_sync_overview.sql`;
 10. `supabase/migrations/202610040001_agenda_mirror.sql` (Agenda sul Web);
 11. `supabase/migrations/202610050001_agenda_requests.sql` (modifiche
-    all'Agenda dal Web).
+    all'Agenda dal Web);
+12. facoltativa, `supabase/migrations/202610120001_task_fingerprints_v2.sql`
+    (impronte con contenuto, build 254): senza di essa i client usano la v1.
 
 Procedura e recovery: [registro delle eliminazioni](docs/operations/SAFE_PURGE.md).
 

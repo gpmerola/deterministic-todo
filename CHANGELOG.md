@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.77.0 (build 256) — Todo Test
+
+- Todoist: pulsante **Verifica** dopo l'import e voce **Verifica con export
+  Todoist** in sola lettura. Il report confronta export e dispositivo per
+  progetti, sezioni, attività attive, date, ricorrenze, descrizioni, link,
+  priorità e campi diversi, segnala righe Todoist in più e conta a parte le
+  attività create nell'app. Solo numeri, copiabili per confrontare Android e
+  browser.
+
 ## 2.76.0 (build 255) — Todo Test
 
 - Backup automatico cifrato su Android: una volta attivato da Impostazioni →

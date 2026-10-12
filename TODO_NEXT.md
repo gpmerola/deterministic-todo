@@ -63,9 +63,10 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P0 — Passaggio definitivo da Todoist
 
-- esportare un ultimo JSON Todoist e usare **Sostituisci**;
-- verificare conteggi, progetti, sezioni, descrizioni, link, priorità, date e
-  ricorrenze, poi confrontare Android e browser;
+- esportare un ultimo JSON Todoist e usare **Sostituisci** sul Galaxy;
+- premere **Verifica** nel riepilogo (build 256): deve risultare «Tutto
+  corrisponde»; poi **Verifica con export Todoist** sul browser con lo stesso
+  file e confrontare i due report copiati;
 - non committare mai l'export personale.
 
 ## P2 — Idee e decisioni future

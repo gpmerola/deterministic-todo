@@ -220,6 +220,55 @@ class SettingsView extends StatelessWidget {
     ).whenComplete(controller.dispose);
   }
 
+  /// Read-only: compares a Todoist export with this device, counts only.
+  Future<void> _verifyTodoist(BuildContext context) async {
+    try {
+      final picked = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (picked.isEmpty || !context.mounted) return;
+      final source = decodePickedText(await picked.single.readAsBytes());
+      final plan = await compute(parseTodoistImportPlan, source);
+      if (context.mounted) await _showTodoistVerification(context, plan);
+    } on Object {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Export Todoist non leggibile'),
+            showCloseIcon: true,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showTodoistVerification(
+    BuildContext context,
+    TodoistImportPlan plan,
+  ) async {
+    final report = await verifyTodoistImport(repository.db, plan);
+    if (!context.mounted) return;
+    final text = report.toText();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(report.ok ? 'Tutto corrisponde' : 'Differenze trovate'),
+        content: SingleChildScrollView(child: SelectableText(text)),
+        actions: [
+          TextButton(
+            onPressed: () => Clipboard.setData(ClipboardData(text: text)),
+            child: const Text('Copia'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Chiudi'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _importTodoist(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -358,6 +407,13 @@ class SettingsView extends StatelessWidget {
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Chiudi'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  await _showTodoistVerification(context, plan);
+                },
+                child: const Text('Verifica'),
               ),
               FilledButton.icon(
                 onPressed: () async {
@@ -601,6 +657,12 @@ class SettingsView extends StatelessWidget {
             leading: const Icon(Icons.task_alt_outlined),
             title: const Text('Importa da Todoist'),
             onTap: () => _importTodoist(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.fact_check_outlined),
+            title: const Text('Verifica con export Todoist'),
+            subtitle: const Text('Solo lettura: confronta i conteggi'),
+            onTap: () => _verifyTodoist(context),
           ),
           ListTile(
             leading: const Icon(Icons.history),

@@ -2,6 +2,14 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 256 — Verifica dell'import Todoist
+
+Todo Test 2.77.0 / build 256. Report di sola lettura export Todoist ↔
+dispositivo, solo conteggi (README, «Import e reimport Todoist»).
+`make check` (480 test Flutter, SQL, analisi, link), `make check-generated` e
+build Web release superati. Il passaggio definitivo resta in attesa
+dell'export personale dell'utente, che non entra nel repository.
+
 ## Build 255 — Backup automatico cifrato
 
 Todo Test 2.76.0 / build 255. Backup settimanale AES‑256‑GCM in
