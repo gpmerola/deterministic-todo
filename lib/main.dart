@@ -44,6 +44,7 @@ import 'services/performance_monitor.dart';
 import 'services/picked_text.dart';
 import 'services/platform_runtime_native.dart'
     if (dart.library.js_interop) 'services/platform_runtime_web.dart';
+import 'services/private_earnings_service.dart';
 import 'services/quick_add_service.dart';
 import 'services/run_tracker_service.dart';
 import 'services/todoist_import_service.dart';
@@ -58,6 +59,7 @@ import 'ui/daily_step_goal_indicator.dart';
 import 'ui/daily_steps_sheet.dart';
 import 'ui/link_text_editing_controller.dart';
 import 'ui/priority_color.dart';
+import 'ui/private_earnings_sheet.dart';
 import 'ui/quick_add_sheet.dart';
 import 'ui/search.dart';
 import 'ui/shell/app_update_flow.dart';
@@ -1305,6 +1307,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           syncClient: widget.syncClient,
           syncService: widget.syncService,
           autoBackup: autoBackup,
+          earnings: isAndroidPlatform
+              ? PrivateEarningsService(agendaService)
+              : null,
           checkForUpdates: _checkForUpdates,
           showCompleted: () => _navigateTo(AppSection.completed),
           dailyStepGoal: steps.goal,

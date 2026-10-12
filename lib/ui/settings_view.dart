@@ -10,11 +10,13 @@ class SettingsView extends StatelessWidget {
     this.syncClient,
     this.syncService,
     this.autoBackup,
+    this.earnings,
     super.key,
   });
 
   /// Android only: weekly encrypted backups kept on this phone.
   final AutoBackupService? autoBackup;
+  final PrivateEarningsService? earnings;
 
   final TaskRepository repository;
   final Future<void> Function() checkForUpdates;
@@ -627,6 +629,21 @@ class SettingsView extends StatelessWidget {
               TrashView(repository: repository, syncService: syncService),
         ),
       ),
+      if (earnings != null)
+        ListTile(
+          dense: true,
+          key: const ValueKey('settings-private-earnings'),
+          leading: const Icon(Icons.calculate_outlined, size: 20),
+          title: const Text('Stima lavoro privato'),
+          trailing: const Icon(Icons.chevron_right, size: 20),
+          onTap: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            showDragHandle: true,
+            builder: (_) => PrivateEarningsSheet(service: earnings!),
+          ),
+        ),
       ExpansionTile(
         leading: const Icon(Icons.storage_outlined),
         title: const Text('Dati e manutenzione'),

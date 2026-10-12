@@ -2,6 +2,20 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Build 258 — Stima del lavoro privato nel mese corrente
+
+Todo Test 2.79.0 / build 258. Voce discreta in Impostazioni su Android,
+con mese per nome, lordo stimato in GBP e conteggio degli eventi non valorizzati
+([contratto](docs/architecture/AGENDA.md#stima-lavoro-privato--build-258)).
+Tariffario verificato nel Second Brain; calcolo locale su richiesta, nessun
+contenuto personale nelle fixture, nel repository o nei log applicativi.
+`make check` (492 test Flutter, analisi, strumenti, SQL e documentazione),
+`make check-generated` e build Web release superati. Todo Test 2258 installata
+in-place con `make todo-test`, versione riletta dal package, dati conservati.
+Scheda e aggiornamento/errori verificati con widget test. Apertura manuale della
+scheda sul Galaxy non completata: il telefono è in uso con un'altra app;
+nessuna interazione forzata e nessun dettaglio degli eventi conservato.
+
 ## Build 257 — Riprova dal Web e backup in Salute dati
 
 Todo Test 2.78.0 / build 257. «Riprova» per le richieste Calendario rifiutate

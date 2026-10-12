@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.79.0 (build 258) — Todo Test
+
+- Android: voce discreta **Stima lavoro privato** in Impostazioni. Mostra il
+  mese corrente per nome e il lordo stimato in GBP degli appuntamenti già
+  terminati, con dettaglio per tariffa e conteggio degli eventi non valorizzati.
+  Calcolo locale su richiesta, tariffario OPUK settembre 2026; nessun importo
+  nella schermata principale, nei log o nella sincronizzazione.
+
 ## 2.78.0 (build 257) — Todo Test
 
 - Calendario sul Web: nella finestra «Non applicate dal telefono» il pulsante

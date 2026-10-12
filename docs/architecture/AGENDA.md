@@ -62,6 +62,36 @@ maggiore; gli orari colorati vengono corretti verso nero/bianco fino a un
 contrasto di almeno 4.5:1 rispetto alla superficie. Test con colori chiari,
 scuri e intermedi, più regressioni su celle passate e lista.
 
+## Stima lavoro privato — build 258
+
+Solo Android, **Impostazioni → Stima lavoro privato**, senza importi visibili
+prima del tap. `PrivateEarningsService` legge su richiesta dal provider locale
+gli eventi dal primo giorno del mese civile corrente all'istante di apertura
+(fuso del dispositivo). Nessun polling, rete, persistenza dei risultati o
+log dei contenuti. Il pulsante Aggiorna ricalcola anche il mese dopo un cambio
+data. Il Web non espone la funzione: la finestra del mirror può non contenere
+l'intero mese corrente.
+
+Calendari individuati per nome/account OPUK, Semble, heydoc o Online Psychiatry;
+la visibilità nell'agenda non influisce sul conteggio. Si riusa la deduplicazione
+esatta del calendario (titolo, inizio, fine, all-day); copie con titoli diversi
+restano distinte e il limite è dichiarato nella scheda. Nessun dato personale
+viene usato come fixture. Permessi mancanti, calendari assenti o errore provider
+producono un messaggio, mai un falso importo zero.
+
+Tariffario OPUK di settembre 2026 verificato nel Second Brain il 12 ottobre;
+regole e importi in pence in `lib/domain/private_earnings.dart`. La stima è
+lorda, non certifica l'esecuzione della prestazione né l'incasso. Solo eventi
+terminati e iniziati nel mese; esclusi futuri, in corso, annullati, no-show/DNA,
+inviti senza risposta, all-day e task. Riconoscimento da etichette esplicite e
+durata (non da nomi di persone). Una durata esplicita nel titolo prevale sulla
+durata dello slot se è unica e non supera lo slot, che può includere tempo
+amministrativo. ADHD adulti conta separatamente valutazione e feedback,
+senza un secondo addebito per report/admin; ASD è escluso perché la tariffa
+risulta ancora in revisione; assessment ADHD C&A escluso perché manca una fee
+documentata. Tipi e durate non riconosciuti sono contati come
+non valorizzati. Nessuna estrapolazione per prestazioni fuori calendario.
+
 ## Palette dedicata — build 237
 
 `AgendaPalette` applica al solo Calendario superfici neutre (chiare o ardesia),
