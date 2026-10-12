@@ -13,6 +13,10 @@ compilato in release e installato senza runner Flutter, soli byte sintetici:
 Keystore e MediaStore reali, scrittura e rotazione, file non leggibile in
 chiaro, apertura con codice (anche minuscolo), codice errato e malformato
 rifiutati, cartella ripulita e package fermato. Nessun dato Todo Test letto.
+Todo Test 2255 installata in-place con `make todo-test`, dati conservati;
+schermo del telefono spento, quindi nessun nuovo ciclo sync registrato dopo
+l'installazione (ultimo successo 2254, 0 in attesa). Backup non ancora attivati
+sul telefono: richiedono la scelta dell'utente e il salvataggio del codice.
 Nel telefono il package Play di fallback non risulta più installato
 (`pm list packages -u`): non toccato da questa sessione, da chiarire.
 
