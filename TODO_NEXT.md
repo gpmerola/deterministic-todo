@@ -28,8 +28,9 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - [ ] Assistente ✨: scegliere «Nuovi eventi in» e provare una creazione reale;
   se non gradito, cercare «✨» per rimuovere gli elementi creati.
 - [ ] Anteprima descrizione (188): numero di righe gradito?
-- [ ] Contapassi: anello e pannello; nessun job archiviato in
-  `adb shell dumpsys jobscheduler` per `.dev`, nessuna notifica GPS.
+- [ ] Contapassi: anello e pannello a vista. Via ADB il 12 ottobre 2026
+  (build 2256) per `.dev` risultano solo `AgendaBackgroundJob` e
+  `AgendaReminderJob`, nessun job Movimento e nessuna notifica attiva.
 - [ ] Facoltativo: account k25129662 anche in Samsung Email.
 - [ ] Backup automatici (255): attivarli, salvare il codice di ripristino nel
   gestore password e controllare il primo file in Documenti/Todo backup.

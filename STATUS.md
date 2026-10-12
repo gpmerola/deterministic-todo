@@ -9,6 +9,7 @@ dispositivo, solo conteggi (README, «Import e reimport Todoist»).
 `make check` (480 test Flutter, SQL, analisi, link), `make check-generated` e
 build Web release superati. Il passaggio definitivo resta in attesa
 dell'export personale dell'utente, che non entra nel repository.
+Todo Test 2256 installata in-place con `make todo-test`, dati conservati.
 
 ## Build 255 — Backup automatico cifrato
 
