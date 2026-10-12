@@ -19,6 +19,10 @@ Migrazione `202610120001_task_fingerprints_v2.sql` (SHA-256
 il 12 ottobre 2026 dall'utente nel SQL Editor, dopo consenso esplicito
 («Success. No rows returned»). Verifica REST con la sola publishable key: le
 due funzioni v2 esistono e rispondono 401 / 42501 ad `anon`, come la v1.
+Dopo la riapertura di Todo Test 2257, schermata Salute dati dell'utente alle
+16:50 locali: «Allineato» senza «solo versioni» (confronto v2 con contenuto),
+0 in attesa, 649 attività e 7 progetti, «Ultimo backup» e backup automatico
+entrambi verdi.
 
 ## Build 256 — Verifica dell'import Todoist
 
