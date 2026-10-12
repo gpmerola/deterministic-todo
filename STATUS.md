@@ -2,6 +2,29 @@
 
 Aggiornato il 12 ottobre 2026.
 
+## Release coordinata 2.74.0 / 253
+
+Dopo conferma esplicita `PUBBLICA`, workflow
+[38187641193](https://github.com/gpmerola/deterministic-todo/actions/runs/38187641193)
+verde sul commit `81ff164`: Web HTTPS aggiornato, release APK diretta
+[v2.74.0](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.74.0)
+pubblicata come latest e bundle accettato da Google Play nel track interno.
+La propagazione Play al tester e l'installazione del package Play non sono
+verificate; Todo Test 2253 resta il client operativo sul Galaxy.
+
+Manifest Web e Android coerenti per versione, build e commit. Scaricati i
+quattro APK: SHA-256 corrispondenti al manifest, firma valida e identica alla
+precedente stabile 2.71.1. VersionCode verificati: universale 253, armeabi-v7a
+1253, arm64-v8a 2253, x86_64 4253 (offset ABI Flutter). Conservati package e
+percorso updater stabile; nessuna migrazione o cambio di firma.
+
+Chrome apre il sito HTTPS e carica main/bootstrap con gli hash della nuova
+release. La prova di creazione e refresh sul profilo pubblico non è stata
+eseguita: il controllo automatico ha bloccato l'apertura del composer perché
+il profilo contiene dati reali e la fixture potrebbe sincronizzarsi. Serve
+consenso specifico per quella prova. Il collaudo sintetico isolato della stessa
+build, inclusa persistenza dopo refresh, è riportato sotto.
+
 ## Build 253 — Selettori coerenti e responsabilità separate
 
 Todo Test 2.74.0 / versionCode 2253 installata in-place e aperta sul Galaxy
