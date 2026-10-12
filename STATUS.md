@@ -11,6 +11,14 @@ dal telefono con motivo esplicito, mai per «Esito sconosciuto»
 `make check` (486 test Flutter, SQL, analisi, link), `make check-generated` e
 build Web release superati. Riscontro dell'utente sulla 256: «Allineato · solo
 versioni», 0 in attesa, backup automatico attivato il 12 ottobre alle 16:09.
+Todo Test 2257 installata in-place con `make todo-test`, dati conservati;
+sync riuscita con la 2257 alle 15:22 UTC.
+
+Migrazione `202610120001_task_fingerprints_v2.sql` (SHA-256
+`8347882ccec10e6952ba119c126c4186406b75f15e5adc56fbb0776692ee8cc6`) applicata
+il 12 ottobre 2026 dall'utente nel SQL Editor, dopo consenso esplicito
+(«Success. No rows returned»). Verifica REST con la sola publishable key: le
+due funzioni v2 esistono e rispondono 401 / 42501 ad `anon`, come la v1.
 
 ## Build 256 — Verifica dell'import Todoist
 

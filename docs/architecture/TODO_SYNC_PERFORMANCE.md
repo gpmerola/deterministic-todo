@@ -171,7 +171,8 @@ migrazione in produzione. Verificare `authenticated` EXECUTE true, `anon` false,
 e un nuovo ciclo APK tramite i soli metadati diagnostici. Stato effettivo e
 misure hardware sono in [STATUS](../../STATUS.md).
 
-La migrazione v2 si applica allo stesso modo e solo dopo consenso specifico;
+La migrazione v2 (applicata in produzione il 12 ottobre 2026) si applica allo
+stesso modo e solo dopo consenso specifico;
 verificare EXECUTE per `authenticated` e non per `anon` su entrambe le funzioni.
 Recovery v2: rimuovere `todo_sync_overview_v2()` e `todo_task_fingerprints_v2()`
 riporta i client alla v1 senza altre modifiche.
