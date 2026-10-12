@@ -11,6 +11,10 @@ test Flutter, SQL incluso `task_fingerprints_v2.mjs`, analisi, link) e
 `make check-generated` superati. La migrazione Supabase
 `202610120001_task_fingerprints_v2.sql` è preparata ma **non applicata** in
 produzione: finché manca, il telefono usa la v1 e mostra «solo versioni».
+Installata in-place sul Galaxy con `make todo-test`, dati conservati.
+`todo_sync_debug`: sync completa riuscita con build 2254, 1 richiesta al
+secondo ciclo (fallback v1 memorizzato), 0 in attesa, 0 conflitti. Da vedere a
+schermo: la nuova riga in Impostazioni → Salute dati.
 
 ## Release coordinata 2.74.0 / 253
 
