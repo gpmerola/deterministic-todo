@@ -2,6 +2,19 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 268 — Sessioni amministrative rimosse, Todo Test
+
+Todo Test 2.89.0 / build 268 installata sul Galaxy in-place (versionCode
+2268, dati conservati) con `make todo-test` dal branch
+`agent/remove-admin-sessions`. Avvio verificato: Oggi senza voce Admin, nessun
+errore nel log, processo attivo; poi il telefono si è bloccato e non è stato
+sbloccato. Nessun dato modificato: il progetto «Amministrazione» e le copie
+restano un progetto normale, l'impostazione locale degli slot resta inerte. Un
+test widget verifica che aprire le viste su questi dati lasci identiche
+attività, progetti, sezioni, outbox, revisioni e impostazione. `make
+check-generated` e `make check` (533 test Flutter) superati. Codice e contratto
+nel tag `archive/admin-sessions-b267`. Nessuna migrazione DB.
+
 ## Build 267 — Copie Admin senza data, Todo Test
 
 Le copie della 265 avevano la data del prossimo slot (14 ottobre) e
