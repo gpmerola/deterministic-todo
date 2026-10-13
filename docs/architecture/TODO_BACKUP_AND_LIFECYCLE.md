@@ -77,7 +77,32 @@ disponibile: la copia Web resta la replica Supabase e l'esportazione manuale.
 
 In Salute dati «Ultimo backup» è considerato a posto con un'esportazione
 manuale oppure con un backup automatico controllato nelle ultime due
-settimane; la riga del backup automatico diventa rossa oltre quel limite.
+settimane **e la cui ultima copia risulta ancora disponibile**. Dalla build
+262 sono distinti ultimo controllo dei contenuti, ultima copia creata e
+presenza della copia attesa. Le date future e l'ultimo tentativo fallito non
+producono uno stato sano. Se MediaStore non risponde, lo stato è sconosciuto,
+non «non attivo». La verifica legge solo metadati dei file: non certifica la
+leggibilità crittografica del contenuto, che resta verificata all'anteprima.
+
+`auto_backup_last_at` mantiene la semantica di controllo riuscito e la cadenza
+esistente; `auto_backup_created_at` e `auto_backup_file` sono aggiornati solo
+dopo una scrittura riuscita. `auto_backup_failed_at` registra il fallimento e
+viene svuotato dopo un successo. Se manca la copia attesa, «Crea ora» la ricrea
+anche quando restano copie vecchie con hash dei contenuti invariato. Su
+installazioni precedenti alla 262 si mostra la data dei file esistenti; al
+prossimo backup dovuto/manuale viene creata una copia con provenienza esplicita.
+Nessuna migrazione SQL, modifica al formato o nuove copie all'apertura del
+foglio. Il codice di ripristino resta mostrabile anche se il primo backup
+fallisce: il foglio segnala il fallimento e offre «Crea ora».
+
+Salute dati usa conteggi SQL e ricarica con trascinamento verso il basso.
+Problemi di sincronizzazione raggruppa in SQLite l'ultima operazione per
+entità (upsert/delete insieme, domini separati), in ordine della prima
+operazione pendente. Mostra 50 entità alla volta con Precedenti/Successivi;
+trasferisce al massimo 51 righe compresa la sentinella, senza payload JSON.
+Una coda che cambia aggiorna la pagina corrente; dopo lo svuotamento si può
+sempre tornare alla precedente. Nessuna operazione di sincronizzazione viene
+modificata o eliminata da questa vista.
 
 Nessuna nuova dipendenza: cifratura con JCA e Android Keystore in Java
 (`TodoBackupCipher`, `TodoBackupFiles`, `TodoBackupMediaStore`,

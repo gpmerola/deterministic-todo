@@ -11,6 +11,7 @@ import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_page_cache.dart';
+import 'agenda_page_frame.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
 import 'agenda_word_wrap.dart';
 import 'calendar_visit_group.dart';
@@ -132,18 +133,28 @@ class _AgendaWeekViewState extends State<AgendaWeekView> {
           if (mounted) unawaited(_fetch(page));
         });
       }
-      return AgendaWeekPage(
-        key: ValueKey('agenda-week-$monday'),
-        monday: monday,
-        dayCount: widget.dayCount,
-        today: widget.today,
-        days: days ?? const [],
-        colors: widget.colors,
-        onOpenDay: widget.onOpenDay,
-        onOpen: widget.onOpen,
-        onLongPress: widget.onLongPress,
-        onCreate: widget.onCreate,
-        now: widget.now ?? DateTime.now,
+      return AgendaPageFrame(
+        failed: _cache.failed(page),
+        loading: _cache.loading(page),
+        onRetry: () => unawaited(
+          _cache.retry(
+            page,
+            () => widget.loadDays(_mondayOf(page), widget.dayCount),
+          ),
+        ),
+        child: AgendaWeekPage(
+          key: ValueKey('agenda-week-$monday'),
+          monday: monday,
+          dayCount: widget.dayCount,
+          today: widget.today,
+          days: days ?? const [],
+          colors: widget.colors,
+          onOpenDay: widget.onOpenDay,
+          onOpen: widget.onOpen,
+          onLongPress: widget.onLongPress,
+          onCreate: widget.onCreate,
+          now: widget.now ?? DateTime.now,
+        ),
       );
     },
   );

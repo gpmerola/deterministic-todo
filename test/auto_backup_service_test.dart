@@ -2,17 +2,22 @@ import 'dart:convert';
 
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
+import 'package:deterministic_todo/main.dart' show DataHealthView;
 import 'package:deterministic_todo/services/auto_backup_service.dart';
 import 'package:deterministic_todo/services/export_service.dart';
+import 'package:deterministic_todo/ui/auto_backup_sheet.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 /// In-memory stand-in for the Android channel (encryption is tested on the
 /// JVM in TodoBackupTest). Models rotation, the key and a wrong code.
 class _FakeStore implements EncryptedBackupStore {
   bool isConfigured = false;
   bool failWrites = false;
+  bool failList = false;
   int writes = 0;
   final files = <String, Uint8List>{};
 
@@ -44,9 +49,12 @@ class _FakeStore implements EncryptedBackupStore {
   }
 
   @override
-  Future<List<AutoBackupEntry>> list() async => [
-    for (final e in files.entries) AutoBackupEntry(e.key, e.value.length),
-  ];
+  Future<List<AutoBackupEntry>> list() async {
+    if (failList) throw StateError('synthetic');
+    return [
+      for (final e in files.entries) AutoBackupEntry(e.key, e.value.length),
+    ];
+  }
 
   @override
   Future<Uint8List> read(String name) async => files[name]!;
@@ -61,6 +69,8 @@ class _FakeStore implements EncryptedBackupStore {
 }
 
 void main() {
+  setUpAll(() => initializeDateFormatting('it'));
+
   late AppDatabase db;
   late TaskRepository repo;
   late _FakeStore store;
@@ -171,6 +181,118 @@ void main() {
       );
     },
   );
+
+  test(
+    'check date changes without pretending a new copy was created',
+    () async {
+      final backups = service();
+      await backups.activate();
+      final created = now;
+      now = now.add(const Duration(days: 7));
+      await backups.runIfDue();
+      final status = await backups.status();
+      expect(status.checkedAt, now);
+      expect(status.createdAt, created);
+      expect(status.available, isTrue);
+      expect(status.healthy(now), isTrue);
+      expect(store.writes, 1);
+    },
+  );
+
+  test(
+    'missing latest file is unhealthy even when older files remain',
+    () async {
+      final backups = service();
+      await backups.activate();
+      await repo.create('Synthetic second');
+      now = now.add(const Duration(days: 7));
+      await backups.runIfDue();
+      store.files.remove(AutoBackupService.fileName(now));
+      final status = await backups.status();
+      expect(status.files, hasLength(1));
+      expect(status.available, isFalse);
+      expect(status.healthy(now), isFalse);
+      now = now.add(const Duration(seconds: 1));
+      await backups.backupNow();
+      expect((await backups.status()).healthy(now), isTrue);
+    },
+  );
+
+  test(
+    'failed first backup retains recovery code and explicit failure state',
+    () async {
+      final backups = service();
+      store.failWrites = true;
+      expect(await backups.activate(), 'SYNTHETIC-CODE');
+      final failed = await backups.status();
+      expect(failed.configured, isTrue);
+      expect(failed.lastAttemptFailed, isTrue);
+      expect(failed.available, isFalse);
+      expect(failed.createdAt, isNull);
+      store.failWrites = false;
+      await backups.backupNow();
+      expect((await backups.status()).lastAttemptFailed, isFalse);
+    },
+  );
+
+  test(
+    'unavailable store and future check date cannot report healthy',
+    () async {
+      final backups = service();
+      await backups.activate();
+      expect(
+        (await backups.status()).healthy(now.subtract(const Duration(days: 1))),
+        isFalse,
+      );
+      store.failList = true;
+      final status = await backups.status();
+      expect(status.unavailable, isTrue);
+      expect(status.available, isFalse);
+      expect(status.healthy(now), isFalse);
+    },
+  );
+
+  testWidgets('first backup failure remains visible in the backup sheet', (
+    tester,
+  ) async {
+    final backups = service();
+    store.failWrites = true;
+    await backups.activate();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: AutoBackupSheet(backups: backups)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Ultimo backup non riuscito'), findsOneWidget);
+    expect(find.text('Nessun backup ancora'), findsOneWidget);
+    expect(find.text('Crea ora'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('health distinguishes recent check from a missing file', (
+    tester,
+  ) async {
+    final backups = service();
+    await backups.activate();
+    store.files.clear();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DataHealthView(repository: repo, backups: backups),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Nessuna copia verificata disponibile'), findsOneWidget);
+    expect(
+      find.text('Ultima copia non disponibile · usa Crea ora'),
+      findsOneWidget,
+    );
+    expect(find.text('Ultimo controllo dei contenuti'), findsOneWidget);
+    expect(find.text('Ultima copia creata'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   test('file names sort chronologically and parse back', () {
     final at = DateTime.utc(2026, 1, 2, 3, 4, 5);

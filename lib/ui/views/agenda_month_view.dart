@@ -7,6 +7,7 @@ import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_page_cache.dart';
+import 'agenda_page_frame.dart';
 import 'agenda_weeks_view.dart' show AgendaDayCell;
 
 /// One whole month per screen, Monday first, like Google Calendar's month
@@ -137,14 +138,26 @@ class _AgendaMonthViewState extends State<AgendaMonthView> {
           if (mounted) unawaited(_fetch(page));
         });
       }
-      return AgendaMonthPage(
-        onOpenEntry: widget.onOpenEntry,
-        month: month,
-        today: widget.today,
-        days: days ?? const [],
-        colors: widget.colors,
+      return AgendaPageFrame(
         failed: _cache.failed(page),
-        onDay: widget.onOpenDay,
+        loading: _cache.loading(page),
+        onRetry: () => unawaited(
+          _cache.retry(
+            page,
+            () => widget.loadDays(
+              AgendaMonthView.gridStart(_monthOf(page)),
+              AgendaMonthView.gridDays(_monthOf(page)),
+            ),
+          ),
+        ),
+        child: AgendaMonthPage(
+          onOpenEntry: widget.onOpenEntry,
+          month: month,
+          today: widget.today,
+          days: days ?? const [],
+          colors: widget.colors,
+          onDay: widget.onOpenDay,
+        ),
       );
     },
   );

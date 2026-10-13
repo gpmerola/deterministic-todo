@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.83.0 (build 262) — Todo Test
+
+- Errori di lettura Calendario visibili in tutte le griglie, con Riprova per
+  pagina e conservazione degli eventi già caricati.
+- Backup: separati ultimo controllo, ultima copia creata e disponibilità del
+  file; primo backup fallito segnalato senza nascondere il codice di ripristino.
+- Salute dati usa conteggi SQL; Problemi di sincronizzazione raggruppa nel
+  database e carica 50 entità per pagina senza materializzare i payload.
+
 ## 2.82.0 (build 261) — Todo Test
 
 - Cache comune per mese, settimana e più settimane: massimo sette pagine per

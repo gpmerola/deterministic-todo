@@ -18,16 +18,8 @@ class AutoBackupSheet extends StatefulWidget {
 }
 
 class _AutoBackupSheetState extends State<AutoBackupSheet> {
-  late Future<(bool, List<AutoBackupEntry>)> state = _load();
+  late Future<AutoBackupStatus> state = widget.backups.status();
   bool busy = false;
-
-  Future<(bool, List<AutoBackupEntry>)> _load() async {
-    final configured = await widget.backups.configured();
-    return (
-      configured,
-      configured ? await widget.backups.list() : const <AutoBackupEntry>[],
-    );
-  }
 
   Future<void> _run(Future<void> Function() action) async {
     setState(() => busy = true);
@@ -46,7 +38,7 @@ class _AutoBackupSheetState extends State<AutoBackupSheet> {
     if (!mounted) return;
     setState(() {
       busy = false;
-      state = _load();
+      state = widget.backups.status();
     });
   }
 
@@ -55,6 +47,10 @@ class _AutoBackupSheetState extends State<AutoBackupSheet> {
     if (mounted) await showRecoveryCodeDialog(context, code, first: true);
   });
 
+  String _date(DateTime? value) => value == null
+      ? 'Mai'
+      : DateFormat('d MMM y, HH:mm', 'it').format(value.toLocal());
+
   Future<void> _showCode() => _run(() async {
     final code = await widget.backups.recoveryCode();
     if (mounted) await showRecoveryCodeDialog(context, code, first: false);
@@ -62,11 +58,11 @@ class _AutoBackupSheetState extends State<AutoBackupSheet> {
 
   @override
   Widget build(BuildContext context) => SafeArea(
-    child: FutureBuilder<(bool, List<AutoBackupEntry>)>(
+    child: FutureBuilder<AutoBackupStatus>(
       future: state,
       builder: (context, snapshot) {
-        final configured = snapshot.data?.$1 ?? false;
-        final items = snapshot.data?.$2 ?? const <AutoBackupEntry>[];
+        final configured = snapshot.data?.configured ?? false;
+        final items = snapshot.data?.files ?? const <AutoBackupEntry>[];
         return ListView(
           shrinkWrap: true,
           children: [
@@ -79,7 +75,7 @@ class _AutoBackupSheetState extends State<AutoBackupSheet> {
                 'codice di ripristino.',
               ),
             ),
-            if (snapshot.hasError)
+            if (snapshot.hasError || snapshot.data?.unavailable == true)
               const ListTile(title: Text('Stato non disponibile'))
             else if (!snapshot.hasData)
               const Center(child: CircularProgressIndicator())
@@ -93,6 +89,28 @@ class _AutoBackupSheetState extends State<AutoBackupSheet> {
                 ),
               )
             else ...[
+              if (snapshot.data!.lastAttemptFailed)
+                const ListTile(
+                  title: Text('Ultimo backup non riuscito'),
+                  subtitle: Text(
+                    'La configurazione è attiva. Riprova con Crea ora.',
+                  ),
+                ),
+              ListTile(
+                title: const Text('Ultimo controllo dei contenuti'),
+                subtitle: Text(_date(snapshot.data!.checkedAt)),
+              ),
+              ListTile(
+                title: const Text('Ultima copia creata'),
+                subtitle: Text(_date(snapshot.data!.createdAt)),
+              ),
+              if (!snapshot.data!.available && items.isNotEmpty)
+                const ListTile(
+                  title: Text('Ultima copia non disponibile'),
+                  subtitle: Text(
+                    'Restano copie precedenti. Usa Crea ora per ricrearla.',
+                  ),
+                ),
               if (items.isEmpty)
                 const ListTile(title: Text('Nessun backup ancora')),
               for (final entry in items.reversed)

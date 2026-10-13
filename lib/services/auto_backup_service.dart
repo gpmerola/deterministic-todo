@@ -82,6 +82,40 @@ final class MethodChannelBackupStore implements EncryptedBackupStore {
       }))!;
 }
 
+/// File presence is checked on demand, independently of the last content check.
+final class AutoBackupStatus {
+  const AutoBackupStatus({
+    required this.configured,
+    required this.files,
+    this.checkedAt,
+    this.createdAt,
+    this.failedAt,
+    this.expectedFile,
+    this.unavailable = false,
+  });
+  final bool configured, unavailable;
+  final List<AutoBackupEntry> files;
+  final DateTime? checkedAt, createdAt, failedAt;
+  final String? expectedFile;
+  bool get available =>
+      !unavailable &&
+      files.any(
+        (f) => f.size > 0 && (expectedFile == null || f.name == expectedFile),
+      );
+  bool get lastAttemptFailed =>
+      failedAt != null &&
+      (checkedAt == null || !failedAt!.isBefore(checkedAt!));
+  bool healthy(DateTime now) {
+    final age = checkedAt == null ? null : now.toUtc().difference(checkedAt!);
+    return configured &&
+        available &&
+        !lastAttemptFailed &&
+        age != null &&
+        !age.isNegative &&
+        age <= AutoBackupService.interval * 2;
+  }
+}
+
 /// Weekly encrypted snapshot of the Todo backup JSON 2. After the one-time
 /// activation (which reveals the recovery code) it needs no user action.
 /// Runs only from existing app start/resume hooks: no timer, job or polling.
@@ -100,6 +134,9 @@ final class AutoBackupService {
   static const lastAtKey = 'auto_backup_last_at';
   static const attemptAtKey = 'auto_backup_attempt_at';
   static const hashKey = 'auto_backup_hash';
+  static const createdAtKey = 'auto_backup_created_at';
+  static const fileKey = 'auto_backup_file';
+  static const failedAtKey = 'auto_backup_failed_at';
 
   final AppDatabase db;
   final EncryptedBackupStore store;
@@ -126,6 +163,7 @@ final class AutoBackupService {
       await _set(attemptAtKey, now.toIso8601String());
       return await backupNow(now: now);
     } on Object catch (error) {
+      await _recordFailure(now);
       unawaited(
         DiagnosticLogService.instance.event(
           'auto_backup_failed',
@@ -138,7 +176,24 @@ final class AutoBackupService {
 
   /// Also used by tests; [now] names the file.
   Future<bool> backupNow({DateTime? now}) async {
-    now = (now ?? _now()).toUtc();
+    final at = (now ?? _now()).toUtc();
+    try {
+      return await _backupNow(at);
+    } on Object {
+      await _recordFailure(at);
+      rethrow;
+    }
+  }
+
+  Future<void> _recordFailure(DateTime at) async {
+    try {
+      await _set(failedAtKey, at.toIso8601String());
+    } on Object {
+      // A failed database must not hide the original backup error.
+    }
+  }
+
+  Future<bool> _backupNow(DateTime now) async {
     final json = await ExportService(db).exportJson();
     final bytes = Uint8List.fromList(utf8.encode(json));
     // `exported_at` changes every time; the content hash must not.
@@ -149,7 +204,10 @@ final class AutoBackupService {
         .toString();
     final previous = await _value(hashKey);
     final files = await store.list();
-    final changed = previous != hash || files.isEmpty;
+    final expectedFile = await _value(fileKey);
+    final changed =
+        previous != hash ||
+        !files.any((f) => f.size > 0 && f.name == expectedFile);
     if (changed) {
       await store.write(fileName(now), bytes, keep: keep);
     }
@@ -157,9 +215,17 @@ final class AutoBackupService {
       (b) => b.insertAllOnConflictUpdate(db.appSettings, [
         AppSettingsCompanion.insert(
           key: lastAtKey,
-          value: now!.toIso8601String(),
+          value: now.toIso8601String(),
         ),
         AppSettingsCompanion.insert(key: hashKey, value: hash),
+        AppSettingsCompanion.insert(key: failedAtKey, value: ''),
+        if (changed) ...[
+          AppSettingsCompanion.insert(
+            key: createdAtKey,
+            value: now.toIso8601String(),
+          ),
+          AppSettingsCompanion.insert(key: fileKey, value: fileName(now)),
+        ],
       ]),
     );
     unawaited(
@@ -198,6 +264,35 @@ final class AutoBackupService {
       );
     }
     return code;
+  }
+
+  Future<AutoBackupStatus> status() async {
+    final checked = await _instant(lastAtKey);
+    final created = await _instant(createdAtKey);
+    final failed = await _instant(failedAtKey);
+    final expected = await _value(fileKey);
+    try {
+      final active = await configured();
+      final files = active ? await list() : <AutoBackupEntry>[];
+      return AutoBackupStatus(
+        configured: active,
+        files: files,
+        checkedAt: checked,
+        createdAt: created ?? (files.isEmpty ? null : files.last.savedAt),
+        failedAt: failed,
+        expectedFile: expected,
+      );
+    } on Object {
+      return AutoBackupStatus(
+        configured: false,
+        files: const [],
+        checkedAt: checked,
+        createdAt: created,
+        failedAt: failed,
+        expectedFile: expected,
+        unavailable: true,
+      );
+    }
   }
 
   Future<List<AutoBackupEntry>> list() async =>

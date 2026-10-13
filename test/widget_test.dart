@@ -1494,9 +1494,33 @@ void main() {
     String ago(int days) =>
         now.subtract(Duration(days: days)).toIso8601String();
     expect(backupHealthy(manual: null, automatic: null, now: now), isFalse);
-    expect(backupHealthy(manual: null, automatic: ago(0), now: now), isTrue);
-    expect(backupHealthy(manual: null, automatic: ago(14), now: now), isTrue);
-    expect(backupHealthy(manual: null, automatic: ago(15), now: now), isFalse);
+    expect(
+      backupHealthy(
+        manual: null,
+        automatic: ago(0),
+        now: now,
+        automaticAvailable: true,
+      ),
+      isTrue,
+    );
+    expect(
+      backupHealthy(
+        manual: null,
+        automatic: ago(14),
+        now: now,
+        automaticAvailable: true,
+      ),
+      isTrue,
+    );
+    expect(
+      backupHealthy(
+        manual: null,
+        automatic: ago(15),
+        now: now,
+        automaticAvailable: true,
+      ),
+      isFalse,
+    );
     expect(backupHealthy(manual: ago(400), automatic: null, now: now), isTrue);
   });
 

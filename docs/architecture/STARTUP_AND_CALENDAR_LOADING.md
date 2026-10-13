@@ -104,3 +104,13 @@ proprio timeout. Nessun timer periodico nuovo e nessun retry automatico nuovo.
 Test: `agenda_page_cache_test.dart`, `foreground_jobs_test.dart` e suite UI
 Calendario. La preparazione dell'ottimizzazione backup è separata:
 [benchmark sintetico](../diagnostics/2026-10-13-backup-preparation.md).
+
+## Recupero delle pagine — build 262
+
+Tutte le viste paginabili (settimana, tre giorni, mese, più settimane) mostrano
+«Calendario non aggiornato» con **Riprova** se la lettura fallisce. I dati già
+caricati restano visibili, ma non vengono presentati come appena aggiornati.
+Il retry riguarda solo quella pagina, conserva l'anteprima, accorpa tocchi
+ripetuti e rispetta invalidazione/espulsione/dispose. Nessun retry periodico.
+La cornice comune è `agenda_page_frame.dart`; test di tutte le viste in
+`agenda_page_retry_test.dart` e della conservazione in `agenda_page_cache_test.dart`.

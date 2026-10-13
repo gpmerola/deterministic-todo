@@ -2,6 +2,34 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 262 — Recupero Calendario e stato backup verificabile
+
+Todo Test 2.83.0 / build 262. Tutte le griglie Calendario mostrano errori e
+Riprova per pagina senza perdere gli eventi già caricati. Backup: distinti
+controllo, creazione e presenza della copia attesa; fallimenti visibili e
+codice di ripristino conservato anche se fallisce la prima copia.
+Salute dati usa conteggi SQL; Problemi sync raggruppa nel database e mostra
+50 entità per pagina, senza trasferire payload.
+Contratti: [Calendario](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md),
+[backup e diagnostica](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).
+
+`make check`: analisi, **527 test Flutter**, strumenti, SQL e documentazione
+superati; tre benchmark esclusi dalla suite ordinaria. `make check-generated`
+e build Web release superati. Todo Test 2262 installata in-place con
+`make todo-test`, dati conservati. Sul Galaxy verificati Salute dati (copia
+automatica presente, controllo e creazione distinti), apertura Calendario e
+sync build 2262 con zero pendenti/conflitti e una richiesta. Sul Web locale:
+Salute dati e versione
+262 verificati, modifica sintetica persistente dopo refresh e riapertura
+scheda. HTTPS locale verificato con curl e certificato fidato esplicitamente;
+collaudo UI su HTTP loopback, browser HTTPS pubblico non collaudato.
+Nessuna pubblicazione Web o release stabile.
+
+Nuova osservazione precedente all'installazione: sync 2261 in 203 ms,
+194 ms rete, 4 ms confronto, una richiesta, nessuna riga scaricata e nessun
+pendente/conflitto. È un singolo campione; niente nuove conclusioni su RAM,
+frame o batteria ([evidenza](docs/diagnostics/2026-10-13-sync-observation.md)).
+
 ## Build 261 — Cache delle viste e operazioni dopo l'avvio
 
 Todo Test 2.82.0 / build 261. Le viste Calendario condividono una cache di

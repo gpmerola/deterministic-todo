@@ -10,6 +10,7 @@ import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_page_cache.dart';
+import 'agenda_page_frame.dart';
 import 'calendar_visit_group.dart';
 
 /// Monday of the week containing [day].
@@ -116,15 +117,24 @@ class _AgendaWeeksViewState extends State<AgendaWeeksView> {
           if (mounted) unawaited(_fetch(page));
         });
       }
-      return AgendaWeeksPage(
-        onOpenEntry: widget.onOpenEntry,
-        weekCount: widget.weekCount,
-        first: first,
-        today: widget.today,
-        days: days ?? const [],
-        colors: widget.colors,
+      return AgendaPageFrame(
         failed: _cache.failed(page),
-        onDay: widget.onOpenDay,
+        loading: _cache.loading(page),
+        onRetry: () => unawaited(
+          _cache.retry(
+            page,
+            () => widget.loadDays(_firstOf(page), widget.pageDays),
+          ),
+        ),
+        child: AgendaWeeksPage(
+          onOpenEntry: widget.onOpenEntry,
+          weekCount: widget.weekCount,
+          first: first,
+          today: widget.today,
+          days: days ?? const [],
+          colors: widget.colors,
+          onDay: widget.onOpenDay,
+        ),
       );
     },
   );

@@ -12,6 +12,7 @@ class AgendaPageCache<T> extends ChangeNotifier {
 
   int get length => _pages.length;
   bool contains(int page) => _pages.containsKey(page);
+  bool loading(int page) => _pages[page]?.pending != null;
   bool failed(int page) => _pages[page]?.failed ?? false;
   bool needsLoad(int page) {
     final entry = _pages[page];
@@ -46,6 +47,17 @@ class AgendaPageCache<T> extends ChangeNotifier {
     if (entry.pending != null) return entry.pending!;
     if (!entry.stale || entry.failed) return Future.value();
     return entry.pending = _load(page, entry, fetch);
+  }
+
+  Future<void> retry(int page, Future<T> Function() fetch) {
+    if (_disposed) return Future.value();
+    final entry = _entry(page);
+    if (entry.pending != null) return entry.pending!;
+    entry.failed = false;
+    entry.stale = true;
+    final work = load(page, fetch);
+    notifyListeners();
+    return work;
   }
 
   Future<void> _load(

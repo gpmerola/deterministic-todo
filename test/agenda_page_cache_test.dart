@@ -4,6 +4,29 @@ import 'package:deterministic_todo/ui/views/agenda_page_cache.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('explicit retry keeps old data and joins repeated taps', () async {
+    final cache = AgendaPageCache<int>();
+    addTearDown(cache.dispose);
+    await cache.load(0, () async => 10);
+    cache.invalidate();
+    await cache.load(0, () async => throw StateError('synthetic'));
+    final pending = Completer<int>();
+    var calls = 0;
+    final first = cache.retry(0, () {
+      calls++;
+      return pending.future;
+    });
+    final second = cache.retry(0, () async {
+      calls++;
+      return 30;
+    });
+    expect(cache.read(0, () => null), 10);
+    expect(calls, 1);
+    pending.complete(20);
+    await Future.wait([first, second]);
+    expect(cache.read(0, () => null), 20);
+  });
+
   test(
     'hundreds of visited pages stay bounded and visible page survives',
     () async {

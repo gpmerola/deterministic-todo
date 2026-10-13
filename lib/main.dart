@@ -14,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'background/agenda_background.dart';
+import 'data/diagnostic_queries.dart';
 import 'data/editor_drafts.dart';
 import 'data/local/database.dart';
 import 'data/sync/sync_service.dart';

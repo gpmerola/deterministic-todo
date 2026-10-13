@@ -2,12 +2,12 @@ import 'package:drift/drift.dart' show QueryRow;
 
 import 'package:flutter/material.dart';
 
-import '../data/local/database.dart';
+import '../data/diagnostic_queries.dart';
 import '../data/sync/sync_service.dart';
 import '../data/task_repository.dart';
 import 'activity_history_view.dart';
 
-class SyncIssuesView extends StatelessWidget {
+class SyncIssuesView extends StatefulWidget {
   const SyncIssuesView({
     required this.repository,
     required this.service,
@@ -17,34 +17,40 @@ class SyncIssuesView extends StatelessWidget {
   final SyncService service;
 
   @override
+  State<SyncIssuesView> createState() => _SyncIssuesViewState();
+}
+
+class _SyncIssuesViewState extends State<SyncIssuesView> {
+  static const pageSize = 50;
+  int offset = 0;
+  late Stream<List<QueryRow>> rows = _watch();
+  Stream<List<QueryRow>> _watch() =>
+      watchSyncIssues(widget.repository.db, offset: offset, pageSize: pageSize);
+  void _page(int value) => setState(() {
+    offset = value;
+    rows = _watch();
+  });
+
+  @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Sincronizzazione')),
     body: StreamBuilder<List<QueryRow>>(
-      stream: repository.db
-          .customSelect(
-            '''
-        SELECT o.*, COALESCE(t.title, p.name, s.name, 'Elemento da sincronizzare') AS entity_label
-        FROM outbox_entries o
-        LEFT JOIN tasks t ON t.id = o.entity_id AND o.operation IN ('upsert', 'delete')
-        LEFT JOIN projects p ON p.id = o.entity_id AND o.operation = 'projects'
-        LEFT JOIN project_sections s ON s.id = o.entity_id AND o.operation = 'project_sections'
-        ORDER BY o.created_at, o.rowid
-        ''',
-            readsFrom: {
-              repository.db.outboxEntries,
-              repository.db.tasks,
-              repository.db.projects,
-              repository.db.projectSections,
-            },
-          )
-          .watch(),
+      key: ValueKey(offset),
+      stream: rows,
       builder: (context, snapshot) {
-        final groups = <String, (OutboxEntry, String)>{};
-        for (final row in snapshot.data ?? <QueryRow>[]) {
-          final e = repository.db.outboxEntries.map(row.data);
-          groups['${e.operation == 'upsert' || e.operation == 'delete' ? 'tasks' : e.operation}:${e.entityId}'] =
-              (e, row.read<String>('entity_label'));
+        if (snapshot.hasError) {
+          return Center(
+            child: TextButton(
+              onPressed: () => _page(offset),
+              child: const Text('Elenco non disponibile · Riprova'),
+            ),
+          );
         }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final result = snapshot.requireData;
+        final groups = result.take(pageSize);
         return ListView(
           children: [
             const ListTile(
@@ -53,23 +59,23 @@ class SyncIssuesView extends StatelessWidget {
                 'Un elemento in conflitto non blocca gli altri. Apri lo storico per confrontare le versioni e scegliere.',
               ),
             ),
-            for (final group in groups.values)
+            for (final row in groups)
               Builder(
                 builder: (context) {
-                  final e = group.$1;
+                  final error = row.readNullable<String>('last_error');
                   return ListTile(
                     leading: Icon(
-                      e.lastError == null
+                      error == null
                           ? Icons.cloud_upload_outlined
                           : Icons.sync_problem,
                     ),
-                    title: Text(group.$2),
+                    title: Text(row.read<String>('entity_label')),
                     subtitle: Text(
-                      e.lastError == 'intent_conflict'
+                      error == 'intent_conflict'
                           ? 'Serve una scelta'
-                          : e.lastError == 'purged_entity'
+                          : error == 'purged_entity'
                           ? 'Eliminato definitivamente su un altro dispositivo'
-                          : e.lastError == 'server_rejected'
+                          : error == 'server_rejected'
                           ? 'Rifiutato dal server: verrà ritentato senza bloccare gli altri'
                           : 'Da sincronizzare',
                     ),
@@ -77,8 +83,8 @@ class SyncIssuesView extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => ActivityHistoryView(
-                          repository: repository,
-                          entityId: e.entityId,
+                          repository: widget.repository,
+                          entityId: row.read<String>('entity_id'),
                         ),
                       ),
                     ),
@@ -86,11 +92,35 @@ class SyncIssuesView extends StatelessWidget {
                 },
               ),
             if (groups.isEmpty)
-              const ListTile(title: Text('Nessuna modifica in attesa')),
+              ListTile(
+                title: Text(
+                  offset == 0
+                      ? 'Nessuna modifica in attesa'
+                      : 'Nessun altro elemento',
+                ),
+              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: offset == 0
+                      ? null
+                      : () => _page(offset - pageSize),
+                  child: const Text('Precedenti'),
+                ),
+                Text('Pagina ${offset ~/ pageSize + 1}'),
+                TextButton(
+                  onPressed: result.length > pageSize
+                      ? () => _page(offset + pageSize)
+                      : null,
+                  child: const Text('Successivi'),
+                ),
+              ],
+            ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: OutlinedButton(
-                onPressed: () => service.sync(),
+                onPressed: () => widget.service.sync(),
                 child: const Text('Controlla sincronizzazione'),
               ),
             ),
