@@ -35,10 +35,12 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P0 — Convergenza Android ↔ Web
 
-- [ ] Completare la persistenza dopo chiusura **completa** di Chrome quando
-  la sessione attiva con videocamera/microfono è terminata. Modifiche nei due
-  sensi, storico, Inbox e refresh già verificati su fixture sintetica:
-  [esiti e ripresa](docs/diagnostics/2026-10-08-todo-cross-device-smoke.md).
+- [ ] Completamento perso se Chrome si chiude entro circa 0,4 s dal tocco:
+  la scrittura aspetta l'animazione. Nuove attività e titoli modificati
+  restano dopo chiusura completa, normale o forzata (profilo di prova,
+  build 270). Serve la scelta dell'utente sulla correzione
+  ([esiti](docs/diagnostics/2026-10-13-web-persistence.md); cronologia
+  [8 ottobre](docs/diagnostics/2026-10-08-todo-cross-device-smoke.md)).
 - [ ] Sul Galaxy e sul Web convertire con **Sposta in Inbox** il vecchio
   progetto "Inbox", dopo aver aggiornato e ricaricato entrambi i client.
 - [ ] Collaudi Web sul profilo Chrome reale ([WEB](docs/operations/WEB.md)):

@@ -78,3 +78,5 @@ documentato in [sincronizzazione e storico](../architecture/TODO_SYNC_AND_HISTOR
 
 Tempo alla prima schermata in un profilo Chrome di prova, solo loopback:
 `node tools/web_startup.mjs` ([esiti](../diagnostics/2026-10-13-web-startup.md)).
+Modifiche dopo la chiusura completa di Chrome, stesso confine:
+`node tools/web_persistence.mjs` ([esiti](../diagnostics/2026-10-13-web-persistence.md)).
