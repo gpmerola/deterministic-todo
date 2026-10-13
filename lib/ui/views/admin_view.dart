@@ -59,18 +59,18 @@ String adminSlotLabel(AdminSlotOccurrence slot) =>
 
 const _durations = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 75, 90, 120];
 
-/// «Amministrazione»: only the administrative queue, by subsection.
+/// «Amministrazione»: only the administrative queue. Deliberately sparse
+/// (feedback on build 264): one line for the next slot and the count, the
+/// rest in ⋮; only non-empty subsections are shown.
 class AdminView extends StatefulWidget {
   const AdminView({
     required this.controller,
     required this.tileBuilder,
-    required this.onAddTask,
     super.key,
   });
 
   final AdminSessionsController controller;
   final Widget Function(Task task) tileBuilder;
-  final void Function(String sectionId) onAddTask;
 
   @override
   State<AdminView> createState() => _AdminViewState();
@@ -106,19 +106,38 @@ class _AdminViewState extends State<AdminView> {
         for (final list in bySection.values) {
           list.sort((a, b) => compareByDateThenPriority(a, b, today));
         }
+        final theme = Theme.of(context);
         return ListView(
           key: const PageStorageKey('admin-queue'),
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 96),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 96),
           children: [
             _AdminHeader(controller: admin, summary: summary),
-            for (final section in AdminSection.values) ...[
-              _SectionHeader(
-                section: section,
-                count: bySection[section]!.length,
-                onAdd: () => widget.onAddTask(adminSectionId(section)),
+            if (snapshot.hasData && tasks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                child: Text(
+                  'Coda vuota. Rimanda un’attività con uno scorrimento verso '
+                  'destra, oppure ⋮ → Copia dagli altri progetti.',
+                  key: const ValueKey('admin-empty'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
-              for (final task in bySection[section]!) widget.tileBuilder(task),
-            ],
+            for (final section in AdminSection.values)
+              if (bySection[section]!.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 14, 12, 2),
+                  child: Text(
+                    '${section.title} · ${bySection[section]!.length}',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                for (final task in bySection[section]!)
+                  widget.tileBuilder(task),
+              ],
           ],
         );
       },
@@ -134,118 +153,223 @@ class _AdminHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final next = controller.nextSlot();
     final last = controller.currentOrLastSlot();
     final closable = last != null && !controller.config.isClosed(last.key);
-    return Card(
-      margin: const EdgeInsets.fromLTRB(4, 4, 4, 8),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Sessioni amministrative', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            InkWell(
-              key: const ValueKey('admin-next-slot'),
-              onTap: next == null
-                  ? null
-                  : () => showAdminSlotSheet(context, controller, next.key),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  next == null
-                      ? 'Nessuno slot nelle prossime 10 settimane'
-                      : 'Prossimo slot: ${adminSlotLabel(next)}',
-                ),
+    // The button appears only on the session's own day; later it stays in ⋮.
+    final closeNow = closable && last.date == controller.today;
+    final counts = [
+      '${summary.open} in coda',
+      if (summary.waiting > 0) '${summary.waiting} in attesa',
+    ].join(' · ');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListTile(
+          key: const ValueKey('admin-next-slot'),
+          contentPadding: const EdgeInsets.only(left: 12),
+          leading: const Icon(Icons.event_note, color: adminSlotColor),
+          title: Text(
+            next == null
+                ? 'Nessuno slot in programma'
+                : 'Prossimo: ${next.label}, ${adminDateLabel(next.date)} '
+                      '${adminTimeLabel(next.startMinutes)}',
+          ),
+          subtitle: Text(counts, key: const ValueKey('admin-queue-summary')),
+          onTap: next == null
+              ? null
+              : () => showAdminSlotSheet(context, controller, next.key),
+          trailing: PopupMenuButton<String>(
+            key: const ValueKey('admin-menu'),
+            tooltip: 'Altre azioni',
+            onSelected: (value) {
+              switch (value) {
+                case 'copy':
+                  showAdminCopySheet(context, controller);
+                case 'slots':
+                  showAdminSlotsSheet(context, controller);
+                case 'close':
+                  closeAdminSession(context, controller, last!);
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                key: ValueKey('admin-menu-copy'),
+                value: 'copy',
+                child: Text('Copia dagli altri progetti'),
               ),
-            ),
-            Text(
-              'In coda: ${summary.open} attività'
-              '${summary.open == 0 ? '' : ' · circa ${summary.estimatedMinutes} min'}'
-              '${summary.waiting == 0 ? '' : ' · in attesa: ${summary.waiting}'}',
-              key: const ValueKey('admin-queue-summary'),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              const PopupMenuItem(
+                key: ValueKey('admin-edit-slots'),
+                value: 'slots',
+                child: Text('Modifica slot'),
               ),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              children: [
-                TextButton.icon(
-                  key: const ValueKey('admin-close-session'),
-                  onPressed: closable
-                      ? () => closeAdminSession(context, controller, last)
-                      : null,
-                  icon: const Icon(Icons.done_all),
-                  label: Text(
-                    last == null
-                        ? 'Chiudi sessione'
-                        : closable
-                        ? 'Chiudi ${last.label} di ${adminDateLabel(last.date)}'
-                        : '${last.label} chiusa',
+              if (closable)
+                PopupMenuItem(
+                  value: 'close',
+                  child: Text(
+                    'Chiudi ${last.label} di ${adminDateLabel(last.date)}',
                   ),
                 ),
-                TextButton.icon(
-                  key: const ValueKey('admin-edit-slots'),
-                  onPressed: () => showAdminSlotsSheet(context, controller),
-                  icon: const Icon(Icons.edit_calendar_outlined),
-                  label: const Text('Modifica slot'),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                enabled: false,
+                child: Text(
+                  summary.open == 0
+                      ? 'Stima: nessuna attività'
+                      : 'Stima: circa ${summary.estimatedMinutes} min',
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+        if (closeNow)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: FilledButton.tonalIcon(
+              key: const ValueKey('admin-close-session'),
+              onPressed: () => closeAdminSession(context, controller, last),
+              icon: const Icon(Icons.done_all),
+              label: Text('Chiudi ${last.label}'),
+            ),
+          ),
+      ],
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.section,
-    required this.count,
-    required this.onAdd,
-  });
+/// Proposals of administrative-looking tasks from the other projects, each
+/// with a checkbox and its target subsection. Copies only what is ticked;
+/// the originals stay where they are.
+Future<void> showAdminCopySheet(
+  BuildContext context,
+  AdminSessionsController controller,
+) async {
+  final candidates = await controller.copyCandidates();
+  if (!context.mounted) return;
+  if (candidates.isEmpty) {
+    _say(context, 'Nessuna attività burocratica riconosciuta da copiare');
+    return;
+  }
+  final picks =
+      await showModalBottomSheet<List<({Task task, AdminSection section})>>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        showDragHandle: true,
+        builder: (_) => _AdminCopySheet(candidates: candidates),
+      );
+  if (picks == null || picks.isEmpty || !context.mounted) return;
+  final created = await controller.copyToAdmin(picks);
+  if (!context.mounted) return;
+  AppUndo.show(
+    context,
+    message: created.length == 1
+        ? '1 attività copiata in Admin; l’originale resta dov’era'
+        : '${created.length} attività copiate in Admin; gli originali restano',
+    undo: () => controller.removeCopies(created),
+    duration: const Duration(seconds: 8),
+  );
+}
 
-  final AdminSection section;
-  final int count;
-  final VoidCallback onAdd;
+class _AdminCopySheet extends StatefulWidget {
+  const _AdminCopySheet({required this.candidates});
+  final List<AdminCopyCandidate> candidates;
+
+  @override
+  State<_AdminCopySheet> createState() => _AdminCopySheetState();
+}
+
+class _AdminCopySheetState extends State<_AdminCopySheet> {
+  late final selected = {for (final c in widget.candidates) c.task.id};
+  late final sections = {
+    for (final c in widget.candidates) c.task.id: c.section,
+  };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 0, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  count == 0 ? section.title : '${section.title} · $count',
-                  style: theme.textTheme.titleSmall,
-                ),
-                Text(
-                  section.hint,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return Column(
+      children: [
+        ListTile(
+          title: const Text('Copia in Admin'),
+          subtitle: const Text(
+            'Proposte riconosciute dalle parole del titolo. Gli originali '
+            'non cambiano. Tocca la sottosezione per cambiarla.',
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView(
+            children: [
+              for (final c in widget.candidates)
+                CheckboxListTile(
+                  key: ValueKey('admin-copy-${c.task.id}'),
+                  value: selected.contains(c.task.id),
+                  onChanged: (value) => setState(
+                    () => value == true
+                        ? selected.add(c.task.id)
+                        : selected.remove(c.task.id),
                   ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(c.task.title, maxLines: 2),
+                  subtitle: Text(
+                    [
+                      c.projectName ?? 'Inbox',
+                      if (c.task.showDate != null)
+                        adminDateLabel(CivilDate.parse(c.task.showDate!)),
+                    ].join(' · '),
+                  ),
+                  secondary: PopupMenuButton<AdminSection>(
+                    tooltip: 'Sottosezione',
+                    initialValue: sections[c.task.id],
+                    onSelected: (value) =>
+                        setState(() => sections[c.task.id] = value),
+                    itemBuilder: (_) => [
+                      for (final section in AdminSection.values)
+                        if (section != AdminSection.waiting)
+                          PopupMenuItem(
+                            value: section,
+                            child: Text(section.title),
+                          ),
+                    ],
+                    child: Text(
+                      sections[c.task.id]!.title,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annulla'),
+                ),
+                const Spacer(),
+                FilledButton(
+                  key: const ValueKey('admin-copy-confirm'),
+                  onPressed: selected.isEmpty
+                      ? null
+                      : () => Navigator.pop(context, [
+                          for (final c in widget.candidates)
+                            if (selected.contains(c.task.id))
+                              (task: c.task, section: sections[c.task.id]!),
+                        ]),
+                  child: Text('Copia ${selected.length}'),
                 ),
               ],
             ),
           ),
-          IconButton(
-            key: ValueKey('admin-add-${section.name}'),
-            tooltip: 'Aggiungi in ${section.title}',
-            onPressed: onAdd,
-            icon: const Icon(Icons.add),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

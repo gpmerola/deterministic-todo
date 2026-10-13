@@ -1360,10 +1360,6 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       if (!admin.enabled) return const EmptyViewLabel('Funzione spenta');
       return AdminView(
         controller: admin,
-        onAddTask: (sectionId) => _showQuickAddSheet(
-          projectId: adminProjectId(),
-          sectionId: sectionId,
-        ),
         tileBuilder: (task) => TaskTile(
           key: ValueKey('admin-${task.id}'),
           task: task,

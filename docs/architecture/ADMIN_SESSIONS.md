@@ -69,11 +69,22 @@ Annulla. La burocrazia non viene mai collocata fuori dagli slot configurati.
 
 ## Interfaccia
 
-- **Admin** nella barra di navigazione: intestazione con prossimo slot,
-  conteggio della coda con tempo stimato (attività × minuti stimati, solo
-  informativo, nessun obiettivo), «Chiudi sessione» e «Modifica slot»; poi le
-  cinque sottosezioni con il loro contenuto e un + ciascuna. Il + flottante
-  crea nell'Inbox amministrativa.
+- **Admin** nella barra di navigazione, essenziale dalla build 265: una sola
+  riga con il prossimo slot (toccandola si modifica) e il conteggio della
+  coda; nel menu ⋮ «Copia dagli altri progetti», «Modifica slot», «Chiudi
+  sessione» e la stima in minuti (attività × minuti stimati, solo
+  informativa). Il pulsante «Chiudi» compare a vista solo nel giorno della
+  sessione. Si vedono solo le sottosezioni non vuote. Il + flottante crea
+  nell'Inbox amministrativa; la sottosezione si cambia dall'editor.
+- **Copia dagli altri progetti** (build 265): propone le attività aperte
+  fuori da Amministrazione il cui titolo o descrizione contiene parole
+  burocratiche (`suggestAdminSection`: per esempio Semble, ENPAM, tasse,
+  rimborso, GMC, KCL, contratto, modulo), con la sottosezione suggerita,
+  modificabile, e una casella ciascuna. Copia solo le spuntate: titolo,
+  descrizione e priorità uguali, data per la regola di rimando,
+  `external_source = 'admin:copia'` ed `external_id` = ID dell'originale, così
+  la stessa attività non viene riproposta. Gli originali non cambiano.
+  Annulla manda le copie nel cestino.
 - **Rimanda al prossimo slot**: scorrimento verso destra su qualunque attività
   aperta, oppure voce del menu (pressione prolungata, ⋮, clic destro). Porta
   l'attività nella coda (Inbox amministrativa se proveniva da altrove o da In
@@ -112,7 +123,8 @@ privacy), sincronizzazione della configurazione slot. Vedi `TODO_NEXT.md`.
 - `test/admin_sessions_service_test.dart`: attivazione idempotente, rimanda con
   annulla, chiudi sessione, sposta e salta con attività, attesa, origine unica,
   attività Todoist protette.
-- `test/admin_sessions_ui_test.dart`: app invariata da spenta, attivazione da
+- `test/admin_sessions_ui_test.dart`: schermata essenziale, copia con
+  originali intatti e senza doppioni, app invariata da spenta, attivazione da
   Impostazioni, rimanda da menu e con scorrimento, vista Admin, blocco del
   Calendario che apre lo slot.
 - Web: build release `tools/build_web.py` riuscita. Avvio e persistenza dopo

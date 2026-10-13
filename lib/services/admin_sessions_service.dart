@@ -30,6 +30,19 @@ final class AdminChange {
   int get count => before.length;
 }
 
+/// An open task elsewhere in the app that looks administrative.
+final class AdminCopyCandidate {
+  const AdminCopyCandidate({
+    required this.task,
+    required this.section,
+    this.projectName,
+  });
+
+  final Task task;
+  final AdminSection section;
+  final String? projectName;
+}
+
 /// «Sessioni amministrative» (sperimentale). The slot configuration lives in
 /// `app_settings` on this device only; tasks are ordinary rows of the
 /// «Amministrazione» project and sync as usual, so no Supabase change is
@@ -416,4 +429,110 @@ class AdminSessionsController extends ChangeNotifier {
       externalId: Value(normalizedId),
     );
   }
+
+  /// Open tasks outside «Amministrazione» whose title or notes look
+  /// administrative, not copied yet. Read only: nothing is written here.
+  Future<List<AdminCopyCandidate>> copyCandidates() async {
+    final rows =
+        await (_db.select(_db.tasks)..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.status.equals(TaskStatus.completed.name).not(),
+            ))
+            .get();
+    final copied = {
+      for (final row in rows)
+        if (row.externalSource == AdminSource.copy.stored) row.externalId,
+    };
+    final projects = {
+      for (final p in await _db.select(_db.projects).get()) p.id: p,
+    };
+    final result = <AdminCopyCandidate>[];
+    for (final task in rows) {
+      if (task.projectId == adminProjectId() || copied.contains(task.id)) {
+        continue;
+      }
+      if (task.projectId != null &&
+          (projects[task.projectId]?.isArchived ?? false)) {
+        continue;
+      }
+      final section = suggestAdminSection(task.title, task.notes);
+      if (section == null) continue;
+      result.add(
+        AdminCopyCandidate(
+          task: task,
+          section: section,
+          projectName: projects[task.projectId]?.name,
+        ),
+      );
+    }
+    result.sort((a, b) {
+      final bySection = a.section.index.compareTo(b.section.index);
+      return bySection != 0
+          ? bySection
+          : a.task.title.toLowerCase().compareTo(b.task.title.toLowerCase());
+    });
+    return result;
+  }
+
+  /// Copies tasks into the queue; the originals are not touched. Each copy
+  /// keeps title, notes and priority, records its original in
+  /// `external_source`/`external_id` (so it is never copied twice) and gets
+  /// a date by the deferral rule: its own when it comes before the next
+  /// slot, the slot's otherwise. Returns the new ids, for undo.
+  Future<List<String>> copyToAdmin(
+    List<({Task task, AdminSection section})> picks,
+  ) async {
+    await ensureStructure();
+    final next = nextSlot();
+    final created = <String>[];
+    await _db.transaction(() async {
+      for (final pick in picks) {
+        final original = await _current(pick.task.id);
+        if (original == null || original.deletedAt != null) continue;
+        final duplicate =
+            await (_db.select(_db.tasks)..where(
+                  (t) =>
+                      t.deletedAt.isNull() &
+                      t.externalSource.equals(AdminSource.copy.stored) &
+                      t.externalId.equals(original.id),
+                ))
+                .getSingleOrNull();
+        if (duplicate != null) continue;
+        final target = adminDeferTarget(
+          showDate: original.showDate,
+          today: today,
+          next: next,
+        );
+        final date = target.date?.toString() ?? original.showDate;
+        final id = await repository.create(
+          original.title,
+          notes: original.notes,
+          showDate: date,
+          projectId: adminProjectId(),
+          sectionId: adminSectionId(pick.section),
+          priority: original.priority,
+          status: date == null ? null : legacyStatusFor(CivilDate.parse(date)),
+        );
+        final copy = await _current(id);
+        await repository.planAdministrative(
+          copy!,
+          externalSource: Value(AdminSource.copy.stored),
+          externalId: Value(original.id),
+        );
+        created.add(id);
+      }
+    });
+    return created;
+  }
+
+  /// Undo of [copyToAdmin]: the copies go to the trash.
+  Future<void> removeCopies(List<String> ids) => _db.transaction(() async {
+    for (final id in ids) {
+      final copy = await _current(id);
+      if (copy != null && copy.deletedAt == null) {
+        await repository.softDelete(copy);
+      }
+    }
+  });
 }

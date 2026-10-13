@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.86.0 (build 265) — Todo Test
+
+- Sessioni amministrative: schermata Admin più essenziale (una riga con
+  prossimo slot e conteggio, azioni nel menu ⋮, solo sottosezioni non vuote).
+- Nuovo **⋮ → Copia dagli altri progetti**: propone le attività burocratiche
+  già presenti, da confermare una per una; crea copie collegate
+  all'originale, che resta invariato, senza doppioni.
+
 ## 2.85.0 (build 264) — Todo Test
 
 - Nuova funzione sperimentale **Sessioni amministrative**, spenta di default

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'task.dart';
+import 'text_fold.dart';
 
 /// Sessioni amministrative (sperimentale, build 264): bureaucratic tasks are
 /// captured and deferred to a few weekly slots instead of being handled when
@@ -608,7 +609,11 @@ enum AdminSource {
   semble('semble', 'Semble'),
   kcl('kcl', 'KCL'),
   personal('personale', 'Personale'),
-  other('altro', 'Altro');
+  other('altro', 'Altro'),
+
+  /// Copied from another task of the app: `external_id` is the original's
+  /// id, so the same task is never copied twice.
+  copy('copia', 'Copia da un’altra attività');
 
   const AdminSource(this.code, this.label);
   final String code;
@@ -627,3 +632,100 @@ enum AdminSource {
 /// re-import deduplication.
 bool canSetAdminSource(String? externalSource) =>
     externalSource == null || AdminSource.fromStored(externalSource) != null;
+
+/// Word stems, matched on whole words' beginnings after folding case and
+/// accents. Deliberately conservative: a suggestion is only a proposal the
+/// user confirms one by one, never an automatic move.
+const _adminKeywords = <AdminSection, List<String>>{
+  AdminSection.clinic: [
+    'semble',
+    'opuk',
+    'online psychiatry',
+    'prescri',
+    'ricett',
+    'assicuraz',
+    'insurance',
+    'bupa',
+    'axa',
+  ],
+  AdminSection.finance: [
+    'tass',
+    'tax',
+    'hmrc',
+    'self assessment',
+    'enpam',
+    'bollett',
+    'rimbors',
+    'commercialist',
+    'accountant',
+    'pagare',
+    'pagament',
+    'fattur',
+    'invoice',
+    'f24',
+    'iva',
+    'irpef',
+    'inps',
+    'agenzia delle entrate',
+    'bonifico',
+    'claim',
+    'expense',
+    'council tax',
+    'pec',
+    'mutuo',
+    'affitto',
+  ],
+  AdminSection.career: [
+    'gmc',
+    'slam',
+    'kcl',
+    'king\'s college',
+    'appraisal',
+    'revalidation',
+    'contratt',
+    'contract',
+    'honorary',
+    'mandatory training',
+    'training obbligator',
+    'hr ',
+    'payroll',
+    'esr',
+    'nhs',
+  ],
+  AdminSection.inbox: [
+    'modul',
+    'form ',
+    'document',
+    'rinnov',
+    'renew',
+    'passaport',
+    'passport',
+    'visa',
+    'visto',
+    'carta d\'identita',
+    'spid',
+    'certificat',
+    'iscrizion',
+    'firma',
+    'burocra',
+    'pratica',
+    'admin',
+  ],
+};
+
+/// The subsection a task's title and notes suggest, or null when nothing
+/// administrative is recognised. Earlier sections win: a Semble invoice is
+/// clinical, not finance.
+AdminSection? suggestAdminSection(String title, String? notes) {
+  final text = ' ${foldForSearch('$title ${notes ?? ''}')} '.replaceAll(
+    RegExp(r"[^a-z0-9' ]+"),
+    ' ',
+  );
+  // Specific subsections first, the generic Inbox last.
+  for (final section in _adminKeywords.keys) {
+    for (final keyword in _adminKeywords[section]!) {
+      if (text.contains(' $keyword')) return section;
+    }
+  }
+  return null;
+}

@@ -358,4 +358,23 @@ void main() {
     expect(canSetAdminSource(null), isTrue);
     expect(canSetAdminSource('admin:semble'), isTrue);
   });
+
+  test('administrative suggestions: conservative, accent and case blind', () {
+    expect(
+      suggestAdminSection('pagare enpam: pec', null),
+      AdminSection.finance,
+    );
+    expect(suggestAdminSection('Rimborso spese', null), AdminSection.finance);
+    expect(suggestAdminSection('Rinnovo GMC', null), AdminSection.career);
+    expect(
+      suggestAdminSection('Contratto honorary KCL', null),
+      AdminSection.career,
+    );
+    expect(suggestAdminSection('Messaggi Semble', null), AdminSection.clinic);
+    expect(suggestAdminSection('Fattura Semble', null), AdminSection.clinic);
+    expect(suggestAdminSection('Modulo iscrizione', null), AdminSection.inbox);
+    expect(suggestAdminSection('vitamine', null), isNull);
+    expect(suggestAdminSection('ripassare slides', 'methods'), isNull);
+    expect(suggestAdminSection('Passeggiata', 'bel tempo'), isNull);
+  });
 }

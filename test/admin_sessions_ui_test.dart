@@ -95,12 +95,71 @@ void main() {
 
     await tester.tap(find.text('Admin'));
     await tester.pumpAndSettle();
-    expect(find.text('Sessioni amministrative'), findsOneWidget);
-    expect(find.textContaining('Prossimo slot: Sessione B'), findsOneWidget);
-    expect(find.textContaining('In coda: 2 attività'), findsOneWidget);
+    // Sparse screen: one line, then only non-empty subsections.
+    expect(find.textContaining('Prossimo: Sessione B'), findsOneWidget);
+    expect(find.text('2 in coda'), findsOneWidget);
+    expect(find.text('Inbox amministrativa · 2'), findsOneWidget);
+    expect(find.textContaining('Clinica privata'), findsNothing);
+    expect(find.textContaining('In attesa'), findsNothing);
+    // Not the session's day: no close button, only the menu.
+    expect(find.byKey(const ValueKey('admin-close-session')), findsNothing);
     expect(find.text('Modulo sintetico'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('In attesa'), 200);
-    expect(find.text('In attesa'), findsOneWidget);
+    await tearDownApp(tester, db);
+  });
+
+  testWidgets('copy from other projects: proposals, originals untouched', (
+    tester,
+  ) async {
+    final (db, repository) = await setUpApp(tester);
+    final project = await repository.createProject('Progetto sintetico');
+    final enpam = await repository.create(
+      'Pagare ENPAM sintetico',
+      projectId: project,
+      showDate: '2026-10-01',
+    );
+    final gmc = await repository.create('Rinnovo GMC sintetico');
+    await repository.create('Comprare il pane', projectId: project);
+    await tester.pumpWidget(
+      TodoApp(
+        repository: repository,
+        enablePlatformServices: false,
+        clock: clock,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final admin = AdminSessionsScope.active!;
+    await admin.setEnabled(true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Admin'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('admin-empty')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('admin-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copia dagli altri progetti'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pagare ENPAM sintetico'), findsOneWidget);
+    expect(find.text('Rinnovo GMC sintetico'), findsOneWidget);
+    expect(find.text('Comprare il pane'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('admin-copy-confirm')));
+    await tester.pumpAndSettle();
+    final copies = await (db.select(
+      db.tasks,
+    )..where((t) => t.projectId.equals(adminProjectId()))).get();
+    expect(copies.map((t) => t.externalId).toSet(), {enpam, gmc});
+    final enpamCopy = copies.singleWhere((t) => t.externalId == enpam);
+    expect(enpamCopy.sectionId, adminSectionId(AdminSection.finance));
+    expect(enpamCopy.showDate, '2026-10-14');
+    expect(
+      copies.singleWhere((t) => t.externalId == gmc).sectionId,
+      adminSectionId(AdminSection.career),
+    );
+    // Originals untouched.
+    final original = await row(db, enpam);
+    expect(original.projectId, project);
+    expect(original.showDate, '2026-10-01');
+    expect(original.deletedAt, isNull);
+    // Already copied: no second proposal.
+    expect(await admin.copyCandidates(), isEmpty);
     await tearDownApp(tester, db);
   });
 
