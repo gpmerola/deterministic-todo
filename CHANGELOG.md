@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.94.0 (build 273) — Todo Test
+
+- Link e-mail: `[nome](mailto:…)` nei titoli e nelle note compare come solo
+  nome toccabile, anche nell'editor; prima restava il testo grezzo con le
+  parentesi.
+- Calendario: le attività mostrate in agenda hanno il titolo senza
+  Markdown («Arriva chatgpt.com» invece di `[chatgpt.com](https://…)`).
+  Anche le etichette di accessibilità delle righe usano il titolo pulito.
+- Cestino con lo scorrimento: salvato alla fine del gesto invece che dopo la
+  chiusura della riga (260 ms prima); stessa animazione e stesso Annulla.
+- Non cambiato: il titolo degli eventi creati nel calendario Google del
+  telefono resta quello grezzo, perché cambiarlo riscriverebbe eventi reali.
+
 ## 2.93.0 (build 272) — Todo Test
 
 - Pulizia senza cambi di comportamento: tolte funzioni che nessuna parte

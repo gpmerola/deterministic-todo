@@ -807,6 +807,28 @@ void main() {
   });
 
   test(
+    'le attività nel Calendario mostrano il titolo senza Markdown',
+    () async {
+      // Build 273: «Arriva [chatgpt.com](https://…)» appeared raw.
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = TaskRepository(db, deviceId: 'synthetic-device');
+      final links = AgendaTaskLinks(db);
+      final id = await repo.create(
+        'Arriva [chatgpt.com](https://chatgpt.com/c/synthetic) e '
+        '[Ufficio](mailto:synthetic@example.invalid)',
+        showDate: '2026-10-06',
+      );
+      await links.setShown(
+        await (db.select(db.tasks)..where((t) => t.id.equals(id))).getSingle(),
+        true,
+      );
+      final tasks = await links.tasksBetween(CivilDate(2026, 10, 5), 7);
+      expect(tasks.single.title, 'Arriva chatgpt.com e Ufficio');
+    },
+  );
+
+  test(
     'le attività segnate compaiono come giornata intera, serie compresa',
     () async {
       final db = AppDatabase.forTesting(NativeDatabase.memory());

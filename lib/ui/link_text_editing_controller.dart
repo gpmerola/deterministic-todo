@@ -24,13 +24,9 @@ class LinkTextEditingController extends TextEditingController {
   final bool highlightSmartDates;
   static List<TextLink> _extractLinks(String value) {
     final markdown = linkifyPlainUrls(value);
-    final pattern = RegExp(
-      r'\[([^\]]+)\]\((https?://[^\s)]+)\)',
-      caseSensitive: false,
-    );
     var removed = 0;
     final result = <TextLink>[];
-    for (final match in pattern.allMatches(markdown)) {
+    for (final match in markdownLinkPattern.allMatches(markdown)) {
       final label = match[1]!;
       final start = match.start - removed;
       result.add(

@@ -43,6 +43,16 @@ class _TaskTileState extends State<TaskTile> {
   bool confirmingCompletion = false;
   bool leavingAfterCompletion = false;
   bool deleteThresholdFeedbackSent = false;
+  Future<void>? pendingDeletion;
+
+  @override
+  void dispose() {
+    // Dismissed and removed before onDismissed: never keep a stale row.
+    if (pendingDeletion != null) {
+      CompletionHold.of(widget.repository).release(widget.task.id);
+    }
+    super.dispose();
+  }
 
   Future<void> _setCompleted(bool completed) async {
     if (confirmingCompletion || leavingAfterCompletion) return;
@@ -140,8 +150,17 @@ class _TaskTileState extends State<TaskTile> {
               deleteThresholdFeedbackSent = false;
             }
           },
+          // Written when the swipe ends, before the row closes (build 273);
+          // the lists keep the row until then, as for completion.
+          confirmDismiss: (_) async {
+            CompletionHold.of(widget.repository).hold(widget.task);
+            pendingDeletion = widget.repository.softDelete(widget.task);
+            return true;
+          },
           onDismissed: (_) {
-            final deletion = widget.repository.softDelete(widget.task);
+            final deletion =
+                pendingDeletion ?? widget.repository.softDelete(widget.task);
+            CompletionHold.of(widget.repository).release(widget.task.id);
             if (!context.mounted) return;
             AppUndo.show(
               context,
@@ -211,7 +230,8 @@ class _TaskTileState extends State<TaskTile> {
                       // belongs to this control, never to the parent Dismissible.
                       onHorizontalDragStart: (_) {},
                       child: Semantics(
-                        label: 'Completa ${widget.task.title}',
+                        label:
+                            'Completa ${markdownToPlainText(widget.task.title)}',
                         child: Checkbox(
                           key: const ValueKey('task-checkbox'),
                           value:
@@ -417,7 +437,7 @@ class _TaskTileState extends State<TaskTile> {
 
 String taskAccessibilityLabel(Task task) {
   final details = <String>[
-    task.title,
+    markdownToPlainText(task.title),
     'Priorità P${5 - task.priority}',
     if (task.showDate != null) 'Data ${task.showDate}',
     if (task.recurrence != null)

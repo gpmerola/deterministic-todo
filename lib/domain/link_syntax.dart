@@ -5,10 +5,13 @@ class ParsedTextLink {
   final String url;
 }
 
-final RegExp _markdownLinkPattern = RegExp(
-  r'\[([^\]]+)\]\((https?://[^\s)]+)\)',
+/// `[label](url)` with a web or e-mail address (mailto from build 273: the
+/// raw brackets were shown before). Shared by display, editor and plain text.
+final RegExp markdownLinkPattern = RegExp(
+  r'\[([^\]]+)\]\(((?:https?://|mailto:)[^\s)]+)\)',
   caseSensitive: false,
 );
+final RegExp _markdownLinkPattern = markdownLinkPattern;
 final RegExp _plainLinkPattern = RegExp(
   r'(?<!\]\()(?:https?://|www\.)[^\s<>]+',
   caseSensitive: false,

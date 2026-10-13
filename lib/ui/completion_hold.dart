@@ -5,11 +5,11 @@ import 'package:flutter/foundation.dart';
 import '../data/local/database.dart';
 import '../data/task_repository.dart';
 
-/// Tasks completed from a list while their check-and-collapse animation
-/// runs (build 271). The completion is written to SQLite at the tap, so
-/// quitting the browser or the app right after it keeps it; lists passed
-/// through [keep] go on showing the row as it was until [release], so the
-/// animation is the same as when the write waited for it.
+/// Tasks completed (build 271) or swiped to the trash (build 273) from a
+/// list while their row animates away. The change is written to SQLite at
+/// once, so quitting the browser or the app right after it keeps it; lists
+/// passed through [keep] go on showing the row as it was until [release],
+/// so the animation is the same as when the write waited for it.
 class CompletionHold extends ChangeNotifier {
   CompletionHold._();
 

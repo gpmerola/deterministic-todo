@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../data/local/database.dart';
 import '../domain/agenda.dart';
+import '../domain/link_syntax.dart';
 import '../domain/task.dart';
 
 /// "Mostra in agenda" flags for Todo tasks. Kept only on this phone (the
@@ -100,7 +101,8 @@ class AgendaTaskLinks {
       for (final row in rows)
         AgendaTaskItem(
           id: row.id,
-          title: row.title,
+          // Plain text: the Calendar shows titles, not Markdown links.
+          title: markdownToPlainText(row.title),
           date: CivilDate.parse(row.showDate!),
           completed: row.completedAt != null,
         ),

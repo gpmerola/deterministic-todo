@@ -1,6 +1,7 @@
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/sync/sync_service.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
+import 'package:deterministic_todo/domain/link_syntax.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/main.dart';
 import 'package:deterministic_todo/ui/todoist_link_text.dart';
@@ -609,6 +610,52 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
     await db.close();
+  });
+
+  testWidgets('lo swipe nel cestino si salva prima che la riga si chiuda', (
+    tester,
+  ) async {
+    // Build 273: the write waited for the 260 ms row resize.
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'test-device');
+    final id = await repository.create('Cestinami');
+    await tester.pumpWidget(TodoApp(repository: repository));
+    await tester.pump();
+
+    await tester.drag(find.text('Cestinami'), const Offset(-700, 0));
+    // The swipe movement is 220 ms; the resize that follows lasts 260 ms.
+    await tester.pump(const Duration(milliseconds: 230));
+    await tester.pump(const Duration(milliseconds: 30));
+    expect((await db.select(db.tasks).getSingle()).deletedAt, isNotNull);
+    // Still closing: the lists keep the row until onDismissed.
+    final row = find.byKey(ValueKey('dismiss-$id'));
+    expect(row, findsOneWidget);
+    expect(find.text('Spostata nel cestino'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(row, findsNothing);
+    expect(find.text('Spostata nel cestino'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
+  });
+
+  testWidgets('un link e-mail mostra solo il nome', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: TodoistLinkText(
+            'Scrivere a [Segreteria KCL](mailto:synthetic@example.invalid)',
+          ),
+        ),
+      ),
+    );
+    expect(find.textContaining('Segreteria KCL'), findsOneWidget);
+    expect(find.textContaining('mailto'), findsNothing);
+    expect(find.textContaining('['), findsNothing);
+    expect(
+      markdownToPlainText('[Segreteria KCL](mailto:synthetic@example.invalid)'),
+      'Segreteria KCL',
+    );
   });
 
   testWidgets('l annuncio con Undo scompare automaticamente', (tester) async {

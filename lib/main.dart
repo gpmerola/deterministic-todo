@@ -20,6 +20,7 @@ import 'data/local/database.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
 import 'domain/agenda.dart';
+import 'domain/link_syntax.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';

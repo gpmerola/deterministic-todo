@@ -112,7 +112,7 @@ resto vive in librerie separate, testabili senza avviare l'app:
 | `ui/views/upcoming_view.dart` | timeline Prossime e "Vai a data" |
 | `ui/views/projects_view.dart` | progetti, sezioni, azioni e Sposta in Inbox |
 | `ui/views/task_order.dart` | ordinamento di presentazione |
-| `ui/completion_hold.dart` | riga completata tenuta in lista durante l'animazione, già salvata (build 271) |
+| `ui/completion_hold.dart` | riga completata (build 271) o cestinata con lo scorrimento (273) tenuta in lista durante l'animazione, già salvata |
 | `ui/search.dart` | comando universale e ricerca |
 | `ui/quick_add_sheet.dart` | composer rapido e bozza locale |
 | `ui/shell/app_update_flow.dart` | controllo e installazione aggiornamenti |

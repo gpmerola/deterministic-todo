@@ -53,6 +53,9 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 - Separazione di `main.dart` rimandata dopo la pulizia della build 272
   (non a basso rischio prima di una pubblicazione).
+- Titolo degli eventi creati nel calendario Google del telefono: oggi con il
+  Markdown grezzo dei link. Pulirlo riscriverebbe eventi reali già creati:
+  solo con decisione dell'utente.
 
 - Fuso diverso alla creazione di un evento (oggi quello del telefono).
 - Unione heydoc/Semble (stesso inizio, titoli diversi) solo se richiesta.

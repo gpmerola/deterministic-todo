@@ -24,7 +24,6 @@ class TodoistLinkText extends StatefulWidget {
 }
 
 class _TodoistLinkTextState extends State<TodoistLinkText> {
-  static final linkPattern = RegExp(r'\[([^\]]+)\]\((https?://[^\s)]+)\)');
   final recognizers = <TapGestureRecognizer>[];
 
   @override
@@ -52,7 +51,7 @@ class _TodoistLinkTextState extends State<TodoistLinkText> {
     final spans = <InlineSpan>[];
     var offset = 0;
     final displayValue = linkifyPlainUrls(widget.value);
-    for (final match in linkPattern.allMatches(displayValue)) {
+    for (final match in markdownLinkPattern.allMatches(displayValue)) {
       if (match.start > offset) {
         spans.add(TextSpan(text: displayValue.substring(offset, match.start)));
       }
