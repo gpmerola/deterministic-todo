@@ -5,6 +5,9 @@
 // synthetic tasks ("Collaudo persistenza …") are created.
 //
 // Usage: node tools/web_persistence.mjs [--rounds 3] [--only edit,complete] [--dir build/web]
+//        node tools/web_persistence.mjs --site https://gpmerola.github.io
+// --site tests the published app instead: a new empty profile, never signed
+// in, so only its own synthetic local data exists.
 //
 // Each round and change (create, edit the title, complete): prepare the
 // tasks and let them settle, make the change through the UI, quit Chrome as
@@ -22,7 +25,9 @@ const args = parseArgs(process.argv.slice(2));
 const rounds = Number(args.rounds ?? 3);
 const only = args.only?.split(',');
 const extraWait = Number(args.wait ?? 0);
-const site = await startServer(resolve(args.dir ?? 'build/web'));
+const site = args.site
+  ? { origin: new URL(args.site).origin, server: { close() {} } }
+  : await startServer(resolve(args.dir ?? 'build/web'));
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 const helpers = `

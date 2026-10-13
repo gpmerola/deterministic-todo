@@ -2,6 +2,30 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Release stabile 2.94.0 / 273 — 14 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA`. Primo run
+[38483500179](https://github.com/gpmerola/deterministic-todo/actions/runs/38483500179)
+fermato in verifica, prima di ogni pubblicazione, dalle immagini di
+riferimento della Settimana sulla CI Linux (ora solo su macOS). Run
+[38484021843](https://github.com/gpmerola/deterministic-todo/actions/runs/38484021843)
+con tutti i job verdi: verifica, Web, APK diretti, Play interno e parità.
+Sorgente `690bcd3d9658633a4d7ce4752605227a941ffe9d`, pubblicato dal branch
+`agent/todo-ux-sync-hardening` portato in avanti senza riscritture al
+commit di `agent/remove-admin-sessions`.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  dichiara 2.94.0 (273) e lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.94.0):
+  quattro APK e AAB; manifest con 2.94.0 / 273 e SHA-256 per ABI; hash arm64
+  verificato sul file scaricato.
+- Google Play: AAB accettato nel track internal; propagazione non verificata.
+- Galaxy: resta su Todo Test `.dev` 273, già installata; nessun cambio di
+  canale o firma.
+- Prova di chiusura di Chrome sul sito pubblico, profilo di prova mai
+  collegato: [esiti](docs/diagnostics/2026-10-13-web-persistence.md#sito-pubblico-release-2940--273).
+  Nessun dato reale toccato, nessuna migrazione.
+
 ## Build 273 — Link e-mail, titoli puliti, cestino salvato prima, Todo Test
 
 Todo Test 2.94.0 / build 273 installata sul Galaxy in-place (versionCode

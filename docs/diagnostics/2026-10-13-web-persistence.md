@@ -62,3 +62,22 @@ Il caso perso è stato chiuso circa 9 ms dopo il tocco, prima che la scrittura
 finisse: è il tempo minimo di qualunque salvataggio, non più l'attesa
 dell'animazione. Esiti grezzi nello stesso JSONL, con `build` ed
 `extra_wait_ms`.
+
+## Sito pubblico, release 2.94.0 / 273
+
+`node tools/web_persistence.mjs --site https://gpmerola.github.io/deterministic-todo/`
+apre il sito pubblicato in un profilo Chrome nuovo e mai collegato a un
+account: solo i suoi dati sintetici locali; raggiungibili solo il sito e
+gstatic. Due giri:
+
+| Modifica | Chiusura subito | Chiusura dopo altri 100 ms |
+| --- | --- | --- |
+| Nuova attività | 4 su 4 | 4 su 4 |
+| Titolo modificato | 4 su 4 | 4 su 4 |
+| Attività completata | 1 su 4 | 4 su 4 |
+
+I tre completamenti persi sono stati chiusi circa 9 ms dopo il tocco, prima
+che la scrittura arrivasse a IndexedDB; quello chiuso a 54 ms è rimasto. È
+la finestra residua di qualunque salvataggio, non più l'attesa
+dell'animazione di 370 ms.
+

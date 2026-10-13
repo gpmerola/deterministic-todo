@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.94.0 (build 273) — Todo Test
+## 2.94.0 (build 273) — Release stabile e Todo Test
 
 - Link e-mail: `[nome](mailto:…)` nei titoli e nelle note compare come solo
   nome toccabile, anche nell'editor; prima restava il testo grezzo con le

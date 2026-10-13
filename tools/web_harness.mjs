@@ -113,6 +113,8 @@ class Cdp {
 
 /// Chrome on [profile] with one page attached; `send` talks to the page.
 /// `network: 'fast4g'` applies the DevTools "Fast 4G" profile.
+/// [site] may also be `{ origin }` alone, a published site: then CanvasKit
+/// is fetched from gstatic and only that origin and gstatic are reachable.
 export async function openBrowser({ profile, site, chrome = chromePath, network = 'none' }) {
   const browser = spawn(chrome, [
     '--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`,
@@ -141,6 +143,11 @@ export async function openBrowser({ profile, site, chrome = chromePath, network 
     const url = new URL(request.url);
     try {
       if (url.origin === site.origin) {
+        await send('Fetch.continueRequest', { requestId });
+        return;
+      }
+      if (!site.dir && url.hostname === 'www.gstatic.com' &&
+          url.pathname.startsWith('/flutter-canvaskit/')) {
         await send('Fetch.continueRequest', { requestId });
         return;
       }
