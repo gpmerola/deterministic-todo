@@ -68,8 +68,10 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 - Preparazione backup: misurata su Galaxy in release, database sintetico
   isolato; a 10.000 righe pausa event loop di circa 0,75 s. Confrontare una
   variante in isolate includendo copie/trasferimento e test di equivalenza.
-- Calendario denso: profilare la costruzione delle pagine; frame lenti già
-  presenti senza backup. [Misure e limiti](docs/diagnostics/2026-10-13-device-performance.md).
+- Calendario denso: dalla build 269 il cambio settimana con 12 eventi al
+  giorno costa circa 41 ms invece di 100, ancora sopra i 16 ms. Il resto è
+  soprattutto la misura dei titoli; prossimi passi possibili solo con nuova
+  misura ([esiti](docs/diagnostics/2026-10-13-calendar-week-build.md)).
 
 
 Misurare prima di ottimizzare: cold/warm start, RAM e frame con 100/1.000/10.000

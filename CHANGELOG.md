@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.90.0 (build 269) — Todo Test
+
+- Calendario, vista Settimana e 3 giorni: ogni evento è disegnato da un solo
+  elemento invece di una decina di widget, i titoli si impaginano con una
+  sola misura del testo e l'ora d'inizio si calcola una volta per tutte le
+  colonne. Aspetto, a capo tra le parole, «…», tocco e pressione lunga
+  invariati; manca solo l'effetto increspatura al tocco. Sul Galaxy, con 12 eventi al giorno, il fotogramma del cambio
+  settimana scende da circa 100 a circa 41 ms nello stesso processo
+  ([misure](docs/diagnostics/2026-10-13-calendar-week-build.md)); resta
+  sopra i 16 ms.
+- Strumento `tools/device_performance.py --scenario calendar`: confronto
+  nella stessa esecuzione tra la vista della build 267 e quella attuale.
+
 ## 2.89.0 (build 268) — Todo Test
 
 - Rimosse le **Sessioni amministrative** (build 264–267) su richiesta

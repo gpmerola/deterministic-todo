@@ -3,7 +3,9 @@
 
 Builds a separate .dev.validation package. Never publishes the harness or
 reads the operational database. Results are numeric JSON lines on stdout.
-Usage: python3 tools/device_performance.py --serial SERIAL
+Usage: python3 tools/device_performance.py --serial SERIAL [--scenario calendar]
+`calendar` runs only the week-view scroll, alternating the build 267 view and
+the current one in the same process; no backup.
 """
 import argparse
 import json
@@ -21,6 +23,7 @@ PACKAGE = 'app.deterministic.todo.deterministic_todo.dev.validation'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
+    parser.add_argument('--scenario', choices=['all', 'calendar'], default='all')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
 
@@ -46,6 +49,7 @@ def main():
                 'flutter', 'build', 'apk', '--release', '--flavor', 'dev',
                 '--split-per-abi', '--target-platform=android-arm64',
                 f'--build-number={build}', '--dart-define=TODO_VALIDATION=true',
+                f'--dart-define=TODO_PERF_SCENARIO={args.scenario}',
                 '--target=integration_test/device_performance.dart',
             ], cwd=root, env=environment, check=True)
             harness = saved / 'harness.apk'
@@ -66,7 +70,7 @@ def main():
             name, value = line.split(':', 1)
             print(json.dumps({'phase': 'harness_android_launch', name: int(value)}), flush=True)
     seen = set()
-    deadline = time.monotonic() + 240
+    deadline = time.monotonic() + (240 if args.scenario == 'all' else 480)
     try:
         while time.monotonic() < deadline:
             pid = adb('shell', 'pidof', PACKAGE).strip()

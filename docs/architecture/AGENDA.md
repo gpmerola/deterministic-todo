@@ -330,7 +330,10 @@ quell'account non compare; non esiste un aggiramento lato app.
   il titolo restava di 4–5 lettere. Le attività hanno una casella di
   spunta. Nel tema scuro i colori dei calendari sono smorzati
   (`agenda_colors.dart`); nella settimana i titoli vanno a capo solo tra le
-  parole (`agenda_word_wrap.dart`).
+  parole (`agenda_word_wrap.dart`). Dalla build 269 ogni evento della
+  settimana è un solo `CustomPaint` (`agenda_week_block.dart`) con le stesse
+  regole: ora da 30 px di altezza, intervallo da 90 px di larghezza, parola
+  troppo lunga con «…»; il titolo si misura una volta sola.
 - **2 settimane (build 201, predefinita).** Due settimane dal lunedì riempiono
   lo schermo, così ogni giorno ha spazio per più eventi, con l'ora d'inizio
   davanti al titolo. Scorrendo in verticale si passa alla quindicina
@@ -889,6 +892,8 @@ reali su un telefono vuoto.
 - `lib/ui/views/agenda_day_view.dart`: vista giorno in scala.
 - `lib/ui/views/agenda_weeks_view.dart`: vista a 2 settimane.
 - `lib/ui/views/agenda_week_view.dart`: vista settimana a colonne.
+- `lib/ui/views/agenda_week_block.dart`: evento e griglia oraria della
+  settimana, disegnati senza un widget per riga o per ora.
 - `lib/ui/views/agenda_event_flows.dart`: dettaglio, creazione, modifica ed
   eliminazione condivisi da viste e ricerca.
 - `lib/services/agenda_tasks.dart`: flag locali «Mostra in agenda».

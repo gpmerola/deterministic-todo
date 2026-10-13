@@ -64,6 +64,11 @@ altri processi e senza controllo termico: non equivale all'esperienza quotidiana
 
 ## Decisione successiva
 
+Aggiornamento build 269: la costruzione delle pagine dense è stata ridotta;
+confronto nello stesso processo in
+[calendar-week-build](2026-10-13-calendar-week-build.md).
+
+
 Le pause dell'event loop a 10.000 righe motivano un confronto controllato della
 preparazione in isolate, includendo trasferimento/copie, formato, hash e recovery.
 Separatamente, profilare la costruzione delle pagine dense del calendario:
