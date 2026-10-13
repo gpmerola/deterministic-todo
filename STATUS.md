@@ -2,6 +2,33 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Release stabile 2.84.0 / 263 — 13 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA`. Workflow coordinato
+[38328421722](https://github.com/gpmerola/deterministic-todo/actions/runs/38328421722)
+completato con tutti i job verdi: verifica, Web, APK diretti, Play e parità.
+Sorgente applicativo `1977d4ea3550e593e9e8447fd0e467647212a41e`; versione,
+build e commit coincidono negli endpoint pubblici.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): UI HTTPS in Chrome
+  mostra 2.84.0 (263); Salute dati segnala sincronizzazione aggiornata e
+  conteggi locali invariati dopo refresh. Nessuna attività personale modificata.
+  Hash del bootstrap e di `main.dart.js` verificati sugli asset pubblici.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.84.0):
+  release `latest`, quattro asset verificati per SHA-256, package e firma
+  uguale alla stabile precedente 2.74.0. Build base 263; versionCode per ABI
+  Flutter: 1263 arm32, 2263 arm64, 4263 x86_64; universale 263 come fallback.
+  Il client precedente usa lo stesso manifest `latest` e seleziona l'ABI.
+- Google Play: AAB accettato nel track **internal**. Propagazione al singolo
+  tester e installazione da Play non verificate; nessuna promozione in produzione.
+- Galaxy: continua a usare Todo Test `.dev`, già collaudata in-place a 2263;
+  fallback Play lasciato disabilitato. Nessun cambio di firma o canale.
+
+Il collaudo locale di ricerca e modifica/persistenza con fixture sintetica
+resta descritto sotto. Sul sito pubblico sono stati controllati versione,
+lettura locale, stato sync e refresh; non eseguiti nuovi inserimenti o import,
+chiusura completa Chrome o test distruttivi. Nessuna nuova migrazione DB.
+
 ## Build 263 — Ricerca coerente e dettaglio giornaliero recuperabile
 
 Todo Test 2.84.0 / build 263, installata sul Galaxy in-place (versionCode
@@ -20,8 +47,9 @@ con fixture automatiche, senza guastare il provider reale. Browser: ricerca
 con cambio filtri/testo e modifica sintetica persistente dopo refresh e
 chiusura/riapertura della scheda; UI dichiara 2.84.0 (263). HTTPS loopback
 verificato con certificato esplicitamente fidato da curl, UI su HTTP loopback;
-HTTPS pubblico e chiusura completa del browser non collaudati. Nessuna
-pubblicazione Web o release stabile.
+HTTPS pubblico e chiusura completa del browser non collaudati in questa
+fase precedente alla pubblicazione; per il successivo rilascio stabile vedere
+la sezione sopra.
 
 Eseguito benchmark Android release nel package isolato `.dev.validation`,
 senza accesso a dati personali. Misure numeriche, hash del sorgente, procedure

@@ -2,8 +2,10 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.84.0 (build 263) — Todo Test
+## 2.84.0 (build 263) — stabile Android/Web e Todo Test
 
+- Pubblicata il 13 ottobre 2026 su Web, APK diretti e test interno Google Play;
+  incorpora anche le modifiche delle build 254–262 elencate sotto.
 - Anche il dettaglio giornaliero Calendario mostra gli errori di lettura con
   Riprova, conserva la pagina precedente e termina il caricamento quando il
   risultato è vuoto.
