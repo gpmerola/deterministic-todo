@@ -75,3 +75,6 @@ già salvata, non solo dopo la creazione. Aprire lo storico della singola task e
 verificare che rimangano sia il nuovo valore sia la revisione prima/dopo; quindi
 chiudere la scheda e riaprire lo stesso URL. Il fix della barriera IndexedDB è
 documentato in [sincronizzazione e storico](../architecture/TODO_SYNC_AND_HISTORY.md#persistenza-web--build-172).
+
+Tempo alla prima schermata in un profilo Chrome di prova, solo loopback:
+`node tools/web_startup.mjs` ([esiti](../diagnostics/2026-10-13-web-startup.md)).

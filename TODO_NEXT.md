@@ -25,7 +25,11 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
   all'impronta quando non cambia nulla.
 - [ ] Impronte v2: migrazione applicata in produzione il 12 ottobre 2026.
   Restano da osservare `diverged_buckets` su più cicli reali.
-- [ ] Web: velocità di caricamento in una finestra visibile.
+- [ ] Web: velocità di caricamento in una finestra visibile. Misura headless
+  della build 270: Oggi in 0,41 s in loopback, 4,2 s con Fast 4G alla prima
+  apertura, 0,2 s alle successive; il caricamento differito del Calendario
+  vale 23 ms e non è applicato
+  ([esiti](docs/diagnostics/2026-10-13-web-startup.md)).
 - [ ] Al prossimo avviso sync, non forzare retry: leggere lo stato con il
   provider ADB `todo_sync_debug` (fase, classe errore, outbox, recupero).
 
