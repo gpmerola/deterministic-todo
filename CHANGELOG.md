@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.88.0 (build 267) — Todo Test
+
+- Sessioni amministrative: le copie di «Copia dagli altri progetti» non hanno
+  più data. Nella 265 prendevano la data del prossimo slot e riempivano quel
+  giorno in Prossime accanto agli originali. **⋮ → Togli la data alle copie**
+  ripara le copie già fatte, con Annulla; gli originali non cambiano.
+- Parole chiave più strette: parole intere dove serve, così «documentari» non
+  viene più preso per «documenti».
+
 ## 2.87.0 (build 266) — Todo Test
 
 - Progetti: **Elimina** su un progetto con attività aperte chiede conferma e

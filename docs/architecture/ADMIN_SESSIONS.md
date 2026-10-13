@@ -76,15 +76,18 @@ Annulla. La burocrazia non viene mai collocata fuori dagli slot configurati.
   informativa). Il pulsante «Chiudi» compare a vista solo nel giorno della
   sessione. Si vedono solo le sottosezioni non vuote. Il + flottante crea
   nell'Inbox amministrativa; la sottosezione si cambia dall'editor.
-- **Copia dagli altri progetti** (build 265): propone le attività aperte
-  fuori da Amministrazione il cui titolo o descrizione contiene parole
-  burocratiche (`suggestAdminSection`: per esempio Semble, ENPAM, tasse,
-  rimborso, GMC, KCL, contratto, modulo), con la sottosezione suggerita,
-  modificabile, e una casella ciascuna. Copia solo le spuntate: titolo,
-  descrizione e priorità uguali, data per la regola di rimando,
+- **Copia dagli altri progetti** (build 265, corretta nella 267): propone le
+  attività aperte fuori da Amministrazione il cui titolo o descrizione contiene
+  parole burocratiche (`suggestAdminSection`: per esempio Semble, ENPAM, tasse,
+  rimborso, GMC, KCL, contratto, modulo; dove serve solo a parola intera), con
+  la sottosezione suggerita, modificabile, e una casella ciascuna. Copia solo le
+  spuntate: titolo, descrizione e priorità uguali, **senza data**,
   `external_source = 'admin:copia'` ed `external_id` = ID dell'originale, così
-  la stessa attività non viene riproposta. Gli originali non cambiano.
-  Annulla manda le copie nel cestino.
+  la stessa attività non viene riproposta. Gli originali non cambiano. Annulla
+  manda le copie nel cestino. Nella 265 le copie prendevano la data del
+  prossimo slot e riempivano quel giorno in Prossime accanto agli originali:
+  **⋮ → Togli la data alle copie** (`clearCopyDates`) toglie la sola data alle
+  copie aperte, con Annulla.
 - **Rimanda al prossimo slot**: scorrimento verso destra su qualunque attività
   aperta, oppure voce del menu (pressione prolungata, ⋮, clic destro). Porta
   l'attività nella coda (Inbox amministrativa se proveniva da altrove o da In

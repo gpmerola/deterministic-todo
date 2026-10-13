@@ -477,14 +477,12 @@ class AdminSessionsController extends ChangeNotifier {
 
   /// Copies tasks into the queue; the originals are not touched. Each copy
   /// keeps title, notes and priority, records its original in
-  /// `external_source`/`external_id` (so it is never copied twice) and gets
-  /// a date by the deferral rule: its own when it comes before the next
-  /// slot, the slot's otherwise. Returns the new ids, for undo.
+  /// `external_source`/`external_id` (so it is never copied twice) and has
+  /// no date. Returns the new ids, for undo.
   Future<List<String>> copyToAdmin(
     List<({Task task, AdminSection section})> picks,
   ) async {
     await ensureStructure();
-    final next = nextSlot();
     final created = <String>[];
     await _db.transaction(() async {
       for (final pick in picks) {
@@ -499,20 +497,14 @@ class AdminSessionsController extends ChangeNotifier {
                 ))
                 .getSingleOrNull();
         if (duplicate != null) continue;
-        final target = adminDeferTarget(
-          showDate: original.showDate,
-          today: today,
-          next: next,
-        );
-        final date = target.date?.toString() ?? original.showDate;
+        // Undated: the copy waits in the queue without filling a day next to
+        // its original (build 267; build 265 gave copies the slot's date).
         final id = await repository.create(
           original.title,
           notes: original.notes,
-          showDate: date,
           projectId: adminProjectId(),
           sectionId: adminSectionId(pick.section),
           priority: original.priority,
-          status: date == null ? null : legacyStatusFor(CivilDate.parse(date)),
         );
         final copy = await _current(id);
         await repository.planAdministrative(
@@ -535,4 +527,27 @@ class AdminSessionsController extends ChangeNotifier {
       }
     }
   });
+
+  /// One-off repair of build 265 copies, which took the next slot's date
+  /// and doubled their originals in Oggi/Prossime: open copies lose their
+  /// date and nothing else. Returns the previous rows, for undo.
+  Future<AdminChange> clearCopyDates() async {
+    final changed = <Task>[];
+    await _db.transaction(() async {
+      final copies =
+          await (_db.select(_db.tasks)..where(
+                (t) =>
+                    t.deletedAt.isNull() &
+                    t.status.equals(TaskStatus.completed.name).not() &
+                    t.externalSource.equals(AdminSource.copy.stored) &
+                    t.showDate.isNotNull(),
+              ))
+              .get();
+      for (final copy in copies) {
+        changed.add(copy);
+        await repository.planAdministrative(copy, showDate: const Value(null));
+      }
+    });
+    return AdminChange(changed);
+  }
 }

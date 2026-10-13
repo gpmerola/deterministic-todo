@@ -148,7 +148,8 @@ void main() {
     expect(copies.map((t) => t.externalId).toSet(), {enpam, gmc});
     final enpamCopy = copies.singleWhere((t) => t.externalId == enpam);
     expect(enpamCopy.sectionId, adminSectionId(AdminSection.finance));
-    expect(enpamCopy.showDate, '2026-10-14');
+    // Undated: no second row next to the original in Oggi/Prossime.
+    expect(enpamCopy.showDate, isNull);
     expect(
       copies.singleWhere((t) => t.externalId == gmc).sectionId,
       adminSectionId(AdminSection.career),

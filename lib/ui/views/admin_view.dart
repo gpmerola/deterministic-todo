@@ -188,6 +188,8 @@ class _AdminHeader extends StatelessWidget {
                   showAdminCopySheet(context, controller);
                 case 'slots':
                   showAdminSlotsSheet(context, controller);
+                case 'undate':
+                  clearAdminCopyDates(context, controller);
                 case 'close':
                   closeAdminSession(context, controller, last!);
               }
@@ -197,6 +199,11 @@ class _AdminHeader extends StatelessWidget {
                 key: ValueKey('admin-menu-copy'),
                 value: 'copy',
                 child: Text('Copia dagli altri progetti'),
+              ),
+              const PopupMenuItem(
+                key: ValueKey('admin-menu-undate'),
+                value: 'undate',
+                child: Text('Togli la data alle copie'),
               ),
               const PopupMenuItem(
                 key: ValueKey('admin-edit-slots'),
@@ -372,6 +379,27 @@ class _AdminCopySheetState extends State<_AdminCopySheet> {
       ],
     );
   }
+}
+
+/// Copies made by build 265 carry the slot's date; this removes it.
+Future<void> clearAdminCopyDates(
+  BuildContext context,
+  AdminSessionsController controller,
+) async {
+  final change = await controller.clearCopyDates();
+  if (!context.mounted) return;
+  if (change.count == 0) {
+    _say(context, 'Nessuna copia con data');
+    return;
+  }
+  AppUndo.show(
+    context,
+    message: change.count == 1
+        ? 'Tolta la data a 1 copia; gli originali non cambiano'
+        : 'Tolta la data a ${change.count} copie; gli originali non cambiano',
+    undo: () => controller.undo(change.before),
+    duration: const Duration(seconds: 8),
+  );
 }
 
 void _say(BuildContext context, String text) {

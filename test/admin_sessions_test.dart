@@ -374,6 +374,13 @@ void main() {
     expect(suggestAdminSection('Fattura Semble', null), AdminSection.clinic);
     expect(suggestAdminSection('Modulo iscrizione', null), AdminSection.inbox);
     expect(suggestAdminSection('vitamine', null), isNull);
+    // Build 265 false positive: «documentari» is not «documenti».
+    expect(
+      suggestAdminSection('Scaricare serie documentari e podcast', null),
+      isNull,
+    );
+    expect(suggestAdminSection('Rinnovo documento', null), AdminSection.inbox);
+    expect(suggestAdminSection('tassello muro', null), isNull);
     expect(suggestAdminSection('ripassare slides', 'methods'), isNull);
     expect(suggestAdminSection('Passeggiata', 'bel tempo'), isNull);
   });

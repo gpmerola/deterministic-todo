@@ -229,4 +229,34 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('build 265 copies lose their date only, with undo', () async {
+    await admin.setEnabled(true);
+    final original = await create('Originale sintetico', date: '2026-10-20');
+    final copy = await create(
+      'Copia sintetica',
+      date: '2026-10-14',
+      section: AdminSection.finance,
+    );
+    await admin.repository.planAdministrative(
+      await task(copy),
+      externalSource: Value(AdminSource.copy.stored),
+      externalId: Value(original),
+    );
+    final other = await create(
+      'Altra in coda',
+      date: '2026-10-14',
+      section: AdminSection.finance,
+    );
+    final change = await admin.clearCopyDates();
+    expect(change.count, 1);
+    final cleared = await task(copy);
+    expect(cleared.showDate, isNull);
+    expect(cleared.sectionId, adminSectionId(AdminSection.finance));
+    expect(cleared.externalId, original);
+    expect((await task(original)).showDate, '2026-10-20');
+    expect((await task(other)).showDate, '2026-10-14');
+    await admin.undo(change.before);
+    expect((await task(copy)).showDate, '2026-10-14');
+  });
 }

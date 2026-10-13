@@ -634,7 +634,8 @@ bool canSetAdminSource(String? externalSource) =>
     externalSource == null || AdminSource.fromStored(externalSource) != null;
 
 /// Word stems, matched on whole words' beginnings after folding case and
-/// accents. Deliberately conservative: a suggestion is only a proposal the
+/// accents; a trailing space means the whole word only («documento», not
+/// «documentari», build 267). Deliberately conservative: a suggestion is only a proposal the
 /// user confirms one by one, never an automatic move.
 const _adminKeywords = <AdminSection, List<String>>{
   AdminSection.clinic: [
@@ -646,10 +647,11 @@ const _adminKeywords = <AdminSection, List<String>>{
     'assicuraz',
     'insurance',
     'bupa',
-    'axa',
+    'axa ',
   ],
   AdminSection.finance: [
-    'tass',
+    'tasse ',
+    'tassa ',
     'tax',
     'hmrc',
     'self assessment',
@@ -662,8 +664,8 @@ const _adminKeywords = <AdminSection, List<String>>{
     'pagament',
     'fattur',
     'invoice',
-    'f24',
-    'iva',
+    'f24 ',
+    'iva ',
     'irpef',
     'inps',
     'agenzia delle entrate',
@@ -671,14 +673,14 @@ const _adminKeywords = <AdminSection, List<String>>{
     'claim',
     'expense',
     'council tax',
-    'pec',
+    'pec ',
     'mutuo',
     'affitto',
   ],
   AdminSection.career: [
-    'gmc',
-    'slam',
-    'kcl',
+    'gmc ',
+    'slam ',
+    'kcl ',
     'king\'s college',
     'appraisal',
     'revalidation',
@@ -689,27 +691,33 @@ const _adminKeywords = <AdminSection, List<String>>{
     'training obbligator',
     'hr ',
     'payroll',
-    'esr',
-    'nhs',
+    'esr ',
+    'nhs ',
   ],
   AdminSection.inbox: [
-    'modul',
+    'modulo ',
+    'moduli ',
     'form ',
-    'document',
+    'documento ',
+    'documenti ',
+    'documentazione ',
+    'document ',
+    'documents ',
     'rinnov',
     'renew',
     'passaport',
     'passport',
-    'visa',
-    'visto',
+    'visa ',
     'carta d\'identita',
     'spid',
     'certificat',
     'iscrizion',
-    'firma',
+    'firma ',
+    'firmare ',
     'burocra',
-    'pratica',
-    'admin',
+    'pratica ',
+    'pratiche ',
+    'admin ',
   ],
 };
 
