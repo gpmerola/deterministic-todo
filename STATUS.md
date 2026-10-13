@@ -2,6 +2,17 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 270 — Settimana come nella 268, Todo Test
+
+L'utente ha visto la Settimana della 269 diversa (a capo e tagli dei titoli,
+nessuna increspatura al tocco). Todo Test 2.91.0 / build 270 ripristina il
+codice della 268 per Settimana e 3 giorni; installata in-place (versionCode
+2270, dati conservati) con `make todo-test`, app avviata. Quattro immagini di
+riferimento identiche pixel per pixel alla 268 bloccano l'aspetto. `make
+check-generated` e `make check` (537 test Flutter) superati. Il guadagno
+di velocità della 269 è perso
+([esiti](docs/diagnostics/2026-10-13-calendar-week-build.md)).
+
 ## Build 269 — Settimana del Calendario più leggera, Todo Test
 
 Todo Test 2.90.0 / build 269 installata sul Galaxy in-place (versionCode
