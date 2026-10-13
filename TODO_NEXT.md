@@ -35,10 +35,11 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P0 — Convergenza Android ↔ Web
 
-- [ ] Completamento perso se Chrome si chiude entro circa 0,4 s dal tocco:
-  la scrittura aspetta l'animazione. Nuove attività e titoli modificati
-  restano dopo chiusura completa, normale o forzata (profilo di prova,
-  build 270). Serve la scelta dell'utente sulla correzione
+- [ ] Persistenza dopo chiusura completa di Chrome: dalla build 271 nuove
+  attività, titoli e completamenti restano anche chiudendo Chrome subito
+  dopo (profilo di prova); resta solo il tempo della scrittura, entro circa
+  60 ms. Da confermare una volta nel Chrome reale dell'utente, senza
+  sessioni aperte da interrompere
   ([esiti](docs/diagnostics/2026-10-13-web-persistence.md); cronologia
   [8 ottobre](docs/diagnostics/2026-10-08-todo-cross-device-smoke.md)).
 - [ ] Sul Galaxy e sul Web convertire con **Sposta in Inbox** il vecchio

@@ -1,4 +1,4 @@
-# Web — modifiche dopo la chiusura completa di Chrome, build 270
+# Web — modifiche dopo la chiusura completa di Chrome, build 270 e 271
 
 ## Riproduzione
 
@@ -40,9 +40,25 @@ Una prova che anticipava la scrittura quando l'app viene nascosta o chiusa
 (`AppLifecycleListener`) non ha cambiato l'esito con `Browser.close` e non è
 stata tenuta.
 
-## Prossimo passo
+## Correzione nella build 271
 
-Correggere richiede una scelta dell'utente: salvare subito al tocco (la
-riga sparisce senza l'animazione di conferma) oppure salvare subito
-tenendo l'animazione, che però tocca tutte le liste. Il completamento
-annullato con Annulla resta invariato in entrambi i casi.
+Il completamento si scrive al tocco; `CompletionHold` fa sì che le liste
+(Oggi, Prossime, Progetti, ricerca) continuino a mostrare la riga com'era
+fino alla fine dell'animazione, senza farla entrare in liste che non la
+mostravano. Test: `test/completion_hold_test.dart` e il test widget che
+verifica completamento già salvato a 50 ms con la riga ancora visibile,
+spuntata e aperta, chiusa a 250 ms. Le immagini di riferimento della
+Settimana sono invariate.
+
+| Build 271, chiusura subito dopo il tocco | Chiusura normale | Chiusura forzata |
+| --- | --- | --- |
+| Nuova attività | 3 su 3 | 3 su 3 |
+| Titolo modificato | 3 su 3 | 3 su 3 |
+| Attività completata | 2 su 3 | 3 su 3 |
+| Completata, chiusura dopo altri 50 ms | 3 su 3 | 3 su 3 |
+| Completata, chiusura dopo altri 100 ms | 3 su 3 | 3 su 3 |
+
+Il caso perso è stato chiuso circa 9 ms dopo il tocco, prima che la scrittura
+finisse: è il tempo minimo di qualunque salvataggio, non più l'attesa
+dell'animazione. Esiti grezzi nello stesso JSONL, con `build` ed
+`extra_wait_ms`.

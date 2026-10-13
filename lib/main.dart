@@ -54,6 +54,7 @@ import 'ui/ai_settings_view.dart';
 import 'ui/app_section.dart';
 import 'ui/app_undo.dart';
 import 'ui/auto_backup_sheet.dart';
+import 'ui/completion_hold.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/daily_steps_sheet.dart';
 import 'ui/link_text_editing_controller.dart';
@@ -321,12 +322,14 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         '${navigation.section.name}:$today:${navigation.selectedProjectId}:$start:${navigation.upcomingDays}';
     if (key != viewStreamKey) {
       viewStreamKey = key;
-      viewStream = widget.repository.watchView(
-        view: navigation.section.name,
-        today: today.toString(),
-        projectId: navigation.selectedProjectId,
-        fromDate: start.toString(),
-        throughDate: start.addDays(navigation.upcomingDays - 1).toString(),
+      viewStream = CompletionHold.of(widget.repository).keep(
+        widget.repository.watchView(
+          view: navigation.section.name,
+          today: today.toString(),
+          projectId: navigation.selectedProjectId,
+          fromDate: start.toString(),
+          throughDate: start.addDays(navigation.upcomingDays - 1).toString(),
+        ),
       );
     }
     return viewStream!;

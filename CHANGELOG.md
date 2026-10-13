@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.92.0 (build 271) — Todo Test
+
+- Attività completata: salvata in SQLite al tocco invece che dopo
+  l'animazione di 370 ms. Prima, chiudendo Chrome (o l'app) entro circa
+  0,4 s dal tocco, il completamento si perdeva. Le liste e la ricerca
+  tengono la riga com'era finché la spunta e la chiusura finiscono, quindi
+  l'animazione è la stessa; «Annulla» resta invariato. Unica differenza
+  visibile: la prossima ripetizione di un'attività ricorrente, se è nella
+  stessa lista, compare subito invece che dopo l'animazione.
+  [Prova di chiusura di Chrome](docs/diagnostics/2026-10-13-web-persistence.md).
+
 ## 2.91.0 (build 270) — Todo Test
 
 - Calendario, Settimana e 3 giorni: ripristinato esattamente il disegno

@@ -54,12 +54,21 @@ class _TaskTileState extends State<TaskTile> {
     }
     setState(() => confirmingCompletion = true);
     unawaited(HapticFeedback.lightImpact());
-    // Keep the check visible without moving the row. Only after the user has
-    // perceived the confirmation do the surrounding rows close the gap.
-    await Future<void>.delayed(_completionConfirmationDuration);
-    if (mounted) setState(() => leavingAfterCompletion = true);
-    await Future<void>.delayed(_completionCollapseDuration);
-    final nextDate = await widget.repository.setCompleted(widget.task, true);
+    // Written at the tap: quitting right after it must not lose it (build
+    // 271). The lists keep this row until the animation ends.
+    final hold = CompletionHold.of(widget.repository)..hold(widget.task);
+    final CivilDate? nextDate;
+    try {
+      final write = widget.repository.setCompleted(widget.task, true);
+      // Keep the check visible without moving the row. Only after the user
+      // has perceived the confirmation do the surrounding rows close the gap.
+      await Future<void>.delayed(_completionConfirmationDuration);
+      if (mounted) setState(() => leavingAfterCompletion = true);
+      await Future<void>.delayed(_completionCollapseDuration);
+      nextDate = await write;
+    } finally {
+      hold.release(widget.task.id);
+    }
     elapsed.stop();
     unawaited(
       DiagnosticLogService.instance.event(

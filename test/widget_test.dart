@@ -1095,9 +1095,11 @@ void main() {
     await db.close();
   });
 
-  testWidgets('il completamento anima prima di aggiornare il database', (
+  testWidgets('il completamento si salva al tocco e la riga anima come prima', (
     tester,
   ) async {
+    // Build 271: the write used to wait for the animation, and quitting
+    // Chrome within about 0.4 s lost the completion.
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     final taskId = await repository.create('Animami');
@@ -1106,31 +1108,22 @@ void main() {
 
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 50));
-    expect((await db.select(db.tasks).getSingle()).status, 'inbox');
+    expect((await db.select(db.tasks).getSingle()).status, 'completed');
+    await tester.pump();
+    // SQLite has the completion; the row is still shown, checked, open.
+    final collapse = find.byKey(ValueKey('completion-collapse-$taskId'));
+    expect(collapse, findsOneWidget);
     expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isTrue);
-    expect(
-      tester
-          .widget<AnimatedAlign>(
-            find.byKey(ValueKey('completion-collapse-$taskId')),
-          )
-          .heightFactor,
-      1,
-    );
+    expect(tester.widget<AnimatedAlign>(collapse).heightFactor, 1);
     expect(find.byType(AnimatedSlide), findsNothing);
     await tester.pump(const Duration(milliseconds: 200));
-    expect((await db.select(db.tasks).getSingle()).status, 'inbox');
-    expect(
-      tester
-          .widget<AnimatedAlign>(
-            find.byKey(ValueKey('completion-collapse-$taskId')),
-          )
-          .heightFactor,
-      0,
-    );
+    expect(collapse, findsOneWidget);
+    expect(tester.widget<AnimatedAlign>(collapse).heightFactor, 0);
     await tester.pump(const Duration(milliseconds: 100));
-    expect((await db.select(db.tasks).getSingle()).status, 'inbox');
+    expect(collapse, findsOneWidget);
 
     await tester.pumpAndSettle();
+    expect(collapse, findsNothing);
     expect((await db.select(db.tasks).getSingle()).status, 'completed');
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

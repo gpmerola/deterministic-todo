@@ -8,6 +8,7 @@ import '../domain/agenda.dart';
 import '../domain/quick_add_parser.dart';
 import '../domain/task.dart';
 import 'app_section.dart';
+import 'completion_hold.dart';
 import 'event_search_controller.dart';
 
 /// Universal command: search, `+` create, `>` open a view, `#` project.
@@ -76,13 +77,15 @@ class TaskSearchDelegate extends SearchDelegate<void> {
     ].join('|');
     if (key != _streamKey) {
       _streamKey = key;
-      _stream = repository.watchSearch(
-        text: text,
-        projectOnly: projectOnly,
-        onDate: _filters.contains(TaskSearchFilter.today) ? today : null,
-        undated: _filters.contains(TaskSearchFilter.undated),
-        recurring: _filters.contains(TaskSearchFilter.recurring),
-        highPriority: _filters.contains(TaskSearchFilter.highPriority),
+      _stream = CompletionHold.of(repository).keep(
+        repository.watchSearch(
+          text: text,
+          projectOnly: projectOnly,
+          onDate: _filters.contains(TaskSearchFilter.today) ? today : null,
+          undated: _filters.contains(TaskSearchFilter.undated),
+          recurring: _filters.contains(TaskSearchFilter.recurring),
+          highPriority: _filters.contains(TaskSearchFilter.highPriority),
+        ),
       );
     }
     return _stream!;
