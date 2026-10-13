@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.89.0 (build 268) — Todo Test
+
+- Rimosse le **Sessioni amministrative** (build 264–267) su richiesta
+  dell'utente: niente più sezione Admin, interruttore, slot nel Calendario,
+  azione **Rimanda al prossimo slot** né agganci in Oggi, Prossime e
+  Calendario. Nessun dato viene toccato all'aggiornamento: il progetto
+  «Amministrazione», le sue sezioni e le copie restano un progetto normale;
+  la vecchia impostazione locale degli slot resta inerte e viene ignorata.
+  Codice e contratto nel tag `archive/admin-sessions-b267`.
+
 ## 2.88.0 (build 267) — Todo Test
 
 - Sessioni amministrative: le copie di «Copia dagli altri progetti» non hanno
@@ -37,7 +47,7 @@ Cronologia delle modifiche distribuite, dalla più recente.
   slot successivo, attesa con data di controllo, origine e ID esterno.
 - Nessuna migrazione: progetto e sezioni con ID fissi e colonne già
   sincronizzate; la configurazione degli slot resta sul dispositivo.
-  [Dettagli](docs/architecture/ADMIN_SESSIONS.md).
+  Rimossa nella build 268; codice nel tag `archive/admin-sessions-b267`.
 
 ## 2.84.0 (build 263) — stabile Android/Web e Todo Test
 

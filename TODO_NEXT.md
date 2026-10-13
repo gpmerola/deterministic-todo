@@ -19,10 +19,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P1 — Osservazioni in corso
 
-- [ ] Sessioni amministrative (sperimentale, build 264): primo uso reale sul
-  Galaxy; raccogliere riscontri su slot, rimanda e chiudi sessione prima di
-  estenderla ([contratto](docs/architecture/ADMIN_SESSIONS.md)).
-
 - [ ] Second Brain: prima esecuzione automatica oraria e frase da una nuova chat
   con Drive collegato (STATUS).
 - [ ] Un giorno di batteria: il job Calendario a trigger deve fermarsi
@@ -47,12 +43,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
   e autorizzazione specifica per la cancellazione permanente.
 
 ## P2 — Idee e decisioni future
-
-- Sessioni amministrative, passi successivi: sincronizzare la configurazione
-  degli slot tra telefono e Web (oggi solo locale; richiede una scelta tra
-  `app_settings` sincronizzate o nuova tabella con migrazione approvata);
-  integrazione automatica Gmail OPUK e Semble in `external_source`/
-  `external_id` (richiede OAuth e decisioni privacy, titoli generici).
 
 - Fuso diverso alla creazione di un evento (oggi quello del telefono).
 - Unione heydoc/Semble (stesso inizio, titoli diversi) solo se richiesta.

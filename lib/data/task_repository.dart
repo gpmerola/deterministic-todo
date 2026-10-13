@@ -678,41 +678,6 @@ class TaskRepository {
     );
   }
 
-  /// Explicit planning change of «Sessioni amministrative»: only the given
-  /// fields are written. Without an explicit [status] an open item gets its
-  /// legacy value projected again only when the date changes.
-  Future<void> planAdministrative(
-    Task task, {
-    Value<String?> showDate = const Value.absent(),
-    Value<String?> projectId = const Value.absent(),
-    Value<String?> sectionId = const Value.absent(),
-    TaskStatus? status,
-    Value<String?> externalSource = const Value.absent(),
-    Value<String?> externalId = const Value.absent(),
-  }) {
-    final dateChanged = showDate.present && showDate.value != task.showDate;
-    final projected = status == null && dateChanged && isOpenStatus(task.status)
-        ? legacyOpenStatus(
-            showDate.value,
-            CivilDate.fromDateTime(DateTime.now()),
-          )
-        : null;
-    final nextStatus = status ?? projected;
-    return _update(
-      task,
-      TasksCompanion(
-        showDate: showDate,
-        projectId: projectId,
-        sectionId: sectionId,
-        status: nextStatus == null
-            ? const Value.absent()
-            : Value(nextStatus.name),
-        externalSource: externalSource,
-        externalId: externalId,
-      ),
-    );
-  }
-
   Future<int> generateCalendarOccurrences(Task task, CivilDate through) async {
     final rule = RecurrenceRule.decode(task.recurrence);
     if (rule == null ||

@@ -34,7 +34,7 @@ Todo Test 2.85.0 / build 264, installata sul Galaxy in-place (versionCode
 `agent/admin-sessions`. Avvio verificato senza errori, funzione spenta di
 default e app invariata. Nessuna prova sul telefono con la funzione accesa:
 nessuna scrittura sui dati reali senza consenso; il comportamento è coperto da
-test su fixture sintetiche ([contratto](docs/architecture/ADMIN_SESSIONS.md)).
+test su fixture sintetiche (contratto nel tag `archive/admin-sessions-b267`).
 Build Web release compilata ma non pubblicata; nessuna migrazione DB.
 
 ## Release stabile 2.84.0 / 263 — 13 ottobre 2026

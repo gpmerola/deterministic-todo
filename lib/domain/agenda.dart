@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'admin_sessions.dart';
 import 'task.dart';
 import 'text_fold.dart';
 
@@ -412,16 +411,7 @@ final class AgendaEntry {
     this.completed = false,
     this.unanswered = false,
     this.key = '',
-    this.adminSlotKey,
   });
-
-  /// Calendar id of the «Sessioni amministrative» blocks.
-  static const adminCalendarId = 'todo-admin';
-
-  /// Set for an administrative slot ([AdminSlotOccurrence.key]): drawn as a
-  /// block, never a phone event, never mirrored or backed up.
-  final String? adminSlotKey;
-  bool get isAdminSlot => adminSlotKey != null;
 
   /// [agendaEventKey] of the merged occurrence: what "Nascondi" stores.
   final String key;
@@ -508,7 +498,6 @@ List<AgendaDay> buildAgenda({
   required int days,
   AgendaFilter filter = AgendaFilter.none,
   List<AgendaTaskItem> tasks = const [],
-  List<AdminSlotOccurrence> adminSlots = const [],
 }) {
   final entries = mergeAgendaEntries(
     events: events,
@@ -516,7 +505,6 @@ List<AgendaDay> buildAgenda({
     hiddenCalendarIds: hiddenCalendarIds,
     filter: filter,
     tasks: tasks,
-    adminSlots: adminSlots,
   );
   return [
     for (var index = 0; index < days; index++)
@@ -540,7 +528,6 @@ List<AgendaEntry> mergeAgendaEntries({
   required Set<String> hiddenCalendarIds,
   AgendaFilter filter = AgendaFilter.none,
   List<AgendaTaskItem> tasks = const [],
-  List<AdminSlotOccurrence> adminSlots = const [],
 }) {
   final calendarOrder = {
     for (final (index, calendar) in calendars.indexed) calendar.id: index,
@@ -605,17 +592,6 @@ List<AgendaEntry> mergeAgendaEntries({
         allDay: true,
         taskId: task.id,
         completed: task.completed,
-      ),
-    for (final slot in adminSlots)
-      AgendaEntry(
-        instanceId: 'admin:${slot.key}',
-        calendarIds: const [AgendaEntry.adminCalendarId],
-        title: 'Amministrazione · ${slot.label}',
-        start: slot.start,
-        end: slot.end,
-        allDay: false,
-        key: 'admin:${slot.key}',
-        adminSlotKey: slot.key,
       ),
   ]..sort(_compareEntries);
   return entries;

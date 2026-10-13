@@ -1,23 +1,13 @@
 import 'package:flutter/material.dart';
 
 /// Top-level destinations of the shell. Inbox items live in Today.
-/// [admin] is shown only while «Sessioni amministrative» is on.
-enum AppSection {
-  today,
-  upcoming,
-  projects,
-  admin,
-  agenda,
-  completed,
-  settings,
-}
+enum AppSection { today, upcoming, projects, agenda, completed, settings }
 
 extension AppSectionPresentation on AppSection {
   String get label => switch (this) {
     AppSection.today => 'Oggi',
     AppSection.upcoming => 'Prossime',
     AppSection.projects => 'Progetti',
-    AppSection.admin => 'Admin',
     AppSection.agenda => 'Calendario',
     AppSection.completed => 'Completate',
     AppSection.settings => 'Impostazioni',
@@ -29,7 +19,6 @@ extension AppSectionPresentation on AppSection {
     AppSection.today => Icons.wb_sunny_outlined,
     AppSection.upcoming => Icons.upcoming_outlined,
     AppSection.projects => Icons.folder_outlined,
-    AppSection.admin => Icons.assignment_outlined,
     AppSection.agenda => Icons.calendar_month_outlined,
     AppSection.completed => Icons.check_circle_outline,
     AppSection.settings => Icons.settings_outlined,

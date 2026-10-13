@@ -96,45 +96,11 @@ class _TaskTileState extends State<TaskTile> {
         heightFactor: leavingAfterCompletion ? 0 : 1,
         child: Dismissible(
           key: ValueKey('dismiss-${widget.task.id}'),
-          // With «Sessioni amministrative» on, a swipe to the right defers
-          // the task to the next slot; the row springs back in place.
-          direction: _admin == null
-              ? DismissDirection.endToStart
-              : DismissDirection.horizontal,
-          dismissThresholds: const {
-            DismissDirection.endToStart: 0.72,
-            DismissDirection.startToEnd: 0.4,
-          },
-          confirmDismiss: (direction) async {
-            if (direction != DismissDirection.startToEnd) return true;
-            final admin = _admin;
-            if (admin != null) {
-              unawaited(HapticFeedback.lightImpact());
-              await deferToAdminSlot(context, admin, widget.task);
-            }
-            return false;
-          },
+          direction: DismissDirection.endToStart,
+          dismissThresholds: const {DismissDirection.endToStart: 0.72},
           movementDuration: const Duration(milliseconds: 220),
           resizeDuration: const Duration(milliseconds: 260),
-          background: _admin == null
-              ? const SizedBox.shrink()
-              : Container(
-                  color: adminSlotColor.withValues(alpha: 0.22),
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.only(left: 22),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.schedule_send_outlined),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Prossimo slot',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          background: const SizedBox.shrink(),
           secondaryBackground: Container(
             color: Theme.of(context).colorScheme.errorContainer,
             alignment: Alignment.centerRight,
@@ -270,8 +236,8 @@ class _TaskTileState extends State<TaskTile> {
                     trailing: PopupMenuButton<String>(
                       tooltip: 'Azioni attività',
                       onSelected: _runAction,
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
                           value: 'edit',
                           child: ListTile(
                             contentPadding: EdgeInsets.zero,
@@ -279,17 +245,7 @@ class _TaskTileState extends State<TaskTile> {
                             title: Text('Modifica'),
                           ),
                         ),
-                        if (_admin != null)
-                          for (final (value, icon, label) in _adminActions)
-                            PopupMenuItem(
-                              value: value,
-                              child: ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: Icon(icon),
-                                title: Text(label),
-                              ),
-                            ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
                           child: ListTile(
                             contentPadding: EdgeInsets.zero,
@@ -381,32 +337,8 @@ class _TaskTileState extends State<TaskTile> {
     );
   }
 
-  /// Non-null while «Sessioni amministrative» is on.
-  /// Completed items are left alone.
-  AdminSessionsController? get _admin =>
-      widget.task.status == TaskStatus.completed.name
-      ? null
-      : AdminSessionsScope.enabledOf(context);
-
-  static const _adminActions = [
-    ('defer', Icons.schedule_send_outlined, 'Rimanda al prossimo slot'),
-    ('waiting', Icons.hourglass_empty, 'In attesa fino a…'),
-    ('source', Icons.label_outline, 'Origine e ID…'),
-  ];
-
   Future<void> _runAction(String action) async {
     if (action == 'edit') return _showEditor();
-    final admin = _admin;
-    if (admin != null) {
-      switch (action) {
-        case 'defer':
-          return deferToAdminSlot(context, admin, widget.task);
-        case 'waiting':
-          return setAdminWaiting(context, admin, widget.task);
-        case 'source':
-          return editAdminSource(context, admin, widget.task);
-      }
-    }
     if (action == 'complete') {
       await _setCompleted(true);
     } else if (action == 'delete') {
@@ -429,21 +361,17 @@ class _TaskTileState extends State<TaskTile> {
         Rect.fromLTWH(position.dx, position.dy, 0, 0),
         Offset.zero & overlay.size,
       ),
-      items: [
-        const PopupMenuItem(value: 'edit', child: Text('Modifica')),
-        const PopupMenuItem(value: 'complete', child: Text('Completa')),
-        if (_admin != null)
-          for (final (value, _, label) in _adminActions)
-            PopupMenuItem(value: value, child: Text(label)),
-        const PopupMenuDivider(),
-        const PopupMenuItem(value: 'delete', child: Text('Cestino')),
+      items: const [
+        PopupMenuItem(value: 'edit', child: Text('Modifica')),
+        PopupMenuItem(value: 'complete', child: Text('Completa')),
+        PopupMenuDivider(),
+        PopupMenuItem(value: 'delete', child: Text('Cestino')),
       ],
     );
     if (action != null) await _runAction(action);
   }
 
   Future<void> _showMobileMenu() async {
-    final admin = _admin;
     final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -465,14 +393,6 @@ class _TaskTileState extends State<TaskTile> {
               title: const Text('Completa'),
               onTap: () => Navigator.pop(context, 'complete'),
             ),
-            if (admin != null)
-              for (final (value, icon, label) in _adminActions)
-                ListTile(
-                  key: ValueKey('task-menu-$value'),
-                  leading: Icon(icon),
-                  title: Text(label),
-                  onTap: () => Navigator.pop(context, value),
-                ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
               title: const Text('Cestino'),
