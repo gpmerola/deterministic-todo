@@ -65,9 +65,11 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P2 — Performance
 
-- Preparazione backup: benchmark sintetico pronto (`make benchmark-backup`).
-  Prima di spostare serializzazione/hash fuori dalla UI, misurare sul Galaxy
-  con database isolato: [baseline host e criteri](docs/diagnostics/2026-10-13-backup-preparation.md).
+- Preparazione backup: misurata su Galaxy in release, database sintetico
+  isolato; a 10.000 righe pausa event loop di circa 0,75 s. Confrontare una
+  variante in isolate includendo copie/trasferimento e test di equivalenza.
+- Calendario denso: profilare la costruzione delle pagine; frame lenti già
+  presenti senza backup. [Misure e limiti](docs/diagnostics/2026-10-13-device-performance.md).
 
 
 Misurare prima di ottimizzare: cold/warm start, RAM e frame con 100/1.000/10.000

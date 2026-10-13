@@ -58,3 +58,8 @@ Cifratura, canale nativo e storage Android non sono misurati.
 Non aggiungere dipendenze o cambiare formato/cifratura per questo benchmark.
 Le misure host giustificano il collaudo del punto 1; non dimostrano da sole un
 problema percepibile con l'archivio reale.
+
+
+Il collaudo release sul Galaxy è stato eseguito nella build 263:
+[misure, metodo e limiti](2026-10-13-device-performance.md). La tabella sopra
+resta la baseline host storica, non sostituita dai numeri Android.

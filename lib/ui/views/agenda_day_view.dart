@@ -9,6 +9,7 @@ import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_header.dart' show AgendaTodayIcon;
+import 'agenda_page_frame.dart';
 import 'calendar_visit_group.dart';
 
 typedef AgendaDaysLoader =
@@ -229,6 +230,7 @@ class AgendaDayTimeline extends StatefulWidget {
 class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   static const _gutter = 48.0;
   AgendaDay? data;
+  bool loading = false, failed = false;
   ScrollController? scroll;
 
   /// Press-and-drag on free time: pressed minute and current span.
@@ -255,11 +257,21 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   }
 
   Future<void> _load() async {
+    if (loading) return;
+    setState(() {
+      loading = true;
+      failed = false;
+    });
     try {
-      final next = (await widget.loadDays(widget.day, 1)).firstOrNull;
+      final next =
+          (await widget.loadDays(widget.day, 1)).firstOrNull ??
+          AgendaDay(widget.day, const []);
       if (mounted) setState(() => data = next);
     } catch (_) {
-      // Not logged: may carry event details. The stale view stays.
+      // Never expose an exception that may carry event details.
+      if (mounted) setState(() => failed = true);
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -320,7 +332,14 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AgendaPageFrame(
+    failed: failed,
+    loading: loading,
+    onRetry: () => unawaited(_load()),
+    child: _timeline(context),
+  );
+
+  Widget _timeline(BuildContext context) {
     final theme = Theme.of(context);
     final entries = data?.entries ?? const <AgendaEntry>[];
     final allDay = [
@@ -346,7 +365,9 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
         ? null
         : ScrollController(initialScrollOffset: _initialOffset(blocks));
     if (scroll == null) {
-      return const Center(child: CircularProgressIndicator());
+      return loading
+          ? const Center(child: CircularProgressIndicator())
+          : const SizedBox.expand();
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

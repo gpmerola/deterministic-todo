@@ -2,6 +2,34 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 263 — Ricerca coerente e dettaglio giornaliero recuperabile
+
+Todo Test 2.84.0 / build 263, installata sul Galaxy in-place (versionCode
+2263) tramite `make todo-test`. Il dettaglio giornaliero mostra errori e
+Riprova senza perdere la pagina; un risultato vuoto termina il caricamento.
+La ricerca attività distingue attesa, vuoto ed errore; al cambio di query o
+filtro non rende risultati precedenti. I filtri aggiornano la UI anche nella
+ricerca già aperta. Test di regressione su query rapide, risultati tardivi,
+filtri, retry, preview calendario e risposte vuote.
+
+`make check`: analisi, **530 test Flutter**, strumenti, SQL e documentazione
+superati; tre benchmark host opt-in esclusi. `make check-generated` e build
+Web release superati. Sul Galaxy verificati ricerca sintetica, selezione del
+filtro e dettaglio di un giorno vuoto senza spinner. Errori di lettura testati
+con fixture automatiche, senza guastare il provider reale. Browser: ricerca
+con cambio filtri/testo e modifica sintetica persistente dopo refresh e
+chiusura/riapertura della scheda; UI dichiara 2.84.0 (263). HTTPS loopback
+verificato con certificato esplicitamente fidato da curl, UI su HTTP loopback;
+HTTPS pubblico e chiusura completa del browser non collaudati. Nessuna
+pubblicazione Web o release stabile.
+
+Eseguito benchmark Android release nel package isolato `.dev.validation`,
+senza accesso a dati personali. Misure numeriche, hash del sorgente, procedure
+ripetibili e limiti: [rapporto](docs/diagnostics/2026-10-13-device-performance.md).
+Il backup sintetico da 10.000 righe presenta pause dell'event loop; il calendario
+denso ha frame lenti anche senza backup. Nessuna ottimizzazione non misurata
+introdotta nel percorso operativo.
+
 ## Build 262 — Recupero Calendario e stato backup verificabile
 
 Todo Test 2.83.0 / build 262. Tutte le griglie Calendario mostrano errori e

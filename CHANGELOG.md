@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.84.0 (build 263) — Todo Test
+
+- Anche il dettaglio giornaliero Calendario mostra gli errori di lettura con
+  Riprova, conserva la pagina precedente e termina il caricamento quando il
+  risultato è vuoto.
+- Ricerca attività: cambi di testo o filtro non mostrano più risultati della
+  query precedente; distinti attesa, nessun risultato ed errore recuperabile.
+  I filtri aggiornano i risultati anche quando la ricerca è già aperta.
+- Benchmark release opt-in sul dispositivo, con calendario sintetico,
+  database isolato e misure della preparazione backup durante lo scorrimento.
+
 ## 2.83.0 (build 262) — Todo Test
 
 - Errori di lettura Calendario visibili in tutte le griglie, con Riprova per

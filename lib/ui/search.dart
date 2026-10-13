@@ -33,6 +33,14 @@ class TaskSearchDelegate extends SearchDelegate<void> {
   final Future<void> Function(String raw) onCreate;
   final Widget Function(Task task) tileBuilder;
   final Set<TaskSearchFilter> _filters = {};
+  final _revision = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    _revision.dispose();
+    super.dispose();
+  }
+
   String? _streamKey;
   Stream<List<Task>>? _stream;
 
@@ -84,6 +92,13 @@ class TaskSearchDelegate extends SearchDelegate<void> {
     final rawQuery = query.trim();
     if (rawQuery.startsWith('+')) return _createCommand(context, rawQuery);
     if (rawQuery.startsWith('>')) return _navigationCommand(context, rawQuery);
+    return ValueListenableBuilder<int>(
+      valueListenable: _revision,
+      builder: (context, _, _) => _taskResults(context, rawQuery),
+    );
+  }
+
+  Widget _taskResults(BuildContext context, String rawQuery) {
     return Column(
       children: [
         SingleChildScrollView(
@@ -99,7 +114,7 @@ class TaskSearchDelegate extends SearchDelegate<void> {
                     selected: _filters.contains(filter),
                     onSelected: (selected) {
                       selected ? _filters.add(filter) : _filters.remove(filter);
-                      showSuggestions(context);
+                      _revision.value++;
                     },
                   ),
                 ),
@@ -110,9 +125,33 @@ class TaskSearchDelegate extends SearchDelegate<void> {
           child: StreamBuilder<List<Task>>(
             stream: _search(rawQuery),
             builder: (context, snapshot) {
-              final results = snapshot.data ?? const <Task>[];
+              final waiting =
+                  snapshot.connectionState == ConnectionState.waiting;
+              // StreamBuilder retains the old snapshot when the query changes.
+              // It must not appear to answer the new text or filters.
+              final results = waiting || snapshot.hasError
+                  ? const <Task>[]
+                  : snapshot.data ?? const <Task>[];
               return ListView(
                 children: [
+                  if (waiting)
+                    const LinearProgressIndicator()
+                  else if (snapshot.hasError)
+                    ListTile(
+                      title: const Text('Ricerca attività non riuscita.'),
+                      trailing: TextButton(
+                        onPressed: () {
+                          _streamKey = null;
+                          _revision.value++;
+                        },
+                        child: const Text('Riprova'),
+                      ),
+                    )
+                  else if (results.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('Nessuna attività trovata.'),
+                    ),
                   for (final task in results) tileBuilder(task),
                   if (searchEvents != null &&
                       _filters.isEmpty &&

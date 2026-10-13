@@ -114,3 +114,23 @@ Il retry riguarda solo quella pagina, conserva l'anteprima, accorpa tocchi
 ripetuti e rispetta invalidazione/espulsione/dispose. Nessun retry periodico.
 La cornice comune è `agenda_page_frame.dart`; test di tutte le viste in
 `agenda_page_retry_test.dart` e della conservazione in `agenda_page_cache_test.dart`.
+
+
+## Dettaglio giornaliero e ricerca (build 263)
+
+Il dettaglio giornaliero usa lo stesso `AgendaPageFrame` delle griglie per
+caricamento, errore minimizzato e Riprova. Una sola lettura per timeline può
+restare attiva; il retry conserva la pagina e la posizione precedenti. Una
+risposta vuota riuscita diventa un giorno vuoto, senza spinner permanente.
+Dopo lo smontaggio i risultati non aggiornano lo stato.
+
+La ricerca attività distingue attesa, risultato vuoto ed errore SQL. Durante
+il cambio dello stream non renderizza lo snapshot conservato della query
+precedente. Testo e filtri determinano una sola query; i filtri e il retry
+invalidano esplicitamente la UI, anche se SearchDelegate è già in modalità
+suggerimenti. La ricerca eventi conserva il proprio controller e la cache.
+Nessun messaggio di eccezione contenente dati viene esposto nell'interfaccia.
+
+Verifiche: `test/agenda_day_retry_test.dart`, `test/search_state_test.dart`.
+Misure Android riproducibili: `tools/device_performance.py` (package di
+validazione separato, nessun accesso al database operativo).
