@@ -2,6 +2,19 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 267 — Copie Admin senza data, Todo Test
+
+Le copie della 265 avevano la data del prossimo slot (14 ottobre) e
+raddoppiavano quel giorno in Prossime accanto agli originali; nessun processo
+in loop, sync ferma con zero in attesa. Todo Test 2.88.0 / build 267: copie
+nuove senza data, azione «Togli la data alle copie», parole chiave più strette.
+ADB cadeva durante il trasferimento dell'APK: pubblicata con
+`make todo-test-remote` e installata dall'utente (versionCode 2267). Con il
+consenso dell'utente: backup «Crea ora», date tolte alle copie, copia errata
+«documentari» nel cestino. Verificato in lettura: il 14 ottobre ha solo le
+attività di prima, 23 copie in Admin senza data, originali al loro posto, sync
+completa alle 10:12 UTC con zero in attesa.
+
 ## Build 265–266 — Admin essenziale, copia e progetti eliminati, Todo Test
 
 Todo Test 2.87.0 / build 266 installata sul Galaxy in-place (versionCode
