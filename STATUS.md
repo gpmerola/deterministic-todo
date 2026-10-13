@@ -2,6 +2,18 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 272 — Pulizia del codice, Todo Test
+
+Todo Test 2.93.0 / build 272 installata sul Galaxy in-place (versionCode
+2272, dati conservati) con `make todo-test`; app avviata, nessun errore nel
+log. Tolte funzioni inutilizzate, i test che provavano solo quelle e gli
+script `tools/launchers/`; il test di convergenza Android/Web ora passa dalla
+sincronizzazione reale con server sintetico. Codice, test e strumenti: 429
+righe tolte, 107 aggiunte (quasi tutte il nuovo test). `make
+check-generated` e `make check` (535 test Flutter, immagini di riferimento
+invariate) superati. `temp/` (fuori da Git) non toccata. Nessuna
+pubblicazione, nessuna migrazione.
+
 ## Build 271 — Completamento salvato al tocco, Todo Test
 
 Todo Test 2.92.0 / build 271 installata sul Galaxy in-place (versionCode
