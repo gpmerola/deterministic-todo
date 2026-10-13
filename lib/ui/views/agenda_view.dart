@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../domain/admin_sessions.dart';
 import '../../domain/agenda.dart';
 import '../../domain/agenda_request.dart';
 import '../../domain/task.dart';
@@ -42,8 +43,21 @@ class AgendaView extends StatefulWidget {
     this.onCapture,
     this.onChanged,
     this.onPinCalendar,
+    this.adminSlots,
+    this.adminRevision = 0,
+    this.onOpenAdminSlot,
     super.key,
   });
+
+  /// «Sessioni amministrative» blocks for the given days; null when the
+  /// experimental feature is off. [adminRevision] changes when they do.
+  final List<AdminSlotOccurrence> Function(CivilDate first, int count)?
+  adminSlots;
+  final int adminRevision;
+
+  /// Opens the slot editor; true when something changed.
+  final Future<bool> Function(BuildContext context, String key)?
+  onOpenAdminSlot;
 
   /// After a change made here (event, calendars, filters): the shell
   /// refreshes the web mirror.
@@ -75,7 +89,8 @@ class AgendaView extends StatefulWidget {
 }
 
 class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
-  late final loader = AgendaLoadController(widget.service);
+  late final loader = AgendaLoadController(widget.service)
+    ..adminSlots = widget.adminSlots;
   bool _wasBackground = false;
   AgendaAccess? access;
   List<AgendaCalendar> calendars = const [];
@@ -157,7 +172,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant AgendaView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.today != widget.today) unawaited(_load());
+    loader.adminSlots = widget.adminSlots;
+    if (oldWidget.today != widget.today) {
+      unawaited(_load());
+    } else if (oldWidget.adminRevision != widget.adminRevision ||
+        (oldWidget.adminSlots == null) != (widget.adminSlots == null)) {
+      unawaited(_load(changed: false));
+    }
   }
 
   @override
@@ -330,6 +351,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     return buildAgenda(
       events: events,
       tasks: widget.service.cachedTasks(first, count) ?? const [],
+      adminSlots: widget.adminSlots?.call(first, count) ?? const [],
       calendars: calendars,
       hiddenCalendarIds: hidden,
       filter: filter,
@@ -344,7 +366,14 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     AgendaFilter filter,
     CivilDate first,
     int count,
-  ) => loader.readDays(calendars, hidden, filter, first, count);
+  ) => loader.readDays(
+    calendars,
+    hidden,
+    filter,
+    first,
+    count,
+    adminSlots: widget.adminSlots?.call(first, count) ?? const [],
+  );
 
   AgendaEventFlows get _flows => AgendaEventFlows(
     service: widget.service,
@@ -353,6 +382,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     zone: zone,
     onOpenTask: widget.onOpenTask,
     onCreateTask: widget.onCreateTask,
+    onOpenAdminSlot: widget.onOpenAdminSlot,
     onChanged: () {
       unawaited(_load());
       widget.onChanged?.call();
@@ -571,9 +601,11 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     final colors = {
       for (final calendar in calendars)
         calendar.id: parseCalendarColor(calendar.colorHex),
+      AgendaEntry.adminCalendarId: adminSlotColor,
     };
     final names = {
       for (final calendar in calendars) calendar.id: calendar.name,
+      AgendaEntry.adminCalendarId: 'Sessioni amministrative',
     };
     final zoneText = [
       zone == null

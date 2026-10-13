@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.85.0 (build 264) — Todo Test
+
+- Nuova funzione sperimentale **Sessioni amministrative**, spenta di default
+  (Impostazioni, in fondo). Accesa: sezione **Admin** con cinque sottosezioni
+  e coda contata, tre slot settimanali modificabili mostrati come blocchi nel
+  Calendario, **Rimanda al prossimo slot** con scorrimento verso destra o dal
+  menu di qualunque attività, **Chiudi sessione** che porta il residuo allo
+  slot successivo, attesa con data di controllo, origine e ID esterno.
+- Nessuna migrazione: progetto e sezioni con ID fissi e colonne già
+  sincronizzate; la configurazione degli slot resta sul dispositivo.
+  [Dettagli](docs/architecture/ADMIN_SESSIONS.md).
+
 ## 2.84.0 (build 263) — stabile Android/Web e Todo Test
 
 - Pubblicata il 13 ottobre 2026 su Web, APK diretti e test interno Google Play;

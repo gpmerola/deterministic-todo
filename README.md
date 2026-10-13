@@ -104,6 +104,16 @@ mostrano gli stessi valori, anche quando scrivi `p1` o `#Nome progetto` nel
 titolo. Scegliendo un altro valore dal menu viene aggiornato il relativo token
 nel testo; data e ricorrenza restano invariate.
 
+## Sessioni amministrative (sperimentale)
+
+Spenta di default: **Impostazioni → Sessioni amministrative (sperimentale)**.
+Accesa, aggiunge la sezione **Admin** (Inbox amministrativa, Clinica privata,
+Finanza e burocrazia, Carriera e compliance, In attesa), tre slot settimanali
+visibili nel Calendario e modificabili toccandoli, e su ogni attività
+**Rimanda al prossimo slot** (scorrimento verso destra o menu). **Chiudi
+sessione** porta il residuo allo slot successivo. Gli slot valgono sul singolo
+dispositivo. [Dettagli](docs/architecture/ADMIN_SESSIONS.md).
+
 ## Calendario (Android)
 
 **Calendario → ⋮ → Promemoria**: avviso locale 30 minuti prima di tutti gli

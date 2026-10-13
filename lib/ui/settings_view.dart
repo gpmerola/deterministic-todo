@@ -11,8 +11,12 @@ class SettingsView extends StatelessWidget {
     this.syncService,
     this.autoBackup,
     this.earnings,
+    this.admin,
     super.key,
   });
+
+  /// «Sessioni amministrative (sperimentale)»; null in tests without it.
+  final AdminSessionsController? admin;
 
   /// Android only: weekly encrypted backups kept on this phone.
   final AutoBackupService? autoBackup;
@@ -706,6 +710,24 @@ class SettingsView extends StatelessWidget {
           ),
         ],
       ),
+      // Experimental features last, below everyday settings.
+      if (admin != null)
+        ListenableBuilder(
+          listenable: admin!,
+          builder: (context, _) => SwitchListTile(
+            key: const ValueKey('settings-admin-sessions'),
+            secondary: const Icon(Icons.assignment_outlined),
+            title: const Text('Sessioni amministrative (sperimentale)'),
+            subtitle: Text(
+              admin!.enabled
+                  ? 'Sezione Admin e slot nel Calendario. Spegnendola le '
+                        'attività restano dove sono.'
+                  : 'Coda burocratica rimandata a slot settimanali',
+            ),
+            value: admin!.enabled,
+            onChanged: (value) => admin!.setEnabled(value),
+          ),
+        ),
     ],
   );
 }

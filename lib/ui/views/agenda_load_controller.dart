@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../domain/admin_sessions.dart';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
@@ -30,6 +31,9 @@ class AgendaLoadResult {
 class AgendaLoadController {
   AgendaLoadController(this.service);
   final AgendaService service;
+
+  /// «Sessioni amministrative» blocks, set by the view; null when off.
+  List<AdminSlotOccurrence> Function(CivilDate first, int count)? adminSlots;
   Future<AgendaLoadResult>? _active;
   (CivilDate, int)? _requested;
   bool _again = false;
@@ -83,7 +87,14 @@ class AgendaLoadController {
       hideHolidays: filter.hideHolidays,
     );
     final days = mode == AgendaViewMode.list
-        ? await readDays(calendars, hidden, filter, first, count)
+        ? await readDays(
+            calendars,
+            hidden,
+            filter,
+            first,
+            count,
+            adminSlots: adminSlots?.call(first, count) ?? const [],
+          )
         : null;
     return AgendaLoadResult(
       access: access,
@@ -102,8 +113,9 @@ class AgendaLoadController {
     Set<String> hidden,
     AgendaFilter filter,
     CivilDate first,
-    int count,
-  ) async {
+    int count, {
+    List<AdminSlotOccurrence> adminSlots = const [],
+  }) async {
     final (events, tasks) = await (
       service.events(first.asLocalDate, first.addDays(count).asLocalDate, [
         for (final calendar in calendars)
@@ -114,6 +126,7 @@ class AgendaLoadController {
     return buildAgenda(
       events: events,
       tasks: tasks,
+      adminSlots: adminSlots,
       calendars: calendars,
       hiddenCalendarIds: hidden,
       filter: filter,

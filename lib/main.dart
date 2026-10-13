@@ -19,11 +19,13 @@ import 'data/editor_drafts.dart';
 import 'data/local/database.dart';
 import 'data/sync/sync_service.dart';
 import 'data/task_repository.dart';
+import 'domain/admin_sessions.dart';
 import 'domain/agenda.dart';
 import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
+import 'services/admin_sessions_service.dart';
 import 'services/agenda_phone_sync.dart';
 import 'services/agenda_reminders.dart';
 import 'services/agenda_service.dart';
@@ -70,6 +72,7 @@ import 'ui/shell/sync_lifecycle.dart';
 import 'ui/sync_issues_view.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
+import 'ui/views/admin_view.dart';
 import 'ui/views/agenda_colors.dart';
 import 'ui/views/agenda_day_view.dart';
 import 'ui/views/agenda_event_flows.dart';
@@ -296,6 +299,13 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
   final calendarShortcut = CalendarShortcutService();
+
+  /// «Sessioni amministrative» (sperimentale): off by default; one settings
+  /// row read at startup, nothing else until it is switched on.
+  late final admin = AdminSessionsController(
+    widget.repository,
+    clock: widget.clock,
+  );
   late final dayClock = CivilDayClock(now: widget.clock);
 
   /// Agenda on Android (phone calendars) and on the web (the phone's mirror,
@@ -362,6 +372,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
     HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
     dayClock.addListener(_onCivilDayChanged);
+    AdminSessionsScope.active = admin;
+    admin.addListener(_onAdminChanged);
+    unawaited(admin.load());
     unawaited(_initializeProjectCaches());
     if (widget.enablePlatformServices && isAndroidPlatform) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -699,6 +712,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
+  /// Switching the feature off while its section is open returns to Today.
+  void _onAdminChanged() {
+    if (!mounted) return;
+    setState(() {
+      if (!admin.enabled && navigation.section == AppSection.admin) {
+        navigation.navigateTo(AppSection.today);
+      }
+    });
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -715,6 +738,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     dayClock
       ..removeListener(_onCivilDayChanged)
       ..dispose();
+    admin
+      ..removeListener(_onAdminChanged)
+      ..dispose();
+    if (AdminSessionsScope.active == admin) AdminSessionsScope.active = null;
     search.dispose();
     super.dispose();
   }
@@ -831,7 +858,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
+  Widget build(BuildContext context) =>
+      AdminSessionsScope(controller: admin, child: _buildShell(context));
+
+  Widget _buildShell(BuildContext context) => PopScope(
     canPop: _canExitFromBack,
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) _handleBack();
@@ -864,6 +894,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               AppSection.today,
               AppSection.upcoming,
               AppSection.projects,
+              if (admin.enabled) AppSection.admin,
               if (_agendaAvailable) AppSection.agenda,
             ];
             return LayoutBuilder(
@@ -1064,7 +1095,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
                           navigation.section != AppSection.completed
                       ? FloatingActionButton(
                           tooltip: 'Nuova attività',
-                          onPressed: _showQuickAddSheet,
+                          onPressed: navigation.section == AppSection.admin
+                              ? () => _showQuickAddSheet(
+                                  projectId: adminProjectId(),
+                                  sectionId: adminSectionId(AdminSection.inbox),
+                                )
+                              : _showQuickAddSheet,
                           child: const Icon(Icons.add),
                         )
                       : null,
@@ -1289,6 +1325,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
           showCompleted: () => _navigateTo(AppSection.completed),
           dailyStepGoal: steps.goal,
           onDailyStepGoalChanged: steps.setGoal,
+          admin: admin,
         ),
       );
     }
@@ -1305,6 +1342,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
             onSearch: _showUniversalCommand,
             onCapture: isAndroidPlatform ? _openAiCapture : null,
             onSettings: () => _navigateTo(AppSection.settings),
+            adminSlots: admin.enabled ? admin.slotsBetween : null,
+            adminRevision: admin.revision,
+            onOpenAdminSlot: (context, key) =>
+                showAdminSlotSheet(context, admin, key),
             onChanged: () {
               unawaited(agendaSync?.changed());
               if (isAndroidPlatform) {
@@ -1312,6 +1353,22 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
               }
             },
           ),
+        ),
+      );
+    }
+    if (navigation.section == AppSection.admin) {
+      if (!admin.enabled) return const EmptyViewLabel('Funzione spenta');
+      return AdminView(
+        controller: admin,
+        onAddTask: (sectionId) => _showQuickAddSheet(
+          projectId: adminProjectId(),
+          sectionId: sectionId,
+        ),
+        tileBuilder: (task) => TaskTile(
+          key: ValueKey('admin-${task.id}'),
+          task: task,
+          repository: widget.repository,
+          highlightRemote: recentlySyncedTaskIds.contains(task.id),
         ),
       );
     }

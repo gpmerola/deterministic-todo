@@ -35,7 +35,12 @@ class AgendaEventFlows {
     this.onOpenTask,
     this.onCreateTask,
     this.onChanged,
+    this.onOpenAdminSlot,
   });
+
+  /// Editor of an administrative slot block; true when something changed.
+  final Future<bool> Function(BuildContext context, String key)?
+  onOpenAdminSlot;
 
   /// Creates a Todo task (title, date, notes) shown in the Agenda; the shell
   /// owns the repository.
@@ -85,6 +90,9 @@ class AgendaEventFlows {
   /// Detail sheet of an occurrence (or the task editor), then the action.
   /// True when something may have changed (edit, delete, linked task).
   Future<bool> show(BuildContext context, AgendaEntry entry) async {
+    if (entry.isAdminSlot) {
+      return await onOpenAdminSlot?.call(context, entry.adminSlotKey!) ?? false;
+    }
     if (entry.isTask) {
       await onOpenTask?.call(entry.taskId!);
       return true;
@@ -117,7 +125,7 @@ class AgendaEventFlows {
   /// Long press: the frequent actions in a short menu, without the detail
   /// sheet (build 221). True when something may have changed.
   Future<bool> quickActions(BuildContext context, AgendaEntry entry) async {
-    if (entry.isTask) return show(context, entry);
+    if (entry.isTask || entry.isAdminSlot) return show(context, entry);
     final meeting = entry.meeting;
     final canEdit = editable(entry);
     final local = localOnly(entry);

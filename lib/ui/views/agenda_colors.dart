@@ -79,3 +79,6 @@ Color agendaAccentText(Color calendar, ColorScheme scheme) {
   }
   return target;
 }
+
+/// «Sessioni amministrative» blocks: a muted ochre, apart from calendar hues.
+const adminSlotColor = Color(0xff9a6b1f);

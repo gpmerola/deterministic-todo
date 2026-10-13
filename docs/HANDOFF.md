@@ -31,6 +31,9 @@ Tre aree:
    190 ([MOVIMENTO](archive/MOVIMENTO.md)). Non reintrodurre GPS, Amazfit,
    Health Connect o diagnostica senza decisione esplicita dell'utente.
 
+Sperimentale, spenta di default: [Sessioni amministrative](architecture/ADMIN_SESSIONS.md)
+(sezione Admin, slot nel Calendario, rimanda al prossimo slot; build 264).
+
 Funzioni accessorie: assistente ✨ ([AI_ASSISTANT](architecture/AI_ASSISTANT.md))
 e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
 
