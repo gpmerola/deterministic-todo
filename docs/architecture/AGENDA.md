@@ -332,7 +332,8 @@ quell'account non compare; non esiste un aggiramento lato app.
   (`agenda_colors.dart`); nella settimana i titoli vanno a capo solo tra le
   parole (`agenda_word_wrap.dart`). L'aspetto di Settimana e 3 giorni è
   bloccato da immagini di riferimento (`test/agenda_week_golden_test.dart`,
-  build 270).
+  build 270), generate su macOS: le verifica `make check` sul Mac, mentre
+  la CI Linux le salta perché vi rasterizza il testo in modo diverso.
 - **2 settimane (build 201, predefinita).** Due settimane dal lunedì riempiono
   lo schermo, così ogni giorno ha spazio per più eventi, con l'ora d'inizio
   davanti al titolo. Scorrendo in verticale si passa alla quindicina
