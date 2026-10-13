@@ -2,6 +2,16 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 264 — Sessioni amministrative (sperimentale), Todo Test
+
+Todo Test 2.85.0 / build 264, installata sul Galaxy in-place (versionCode
+2264, dati conservati) tramite `make todo-test` dal branch
+`agent/admin-sessions`. Avvio verificato senza errori, funzione spenta di
+default e app invariata. Nessuna prova sul telefono con la funzione accesa:
+nessuna scrittura sui dati reali senza consenso; il comportamento è coperto da
+test su fixture sintetiche ([contratto](docs/architecture/ADMIN_SESSIONS.md)).
+Build Web release compilata ma non pubblicata; nessuna migrazione DB.
+
 ## Release stabile 2.84.0 / 263 — 13 ottobre 2026
 
 Pubblicazione autorizzata con `PUBBLICA`. Workflow coordinato
