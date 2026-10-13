@@ -2,6 +2,18 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 265–266 — Admin essenziale, copia e progetti eliminati, Todo Test
+
+Todo Test 2.87.0 / build 266 installata sul Galaxy in-place (versionCode
+2266) con `make todo-test-adb`, dopo un primo tentativo fallito per ADB IPv4
+offline. La 265 (2265) ha semplificato la schermata Admin e aggiunto «Copia
+dagli altri progetti»: l'utente ha copiato in Admin le attività burocratiche,
+originali intatti. La 266 corregge «Elimina» progetto: l'utente aveva eliminato
+«Collaudo Web 250» (fixture della build 250) che conteneva 9 attività aperte
+reali, rimaste legate al progetto archiviato ma visibili per data. Progetti
+mostra ora la riga «Sposta in Inbox» per recuperarle; azione lasciata
+all'utente (telefono bloccato al momento della consegna).
+
 ## Build 264 — Sessioni amministrative (sperimentale), Todo Test
 
 Todo Test 2.85.0 / build 264, installata sul Galaxy in-place (versionCode
