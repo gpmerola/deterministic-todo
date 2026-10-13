@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.87.0 (build 266) — Todo Test
+
+- Progetti: **Elimina** su un progetto con attività aperte chiede conferma e
+  le sposta in Inbox prima di archiviarlo. Fino alla 265 le lasciava legate
+  al progetto archiviato: visibili solo per data e con l'editor che mostrava
+  «Nessuno». Per i progetti già eliminati con attività aperte, Progetti
+  mostra una riga con **Sposta in Inbox**, con Annulla.
+
 ## 2.86.0 (build 265) — Todo Test
 
 - Sessioni amministrative: schermata Admin più essenziale (una riga con

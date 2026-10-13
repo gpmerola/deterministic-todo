@@ -448,6 +448,48 @@ class TaskRepository {
     return [for (final task in tasks) (id: task.id, sectionId: task.sectionId)];
   });
 
+  /// Deleted (archived) projects that still own open tasks. Their dated
+  /// tasks stay visible by date, but no project view shows them and the
+  /// editor cannot name the project: an explicit move to Inbox repairs it.
+  Stream<List<({Project project, int open})>>
+  watchArchivedProjectsWithTasks() => db
+      .customSelect(
+        'SELECT p.id AS id, COUNT(t.id) AS open FROM projects p '
+        'JOIN tasks t ON t.project_id = p.id '
+        'WHERE p.is_archived = 1 AND t.deleted_at IS NULL '
+        "AND t.status != 'completed' GROUP BY p.id",
+        readsFrom: {db.projects, db.tasks},
+      )
+      .watch()
+      .asyncMap((rows) async {
+        if (rows.isEmpty) return const [];
+        final counts = {
+          for (final row in rows) row.read<String>('id'): row.read<int>('open'),
+        };
+        final projects = await (db.select(
+          db.projects,
+        )..where((p) => p.id.isIn(counts.keys))).get();
+        return [
+          for (final project in projects)
+            (project: project, open: counts[project.id]!),
+        ]..sort((a, b) => a.project.name.compareTo(b.project.name));
+      });
+
+  /// Open, not deleted tasks of [projectId].
+  Future<int> openTaskCount(String projectId) async {
+    final count = db.tasks.id.count();
+    final row =
+        await (db.selectOnly(db.tasks)
+              ..addColumns([count])
+              ..where(
+                db.tasks.projectId.equals(projectId) &
+                    db.tasks.deletedAt.isNull() &
+                    db.tasks.status.equals(TaskStatus.completed.name).not(),
+              ))
+            .getSingle();
+    return row.read(count) ?? 0;
+  }
+
   /// Restores only items still without a project: a later explicit choice wins.
   Future<void> undoMoveProjectToInbox(
     Project project,

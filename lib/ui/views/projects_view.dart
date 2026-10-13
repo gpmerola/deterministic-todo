@@ -64,6 +64,8 @@ class _ProjectsViewState extends State<ProjectsView> {
     repository.db.projectSections,
   )..orderBy([(row) => OrderingTerm(expression: row.position)])).watch();
 
+  late final orphanStream = repository.watchArchivedProjectsWithTasks();
+
   Future<void> _sync() async => widget.syncService?.sync();
 
   @override
@@ -155,6 +157,32 @@ class _ProjectsViewState extends State<ProjectsView> {
         ),
       ),
       const Divider(height: 1),
+      StreamBuilder<List<({Project project, int open})>>(
+        stream: orphanStream,
+        builder: (context, snapshot) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final item
+                in snapshot.data ?? const <({Project project, int open})>[])
+              ListTile(
+                key: ValueKey('orphaned-project-${item.project.id}'),
+                dense: true,
+                leading: const Icon(Icons.move_to_inbox_outlined),
+                title: Text('“${item.project.name}” è stato eliminato'),
+                subtitle: Text(
+                  item.open == 1
+                      ? 'Ha ancora 1 attività aperta'
+                      : 'Ha ancora ${item.open} attività aperte',
+                ),
+                trailing: TextButton(
+                  key: ValueKey('orphaned-to-inbox-${item.project.id}'),
+                  onPressed: () => _moveToInbox(item.project),
+                  child: const Text('Sposta in Inbox'),
+                ),
+              ),
+          ],
+        ),
+      ),
       Expanded(
         child: activeProjects.isEmpty
             ? const EmptyViewLabel(
@@ -378,18 +406,17 @@ class _ProjectsViewState extends State<ProjectsView> {
       await repository.swapProjects(project, projects[index + 1]);
     } else if (action == 'inbox') {
       if (!await _confirmMoveToInbox(project)) return;
-      final moved = await repository.moveProjectToInbox(project);
-      if (!mounted) return;
-      if (widget.selectedProjectId == project.id) widget.onSelectProject(null);
-      AppUndo.show(
-        context,
-        message: '${moved.length} attività spostate in Inbox',
-        undo: () async {
-          await repository.undoMoveProjectToInbox(project, moved);
-          await _sync();
-        },
-      );
+      await _moveToInbox(project);
+      return;
     } else if (action == 'delete') {
+      // Archiving a project with open tasks used to orphan them (seen with
+      // «Collaudo Web 250», build 265): they now go to Inbox first.
+      final open = await repository.openTaskCount(project.id);
+      if (open > 0) {
+        if (!await _confirmDeleteWithTasks(project, open)) return;
+        await _moveToInbox(project);
+        return;
+      }
       await repository.updateProject(project, isArchived: true);
       if (!mounted) return;
       if (widget.selectedProjectId == project.id) widget.onSelectProject(null);
@@ -407,6 +434,58 @@ class _ProjectsViewState extends State<ProjectsView> {
     }
     await _sync();
   }
+
+  /// Moves every task of [project] to Inbox and archives it, with undo.
+  /// For an already deleted project undo keeps it deleted.
+  Future<void> _moveToInbox(Project project) async {
+    final wasArchived = project.isArchived;
+    final moved = await repository.moveProjectToInbox(project);
+    if (mounted) {
+      if (widget.selectedProjectId == project.id) widget.onSelectProject(null);
+      AppUndo.show(
+        context,
+        message: '${moved.length} attività spostate in Inbox',
+        undo: () async {
+          await repository.undoMoveProjectToInbox(project, moved);
+          if (wasArchived) {
+            final current = await (repository.db.select(
+              repository.db.projects,
+            )..where((row) => row.id.equals(project.id))).getSingle();
+            await repository.updateProject(current, isArchived: true);
+          }
+          await _sync();
+        },
+      );
+    }
+    await _sync();
+  }
+
+  Future<bool> _confirmDeleteWithTasks(Project project, int open) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Eliminare “${project.name}”?'),
+          content: Text(
+            open == 1
+                ? 'Contiene 1 attività aperta: verrà spostata in Inbox, non '
+                      'cancellata. Puoi annullare subito dopo.'
+                : 'Contiene $open attività aperte: verranno spostate in '
+                      'Inbox, non cancellate. Puoi annullare subito dopo.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              key: const ValueKey('confirm-delete-project-with-tasks'),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sposta in Inbox ed elimina'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 
   Future<bool> _confirmMoveToInbox(Project project) async =>
       await showDialog<bool>(

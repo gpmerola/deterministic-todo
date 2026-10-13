@@ -60,6 +60,12 @@ in Oggi. Nessun comportamento dipende più dal nome di un progetto.
   nel frattempo su un'altra attività prevale. Ogni modifica resta nello storico.
 - La conversione è esplicita e funziona per qualunque progetto; nessuna
   migrazione automatica tocca i dati sincronizzati.
+- **Elimina** (build 266) su un progetto con attività aperte usa la stessa
+  conversione dopo conferma: le attività finiscono in Inbox, il progetto viene
+  archiviato. Le build precedenti archiviavano lasciando le attività legate al
+  progetto; `watchArchivedProjectsWithTasks` le segnala in cima a Progetti con
+  **Sposta in Inbox** (annullabile, il progetto resta eliminato).
+  Test: `test/project_delete_test.dart`.
 
 ## `due_date`
 
