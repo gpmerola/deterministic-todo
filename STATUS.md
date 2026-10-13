@@ -2,6 +2,18 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 271 — Completamento salvato al tocco, Todo Test
+
+Todo Test 2.92.0 / build 271 installata sul Galaxy in-place (versionCode
+2271, dati conservati) con `make todo-test`; app avviata, nessun errore nel
+log. Nessun completamento eseguito sul telefono reale. Prova di chiusura di
+Chrome su profilo di prova: completamenti conservati 5 su 6 chiudendo
+subito (perso solo a circa 9 ms dal tocco) e 12 su 12 dopo 50 o 100 ms;
+nuove attività e titoli 12 su 12
+([esiti](docs/diagnostics/2026-10-13-web-persistence.md)). `make
+check-generated` e `make check` (539 test Flutter, immagini di riferimento
+invariate) superati. Build Web non pubblicata.
+
 ## Build 270 — Settimana come nella 268, Todo Test
 
 L'utente ha visto la Settimana della 269 diversa (a capo e tagli dei titoli,
