@@ -2,6 +2,18 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 269 — Settimana del Calendario più leggera, Todo Test
+
+Todo Test 2.90.0 / build 269 installata sul Galaxy in-place (versionCode
+2269, dati conservati) con `make todo-test`. Avvio e Calendario aperti senza
+errori; la vista in uso è «3 sett.», non modificata. La vista Settimana non è
+stata aperta sul telefono reale per non toccare la fascia alta dello
+schermo: da provare a mano. Misure del harness sintetico nello stesso
+processo: cambio settimana con 12 eventi al giorno da 102,9 a 41,5 ms di
+build p95 mediana, telefono caldo
+([esiti](docs/diagnostics/2026-10-13-calendar-week-build.md)). `make
+check-generated` e `make check` (538 test Flutter) superati.
+
 ## Build 268 — Sessioni amministrative rimosse, Todo Test
 
 Todo Test 2.89.0 / build 268 installata sul Galaxy in-place (versionCode
