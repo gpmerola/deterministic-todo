@@ -4,8 +4,8 @@
 Builds a separate .dev.validation package. Never publishes the harness or
 reads the operational database. Results are numeric JSON lines on stdout.
 Usage: python3 tools/device_performance.py --serial SERIAL [--scenario calendar]
-`calendar` runs only the week-view scroll, alternating the build 267 view and
-the current one in the same process; no backup.
+`calendar` runs only the week-view scroll, ten samples, no backup. On a warm
+phone compare variants in one process: separate runs are not comparable.
 """
 import argparse
 import json

@@ -134,6 +134,5 @@ Nessun messaggio di eccezione contenente dati viene esposto nell'interfaccia.
 Verifiche: `test/agenda_day_retry_test.dart`, `test/search_state_test.dart`.
 Misure Android riproducibili: `tools/device_performance.py` (package di
 validazione separato, nessun accesso al database operativo); con
-`--scenario calendar` alterna nello stesso processo la vista Settimana della
-build 267 e quella attuale
+`--scenario calendar` misura solo lo scorrimento della Settimana
 ([esiti](../diagnostics/2026-10-13-calendar-week-build.md)).

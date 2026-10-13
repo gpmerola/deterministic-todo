@@ -1,4 +1,23 @@
-# Galaxy S21 — costruzione della vista Settimana, build 269
+# Galaxy S21 — costruzione della vista Settimana, build 269 e 270
+
+## Esito finale
+
+La build 269 disegnava ogni evento in un solo elemento ed era più veloce
+(misure sotto), ma l'utente ha visto la Settimana diversa: titoli andati a
+capo e tagliati in altri punti, nessuna increspatura al tocco. Causa
+principale: la 268 sceglie gli a capo misurando le parole con uno stile
+senza le impostazioni del tema (per esempio la spaziatura delle lettere di
+`bodyMedium`) e poi le disegna con quelle; la 269 misurava e disegnava con lo
+stesso stile completo, quindi spezzava diversamente. La build 270 ripristina
+il codice della 268 senza modifiche e aggiunge quattro immagini di
+riferimento (`test/agenda_week_golden_test.dart`), verificate identiche pixel
+per pixel alla 268. Una prova intermedia con il solo disegno delle linee
+orarie in un elemento per colonna era identica ai pixel ma non ha mostrato
+guadagni (una coppia di campioni: 99,1 contro 96,5 ms prima del blocco del
+telefono), quindi non è stata tenuta.
+
+Le misure e le analisi qui sotto restano valide come base per un nuovo
+tentativo, che deve passare le immagini di riferimento senza aggiornarle.
 
 ## Riproduzione
 
@@ -9,9 +28,9 @@ sintetiche, nessun accesso al database operativo, ai calendari di sistema o
 alla rete. La fixture è la stessa della baseline: 12 eventi di 45 minuti al
 giorno dalle 7 alle 18, 84 per settimana, titoli «Synthetic event N».
 
-Lo scenario alterna nello **stesso processo** la vista della build 267
-(`integration_test/legacy/agenda_week_view_b267.dart`, copia esatta usata solo
-dal harness) e quella attuale: sei campioni ciascuna, con vista e controller
+Per queste misure lo scenario alternava nello **stesso processo** la vista
+della build 267 (una copia esatta usata solo dal harness, tolta nella 270) e
+quella della 269: sei campioni ciascuna, con vista e controller
 nuovi e un passaggio non misurato che carica le due pagine. Ogni campione
 misura sei cambi di pagina animati da 300 ms. Le metriche sono quelle della
 baseline (`FrameTiming`, durata build oppure raster).
@@ -23,7 +42,7 @@ anche la vista della build 267 misura circa 100 ms, contro i 41–79 ms della
 baseline di stamattina a freddo. Esiti grezzi:
 [JSONL](2026-10-13-calendar-week-build.jsonl).
 
-## Esito
+## Misure della 269
 
 | Vista | Build p95 per campione (ms) | Mediana | Frame in 1,8 s | Frame oltre 16,7 ms |
 | --- | --- | ---: | --- | --- |
@@ -52,7 +71,7 @@ codice consegnato:
   `wrapWords`; con `getBoxesForSelection` e `getPositionForOffset` è più
   veloce.
 
-## Modifiche
+## Modifiche della 269, ritirate nella 270
 
 - `AgendaWeekEventBlock`: un `CustomPaint` con `GestureDetector` e
   `Semantics` al posto di Material, InkWell, due LayoutBuilder e un Text per
@@ -60,8 +79,8 @@ codice consegnato:
   tocco.
 - Titolo impaginato una volta su una riga sola; i bordi delle parole danno
   gli stessi a capo di `wrapWords`, che resta per testo da destra a sinistra
-  e spazi irregolari. Test di equivalenza in
-  `test/agenda_week_block_test.dart`.
+  e spazi irregolari. Era equivalente a `wrapWords` con lo stesso stile, ma
+  non a ciò che la 268 mostra davvero (vedi sopra).
 - Orari e «…» impaginati una volta per testo e stile e condivisi. Gli orari
   della fixture si ripetono ogni giorno, come spesso nei calendari reali:
   il guadagno di questa parte è un limite superiore.
@@ -70,6 +89,7 @@ codice consegnato:
 
 ## Limiti
 
-Misurata solo la vista a sette colonne con questa fixture. Tre giorni usa lo
-stesso codice ma non è stata misurata; Mese, 2 settimane e Giorno non sono
-cambiati. Batteria non misurata.
+Misurata solo la vista a sette colonne con questa fixture. Batteria non
+misurata. Nella 270 `--scenario calendar` misura solo lo scorrimento, senza
+la copia della 267: run separati vanno confrontati solo a parità di stato
+termico.

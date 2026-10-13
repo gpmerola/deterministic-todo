@@ -19,10 +19,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'legacy/agenda_week_view_b267.dart';
-
-/// `calendar`: only the week-view scroll, alternating the build 267 view
-/// (legacy) and the current one in the same process, no backup fixtures.
+/// `calendar`: only the week-view scroll, ten samples, no backup fixtures.
 const scenario = String.fromEnvironment(
   'TODO_PERF_SCENARIO',
   defaultValue: 'all',
@@ -56,8 +53,7 @@ class _Benchmark extends StatefulWidget {
 }
 
 class _BenchmarkState extends State<_Benchmark> {
-  var pages = PageController(initialPage: AgendaWeekView.weeksBack);
-  bool legacy = false;
+  final pages = PageController(initialPage: AgendaWeekView.weeksBack);
   final date = CivilDate(2026, 10, 13);
   List<FrameTiming> frames = [];
   int? startUs;
@@ -153,27 +149,13 @@ class _BenchmarkState extends State<_Benchmark> {
     try {
       await Future<void>.delayed(const Duration(seconds: 1));
       final calendarOnly = scenario == 'calendar';
-      for (var sample = 0; sample < (calendarOnly ? 12 : 3); sample++) {
-        if (calendarOnly) {
-          // A fresh view and controller per sample; one unmeasured pass
-          // loads both pages, so each variant is measured warm.
-          final old = pages;
-          setState(() {
-            legacy = sample.isEven;
-            pages = PageController(initialPage: AgendaWeekView.weeksBack);
-          });
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-          old.dispose();
-          await scroll();
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-        }
+      for (var sample = 0; sample < (calendarOnly ? 10 : 3); sample++) {
         begin();
         await scroll();
         emit({
           'phase': 'calendar_scroll',
           'sample': sample,
           'events_per_day': 12,
-          if (calendarOnly) 'variant': legacy ? 'build_267' : 'current',
           ...await end(),
         });
       }
@@ -278,31 +260,17 @@ class _BenchmarkState extends State<_Benchmark> {
     appBar: AppBar(
       title: Text(running ? 'Benchmark sintetico' : 'Benchmark terminato'),
     ),
-    body: legacy
-        ? LegacyAgendaWeekView(
-            key: ObjectKey(pages),
-            today: date,
-            revision: revision,
-            controller: pages,
-            loadDays: (first, count) async => days(first, count),
-            peekDays: (_, _) => null,
-            colors: const {},
-            onOpenDay: (_) {},
-            onOpen: (_) async {},
-            now: () => DateTime(2026, 10, 13, 12),
-          )
-        : AgendaWeekView(
-            key: ObjectKey(pages),
-            today: date,
-            revision: revision,
-            controller: pages,
-            loadDays: (first, count) async => days(first, count),
-            peekDays: (_, _) => null,
-            colors: const {},
-            onOpenDay: (_) {},
-            onOpen: (_) async {},
-            now: () => DateTime(2026, 10, 13, 12),
-          ),
+    body: AgendaWeekView(
+      today: date,
+      revision: revision,
+      controller: pages,
+      loadDays: (first, count) async => days(first, count),
+      peekDays: (_, _) => null,
+      colors: const {},
+      onOpenDay: (_) {},
+      onOpen: (_) async {},
+      now: () => DateTime(2026, 10, 13, 12),
+    ),
   );
 }
 

@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.91.0 (build 270) — Todo Test
+
+- Calendario, Settimana e 3 giorni: ripristinato esattamente il disegno
+  della build 268. Nella 269 gli eventi disegnati in un solo elemento
+  andavano a capo e tagliavano i titoli in punti diversi (misuravano il testo
+  con lo stile completo del tema, la 268 senza), e il tocco non mostrava più
+  l'increspatura. Quattro immagini di riferimento (Settimana e 3 giorni,
+  tema chiaro e scuro), verificate identiche pixel per pixel alla 268,
+  bloccano ora l'aspetto in `make check`. Il guadagno di velocità della 269
+  è perso ([misure](docs/diagnostics/2026-10-13-calendar-week-build.md)).
+- `tools/device_performance.py --scenario calendar`: solo lo scorrimento
+  della Settimana, dieci campioni.
+
 ## 2.90.0 (build 269) — Todo Test
 
 - Calendario, vista Settimana e 3 giorni: ogni evento è disegnato da un solo

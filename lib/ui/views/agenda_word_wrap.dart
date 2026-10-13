@@ -37,3 +37,36 @@ List<String> wrapWords(
   painter.dispose();
   return lines;
 }
+
+/// [text] in as many whole-word lines as fit the box; a too-long word ends
+/// with "…".
+class AgendaWordWrap extends StatelessWidget {
+  const AgendaWordWrap(this.text, {required this.style, super.key});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scaler = MediaQuery.textScalerOf(context);
+      final lines = wrapWords(text, style, constraints.maxWidth, scaler);
+      return ClipRect(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final line in lines)
+              Text(
+                line,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: style,
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}

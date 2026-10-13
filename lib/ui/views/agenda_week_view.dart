@@ -12,8 +12,8 @@ import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
-import 'agenda_week_block.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
+import 'agenda_word_wrap.dart';
 import 'calendar_visit_group.dart';
 
 /// Day columns with hours to scale, like Google Calendar's week view: free
@@ -495,19 +495,30 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     }),
                   ),
                 ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: AgendaWeekGridPainter(
-                      scale: scale,
-                      line: line,
-                      folded: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.03,
+              for (var hour = 0; hour < 24; hour++)
+                if (scale.isFolded(hour))
+                  Positioned(
+                    top: scale.y(hour * 60),
+                    height: scale.hourHeights[hour],
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: ColoredBox(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.03,
+                        ),
                       ),
                     ),
                   ),
+              for (var hour = 1; hour < 24; hour++)
+                Positioned(
+                  top: scale.y(hour * 60),
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Container(height: 0.5, color: line),
+                  ),
                 ),
-              ),
               for (final block in blocks)
                 Positioned(
                   key: ValueKey('agenda-week-block-${block.entry.instanceId}'),
@@ -565,11 +576,70 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     AgendaEntry entry,
     Color color, {
     bool clash = false,
-  }) => AgendaWeekEventBlock(
-    entry: entry,
-    color: color,
-    clash: clash,
-    onOpen: widget.onOpen,
-    onLongPress: widget.onLongPress,
-  );
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final fill = agendaEventFill(color, scheme);
+    // Unanswered invitations: outlined, not filled, like Google Calendar.
+    final outlined = entry.unanswered;
+    final onColor = outlined ? scheme.onSurface : agendaOnFill(fill);
+    return Material(
+      color: outlined ? scheme.surface : fill,
+      // Overlapping another timed event: outlined in the error colour.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(3),
+        side: clash
+            ? BorderSide(color: scheme.error, width: 1.5)
+            : outlined
+            ? BorderSide(color: fill, width: 1.5)
+            : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => unawaited(widget.onOpen(entry)),
+        onLongPress: widget.onLongPress == null
+            ? null
+            : () => unawaited(widget.onLongPress!(entry)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(2, 1, 1, 0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 90;
+              final style = TextStyle(
+                color: onColor,
+                fontSize: wide ? 11 : 9.5,
+                height: 1.15,
+              );
+              final title = AgendaWordWrap(
+                entry.title.isEmpty ? '(senza titolo)' : entry.title,
+                style: style.copyWith(fontWeight: FontWeight.w600),
+              );
+              // The start time, when the block has room for it: times
+              // must read at a glance (user request, build 220).
+              if (constraints.maxHeight < 30) return title;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    // The whole span where the block is wide (3 days).
+                    wide
+                        ? '${compactTime(entry.start)}–'
+                              '${compactTime(entry.end)}'
+                        : compactTime(entry.start),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.clip,
+                    style: style.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: wide ? 10.5 : 9,
+                    ),
+                  ),
+                  Expanded(child: title),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }

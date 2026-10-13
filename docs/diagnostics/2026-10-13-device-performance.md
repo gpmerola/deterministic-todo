@@ -64,9 +64,9 @@ altri processi e senza controllo termico: non equivale all'esperienza quotidiana
 
 ## Decisione successiva
 
-Aggiornamento build 269: la costruzione delle pagine dense è stata ridotta;
-confronto nello stesso processo in
-[calendar-week-build](2026-10-13-calendar-week-build.md).
+Aggiornamento: un tentativo della build 269 riduceva la costruzione delle
+pagine dense ma cambiava l'aspetto ed è stato ritirato nella 270
+([calendar-week-build](2026-10-13-calendar-week-build.md)).
 
 
 Le pause dell'event loop a 10.000 righe motivano un confronto controllato della
