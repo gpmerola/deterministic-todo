@@ -2,6 +2,16 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 273 — Link e-mail, titoli puliti, cestino salvato prima, Todo Test
+
+Todo Test 2.94.0 / build 273 installata sul Galaxy in-place (versionCode
+2273, dati conservati) con `make todo-test`; app avviata, nessun errore nel
+log. Link `mailto` mostrati per nome, titoli senza Markdown per le attività
+nel Calendario e nelle etichette di accessibilità, cestino con scorrimento
+salvato alla fine del gesto. Non verificati a mano sul telefono: coperti da
+test su dati sintetici. `make check-generated` e `make check` (538 test
+Flutter, immagini di riferimento invariate) superati. Nessuna pubblicazione.
+
 ## Build 272 — Pulizia del codice, Todo Test
 
 Todo Test 2.93.0 / build 272 installata sul Galaxy in-place (versionCode
