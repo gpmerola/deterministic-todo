@@ -230,15 +230,6 @@ class AgendaDayCell extends StatelessWidget {
   /// Height of one single-line entry (10 px text plus spacing).
   static const chipHeight = 15.0;
 
-  /// How many [entries] fit in [height], keeping a line for "+N" when
-  /// some are left out. Timed events take two lines (time over title).
-  static int shownEntries(List<AgendaEntry> entries, double height) {
-    return _shownHeights([
-      for (final e in entries)
-        e.allDay || e.isTask ? chipHeight : AgendaChip.twoLineHeight,
-    ], height);
-  }
-
   static int _shownHeights(List<double> heights, double available) {
     var used = 0.0;
     var fit = 0;

@@ -531,15 +531,6 @@ class TaskRepository {
     await updateProjectSection(second, position: first.position);
   });
 
-  Future<void> setProjectView(String projectId, String view) => db
-      .into(db.appSettings)
-      .insertOnConflictUpdate(
-        AppSettingsCompanion.insert(
-          key: 'project_view:$projectId',
-          value: view,
-        ),
-      );
-
   Future<CivilDate?> setCompleted(Task task, bool completed) async {
     final now = DateTime.now().toUtc().microsecondsSinceEpoch;
     await _update(
@@ -749,19 +740,6 @@ class TaskRepository {
     return CivilDate.parse(
       rows.isEmpty ? task.showDate! : rows.first.showDate!,
     );
-  }
-
-  Future<void> reorder(List<Task> ordered) async {
-    await db.transaction(() async {
-      for (var index = 0; index < ordered.length; index++) {
-        final position = (index + 1) * 1024;
-        if (ordered[index].position == position) continue;
-        await _update(
-          ordered[index],
-          TasksCompanion(position: Value(position)),
-        );
-      }
-    });
   }
 
   Future<void> _update(

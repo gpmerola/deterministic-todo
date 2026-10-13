@@ -225,23 +225,6 @@ class _DataHealthViewState extends State<DataHealthView> {
   );
 }
 
-/// A manual export ever, or an automatic encrypted backup checked within
-/// two weekly cycles, is enough: the user need not also export by hand.
-@visibleForTesting
-bool backupHealthy({
-  required String? manual,
-  required String? automatic,
-  required DateTime now,
-  bool automaticAvailable = false,
-}) {
-  if (manual != null) return true;
-  final auto = DateTime.tryParse(automatic ?? '');
-  return automaticAvailable &&
-      auto != null &&
-      !now.toUtc().difference(auto).isNegative &&
-      now.toUtc().difference(auto) <= AutoBackupService.interval * 2;
-}
-
 /// Bucket fingerprints count groups of tasks, not single tasks.
 @visibleForTesting
 String syncAlignmentLabel(SyncAlignment? alignment) {

@@ -33,7 +33,6 @@ migrate_working_dir/
 /build/
 /coverage/
 /app_pronta_macOS/
-/app_pronta_Android/
 /private_release_keys/
 
 # Symbolication related

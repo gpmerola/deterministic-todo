@@ -97,11 +97,6 @@ String displayLinkLabel(String label, String url) {
       : label;
 }
 
-List<ParsedTextLink> extractMarkdownLinks(String value) => [
-  for (final match in _markdownLinkPattern.allMatches(linkifyPlainUrls(value)))
-    ParsedTextLink(match.group(1)!, match.group(2)!),
-];
-
 String markdownToPlainText(String value) => linkifyPlainUrls(
   value,
 ).replaceAllMapped(_markdownLinkPattern, (match) => match.group(1)!);

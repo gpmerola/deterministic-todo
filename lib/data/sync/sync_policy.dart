@@ -9,8 +9,6 @@ import 'paged_remote.dart';
 import 'sync_status.dart';
 import 'task_sync_writer.dart';
 
-Set<String> distinctEntityIds(Iterable<String> ids) => ids.toSet();
-
 Duration syncRetryDelay(int failureIndex) {
   const delays = [
     Duration(seconds: 2),
@@ -98,20 +96,6 @@ bool isEntityRejection(PostgrestException error) {
 bool isRecurringOccurrenceConflict(PostgrestException error) =>
     error.code == '23505' &&
     error.message.contains('tasks_user_id_series_id_occurrence_key_key');
-
-bool shouldReconnectRealtime(RealtimeSubscribeStatus status) =>
-    switch (status) {
-      RealtimeSubscribeStatus.channelError ||
-      RealtimeSubscribeStatus.closed ||
-      RealtimeSubscribeStatus.timedOut => true,
-      RealtimeSubscribeStatus.subscribed => false,
-    };
-
-bool shouldSubscribeRealtime({
-  required bool paused,
-  required bool hasAuthenticatedUser,
-  required bool hasChannel,
-}) => !paused && hasAuthenticatedUser && !hasChannel;
 
 bool isTransientSyncError(Object error) {
   if (error is http.ClientException ||

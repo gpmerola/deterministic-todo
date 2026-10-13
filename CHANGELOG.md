@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.93.0 (build 272) — Todo Test
+
+- Pulizia senza cambi di comportamento: tolte funzioni che nessuna parte
+  dell'app usava più (tre regole Realtime e doppioni della sync, la regola
+  backup di Salute dati, riordino manuale e vista progetto nel repository,
+  `isScheduled`, `shownEntries`, `extractMarkdownLinks`, `resolveConflict`)
+  e i test che verificavano solo quelle.
+- Il test di convergenza Android/Web ora sincronizza due client veri con un
+  server sintetico dopo modifiche offline concorrenti, invece di provare una
+  funzione che l'app non usava.
+- Tolti gli script `tools/launchers/`: superati da `make todo-test` e dalla
+  release coordinata; uno faceva commit e push di tutto senza i controlli
+  attuali.
+
 ## 2.92.0 (build 271) — Todo Test
 
 - Attività completata: salvata in SQLite al tocco invece che dopo

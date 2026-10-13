@@ -328,7 +328,6 @@ Struttura canonica:
 - `android/`: client Android;
 - `android/runtracker/`: contapassi nativo (Recording API) e database Room;
 - `supabase/migrations/`: schema remoto e RLS;
-- `tools/launchers/`: utilità Android opzionali.
 
 ## Dati, privacy e limiti
 

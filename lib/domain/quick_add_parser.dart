@@ -6,8 +6,6 @@ class QuickTaskDraft {
   final String title;
   final CivilDate? showDate;
   final String? recurrence;
-
-  bool get isScheduled => showDate != null;
 }
 
 class QuickAddParser {

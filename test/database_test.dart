@@ -254,18 +254,6 @@ void main() {
     expect((await repository.watchCompleted().first).single.id, completedId);
   });
 
-  test('il riordino invariato non produce scritture o outbox', () async {
-    await repository.create('Prima');
-    await repository.create('Seconda');
-    final ordered = await repository.watchActive().first;
-    final before = await db.select(db.outboxEntries).get();
-
-    await repository.reorder(ordered);
-
-    final after = await db.select(db.outboxEntries).get();
-    expect(after.length, before.length);
-  });
-
   test('la migrazione crea gli indici delle viste principali', () async {
     final indexes = await db
         .customSelect(

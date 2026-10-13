@@ -51,6 +51,9 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P2 — Idee e decisioni future
 
+- Separazione di `main.dart` rimandata dopo la pulizia della build 272
+  (non a basso rischio prima di una pubblicazione).
+
 - Fuso diverso alla creazione di un evento (oggi quello del telefono).
 - Unione heydoc/Semble (stesso inizio, titoli diversi) solo se richiesta.
 - SLaM: lettura ICS nell'app solo se l'abbonamento Google è troppo lento.
@@ -91,7 +94,8 @@ introdurre polling, timer o dipendenze senza una misura che li giustifichi.
 
 - Repository sorgente `gpmerola/deterministic-todo`; release Android
   `gpmerola/deterministic-todo-releases`; branch operativo
-  `agent/todo-ux-sync-hardening`.
+  `agent/remove-admin-sessions` (build 268–272, sopra
+  `agent/todo-ux-sync-hardening`).
 - Galaxy S21 (`arm64-v8a`): **Todo Test** (`.dev`) è il solo client operativo;
   la build Play 121 resta installata ma `disabled-user`. Runbook:
   [ANDROID_DEV_CHANNEL](docs/operations/ANDROID_DEV_CHANNEL.md).

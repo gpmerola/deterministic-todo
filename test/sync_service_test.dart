@@ -15,48 +15,6 @@ void main() {
     expect(SyncService.eventDebounce, lessThan(const Duration(seconds: 1)));
   });
 
-  test('un canale Realtime interrotto viene riaperto', () {
-    expect(
-      shouldReconnectRealtime(RealtimeSubscribeStatus.channelError),
-      isTrue,
-    );
-    expect(shouldReconnectRealtime(RealtimeSubscribeStatus.closed), isTrue);
-    expect(shouldReconnectRealtime(RealtimeSubscribeStatus.timedOut), isTrue);
-    expect(
-      shouldReconnectRealtime(RealtimeSubscribeStatus.subscribed),
-      isFalse,
-    );
-  });
-
-  test('Realtime resta disconnesso mentre l app è in background', () {
-    expect(
-      shouldSubscribeRealtime(
-        paused: true,
-        hasAuthenticatedUser: true,
-        hasChannel: false,
-      ),
-      isFalse,
-    );
-    expect(
-      shouldSubscribeRealtime(
-        paused: false,
-        hasAuthenticatedUser: true,
-        hasChannel: false,
-      ),
-      isTrue,
-    );
-  });
-
-  test(
-    'più modifiche pendenti della stessa attività producono un solo invio',
-    () {
-      expect(distinctEntityIds(['task-a', 'task-a', 'task-b', 'task-a']), {
-        'task-a',
-        'task-b',
-      });
-    },
-  );
-
   test('il retry di rete cresce ma resta limitato', () {
     expect(syncRetryDelay(0), const Duration(seconds: 2));
     expect(syncRetryDelay(1), const Duration(seconds: 10));
