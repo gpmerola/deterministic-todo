@@ -2,6 +2,10 @@
 
 Aggiornato il 13 ottobre 2026.
 
+## Build 274 — «Peer Review & Safeguarding concerns» solo se accettato, Todo Test
+
+In verifica: vedi sotto l'esito dell'installazione.
+
 ## Release stabile 2.94.0 / 273 — 14 ottobre 2026
 
 Pubblicazione autorizzata con `PUBBLICA`. Primo run

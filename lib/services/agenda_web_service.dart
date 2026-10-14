@@ -184,6 +184,10 @@ class WebAgendaService extends AgendaService {
       timeZone: row['time_zone'] as String?,
       eventZoneTimes: row['event_zone_times'] as String?,
       isOrganizer: row['is_organizer'] as bool? ?? true,
+      // The phone mirrors only what its Agenda shows: invitations hidden
+      // until accepted never reach this copy, so what arrives counts as
+      // accepted (no reply column in Supabase).
+      accepted: true,
     );
   }
 
@@ -502,4 +506,5 @@ AgendaSourceEvent _edited(
   url: event.url,
   timeZone: event.timeZone,
   isOrganizer: event.isOrganizer,
+  accepted: event.accepted,
 );

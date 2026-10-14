@@ -204,6 +204,7 @@ final class AgendaSourceEvent {
     this.canceled = false,
     this.unanswered = false,
     this.answered = false,
+    this.accepted = false,
     this.timeZone,
     this.eventZoneTimes,
     this.isOrganizer = true,
@@ -229,6 +230,9 @@ final class AgendaSourceEvent {
   /// Accepted, declined or tentative. False also when unknown: Exchange
   /// ActiveSync copies often carry no status at all.
   final bool answered;
+
+  /// Accepted by the user (not tentative): see [agendaTitlesShownOnceAccepted].
+  final bool accepted;
 
   /// The event's own IANA zone, as stored by its calendar.
   final String? timeZone;
@@ -520,6 +524,19 @@ bool isCanceledTitle(String title) => RegExp(
   caseSensitive: false,
 ).hasMatch(title);
 
+/// Invitations shown only once accepted (build 274, user request): pending,
+/// tentative, declined or unknown replies stay out of every view. Compared
+/// case-insensitively with spaces collapsed; add further titles here.
+const agendaTitlesShownOnceAccepted = {'peer review & safeguarding concerns'};
+
+String _normalizedTitle(String title) =>
+    title.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+/// Judged after merging: one accepted copy (Google) is enough.
+bool hiddenUntilAccepted(String title, {required bool accepted}) =>
+    !accepted &&
+    agendaTitlesShownOnceAccepted.contains(_normalizedTitle(title));
+
 /// Visible, filtered, de-duplicated entries in display order, before they
 /// are split into days. Also used by the universal search.
 List<AgendaEntry> mergeAgendaEntries({
@@ -570,11 +587,18 @@ List<AgendaEntry> mergeAgendaEntries({
       existing.meeting ??= findMeetingLink(event);
       existing.anyUnanswered |= event.unanswered;
       existing.anyAnswered |= event.answered;
+      existing.anyAccepted |= event.accepted;
     }
   }
 
   final entries = [
     ...merged.values
+        .where(
+          (value) => !hiddenUntilAccepted(
+            value.source.title,
+            accepted: value.anyAccepted,
+          ),
+        )
         .map((value) => value.freeze())
         .where(
           (entry) => !filter.hidesEntry(
@@ -662,6 +686,9 @@ final class _MutableEntry {
   late bool anyUnanswered = source.unanswered;
   late bool anyAnswered = source.answered;
 
+  /// Accepted in at least one copy, e.g. the Google one (build 274).
+  late bool anyAccepted = source.accepted;
+
   AgendaEntry freeze() => AgendaEntry(
     instanceId: source.instanceId,
     calendarIds: List.unmodifiable(calendarIds),
@@ -695,6 +722,7 @@ AgendaSourceEvent agendaEventFromRow(Map<Object?, Object?> row) =>
       canceled: row['canceled'] as bool? ?? false,
       unanswered: row['unanswered'] as bool? ?? false,
       answered: row['answered'] as bool? ?? false,
+      accepted: row['accepted'] as bool? ?? false,
       timeZone: row['timeZone'] as String?,
       eventZoneTimes: row['eventZoneTimes'] as String?,
       isOrganizer: row['organizer'] as bool? ?? true,

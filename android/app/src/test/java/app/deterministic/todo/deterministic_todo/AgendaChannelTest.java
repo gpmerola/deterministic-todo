@@ -52,6 +52,15 @@ public final class AgendaChannelTest {
         assertEquals(false, AgendaChannel.answered(-1));
     }
 
+    @Test public void onlyAcceptanceCountsAsAccepted() {
+        assertEquals(true, AgendaChannel.accepted(1));
+        assertEquals(false, AgendaChannel.accepted(2));
+        assertEquals(false, AgendaChannel.accepted(3));
+        assertEquals(false, AgendaChannel.accepted(4));
+        assertEquals(false, AgendaChannel.accepted(0));
+        assertEquals(false, AgendaChannel.accepted(-1));
+    }
+
     @Test public void deviceZoneIsIanaWithOffset() {
         var value = AgendaChannel.deviceZone(ZoneId.of("Europe/London"),
             java.time.Instant.parse("2026-10-03T12:00:00Z"));

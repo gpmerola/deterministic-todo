@@ -759,6 +759,21 @@ ricerca, per l'assistente ✨ e nella copia per il Web. Nel pannello
 Calendari quei calendari appaiono spenti, con «Festività: nascosto»,
 finché l'opzione è attiva. «Compleanni» non è una festività.
 
+## Mostrati solo se accettati (build 274)
+
+Su richiesta dell'utente alcuni inviti compaiono solo dopo averli accettati:
+oggi «Peer Review & Safeguarding concerns». La regola è in un punto solo,
+`agendaTitlesShownOnceAccepted` / `hiddenUntilAccepted` in
+`lib/domain/agenda.dart`, applicata in `mergeAgendaEntries` dopo l'unione
+dei duplicati: basta una copia accettata (tipicamente quella Google, mentre
+Exchange spesso non conosce la risposta). Il canale Android invia
+`accepted` (`SELF_ATTENDEE_STATUS` = accettato); in attesa, forse,
+rifiutato o sconosciuto valgono come non accettato. Titolo confrontato senza
+maiuscole e con gli spazi compressi; per aggiungere titoli basta estendere
+l'insieme. Il Web non ha la risposta nella copia Supabase e non ne ha
+bisogno: il telefono la pubblica già filtrata, quindi le sue righe contano
+come accettate. Nessun evento viene modificato sul calendario.
+
 ## Solo in Todo (build 226)
 
 Richiesta dell'utente (5 ottobre 2026): cancellare, creare o modificare

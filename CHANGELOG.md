@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.95.0 (build 274) — Todo Test
+
+- Calendario: gli incontri «Peer Review & Safeguarding concerns» compaiono
+  solo se accettati (su Google basta una copia accettata). In attesa, forse,
+  rifiutati o senza risposta nota restano nascosti in tutte le viste,
+  ricerca, promemoria e copia Web. Confronto senza maiuscole e spazi
+  superflui; altri titoli invariati. Nessuna modifica agli eventi su Google
+  e nessuna migrazione Supabase: la copia Web contiene già solo ciò che il
+  telefono mostra.
+
 ## 2.94.0 (build 273) — Release stabile e Todo Test
 
 - Link e-mail: `[nome](mailto:…)` nei titoli e nelle note compare come solo
