@@ -4,7 +4,14 @@ Aggiornato il 13 ottobre 2026.
 
 ## Build 274 — «Peer Review & Safeguarding concerns» solo se accettato, Todo Test
 
-In verifica: vedi sotto l'esito dell'installazione.
+Todo Test 2.95.0 / build 274 installata sul Galaxy in-place (versionCode
+2274, dati conservati) con `make todo-test`; app avviata, nessun errore nel
+log. Regola coperta da test su dati sintetici (accettato visibile; in
+attesa, forse, rifiutato o sconosciuto nascosto; copia Google accettata
+basta; altri titoli invariati) e dal test Java dello stato `accepted`; non
+verificata a mano su un invito reale. `make check-generated` e `make check`
+(544 test Flutter, immagini di riferimento invariate) superati. Nessuna
+migrazione, nessuna pubblicazione Web.
 
 ## Release stabile 2.94.0 / 273 — 14 ottobre 2026
 
