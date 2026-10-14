@@ -1,6 +1,27 @@
 # Stato corrente
 
-Aggiornato il 13 ottobre 2026.
+Aggiornato il 14 ottobre 2026.
+
+## Release stabile 2.95.0 / 274 — 14 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA`. Run
+[38584096291](https://github.com/gpmerola/deterministic-todo/actions/runs/38584096291)
+dal branch `agent/todo-ux-sync-hardening`, portato in avanti senza
+riscritture al commit `e5855839881627bd2462193317386847aff5351b`. Al primo
+tentativo il solo job APK diretti è fallito caricando l'AAB
+(`ReleaseAsset.name already exists`, HTTP 422); nessun tag o release era
+rimasto. Rilanciato solo quel job sugli stessi artefatti: tutti i job verdi,
+parità compresa.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  dichiara 2.95.0 (274) e lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.95.0):
+  `latest`, quattro APK e AAB; manifest 2.95.0 / 274 con SHA-256 per ABI;
+  hash arm64 verificato sul file scaricato.
+- Google Play: AAB accettato nel track internal; propagazione non verificata.
+- Galaxy: resta su Todo Test `.dev` 274. La serie del giovedì 18:00 ora
+  risulta rifiutata nel provider (risposta cambiata dall'utente su Google),
+  quindi coperta dalla regola; schermo spento, non verificata a vista.
 
 ## Build 274 — «Peer Review & Safeguarding concerns» solo se accettato, Todo Test
 
