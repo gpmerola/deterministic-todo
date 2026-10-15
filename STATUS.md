@@ -2,6 +2,28 @@
 
 Aggiornato il 15 ottobre 2026.
 
+## Release stabile 2.97.0 / 276 — 15 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA`. Run coordinato
+[38725521721](https://github.com/gpmerola/deterministic-todo/actions/runs/38725521721)
+completato con tutti i job verdi dal branch già autorizzato
+`agent/todo-ux-sync-hardening`, avanzato senza riscritture al commit
+`84a104173af2734bba18f37f45e7b6db1b62d1ce`.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): identità HTTPS
+  2.97.0 / 276 e commit verificati. In un profilo Chrome sintetico,
+  creazione, modifica e completamento persistono dopo chiusura normale e
+  forzata (100 ms di attesa dopo la modifica visibile; sei casi riusciti).
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.97.0):
+  release stabile `latest`, manifest con quattro APK e SHA-256, parità con
+  Web verificata. APK arm64 scaricato: hash corrispondente e firma verificata,
+  identica alla stabile 2.95.0 / 274; aggiornamento in-place compatibile.
+- Google Play: bundle 276 accettato nel track `internal`; propagazione ai
+  tester e installazione da Play non verificate.
+- Galaxy: ultima versione confermata dall'utente Todo Test 275; la 276 è
+  disponibile sul canale rolling, ma installazione diretta ADB fallita.
+  La pubblicazione stabile non riattiva il package Play disabilitato.
+
 ## Build 276 — barra Calendario di Oggi più leggibile
 
 Appuntamenti su righe separate, orari allineati, titoli fino a due righe,
@@ -13,8 +35,8 @@ Verificati `make check-generated`, `make check` (549 test passati, 3
 saltati), build Web release, persistenza HTTPS in Chrome con profilo e
 dati sintetici. Layout controllato con fixture sintetiche; test per schermo
 stretto, testo ingrandito, apertura Calendario, orari allineati e assenza
-del pulsante Teams. Consegna Todo Test tramite build 276; nessuna release
-stabile o pubblicazione Web.
+del pulsante Teams. Consegna Todo Test tramite build 276; pubblicazione
+stabile verificata nella sezione precedente.
 
 `make todo-test` ha compilato e verificato l'APK locale, ma l'installazione
 ADB IPv6 è nuovamente fallita durante il trasferimento. Il Galaxy resta

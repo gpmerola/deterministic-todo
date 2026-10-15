@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.97.0 (build 276) — Todo Test
+## 2.97.0 (build 276) — Release stabile e Todo Test
 
 - Barra Calendario in Oggi più spaziosa: appuntamenti su righe separate,
   orari allineati, titoli fino a due righe e riepilogo distinto.
