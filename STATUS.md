@@ -17,6 +17,14 @@ alla chiusura; un completamento perso chiudendo entro 10 ms riproduce il
 limite di scrittura già documentato. Con attesa di 100 ms passa sia chiusura
 normale sia forzata. Nessuna pubblicazione Web o release stabile.
 
+APK Todo Test 2.96.0 / 275 compilato e verificato dal comando canonico.
+Installazione Galaxy non riuscita: streaming ADB fallito anche su IPv6;
+il recupero senza streaming ha prodotto EOF e un APK parziale, rimosso
+senza installarlo. Galaxy ancora su 2.95.0 / 274: collaudo fisico della
+nuova UI e della riprogrammazione da completare dopo l'aggiornamento.
+PR [#3](https://github.com/gpmerola/deterministic-todo/pull/3), branch
+`agent/daily-tasks-today`, base operativa `agent/remove-admin-sessions`.
+
 ## Release stabile 2.95.0 / 274 — 14 ottobre 2026
 
 Pubblicazione autorizzata con `PUBBLICA`. Run
