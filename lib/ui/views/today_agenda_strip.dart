@@ -2,15 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 
-/// Top of Today: the day's remaining appointments in one line, so tasks and
-/// meetings are seen together. Reads on build, on resume and on new day.
-/// When the next appointment is within the hour it says "tra 25 min" (or
-/// "ora") and offers its meeting link; only then a one-shot timer wakes at
-/// the next minute, and never in background. Tapping opens the day view.
+/// Top of Today: up to three appointments on separate, aligned rows.
+/// Reads on build, on resume and on new day. Near appointments show
+/// a countdown, refreshed by a one-shot timer, never in background.
+/// The whole strip opens the day view; meeting links live in the calendar.
 class TodayAgendaStrip extends StatefulWidget {
   const TodayAgendaStrip({
     required this.loadEntries,
@@ -121,97 +119,121 @@ class _TodayAgendaStripState extends State<TodayAgendaStrip>
       labels[entry.instanceId] = label;
     }
     _scheduleTick(labels.isNotEmpty);
-    final join = shown
-        .where((e) => labels.containsKey(e.instanceId) && e.meeting != null)
-        .firstOrNull
-        ?.meeting;
-    final parts = [
-      for (final entry in shown)
-        '${labels[entry.instanceId] == null ? '' : '${labels[entry.instanceId]} · '}'
-            '${clock.format(entry.start)} '
-            '${entry.title.isEmpty ? '(senza titolo)' : entry.title}',
-      if (more > 0) '+$more',
+    final summary = [
+      if (more > 0) '+$more altri',
       if (allDay > 0) '$allDay tutto il giorno',
-    ];
+    ].join(' · ');
     return Material(
       color: theme.colorScheme.surfaceContainerHigh,
       child: InkWell(
         key: const ValueKey('today-agenda-strip'),
         onTap: widget.onOpen,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-          child: Row(
-            children: [
-              Icon(
-                Icons.calendar_month_outlined,
-                size: 18,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: widget.colorOf == null || shown.isEmpty
-                    ? Text(
-                        parts.isEmpty
-                            ? 'Nessun altro impegno oggi'
-                            : parts.join(' · '),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
-                      )
-                    : Text.rich(
-                        TextSpan(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final (index, entry) in shown.indexed) ...[
+                        if (index > 0) const SizedBox(height: 6),
+                        Row(
+                          key: ValueKey(
+                            'today-agenda-event-${entry.instanceId}',
+                          ),
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            for (final (index, part) in parts.indexed) ...[
-                              if (index > 0) const TextSpan(text: ' · '),
-                              // A dot in the calendar colour before each
-                              // appointment, as in the other views.
-                              if (index < shown.length)
-                                WidgetSpan(
-                                  alignment: PlaceholderAlignment.middle,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 4),
-                                    child: Container(
-                                      key: ValueKey(
-                                        'today-agenda-dot-${shown[index].instanceId}',
-                                      ),
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            widget.colorOf!(shown[index]) ??
-                                            theme.colorScheme.primary,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
+                            SizedBox(
+                              width: MediaQuery.textScalerOf(context).scale(42),
+                              child: Text(
+                                clock.format(entry.start),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (widget.colorOf != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Container(
+                                  key: ValueKey(
+                                    'today-agenda-dot-${entry.instanceId}',
+                                  ),
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        widget.colorOf!(entry) ??
+                                        theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
                                   ),
                                 ),
-                              TextSpan(text: part),
+                              ),
+                              const SizedBox(width: 6),
                             ],
+                            Expanded(
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    if (labels[entry.instanceId]
+                                        case final label?)
+                                      TextSpan(
+                                        text: '$label · ',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    TextSpan(
+                                      text: entry.title.isEmpty
+                                          ? '(senza titolo)'
+                                          : entry.title,
+                                    ),
+                                  ],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ),
                           ],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
-                      ),
-              ),
-              if (join != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: FilledButton.tonal(
-                    key: const ValueKey('today-agenda-join'),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                    ),
-                    onPressed: () => unawaited(
-                      launchUrl(join.url, mode: LaunchMode.externalApplication),
-                    ),
-                    child: Text(join.provider),
+                      ],
+                      if (summary.isNotEmpty) ...[
+                        if (shown.isNotEmpty) const SizedBox(height: 8),
+                        Text(
+                          summary,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                      if (shown.isEmpty && summary.isEmpty)
+                        Text(
+                          'Nessun altro impegno oggi',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                    ],
                   ),
-                )
-              else
-                const Icon(Icons.chevron_right, size: 18),
-            ],
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
           ),
         ),
       ),

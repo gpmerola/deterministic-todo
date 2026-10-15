@@ -2,6 +2,20 @@
 
 Aggiornato il 15 ottobre 2026.
 
+## Build 276 — barra Calendario di Oggi più leggibile
+
+Appuntamenti su righe separate, orari allineati, titoli fino a due righe,
+più spazio verticale e riepilogo distinto. Tolto il pulsante riunione dalla
+barra; tutta la superficie apre il Calendario. Dati e link negli eventi
+invariati. Contratto: [Calendario](docs/architecture/AGENDA.md#barra-calendario-in-oggi-build-276).
+
+Verificati `make check-generated`, `make check` (549 test passati, 3
+saltati), build Web release, persistenza HTTPS in Chrome con profilo e
+dati sintetici. Layout controllato con fixture sintetiche; test per schermo
+stretto, testo ingrandito, apertura Calendario, orari allineati e assenza
+del pulsante Teams. Consegna Todo Test tramite build 276; nessuna release
+stabile o pubblicazione Web.
+
 ## Build 275 — quotidiane separate e riportate a oggi
 
 Solo in Oggi, le ricorrenze esatte «ogni giorno» sono in fondo dopo una linea;
@@ -20,8 +34,9 @@ normale sia forzata. Nessuna pubblicazione Web o release stabile.
 APK Todo Test 2.96.0 / 275 compilato e verificato dal comando canonico.
 Installazione Galaxy non riuscita: streaming ADB fallito anche su IPv6;
 il recupero senza streaming ha prodotto EOF e un APK parziale, rimosso
-senza installarlo. Galaxy ancora su 2.95.0 / 274: collaudo fisico della
-nuova UI e della riprogrammazione da completare dopo l'aggiornamento.
+senza installarlo. Il 15 ottobre l'utente ha installato manualmente la build
+275 sul Galaxy e confermato che la nuova UI e la riprogrammazione
+funzionano perfettamente; collaudo riferito dall'utente.
 PR [#3](https://github.com/gpmerola/deterministic-todo/pull/3), branch
 `agent/daily-tasks-today`, base operativa `agent/remove-admin-sessions`.
 

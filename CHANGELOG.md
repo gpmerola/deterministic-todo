@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.97.0 (build 276) — Todo Test
+
+- Barra Calendario in Oggi più spaziosa: appuntamenti su righe separate,
+  orari allineati, titoli fino a due righe e riepilogo distinto.
+- Rimosso il pulsante Teams/Zoom/Meet dalla barra; toccandola si apre
+  sempre il Calendario, dove restano disponibili i link alle riunioni.
+
 ## 2.96.0 (build 275) — Todo Test
 
 - Oggi: attività «ogni giorno» in fondo, separate dalle altre da una linea.
