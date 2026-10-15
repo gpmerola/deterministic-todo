@@ -5,6 +5,7 @@ import 'package:deterministic_todo/main.dart';
 import 'package:deterministic_todo/ui/views/task_order.dart';
 import 'package:deterministic_todo/ui/views/today_view.dart';
 import 'package:deterministic_todo/ui/views/upcoming_view.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -69,6 +70,77 @@ void main() {
         .map((t) => t.data)
         .toList();
     expect(order, ['Arretrate', 'old', 'Oggi', 'now', 'inbox']);
+  });
+
+  testWidgets('Oggi mette solo ogni giorno in fondo, con una linea', (
+    tester,
+  ) async {
+    final daily = _task(
+      'daily',
+      showDate: '2026-09-27',
+    ).copyWith(recurrence: const Value(everyDayRecurrence));
+    final weekly = _task(
+      'weekly',
+      showDate: '2026-09-27',
+    ).copyWith(recurrence: const Value('calendar:week:1'));
+    Future<void> show(List<Task> tasks) => tester.pumpWidget(
+      _host(
+        TodayTaskList(
+          today: '2026-09-27',
+          tasks: tasks,
+          tileBuilder: (task) => Text(task.id),
+        ),
+      ),
+    );
+    await show([
+      daily,
+      _task('old', showDate: '2026-09-20'),
+      weekly,
+      _task('inbox'),
+    ]);
+    expect(tester.widgetList<Text>(find.byType(Text)).map((t) => t.data), [
+      'Arretrate',
+      'old',
+      'Oggi',
+      'weekly',
+      'inbox',
+      'daily',
+    ]);
+    expect(find.byKey(const ValueKey('today-daily-divider')), findsOneWidget);
+    await show([daily]);
+    expect(find.byKey(const ValueKey('today-daily-divider')), findsNothing);
+    await show([weekly]);
+    expect(find.byKey(const ValueKey('today-daily-divider')), findsNothing);
+  });
+
+  testWidgets('quotidiane riportate a oggi ad avvio e mezzanotte', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = TaskRepository(db, deviceId: 'fixture');
+    await repository.create(
+      'Quotidiana sintetica',
+      showDate: '2026-09-20',
+      recurrence: everyDayRecurrence,
+    );
+    var now = DateTime(2026, 9, 27, 23, 59);
+    await tester.pumpWidget(
+      TodoApp(
+        repository: repository,
+        enablePlatformServices: false,
+        clock: () => now,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect((await db.select(db.tasks).getSingle()).showDate, '2026-09-27');
+    now = DateTime(2026, 9, 28, 0, 0, 2);
+    await tester.pump(const Duration(minutes: 2));
+    await tester.pumpAndSettle();
+    expect((await db.select(db.tasks).getSingle()).showDate, '2026-09-28');
+    expect(find.text('Arretrate'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+    await db.close();
   });
 
   testWidgets('Prossime mostra i giorni vuoti e carica altri giorni', (

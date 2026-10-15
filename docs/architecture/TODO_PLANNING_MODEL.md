@@ -22,7 +22,8 @@ riapertura dopo il completamento, occorrenze ricorrenti e import Todoist.
 - Un elemento `completed` o `waiting` conserva lo stato quando si modifica la data.
 - Riaprire un'attività completata con data futura la riporta in Prossime
   (`scheduled`); prima diventava `available` e restava in Oggi.
-- Il cambio di giorno non scrive nulla: cambia solo la visibilità.
+- Il cambio di giorno cambia la visibilità; unica eccezione autorizzata:
+  le quotidiane da calendario arretrate vengono riportate a oggi.
 
 ## Appartenenza alle viste
 
@@ -98,7 +99,23 @@ mezzanotte locale e lo riarma dopo lo scatto; non esiste polling. Alla ripresa
 dall'uso in background la shell chiama `refresh()`, perché un timer può
 scattare in ritardo mentre il processo è sospeso. Una scheda Web aperta
 durante la notte mostra così la Oggi corretta senza interazioni. Il cambio di
-giorno non produce scritture né outbox (`test/task_views_test.dart`).
+giorno non produce scritture né outbox per le attività ordinarie.
+
+Dalla build 275, una sottoscrizione SQL filtrata (`maintainDailyTasks`) riporta
+le attività aperte arretrate con ricorrenza esatta `calendar:day:1` a oggi.
+Si attiva all'avvio e cambia data con `CivilDayClock`; intercetta anche arrivi
+successivi da sync/import senza polling. Esclude completate, eliminate, in
+attesa, senza data, future e ogni altra ricorrenza (anche dal completamento).
+Aggiorna data e stato aperto in transazione tramite il normale percorso
+Lamport/outbox: stessa attività, serie, occurrence key e posizione; nessun
+completamento, nuova occorrenza o cancellazione. Ripetere il passaggio è un
+no-op. La rilettura in transazione evita di applicare snapshot superati.
+La data aggiornata si sincronizza; non occorre una migrazione.
+
+Solo in Oggi, le quotidiane sono presentate in fondo, separate da una linea
+quando ci sono anche attività correnti ordinarie. Arretrate resta separato;
+l'ordine relativo di ciascun gruppo e le posizioni salvate sono preservati.
+Test: `test/daily_reschedule_test.dart` e `test/task_views_test.dart`.
 
 ## Struttura della shell
 

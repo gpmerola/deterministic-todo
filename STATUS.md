@@ -1,6 +1,21 @@
 # Stato corrente
 
-Aggiornato il 14 ottobre 2026.
+Aggiornato il 15 ottobre 2026.
+
+## Build 275 — quotidiane separate e riportate a oggi
+
+Solo in Oggi, le ricorrenze esatte «ogni giorno» sono in fondo dopo una linea;
+ordine relativo e posizioni salvate invariati. Le quotidiane da calendario
+aperte e arretrate passano automaticamente a oggi tramite Lamport/outbox,
+senza completamenti, copie o modifiche alle altre ricorrenze.
+Contratto: [pianificazione](docs/architecture/TODO_PLANNING_MODEL.md).
+
+Verificati `make check-generated`, `make check` (548 test Flutter superati,
+3 saltati), build Web release e persistenza con profilo Chrome sintetico,
+anche HTTPS locale con certificato di prova. Creazione e modifica resistono
+alla chiusura; un completamento perso chiudendo entro 10 ms riproduce il
+limite di scrittura già documentato. Con attesa di 100 ms passa sia chiusura
+normale sia forzata. Nessuna pubblicazione Web o release stabile.
 
 ## Release stabile 2.95.0 / 274 — 14 ottobre 2026
 

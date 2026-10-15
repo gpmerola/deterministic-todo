@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.96.0 (build 275) — Todo Test
+
+- Oggi: attività «ogni giorno» in fondo, separate dalle altre da una linea.
+  Raggruppamento solo visivo, senza cambiare le posizioni salvate.
+- Solo le ricorrenze quotidiane da calendario aperte e arretrate vengono
+  automaticamente riportate a oggi, senza completamenti né nuove copie.
+  La data si sincronizza; altre ricorrenze, attività in attesa, completate,
+  eliminate e date future restano invariate.
+
 ## 2.95.0 (build 274) — Todo Test
 
 - Calendario: gli incontri «Peer Review & Safeguarding concerns» compaiono

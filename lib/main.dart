@@ -342,6 +342,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
   final Set<String> recentlySyncedTaskIds = {};
   StreamSubscription<Set<String>>? remoteTaskSubscription;
   Timer? remoteHighlightTimer;
+  StreamSubscription<int>? dailyTaskSubscription;
   late final quickAdd = QuickAddService(widget.repository);
 
   /// Encrypted weekly snapshot; Android Keystore only, never on the Web.
@@ -366,6 +367,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     }
     HardwareKeyboard.instance.addHandler(_handleDesktopEscape);
     dayClock.addListener(_onCivilDayChanged);
+    _maintainDailyTasks();
     unawaited(_initializeProjectCaches());
     if (widget.enablePlatformServices && isAndroidPlatform) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -698,13 +700,32 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       updates.check(context, automatic: automatic);
 
   /// Date-derived views re-query when the civil day changes: see
-  /// [CivilDayClock]. The change writes nothing.
+  /// [CivilDayClock]. Only overdue daily tasks are rescheduled.
   void _onCivilDayChanged() {
+    _maintainDailyTasks();
     if (mounted) setState(() {});
+  }
+
+  void _maintainDailyTasks() {
+    unawaited(dailyTaskSubscription?.cancel());
+    dailyTaskSubscription = widget.repository
+        .maintainDailyTasks(dayClock.today.toString())
+        .listen(
+          (_) {},
+          onError: (Object error) {
+            unawaited(
+              DiagnosticLogService.instance.event(
+                'daily_reschedule_failed',
+                fields: {'error_type': error.runtimeType.toString()},
+              ),
+            );
+          },
+        );
   }
 
   @override
   void dispose() {
+    dailyTaskSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     agendaSync?.detach();
     if (widget.enablePlatformServices && isAndroidPlatform) {
