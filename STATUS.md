@@ -16,6 +16,11 @@ stretto, testo ingrandito, apertura Calendario, orari allineati e assenza
 del pulsante Teams. Consegna Todo Test tramite build 276; nessuna release
 stabile o pubblicazione Web.
 
+`make todo-test` ha compilato e verificato l'APK locale, ma l'installazione
+ADB IPv6 è nuovamente fallita durante il trasferimento. Il Galaxy resta
+sulla build 275 collaudata dall'utente; per la 276 restano installazione e
+collaudo fisico dopo l'aggiornamento dal manifest rolling.
+
 ## Build 275 — quotidiane separate e riportate a oggi
 
 Solo in Oggi, le ricorrenze esatte «ogni giorno» sono in fondo dopo una linea;
