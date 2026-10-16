@@ -698,8 +698,8 @@ dell'interfaccia non usano il telefono dell'utente né dati reali.
   - tocchi e trascinamenti usano `minuteAt`;
   - la settimana usa una scala unica per le colonne.
 - **Oggi** (`relativeStartLabel`): «ora» per l'evento in corso, «tra
-  N min» per il primo che inizia entro un'ora, più il pulsante della
-  riunione. Un solo timer, solo in quel caso, fino al minuto successivo, e
+  N min» per il primo che inizia entro un'ora. Il pulsante riunione
+  nella barra è stato rimosso nella build 276; resta nel Calendario. Un solo timer, solo in quel caso, fino al minuto successivo, e
   mai in background.
 - **Vista giorno**: frecce per il giorno prima e dopo.
 - **Pressione lunga** (`AgendaEventFlows.quickActions`): menu breve.
@@ -973,3 +973,25 @@ firma locale e ADB connesso. Installa solo Todo Validation e lascia una
 notifica sintetica per ispezione; output atteso `Urgent visit native smoke:
 PASS`. In caso di FAIL controllare i permessi notifiche di Todo Validation
 e ripetere; non cancellare i dati di Todo Test.
+
+## Barra Calendario in Oggi (build 276)
+
+`TodayAgendaStrip` dedica una riga a ciascuno dei primi tre appuntamenti,
+con orari allineati, titoli fino a due righe e pallini dei calendari.
+Padding verticale di 14 dp e altezza minima di 64 dp danno più respiro.
+Il riepilogo degli altri impegni e di quelli di giornata intera è separato.
+Resta il conto alla rovescia; il pulsante Teams/Zoom/Meet è rimosso soltanto
+da questa barra. Tutta la superficie apre il giorno del Calendario, dove
+restano i collegamenti alle riunioni. Nessuna modifica ai dati degli eventi.
+
+## Luogo su Google Maps (build 277)
+
+`agendaMapsUri` (dominio, puro) trasforma il luogo di un evento in una
+ricerca `https://www.google.com/maps/search/?api=1&query=…`, con spazi e a
+capo compattati. Restituisce null per testo vuoto, link (`http`, `www.`) e
+luoghi che sono solo riunioni online (Teams, Zoom, Meet). Nel dettaglio
+dell'evento la riga del luogo diventa toccabile (`agenda-sheet-location`) e
+la pressione lunga aggiunge «Apri in Google Maps». L'apertura usa
+`LaunchMode.externalApplication`: su Android l'app Maps intercetta il link,
+sul Web si apre il sito. L'indirizzo lascia il dispositivo solo al tocco
+esplicito; nessun dato evento cambia. Test: `test/agenda_maps_link_test.dart`.

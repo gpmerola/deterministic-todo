@@ -72,6 +72,40 @@ class TaskRepository {
     return query.watch();
   }
 
+  /// Keep only overdue calendar-daily open tasks on the current civil day.
+  /// The filtered subscription also handles late sync/import arrivals, without
+  /// polling. Re-read inside the transaction so queued snapshots cannot undo a
+  /// completion, deletion or a user's newer scheduling change.
+  Stream<int> maintainDailyTasks(String today) {
+    final query = db.select(db.tasks)
+      ..where(
+        (t) =>
+            t.deletedAt.isNull() &
+            t.status.isIn([
+              TaskStatus.inbox.name,
+              TaskStatus.available.name,
+              TaskStatus.scheduled.name,
+            ]) &
+            t.recurrence.equals(everyDayRecurrence) &
+            t.showDate.isSmallerThanValue(today),
+      );
+    return query.watch().asyncMap(
+      (_) => db.transaction(() async {
+        final overdue = await query.get();
+        for (final task in overdue) {
+          await _update(
+            task,
+            TasksCompanion(
+              showDate: Value(today),
+              status: Value(TaskStatus.available.name),
+            ),
+          );
+        }
+        return overdue.length;
+      }),
+    );
+  }
+
   /// Search filtered and bounded in SQLite: active items before completed
   /// ones, then by date. Matching ignores case and accents ("attivita"
   /// finds "attività"): accents are folded on both sides, `LIKE` folds case.

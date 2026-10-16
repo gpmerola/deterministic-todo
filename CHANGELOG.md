@@ -2,6 +2,30 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.98.0 (build 277) — Release stabile e Todo Test
+
+- Calendario: nel dettaglio di un evento il luogo è un collegamento;
+  toccandolo si apre Google Maps (app su Android, sito sul Web) con la
+  ricerca dell'indirizzo. Anche il menu a pressione lunga offre «Apri in
+  Google Maps». Link e luoghi di sole riunioni online («Microsoft Teams
+  Meeting», Zoom, Meet) restano testo semplice.
+
+## 2.97.0 (build 276) — Release stabile e Todo Test
+
+- Barra Calendario in Oggi più spaziosa: appuntamenti su righe separate,
+  orari allineati, titoli fino a due righe e riepilogo distinto.
+- Rimosso il pulsante Teams/Zoom/Meet dalla barra; toccandola si apre
+  sempre il Calendario, dove restano disponibili i link alle riunioni.
+
+## 2.96.0 (build 275) — Todo Test
+
+- Oggi: attività «ogni giorno» in fondo, separate dalle altre da una linea.
+  Raggruppamento solo visivo, senza cambiare le posizioni salvate.
+- Solo le ricorrenze quotidiane da calendario aperte e arretrate vengono
+  automaticamente riportate a oggi, senza completamenti né nuove copie.
+  La data si sincronizza; altre ricorrenze, attività in attesa, completate,
+  eliminate e date future restano invariate.
+
 ## 2.95.0 (build 274) — Todo Test
 
 - Calendario: gli incontri «Peer Review & Safeguarding concerns» compaiono

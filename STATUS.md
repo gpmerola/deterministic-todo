@@ -1,6 +1,89 @@
 # Stato corrente
 
-Aggiornato il 14 ottobre 2026.
+Aggiornato il 16 ottobre 2026.
+
+## Build 277 — luogo degli eventi su Google Maps
+
+Nel dettaglio di un evento il luogo apre Google Maps; pressione lunga con
+«Apri in Google Maps». Riunioni online e link restano testo. Contratto:
+[Calendario](docs/architecture/AGENDA.md#luogo-su-google-maps-build-277).
+Verificati `make check-generated` e `make check` (553 test passati,
+3 saltati); test dedicati in `test/agenda_maps_link_test.dart`.
+
+Release stabile autorizzata con `PUBBLICA`: run coordinato
+[38940469940](https://github.com/gpmerola/deterministic-todo/actions/runs/38940469940)
+verde in tutti i job, da `agent/todo-ux-sync-hardening` avanzato senza
+riscritture al commit `07e234ea91265f67d88ae365cb3357c4357ac4ae`. Web
+`release-info.json` 2.98.0 / 277 con lo stesso commit; release APK
+`v2.98.0` `latest` con quattro APK e manifest; bundle 277 accettato nel
+track `internal` (propagazione Play non verificata). Todo Test 2.98.0 /
+2277 pubblicato sul manifest rolling; Galaxy non raggiungibile via ADB
+(connessione rifiutata): installazione e collaudo fisico da confermare.
+
+## Release stabile 2.97.0 / 276 — 15 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA`. Run coordinato
+[38725521721](https://github.com/gpmerola/deterministic-todo/actions/runs/38725521721)
+completato con tutti i job verdi dal branch già autorizzato
+`agent/todo-ux-sync-hardening`, avanzato senza riscritture al commit
+`84a104173af2734bba18f37f45e7b6db1b62d1ce`.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): identità HTTPS
+  2.97.0 / 276 e commit verificati. In un profilo Chrome sintetico,
+  creazione, modifica e completamento persistono dopo chiusura normale e
+  forzata (100 ms di attesa dopo la modifica visibile; sei casi riusciti).
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.97.0):
+  release stabile `latest`, manifest con quattro APK e SHA-256, parità con
+  Web verificata. APK arm64 scaricato: hash corrispondente e firma verificata,
+  identica alla stabile 2.95.0 / 274; aggiornamento in-place compatibile.
+- Google Play: bundle 276 accettato nel track `internal`; propagazione ai
+  tester e installazione da Play non verificate.
+- Galaxy: ultima versione confermata dall'utente Todo Test 275; la 276 è
+  disponibile sul canale rolling, ma installazione diretta ADB fallita.
+  La pubblicazione stabile non riattiva il package Play disabilitato.
+
+## Build 276 — barra Calendario di Oggi più leggibile
+
+Appuntamenti su righe separate, orari allineati, titoli fino a due righe,
+più spazio verticale e riepilogo distinto. Tolto il pulsante riunione dalla
+barra; tutta la superficie apre il Calendario. Dati e link negli eventi
+invariati. Contratto: [Calendario](docs/architecture/AGENDA.md#barra-calendario-in-oggi-build-276).
+
+Verificati `make check-generated`, `make check` (549 test passati, 3
+saltati), build Web release, persistenza HTTPS in Chrome con profilo e
+dati sintetici. Layout controllato con fixture sintetiche; test per schermo
+stretto, testo ingrandito, apertura Calendario, orari allineati e assenza
+del pulsante Teams. Consegna Todo Test tramite build 276; pubblicazione
+stabile verificata nella sezione precedente.
+
+`make todo-test` ha compilato e verificato l'APK locale, ma l'installazione
+ADB IPv6 è nuovamente fallita durante il trasferimento. Il Galaxy resta
+sulla build 275 collaudata dall'utente; per la 276 restano installazione e
+collaudo fisico dopo l'aggiornamento dal manifest rolling.
+
+## Build 275 — quotidiane separate e riportate a oggi
+
+Solo in Oggi, le ricorrenze esatte «ogni giorno» sono in fondo dopo una linea;
+ordine relativo e posizioni salvate invariati. Le quotidiane da calendario
+aperte e arretrate passano automaticamente a oggi tramite Lamport/outbox,
+senza completamenti, copie o modifiche alle altre ricorrenze.
+Contratto: [pianificazione](docs/architecture/TODO_PLANNING_MODEL.md).
+
+Verificati `make check-generated`, `make check` (548 test Flutter superati,
+3 saltati), build Web release e persistenza con profilo Chrome sintetico,
+anche HTTPS locale con certificato di prova. Creazione e modifica resistono
+alla chiusura; un completamento perso chiudendo entro 10 ms riproduce il
+limite di scrittura già documentato. Con attesa di 100 ms passa sia chiusura
+normale sia forzata. Nessuna pubblicazione Web o release stabile.
+
+APK Todo Test 2.96.0 / 275 compilato e verificato dal comando canonico.
+Installazione Galaxy non riuscita: streaming ADB fallito anche su IPv6;
+il recupero senza streaming ha prodotto EOF e un APK parziale, rimosso
+senza installarlo. Il 15 ottobre l'utente ha installato manualmente la build
+275 sul Galaxy e confermato che la nuova UI e la riprogrammazione
+funzionano perfettamente; collaudo riferito dall'utente.
+PR [#3](https://github.com/gpmerola/deterministic-todo/pull/3), branch
+`agent/daily-tasks-today`, base operativa `agent/remove-admin-sessions`.
 
 ## Release stabile 2.95.0 / 274 — 14 ottobre 2026
 

@@ -13,6 +13,10 @@ enum RecurrenceUnit {
   year,
 }
 
+/// Exact calendar recurrence labelled «ogni giorno», excluding completion-based
+/// and weekday rules. Shared by automatic rescheduling and Today presentation.
+const everyDayRecurrence = 'calendar:day:1';
+
 class RecurrenceRule {
   const RecurrenceRule({
     required this.type,

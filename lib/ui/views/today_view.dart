@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/local/database.dart';
+import '../../domain/task.dart';
 
 /// Today: overdue items under their own header, then today's and Inbox items.
 /// [tasks] are already filtered by SQL and ordered.
@@ -20,46 +21,50 @@ class TodayTaskList extends StatelessWidget {
   Widget build(BuildContext context) {
     final overdue = <Task>[];
     final current = <Task>[];
+    final daily = <Task>[];
     for (final task in tasks) {
-      if (task.showDate != null && task.showDate!.compareTo(today) < 0) {
+      if (task.recurrence == everyDayRecurrence) {
+        daily.add(task);
+      } else if (task.showDate != null && task.showDate!.compareTo(today) < 0) {
         overdue.add(task);
       } else {
         current.add(task);
       }
     }
-    if (overdue.isEmpty) {
-      return ListView.builder(
-        key: const PageStorageKey('task-list-today'),
-        // Room for the + button over the last row (UI review, build 218).
-        padding: const EdgeInsets.only(bottom: 96),
-        itemCount: current.length,
-        itemBuilder: (_, index) => tileBuilder(current[index]),
-      );
-    }
-    final currentHeaderIndex = overdue.length + 1;
-    final itemCount =
-        currentHeaderIndex + (current.isEmpty ? 0 : 1) + current.length;
+    // Null entries are presentation markers, never persisted positions.
+    final rows = <Task?>[
+      if (overdue.isNotEmpty) null,
+      ...overdue,
+      if (overdue.isNotEmpty && (current.isNotEmpty || daily.isNotEmpty)) null,
+      ...current,
+      if (current.isNotEmpty && daily.isNotEmpty) null,
+      ...daily,
+    ];
     return ListView.builder(
       key: const PageStorageKey('task-list-today'),
-      // Room for the + button over the last row (UI review, build 218).
       padding: const EdgeInsets.only(bottom: 96),
-      itemCount: itemCount,
+      itemCount: rows.length,
       itemBuilder: (_, index) {
-        if (index == 0) {
+        final task = rows[index];
+        if (task != null) return tileBuilder(task);
+        if (index == 0 && overdue.isNotEmpty) {
           return const _GroupHeader(
             key: ValueKey('today-group-overdue'),
             label: 'Arretrate',
             overdue: true,
           );
         }
-        if (index <= overdue.length) return tileBuilder(overdue[index - 1]);
-        if (current.isNotEmpty && index == currentHeaderIndex) {
+        if (overdue.isNotEmpty && index == overdue.length + 1) {
           return const _GroupHeader(
             key: ValueKey('today-group-current'),
             label: 'Oggi',
           );
         }
-        return tileBuilder(current[index - currentHeaderIndex - 1]);
+        return const Padding(
+          key: ValueKey('today-daily-divider'),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Divider(height: 1),
+        );
       },
     );
   }
