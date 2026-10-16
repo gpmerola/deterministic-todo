@@ -140,7 +140,13 @@ def adb_device(root: Path) -> str | None:
 
 def install_adb(root: Path, apk: Path, serial: str) -> None:
     print(f"ADB device {serial}: installing in place…")
-    run(["adb", "-s", serial, "install", "-r", str(apk)], cwd=root)
+    try:
+        run(["adb", "-s", serial, "install", "-r", str(apk)], cwd=root)
+    except subprocess.CalledProcessError:
+        # Streamed installs over the high-latency Tailscale link have dropped
+        # mid-transfer (builds 267, 275, 276): push the whole file first, once.
+        print("Streamed install failed; retrying once with --no-streaming…")
+        run(["adb", "-s", serial, "install", "-r", "--no-streaming", str(apk)], cwd=root)
     installed = run([
         "adb", "-s", serial, "shell", "dumpsys", "package", PACKAGE,
     ], cwd=root, capture=True)
@@ -219,11 +225,24 @@ def main() -> int:
     if args.mode == "build":
         print(f"Todo Test APK verified locally: {apk}")
         return 0
-    if serial is not None:
-        install_adb(root, apk, serial)
-    else:
-        publish_remote(root, apk, version, build_number)
+    deliver(args.mode, serial,
+            lambda device: install_adb(root, apk, device),
+            lambda: publish_remote(root, apk, version, build_number))
     return 0
+
+
+def deliver(mode: str, serial: str | None, install, publish) -> None:
+    if serial is None:
+        publish()
+        return
+    try:
+        install(serial)
+    except (RuntimeError, subprocess.CalledProcessError) as error:
+        if mode == "adb":
+            raise
+        # Auto mode must still deliver: the in-app updater reads the rolling manifest.
+        print(f"ADB delivery failed ({error}); publishing to the rolling manifest instead.")
+        publish()
 
 
 if __name__ == "__main__":

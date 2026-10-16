@@ -73,7 +73,11 @@ automaticamente `versionCode = 2000 + build` e ne verifica package e numero.
 Poi sceglie il percorso più rapido disponibile:
 
 - con almeno un dispositivo ADB autorizzato: `adb install -r`, apertura e
-  verifica in-place, conservando i dati;
+  verifica in-place, conservando i dati. Se il trasferimento in streaming cade
+  (successo con le build 267, 275 e 276 sul collegamento Tailscale ad alta
+  latenza), riprova una sola volta con `--no-streaming`; se fallisce anche
+  questo tentativo, in modalità automatica pubblica sul manifest rolling come
+  senza dispositivo, così la build non resta mai non consegnata;
 - senza dispositivo ADB: upload diretto dal Mac nella prerelease
   `todo-test-latest`, prima l'APK e poi il manifest; il telefono può quindi
   usare **Controlla aggiornamenti** senza attendere GitHub Actions.

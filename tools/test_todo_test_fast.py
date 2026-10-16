@@ -1,6 +1,8 @@
 import unittest
 
-from todo_test_fast import choose_device, make_manifest, read_version
+import subprocess
+
+from todo_test_fast import choose_device, deliver, make_manifest, read_version
 
 
 class TodoTestFastTest(unittest.TestCase):
@@ -16,6 +18,26 @@ class TodoTestFastTest(unittest.TestCase):
         result = make_manifest("2.26.7", 130, "abc", "todo.apk", "0" * 64)
         self.assertEqual(result["android_version_code"], 2130)
         self.assertEqual(set(result["platforms"]), {"android-dev", "android-dev-arm64-v8a"})
+
+    def test_auto_mode_publishes_when_adb_install_fails(self):
+        calls = []
+
+        def failing_install(serial):
+            calls.append(("install", serial))
+            raise subprocess.CalledProcessError(1, ["adb", "install"])
+
+        deliver("auto", "phone:5555", failing_install, lambda: calls.append(("publish",)))
+        self.assertEqual(calls, [("install", "phone:5555"), ("publish",)])
+
+    def test_adb_mode_does_not_fall_back_to_publishing(self):
+        def failing_install(serial):
+            raise subprocess.CalledProcessError(1, ["adb", "install"])
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            deliver("adb", "phone:5555", failing_install, lambda: self.fail("published"))
+
+    def test_successful_install_does_not_publish(self):
+        deliver("auto", "phone:5555", lambda serial: None, lambda: self.fail("published"))
 
 
 if __name__ == "__main__":
