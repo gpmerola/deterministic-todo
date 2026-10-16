@@ -7,8 +7,18 @@ Aggiornato il 16 ottobre 2026.
 Nel dettaglio di un evento il luogo apre Google Maps; pressione lunga con
 «Apri in Google Maps». Riunioni online e link restano testo. Contratto:
 [Calendario](docs/architecture/AGENDA.md#luogo-su-google-maps-build-277).
-Pubblicazione stabile richiesta dall'utente con `PUBBLICA` il 16 ottobre
-2026; esiti della verifica da registrare dopo la pipeline.
+Verificati `make check-generated` e `make check` (553 test passati,
+3 saltati); test dedicati in `test/agenda_maps_link_test.dart`.
+
+Release stabile autorizzata con `PUBBLICA`: run coordinato
+[38940469940](https://github.com/gpmerola/deterministic-todo/actions/runs/38940469940)
+verde in tutti i job, da `agent/todo-ux-sync-hardening` avanzato senza
+riscritture al commit `07e234ea91265f67d88ae365cb3357c4357ac4ae`. Web
+`release-info.json` 2.98.0 / 277 con lo stesso commit; release APK
+`v2.98.0` `latest` con quattro APK e manifest; bundle 277 accettato nel
+track `internal` (propagazione Play non verificata). Todo Test 2.98.0 /
+2277 pubblicato sul manifest rolling; Galaxy non raggiungibile via ADB
+(connessione rifiutata): installazione e collaudo fisico da confermare.
 
 ## Release stabile 2.97.0 / 276 — 15 ottobre 2026
 
