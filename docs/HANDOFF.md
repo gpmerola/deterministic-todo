@@ -45,9 +45,16 @@ e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
   `make check-generated`).
 - `lib/data/sync/` — outbox, versioni Lamport, tombstone, Supabase/Realtime.
   Connessione in `sync_connection.dart`, politiche in `sync_policy.dart`,
-  orchestrazione in `sync_service.dart`.
+  orchestrazione in `sync_service.dart` (`_syncOnce` delega a
+  `_uploadOutbox` e `_fullPull`).
 - `lib/services/` — calendario, backup, import/export, aggiornamenti, AI.
-- `lib/ui/` — shell (`lib/main.dart`, ancora grande), stato navigazione in
+- `lib/domain/agenda.dart` — modello e unione del Calendario; link a
+  riunioni e Maps in `agenda_links.dart`, impaginazione giornaliera in
+  `agenda_timeline.dart` (riesportati da `agenda.dart`).
+- `lib/ui/` — shell (`lib/main.dart`, circa 1.160 righe; tema e `TodoApp` in
+  `ui/shell/todo_app.dart`, manutenzione giornaliera in
+  `ui/shell/shell_maintenance.dart`, ✨ e ricerca universale in
+  `ui/shell/shell_capture.dart`), stato navigazione in
   `ui/shell/shell_navigation.dart`; creazione rapida in
   `services/quick_add_service.dart`. Calendario: orchestrazione in
   `ui/views/agenda_view.dart`, filtri, header ed elenco in moduli separati
@@ -89,7 +96,7 @@ firma e token restano segreti.
 
 1. Leggere `AGENTS.md`, `TODO_NEXT.md` e questo file; controllare `git status -sb`.
 2. Le voci aperte più utili sono i riscontri dell'utente sul Galaxy e la
-   manutenzione elencata in `TODO_NEXT.md` (dipendenze bloccate, divisione di
-   `main.dart`).
+   manutenzione elencata in `TODO_NEXT.md` (dipendenze bloccate, resto di
+   `build` e `_content` in `main.dart`).
 3. Ogni modifica funzionale: versione/build in `pubspec.yaml`, CHANGELOG,
    STATUS, `make check`, `make todo-test` e prova sul Galaxy.

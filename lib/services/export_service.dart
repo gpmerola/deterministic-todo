@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:uuid/uuid.dart';
 
 import '../data/local/database.dart';
@@ -40,36 +42,81 @@ class _Backup {
   final bool legacy;
 }
 
+typedef EncodedBackup = ({Uint8List bytes, String contentHash});
+
+String encodeExportDocument(Map<String, Object?> document) =>
+    const JsonEncoder.withIndent('  ').convert(document);
+
+/// SHA-256 of an export without `exported_at`, which changes every time:
+/// equal content gives an equal hash.
+String backupContentHash(String json) => sha256
+    .convert(
+      utf8.encode(json.replaceFirst(RegExp(r'"exported_at": "[^"]*"'), '')),
+    )
+    .toString();
+
+/// Top level so [compute] can run it in another isolate.
+EncodedBackup encodeBackupDocument(Map<String, Object?> document) {
+  final json = encodeExportDocument(document);
+  return (
+    bytes: Uint8List.fromList(utf8.encode(json)),
+    contentHash: backupContentHash(json),
+  );
+}
+
 class ExportService {
   ExportService(this.db);
   final AppDatabase db;
 
-  Future<String> exportJson() => db.transaction(() async {
-    final tasks = await (db.select(
-      db.tasks,
-    )..orderBy([(r) => OrderingTerm(expression: r.id)])).get();
-    final projects = await (db.select(
-      db.projects,
-    )..orderBy([(r) => OrderingTerm(expression: r.id)])).get();
-    final sections = await (db.select(
-      db.projectSections,
-    )..orderBy([(r) => OrderingTerm(expression: r.id)])).get();
-    final settings = await (db.select(
-      db.appSettings,
-    )..orderBy([(r) => OrderingTerm(expression: r.key)])).get();
-    return const JsonEncoder.withIndent('  ').convert({
-      'format': 'deterministic_todo',
-      'version': 2,
-      'exported_at': DateTime.now().toUtc().toIso8601String(),
-      'tasks': tasks.map((r) => r.toJson()).toList(),
-      'projects': projects.map((r) => r.toJson()).toList(),
-      'sections': sections.map((r) => r.toJson()).toList(),
-      'settings': settings
-          .where((r) => isPortableTodoSetting(r.key))
-          .map((r) => r.toJson())
-          .toList(),
-    });
-  });
+  Future<String> exportJson({DateTime? exportedAt}) async =>
+      encodeExportDocument(await _exportDocument(exportedAt));
+
+  /// Automatic backup bytes and their content hash. From [isolateFromTasks]
+  /// tasks, encoding, UTF-8 and hashing run in a background isolate (inline
+  /// on the web): at 10,000 rows they paused the interface for about 0.75 s
+  /// on the Galaxy (P2, October 2026). Smaller exports stay inline, where
+  /// starting an isolate would cost more than the work. Either way the output
+  /// is byte for byte that of [exportJson].
+  Future<EncodedBackup> exportBackup({
+    DateTime? exportedAt,
+    @visibleForTesting int isolateFromTasks = 500,
+  }) async {
+    final document = await _exportDocument(exportedAt);
+    return (document['tasks']! as List).length >= isolateFromTasks
+        ? compute(encodeBackupDocument, document)
+        : encodeBackupDocument(document);
+  }
+
+  /// Rows are read in one transaction, so the export is a consistent snapshot.
+  Future<Map<String, Object?>> _exportDocument(DateTime? exportedAt) =>
+      db.transaction(() async {
+        final tasks = await (db.select(
+          db.tasks,
+        )..orderBy([(r) => OrderingTerm(expression: r.id)])).get();
+        final projects = await (db.select(
+          db.projects,
+        )..orderBy([(r) => OrderingTerm(expression: r.id)])).get();
+        final sections = await (db.select(
+          db.projectSections,
+        )..orderBy([(r) => OrderingTerm(expression: r.id)])).get();
+        final settings = await (db.select(
+          db.appSettings,
+        )..orderBy([(r) => OrderingTerm(expression: r.key)])).get();
+        return {
+          'format': 'deterministic_todo',
+          'version': 2,
+          'exported_at': (exportedAt ?? DateTime.now())
+              .toUtc()
+              .toIso8601String(),
+          'tasks': tasks.map((r) => r.toJson()).toList(),
+          'projects': projects.map((r) => r.toJson()).toList(),
+          'sections': sections.map((r) => r.toJson()).toList(),
+          'settings': settings
+              .where((r) => isPortableTodoSetting(r.key))
+              .map((r) => r.toJson())
+              .toList(),
+        };
+      });
 
   Future<String> exportCsv() async {
     final tasks = await db.select(db.tasks).get();

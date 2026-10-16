@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/data/task_repository.dart';
 import 'package:deterministic_todo/services/export_service.dart';
@@ -46,6 +47,32 @@ void main() {
     await source.close();
     await target.close();
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = false;
+  });
+
+  test('backup bytes and hash match the JSON export byte for byte', () async {
+    final at = DateTime.utc(2026, 10, 16, 9, 30);
+    final json = await exporter.exportJson(exportedAt: at);
+    final backup = await exporter.exportBackup(exportedAt: at);
+    expect(backup.bytes, utf8.encode(json));
+    final isolated = await exporter.exportBackup(
+      exportedAt: at,
+      isolateFromTasks: 0,
+    );
+    expect(isolated.bytes, backup.bytes);
+    expect(isolated.contentHash, backup.contentHash);
+    // The formula used before build 278: the stored hash must not change,
+    // or the first backup after the update would look like new content.
+    final legacyHash = sha256
+        .convert(
+          utf8.encode(json.replaceFirst(RegExp(r'"exported_at": "[^"]*"'), '')),
+        )
+        .toString();
+    expect(backup.contentHash, legacyHash);
+    final later = await exporter.exportBackup(
+      exportedAt: at.add(const Duration(hours: 1)),
+    );
+    expect(later.contentHash, backup.contentHash);
+    expect(later.bytes, isNot(backup.bytes));
   });
 
   test(

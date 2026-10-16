@@ -2,6 +2,23 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.99.0 (build 278) — Todo Test
+
+- Backup automatico: con database grandi codifica e impronta del backup
+  avvengono in background; a 10.000 attività la pausa dell'interfaccia
+  scende di circa tre quarti nelle misure sul Mac. Contenuto del backup
+  identico.
+- Calendario: gli a capo dei titoli nella Settimana sono memorizzati, così
+  tornare su una settimana già vista o su riunioni ricorrenti costa meno.
+  Aspetto invariato.
+- Cassaforte cifrata (`flutter_secure_storage`) 10 → 11. I dati già
+  migrati dalla 10 restano leggibili; un client rimasto alla 9 dovrebbe
+  ricollegare l'account.
+- Interno: `main.dart`, la sincronizzazione e il modello Calendario divisi
+  in moduli più piccoli, senza cambi di comportamento. `make todo-test`
+  riprova un'installazione ADB interrotta e, se fallisce ancora, pubblica
+  sul manifest rolling.
+
 ## 2.98.0 (build 277) — Release stabile e Todo Test
 
 - Calendario: nel dettaglio di un evento il luogo è un collegamento;

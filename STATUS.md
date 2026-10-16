@@ -1,6 +1,23 @@
 # Stato corrente
 
-Aggiornato il 16 ottobre 2026.
+Aggiornato il 16 ottobre 2026 (build 278).
+
+## Build 278 — manutenzione e prestazioni
+
+Backup automatico con codifica e impronta in isolate da 500 attività
+(byte e hash identici), a capo dei titoli della Settimana memorizzati,
+`flutter_secure_storage` 11, divisione di `main.dart`, `sync_service.dart`
+e `domain/agenda.dart` senza cambi di comportamento, `make todo-test` con
+nuovo tentativo `--no-streaming` e ripiego sul manifest rolling. Misure:
+[backup e Settimana](docs/diagnostics/2026-10-16-backup-isolate-and-week-wrap.md).
+
+Verificati `make check-generated` e `make check` (558 test passati, 3
+saltati), golden della Settimana invariati, build Web release e
+`tools/web_persistence.mjs` (3 giri): nuove attività e titoli sempre
+conservati; il completamento si perde solo chiudendo Chrome entro circa
+12 ms, come nella 271. ADB: telefono raggiungibile su Tailscale ma porta
+5555 rifiutata (debug in rete da riattivare dopo reboot); misure sul Galaxy
+e collaudo fisico da fare.
 
 ## Build 277 — luogo degli eventi su Google Maps
 

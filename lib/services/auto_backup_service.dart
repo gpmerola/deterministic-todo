@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 
 import '../data/local/database.dart';
@@ -194,14 +193,8 @@ final class AutoBackupService {
   }
 
   Future<bool> _backupNow(DateTime now) async {
-    final json = await ExportService(db).exportJson();
-    final bytes = Uint8List.fromList(utf8.encode(json));
-    // `exported_at` changes every time; the content hash must not.
-    final hash = sha256
-        .convert(
-          utf8.encode(json.replaceFirst(RegExp(r'"exported_at": "[^"]*"'), '')),
-        )
-        .toString();
+    // `exported_at` changes every time; the content hash ignores it.
+    final (:bytes, contentHash: hash) = await ExportService(db).exportBackup();
     final previous = await _value(hashKey);
     final files = await store.list();
     final expectedFile = await _value(fileKey);

@@ -7,15 +7,15 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P1 — Manutenzione aperta (revisione del 7 ottobre 2026)
 
-- [ ] `flutter_secure_storage` 10 → 11: la release stabile 242 (con la 10) è
-  pubblicata; prima verificare che Play e APK diretto l'abbiano installata.
 - [ ] «Tutta la serie» dall'app su un calendario Google reale: provata solo su
   emulatore.
 - [ ] Test UI via ADB: mai toccare la fascia alta dello schermo dove compaiono
   le notifiche; preferire una schermata appena catturata prima di ogni tocco.
 - [ ] Proseguire la separazione dei flussi UI di `_TaskShellState` quando
   modificati: avvio, connessione sync e caricamento Calendario estratti nella
-  build 260 ([confini](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md)).
+  build 260 ([confini](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md));
+  tema, manutenzione e ✨/ricerca il 16 ottobre 2026. Restano `build` e
+  `_content`, che usano `setState`.
 
 ## P1 — Osservazioni in corso
 
@@ -51,8 +51,6 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P2 — Idee e decisioni future
 
-- Separazione di `main.dart` rimandata dopo la pulizia della build 272
-  (non a basso rischio prima di una pubblicazione).
 - Titolo degli eventi creati nel calendario Google del telefono: oggi con il
   Markdown grezzo dei link. Pulirlo riscriverebbe eventi reali già creati:
   solo con decisione dell'utente.
@@ -78,9 +76,10 @@ ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## P2 — Performance
 
-- Preparazione backup: misurata su Galaxy in release, database sintetico
-  isolato; a 10.000 righe pausa event loop di circa 0,75 s. Confrontare una
-  variante in isolate includendo copie/trasferimento e test di equivalenza.
+- Backup e Settimana (build 278): codifica del backup in isolate da 500
+  attività e a capo memorizzati; misurati solo sul Mac. Ripetere sul Galaxy
+  `--scenario calendar` e la preparazione backup a 10.000 righe
+  ([esiti](docs/diagnostics/2026-10-16-backup-isolate-and-week-wrap.md)).
 - Calendario denso: il cambio settimana con 12 eventi al giorno resta lento
   (costo quasi tutto nell'impaginazione dei titoli). Il tentativo della 269
   era più veloce ma cambiava l'aspetto ed è stato ritirato nella 270. Un

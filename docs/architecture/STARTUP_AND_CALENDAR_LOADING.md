@@ -13,7 +13,9 @@
   dopo l'apertura senza ricreare navigazione o editor.
 - `data/sync/sync_connection.dart` possiede auth, connettività e Realtime;
   `sync_service.dart` orchestra outbox, ricevute, merge e cancellazione delle
-  richieste. Stato immutabile in `sync_status.dart`, politiche in
+  richieste; un ciclo è `_uploadOutbox` (upload e ricevute) seguito, se
+  completo, da `_fullPull` (panoramica, progetti, bucket, allineamento,
+  eliminazioni), con fasi e progressi invariati. Stato immutabile in `sync_status.dart`, politiche in
   `sync_policy.dart`, lettura delle versioni in `realtime_versions.dart`.
   Nessuna modifica al protocollo, allo schema o alle regole di convergenza.
 

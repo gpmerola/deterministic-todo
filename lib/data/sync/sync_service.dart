@@ -538,196 +538,21 @@ class SyncService {
     final timer = Stopwatch()..start();
     final isolated = <String>{};
     try {
-      var uploadedEntities = 0;
-      final rejectedCodes = <String>{};
-      var rebasedEntities = 0;
-      final grouped = <String, List<OutboxEntry>>{};
-      // Parent rows precede tasks, and each entity receives its own acknowledgement.
-      for (final entry in entries) {
-        grouped
-            .putIfAbsent(
-              '${isProjectOperation(entry) ? entry.operation : 'tasks'}:${entry.entityId}',
-              () => [],
-            )
-            .add(entry);
-      }
-      int rank(List<OutboxEntry> group) => group.first.operation == 'projects'
-          ? 0
-          : group.first.operation == 'project_sections'
-          ? 1
-          : 2;
-      final groups = grouped.values.toList()
-        ..sort((a, b) => rank(a).compareTo(rank(b)));
-      final accepted =
-          <({List<OutboxEntry> group, Map<String, dynamic> row})>[];
-      try {
-        final prefetched = await _prefetchTasks(
-          groups
-              .where((group) => !isProjectOperation(group.first))
-              .map((group) => group.first.entityId),
-        );
-        for (final group in groups) {
-          _requests.check();
-          final entry = group.first;
-          try {
-            Map<String, dynamic> row;
-            if (isProjectOperation(entry)) {
-              stage = SyncStage.projects;
-              row = await ProjectSyncWriter(
-                db,
-                client,
-                scope: _requests,
-              ).upload(group);
-            } else {
-              stage = SyncStage.taskUpload;
-              final task = await (db.select(
-                db.tasks,
-              )..where((r) => r.id.equals(entry.entityId))).getSingleOrNull();
-              if (task == null) throw const SyncIntentConflictException();
-              try {
-                final result =
-                    await TaskSyncWriter(db, client, scope: _requests).upload(
-                      task,
-                      group,
-                      prefetched: prefetched.containsKey(task.id)
-                          ? (row: prefetched[task.id])
-                          : null,
-                    );
-                rebasedEntities += result.retries;
-                row = result.row;
-              } on PostgrestException catch (error) {
-                if (isRecurringOccurrenceConflict(error)) {
-                  await _reconcileRecurringOccurrence(task);
-                }
-                rethrow;
-              }
-            }
-            accepted.add((group: group, row: row));
-            uploadedEntities++;
-          } on PostgrestException catch (error) {
-            final String marker;
-            if (error.code == 'P0001' &&
-                error.message.contains('todo_entity_purged')) {
-              marker = 'purged_entity';
-            } else if (isEntityRejection(error)) {
-              // One invalid row must not stop other uploads or the pull.
-              marker = 'server_rejected';
-              rejectedCodes.add(error.code!);
-            } else {
-              rethrow;
-            }
-            await _markGroup(group, marker, isolated);
-          } on SyncIntentConflictException {
-            await _markGroup(group, 'intent_conflict', isolated);
-          }
-        }
-      } on Object {
-        // Server writes already accepted stay confirmed in the outbox either
-        // way; acknowledging them now just avoids re-reading them later.
-        if (accepted.isNotEmpty && _requests.isActive) {
-          try {
-            await _acknowledge(accepted);
-          } on Object {
-            // The original failure is the one reported.
-          }
-        }
-        rethrow;
-      }
-      if (accepted.isNotEmpty) {
-        stage = SyncStage.receipt;
-        await _acknowledge(accepted);
-      }
+      final upload = await _uploadOutbox(
+        entries,
+        isolated,
+        (next) => stage = next,
+      );
       stage = SyncStage.taskPull;
       var remoteCount = 0;
       int? divergedBuckets;
       if (pullAll) {
-        _activeSnapshotStarted = true;
-        stage = SyncStage.overview;
-        _reportProgress(cycle, stage, entries.length);
-        final overview = await SyncOverview.fetch(client, _requests);
-        final repair = await needsRemoteNullRepair(db);
-        stage = SyncStage.projects;
-        _reportProgress(cycle, stage, entries.length);
-        await _syncProjects(repair ? null : overview);
-        stage = SyncStage.taskPull;
-        _reportProgress(cycle, stage, entries.length);
-        // v2 fingerprints include content, so a row diverged at an equal
-        // version changes its bucket. v1 servers compare stamps only and
-        // need a complete pull (repair) to rewrite such rows.
-        final changed = repair
-            ? null
-            : await changedTaskBuckets(
-                db,
-                client,
-                _requests,
-                fingerprints: overview?.tasks,
-                version: overview?.taskVersion ?? taskFingerprintV1,
-              );
-        final buckets = changed?.buckets;
-        for (final bucket in buckets ?? <String?>[null]) {
-          await for (final page in remotePages(
-            client,
-            'tasks',
-            scope: _requests,
-            idPrefix: bucket,
-          )) {
-            stage = SyncStage.taskMerge;
-            _reportProgress(
-              cycle,
-              stage,
-              entries.length,
-              remoteRows: remoteCount,
-            );
-            await mergeRemoteBatch(db, 'tasks', page, _requests);
-            remoteCount += page.length;
-            stage = SyncStage.taskPull;
-            _reportProgress(
-              cycle,
-              stage,
-              entries.length,
-              remoteRows: remoteCount,
-            );
-          }
-        }
-        if (repair) await markRemoteNullRepaired(db);
-        if (changed != null) {
-          divergedBuckets = await unresolvedTaskBuckets(
-            db,
-            changed.remote,
-            changed.buckets,
-            _requests,
-            version: changed.version,
-          );
-          _alignment = SyncAlignment(
-            divergedBuckets,
-            checkedAt: DateTime.now().toUtc(),
-            contentChecked: changed.version >= taskFingerprintV2,
-          );
-        } else if (repair && overview != null) {
-          // After the complete pull, measure every server bucket once.
-          divergedBuckets = await unresolvedTaskBuckets(
-            db,
-            overview.tasks,
-            [
-              for (final item in overview.tasks)
-                (item as Map)['bucket'] as String,
-            ],
-            _requests,
-            version: overview.taskVersion,
-          );
-          _alignment = SyncAlignment(
-            divergedBuckets,
-            checkedAt: DateTime.now().toUtc(),
-            contentChecked: overview.taskVersion >= taskFingerprintV2,
-            repaired: true,
-          );
-        }
-        stage = SyncStage.purgePull;
-        _reportProgress(cycle, stage, entries.length, remoteRows: remoteCount);
-        if (overview == null ||
-            !await overview.matches(db, 'purged_entities', _requests)) {
-          await _pullPurgedEntities();
-        }
+        final pulled = await _fullPull((next, remoteRows) {
+          stage = next;
+          _reportProgress(cycle, next, entries.length, remoteRows: remoteRows);
+        });
+        remoteCount = pulled.remoteRows;
+        divergedBuckets = pulled.divergedBuckets;
       }
       final remaining = await db.select(db.outboxEntries).get();
       _requests.check();
@@ -782,14 +607,16 @@ class SyncService {
             'network_ms': _requests.networkMs,
             'comparison_ms': _requests.comparisonMs,
             'purge_ms': _requests.purgeMs,
-            'uploaded_entities': uploadedEntities,
-            'rebased_entities': rebasedEntities,
+            'uploaded_entities': upload.uploaded,
+            'rebased_entities': upload.rebased,
             'remote_rows': remoteCount,
             'conflicts': conflicts,
             'rejected': rejected,
             'diverged_buckets': ?divergedBuckets,
-            if (rejectedCodes.isNotEmpty)
-              'rejected_codes': (rejectedCodes.toList()..sort()).join(','),
+            if (upload.rejectedCodes.isNotEmpty)
+              'rejected_codes': (upload.rejectedCodes.toList()..sort()).join(
+                ',',
+              ),
             'pull_all': pullAll,
             ..._requests.pullDiagnostics,
             'duration_ms': timer.elapsedMilliseconds,
@@ -898,6 +725,198 @@ class SyncService {
         ),
       );
     }
+  }
+
+  /// Uploads the outbox, parents before tasks, with one acknowledgement per
+  /// entity. Rejected or conflicting entities are added to [isolated] and do
+  /// not stop the others.
+  Future<({int uploaded, int rebased, Set<String> rejectedCodes})>
+  _uploadOutbox(
+    List<OutboxEntry> entries,
+    Set<String> isolated,
+    void Function(SyncStage stage) enter,
+  ) async {
+    var uploadedEntities = 0;
+    final rejectedCodes = <String>{};
+    var rebasedEntities = 0;
+    final grouped = <String, List<OutboxEntry>>{};
+    // Parent rows precede tasks, and each entity receives its own acknowledgement.
+    for (final entry in entries) {
+      grouped
+          .putIfAbsent(
+            '${isProjectOperation(entry) ? entry.operation : 'tasks'}:${entry.entityId}',
+            () => [],
+          )
+          .add(entry);
+    }
+    int rank(List<OutboxEntry> group) => group.first.operation == 'projects'
+        ? 0
+        : group.first.operation == 'project_sections'
+        ? 1
+        : 2;
+    final groups = grouped.values.toList()
+      ..sort((a, b) => rank(a).compareTo(rank(b)));
+    final accepted = <({List<OutboxEntry> group, Map<String, dynamic> row})>[];
+    try {
+      final prefetched = await _prefetchTasks(
+        groups
+            .where((group) => !isProjectOperation(group.first))
+            .map((group) => group.first.entityId),
+      );
+      for (final group in groups) {
+        _requests.check();
+        final entry = group.first;
+        try {
+          Map<String, dynamic> row;
+          if (isProjectOperation(entry)) {
+            enter(SyncStage.projects);
+            row = await ProjectSyncWriter(
+              db,
+              client,
+              scope: _requests,
+            ).upload(group);
+          } else {
+            enter(SyncStage.taskUpload);
+            final task = await (db.select(
+              db.tasks,
+            )..where((r) => r.id.equals(entry.entityId))).getSingleOrNull();
+            if (task == null) throw const SyncIntentConflictException();
+            try {
+              final result = await TaskSyncWriter(db, client, scope: _requests)
+                  .upload(
+                    task,
+                    group,
+                    prefetched: prefetched.containsKey(task.id)
+                        ? (row: prefetched[task.id])
+                        : null,
+                  );
+              rebasedEntities += result.retries;
+              row = result.row;
+            } on PostgrestException catch (error) {
+              if (isRecurringOccurrenceConflict(error)) {
+                await _reconcileRecurringOccurrence(task);
+              }
+              rethrow;
+            }
+          }
+          accepted.add((group: group, row: row));
+          uploadedEntities++;
+        } on PostgrestException catch (error) {
+          final String marker;
+          if (error.code == 'P0001' &&
+              error.message.contains('todo_entity_purged')) {
+            marker = 'purged_entity';
+          } else if (isEntityRejection(error)) {
+            // One invalid row must not stop other uploads or the pull.
+            marker = 'server_rejected';
+            rejectedCodes.add(error.code!);
+          } else {
+            rethrow;
+          }
+          await _markGroup(group, marker, isolated);
+        } on SyncIntentConflictException {
+          await _markGroup(group, 'intent_conflict', isolated);
+        }
+      }
+    } on Object {
+      // Server writes already accepted stay confirmed in the outbox either
+      // way; acknowledging them now just avoids re-reading them later.
+      if (accepted.isNotEmpty && _requests.isActive) {
+        try {
+          await _acknowledge(accepted);
+        } on Object {
+          // The original failure is the one reported.
+        }
+      }
+      rethrow;
+    }
+    if (accepted.isNotEmpty) {
+      enter(SyncStage.receipt);
+      await _acknowledge(accepted);
+    }
+    return (
+      uploaded: uploadedEntities,
+      rebased: rebasedEntities,
+      rejectedCodes: rejectedCodes,
+    );
+  }
+
+  /// Complete pull: overview, projects, changed task buckets, alignment and
+  /// purges. [enter] records and reports each stage.
+  Future<({int remoteRows, int? divergedBuckets})> _fullPull(
+    void Function(SyncStage stage, int remoteRows) enter,
+  ) async {
+    var remoteCount = 0;
+    int? divergedBuckets;
+    _activeSnapshotStarted = true;
+    enter(SyncStage.overview, remoteCount);
+    final overview = await SyncOverview.fetch(client, _requests);
+    final repair = await needsRemoteNullRepair(db);
+    enter(SyncStage.projects, remoteCount);
+    await _syncProjects(repair ? null : overview);
+    enter(SyncStage.taskPull, remoteCount);
+    // v2 fingerprints include content, so a row diverged at an equal
+    // version changes its bucket. v1 servers compare stamps only and
+    // need a complete pull (repair) to rewrite such rows.
+    final changed = repair
+        ? null
+        : await changedTaskBuckets(
+            db,
+            client,
+            _requests,
+            fingerprints: overview?.tasks,
+            version: overview?.taskVersion ?? taskFingerprintV1,
+          );
+    final buckets = changed?.buckets;
+    for (final bucket in buckets ?? <String?>[null]) {
+      await for (final page in remotePages(
+        client,
+        'tasks',
+        scope: _requests,
+        idPrefix: bucket,
+      )) {
+        enter(SyncStage.taskMerge, remoteCount);
+        await mergeRemoteBatch(db, 'tasks', page, _requests);
+        remoteCount += page.length;
+        enter(SyncStage.taskPull, remoteCount);
+      }
+    }
+    if (repair) await markRemoteNullRepaired(db);
+    if (changed != null) {
+      divergedBuckets = await unresolvedTaskBuckets(
+        db,
+        changed.remote,
+        changed.buckets,
+        _requests,
+        version: changed.version,
+      );
+      _alignment = SyncAlignment(
+        divergedBuckets,
+        checkedAt: DateTime.now().toUtc(),
+        contentChecked: changed.version >= taskFingerprintV2,
+      );
+    } else if (repair && overview != null) {
+      // After the complete pull, measure every server bucket once.
+      divergedBuckets = await unresolvedTaskBuckets(
+        db,
+        overview.tasks,
+        [for (final item in overview.tasks) (item as Map)['bucket'] as String],
+        _requests,
+        version: overview.taskVersion,
+      );
+      _alignment = SyncAlignment(
+        divergedBuckets,
+        checkedAt: DateTime.now().toUtc(),
+        contentChecked: overview.taskVersion >= taskFingerprintV2,
+        repaired: true,
+      );
+    }
+    enter(SyncStage.purgePull, remoteCount);
+    if (overview == null ||
+        !await overview.matches(db, 'purged_entities', _requests)) {
+      await _pullPurgedEntities();
+    }
+    return (remoteRows: remoteCount, divergedBuckets: divergedBuckets);
   }
 
   /// Remote rows for the task groups of this cycle, `null` when absent.
