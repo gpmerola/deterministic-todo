@@ -1,6 +1,14 @@
 # Stato corrente
 
-Aggiornato il 15 ottobre 2026.
+Aggiornato il 16 ottobre 2026.
+
+## Build 277 — luogo degli eventi su Google Maps
+
+Nel dettaglio di un evento il luogo apre Google Maps; pressione lunga con
+«Apri in Google Maps». Riunioni online e link restano testo. Contratto:
+[Calendario](docs/architecture/AGENDA.md#luogo-su-google-maps-build-277).
+Pubblicazione stabile richiesta dall'utente con `PUBBLICA` il 16 ottobre
+2026; esiti della verifica da registrare dopo la pipeline.
 
 ## Release stabile 2.97.0 / 276 — 15 ottobre 2026
 

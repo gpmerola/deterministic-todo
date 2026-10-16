@@ -983,3 +983,15 @@ Il riepilogo degli altri impegni e di quelli di giornata intera è separato.
 Resta il conto alla rovescia; il pulsante Teams/Zoom/Meet è rimosso soltanto
 da questa barra. Tutta la superficie apre il giorno del Calendario, dove
 restano i collegamenti alle riunioni. Nessuna modifica ai dati degli eventi.
+
+## Luogo su Google Maps (build 277)
+
+`agendaMapsUri` (dominio, puro) trasforma il luogo di un evento in una
+ricerca `https://www.google.com/maps/search/?api=1&query=…`, con spazi e a
+capo compattati. Restituisce null per testo vuoto, link (`http`, `www.`) e
+luoghi che sono solo riunioni online (Teams, Zoom, Meet). Nel dettaglio
+dell'evento la riga del luogo diventa toccabile (`agenda-sheet-location`) e
+la pressione lunga aggiunge «Apri in Google Maps». L'apertura usa
+`LaunchMode.externalApplication`: su Android l'app Maps intercetta il link,
+sul Web si apre il sito. L'indirizzo lascia il dispositivo solo al tocco
+esplicito; nessun dato evento cambia. Test: `test/agenda_maps_link_test.dart`.

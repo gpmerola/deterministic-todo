@@ -119,6 +119,7 @@ class AgendaEventFlows {
   Future<bool> quickActions(BuildContext context, AgendaEntry entry) async {
     if (entry.isTask) return show(context, entry);
     final meeting = entry.meeting;
+    final maps = agendaMapsUri(entry.location);
     final canEdit = editable(entry);
     final local = localOnly(entry);
     final choice = await showModalBottomSheet<String>(
@@ -157,6 +158,8 @@ class AgendaEventFlows {
                   Icons.videocam_outlined,
                   'Partecipa · ${meeting.provider}',
                 ),
+              if (maps != null)
+                item('maps', Icons.place_outlined, 'Apri in Google Maps'),
               if (onCreateTask != null) ...[
                 item('prepare', Icons.playlist_add, 'Preparare (giorno prima)'),
                 item(
@@ -191,6 +194,10 @@ class AgendaEventFlows {
     if (choice == null || !context.mounted) return false;
     if (choice == 'join') {
       await launchUrl(meeting!.url, mode: LaunchMode.externalApplication);
+      return false;
+    }
+    if (choice == 'maps') {
+      await launchUrl(maps!, mode: LaunchMode.externalApplication);
       return false;
     }
     if (choice == 'details') return show(context, entry);

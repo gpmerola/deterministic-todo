@@ -181,7 +181,44 @@ class AgendaEventSheet extends StatelessWidget {
               row(Icons.help_outline, 'Invito ancora senza risposta'),
             if (entry.recurring) row(Icons.repeat, 'Evento ricorrente'),
             if (entry.location?.trim().isNotEmpty ?? false)
-              row(Icons.place_outlined, entry.location!.trim()),
+              if (agendaMapsUri(entry.location) case final maps?)
+                InkWell(
+                  key: const ValueKey('agenda-sheet-location'),
+                  onTap: () => unawaited(
+                    launchUrl(maps, mode: LaunchMode.externalApplication),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.place_outlined,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            entry.location!.trim(),
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              decoration: TextDecoration.underline,
+                              decorationColor: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.open_in_new,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                row(Icons.place_outlined, entry.location!.trim()),
             row(Icons.calendar_today_outlined, calendarName),
             if (localOnly)
               row(

@@ -490,6 +490,30 @@ MeetingLink? findMeetingLink(AgendaSourceEvent event) {
   return null;
 }
 
+/// Google Maps search for an event's place, or null when there is nothing
+/// to find on a map: blank text, a link or an online meeting.
+///
+/// The https form opens the Google Maps app on Android and the site on the
+/// web; the address is only sent when the user taps it.
+Uri? agendaMapsUri(String? location) {
+  final place = location?.trim().replaceAll(RegExp(r'\s+'), ' ') ?? '';
+  if (place.isEmpty) return null;
+  if (RegExp(r'https?://|www\.', caseSensitive: false).hasMatch(place)) {
+    return null;
+  }
+  if (RegExp(
+    r'^(riunione di )?(microsoft teams|teams|zoom|google meet|meet)'
+    r'( (meeting|riunione))?$',
+    caseSensitive: false,
+  ).hasMatch(place)) {
+    return null;
+  }
+  return Uri.https('www.google.com', '/maps/search/', {
+    'api': '1',
+    'query': place,
+  });
+}
+
 /// Groups visible, non-cancelled events into [days] civil days from [first].
 ///
 /// The same meeting in two calendars (same title, start, end and all-day flag)

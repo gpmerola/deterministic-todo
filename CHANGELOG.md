@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.98.0 (build 277) — Release stabile e Todo Test
+
+- Calendario: nel dettaglio di un evento il luogo è un collegamento;
+  toccandolo si apre Google Maps (app su Android, sito sul Web) con la
+  ricerca dell'indirizzo. Anche il menu a pressione lunga offre «Apri in
+  Google Maps». Link e luoghi di sole riunioni online («Microsoft Teams
+  Meeting», Zoom, Meet) restano testo semplice.
+
 ## 2.97.0 (build 276) — Release stabile e Todo Test
 
 - Barra Calendario in Oggi più spaziosa: appuntamenti su righe separate,
