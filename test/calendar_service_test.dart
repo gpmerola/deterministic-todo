@@ -47,7 +47,7 @@ void main() {
       await repository.updateDetails(
         task,
         title: task.title,
-        dueDate: '2026-08-04',
+        showDate: '2026-08-04',
       );
       task = await (database.select(
         database.tasks,
@@ -73,19 +73,19 @@ void main() {
           title: any(named: 'title'),
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),
-          isAllDay: any(named: 'isAllDay'),
+          isAllDay: true,
           description: any(named: 'description'),
           timeZone: any(named: 'timeZone'),
         ),
       ).thenAnswer((_) async => 'event-1');
       when(
         () => calendar.updateEvent(
-          eventId: any(named: 'eventId'),
+          instanceId: any(named: 'instanceId'),
           title: any(named: 'title'),
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),
           description: any(named: 'description'),
-          isAllDay: any(named: 'isAllDay'),
+          isAllDay: true,
           timeZone: any(named: 'timeZone'),
         ),
       ).thenAnswer((_) async {});
@@ -111,7 +111,7 @@ void main() {
       ).called(1);
       verify(
         () => calendar.updateEvent(
-          eventId: 'event-1',
+          instanceId: 'event-1',
           title: any(named: 'title'),
           startDate: any(named: 'startDate'),
           endDate: any(named: 'endDate'),
@@ -122,4 +122,55 @@ void main() {
       ).called(1);
     },
   );
+
+  test('esporta nel calendario principale scelto nell Agenda', () async {
+    final id = await repository.create('Rinnovo', showDate: '2026-10-07');
+    final task = await (database.select(
+      database.tasks,
+    )..where((row) => row.id.equals(id))).getSingle();
+    await database
+        .into(database.appSettings)
+        .insert(
+          AppSettingsCompanion.insert(key: mainCalendarKey, value: 'main'),
+        );
+    when(
+      () => calendar.requestPermissions(),
+    ).thenAnswer((_) async => CalendarPermissionStatus.granted);
+    when(() => calendar.listCalendars()).thenAnswer(
+      (_) async => const [
+        // Alphabetically first Google primary: chosen before build 211.
+        Calendar(
+          id: 'other',
+          name: 'a-other@gmail.com',
+          readOnly: false,
+          accountType: 'com.google',
+          isPrimary: true,
+        ),
+        Calendar(
+          id: 'main',
+          name: 'main@gmail.com',
+          readOnly: false,
+          accountType: 'com.google',
+          isPrimary: true,
+        ),
+      ],
+    );
+    when(
+      () => calendar.createEvent(
+        calendarId: any(named: 'calendarId'),
+        title: any(named: 'title'),
+        startDate: any(named: 'startDate'),
+        endDate: any(named: 'endDate'),
+        isAllDay: true,
+        description: any(named: 'description'),
+        timeZone: any(named: 'timeZone'),
+      ),
+    ).thenAnswer((_) async => 'event-2');
+    final result = await CalendarService(
+      database,
+      calendar: calendar,
+      isAndroid: true,
+    ).exportTask(task);
+    expect(result.calendarName, 'main@gmail.com');
+  });
 }

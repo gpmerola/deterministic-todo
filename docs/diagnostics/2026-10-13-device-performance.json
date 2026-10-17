@@ -1,0 +1,267 @@
+{
+  "schema": 1,
+  "date": "2026-10-13",
+  "platform": "Galaxy S21 / Android / arm64 / release",
+  "app_build": 263,
+  "harness_sha256": "e2e930c7927799cda2d5d545fd959e0a13a867f0856611c32b404f2bcf25d225",
+  "fixture": {
+    "tasks": [
+      100,
+      1000,
+      10000
+    ],
+    "note_bytes_per_task": 1000,
+    "events_per_day": 12,
+    "database": "isolated file, NativeDatabase.createInBackground",
+    "backup_store": "in-memory capture, no encryption or native IO"
+  },
+  "measurements": [
+    {
+      "phase": "harness_android_launch",
+      "TotalTime": 577
+    },
+    {
+      "phase": "harness_android_launch",
+      "WaitTime": 590
+    },
+    {
+      "phase": "harness_first_frame",
+      "duration_us": 138806
+    },
+    {
+      "phase": "calendar_scroll",
+      "sample": 0,
+      "events_per_day": 12,
+      "frames": 95,
+      "build_max_us": 69749,
+      "raster_max_us": 14946,
+      "build_p95_us": 41368,
+      "raster_p95_us": 9260,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 17
+    },
+    {
+      "phase": "calendar_scroll",
+      "sample": 1,
+      "events_per_day": 12,
+      "frames": 80,
+      "build_max_us": 104909,
+      "raster_max_us": 19393,
+      "build_p95_us": 79413,
+      "raster_p95_us": 13212,
+      "frames_over_16ms": 7,
+      "frames_over_8ms": 79
+    },
+    {
+      "phase": "calendar_scroll",
+      "sample": 2,
+      "events_per_day": 12,
+      "frames": 72,
+      "build_max_us": 128233,
+      "raster_max_us": 32749,
+      "build_p95_us": 77030,
+      "raster_p95_us": 13082,
+      "frames_over_16ms": 7,
+      "frames_over_8ms": 72
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 100,
+      "sample": 0,
+      "duration_us": 28782,
+      "max_event_loop_gap_us": 13125,
+      "payload_bytes": 163221,
+      "rss_before": 259940352,
+      "rss_after": 264888320,
+      "frames": 73,
+      "build_max_us": 107986,
+      "raster_max_us": 19114,
+      "build_p95_us": 79751,
+      "raster_p95_us": 12917,
+      "frames_over_16ms": 7,
+      "frames_over_8ms": 73
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 100,
+      "sample": 1,
+      "duration_us": 24923,
+      "max_event_loop_gap_us": 19630,
+      "payload_bytes": 163221,
+      "rss_before": 263950336,
+      "rss_after": 266338304,
+      "frames": 67,
+      "build_max_us": 251950,
+      "raster_max_us": 17410,
+      "build_p95_us": 74462,
+      "raster_p95_us": 14176,
+      "frames_over_16ms": 8,
+      "frames_over_8ms": 67
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 100,
+      "sample": 2,
+      "duration_us": 27197,
+      "max_event_loop_gap_us": 19474,
+      "payload_bytes": 163221,
+      "rss_before": 263290880,
+      "rss_after": 265797632,
+      "frames": 75,
+      "build_max_us": 113530,
+      "raster_max_us": 18971,
+      "build_p95_us": 77121,
+      "raster_p95_us": 14488,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 73
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 1000,
+      "sample": 0,
+      "duration_us": 187547,
+      "max_event_loop_gap_us": 95262,
+      "payload_bytes": 1635621,
+      "rss_before": 278396928,
+      "rss_after": 268697600,
+      "frames": 77,
+      "build_max_us": 76809,
+      "raster_max_us": 15254,
+      "build_p95_us": 68448,
+      "raster_p95_us": 11977,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 75
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 1000,
+      "sample": 1,
+      "duration_us": 168326,
+      "max_event_loop_gap_us": 102668,
+      "payload_bytes": 1635621,
+      "rss_before": 266211328,
+      "rss_after": 282378240,
+      "frames": 75,
+      "build_max_us": 102942,
+      "raster_max_us": 14146,
+      "build_p95_us": 71439,
+      "raster_p95_us": 12269,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 73
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 1000,
+      "sample": 2,
+      "duration_us": 151458,
+      "max_event_loop_gap_us": 81926,
+      "payload_bytes": 1635621,
+      "rss_before": 265248768,
+      "rss_after": 281747456,
+      "frames": 85,
+      "build_max_us": 61922,
+      "raster_max_us": 14638,
+      "build_p95_us": 59584,
+      "raster_p95_us": 9110,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 18
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 10000,
+      "sample": 0,
+      "duration_us": 1403021,
+      "max_event_loop_gap_us": 760786,
+      "payload_bytes": 16404621,
+      "rss_before": 283582464,
+      "rss_after": 351264768,
+      "frames": 79,
+      "build_max_us": 78004,
+      "raster_max_us": 22591,
+      "build_p95_us": 59708,
+      "raster_p95_us": 13648,
+      "frames_over_16ms": 8,
+      "frames_over_8ms": 45
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 10000,
+      "sample": 1,
+      "duration_us": 1427043,
+      "max_event_loop_gap_us": 756335,
+      "payload_bytes": 16404621,
+      "rss_before": 306282496,
+      "rss_after": 367763456,
+      "frames": 79,
+      "build_max_us": 86553,
+      "raster_max_us": 15396,
+      "build_p95_us": 59605,
+      "raster_p95_us": 11121,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 38
+    },
+    {
+      "phase": "backup_during_scroll",
+      "rows": 10000,
+      "sample": 2,
+      "duration_us": 1410581,
+      "max_event_loop_gap_us": 746234,
+      "payload_bytes": 16404621,
+      "rss_before": 285908992,
+      "rss_after": 431284224,
+      "frames": 75,
+      "build_max_us": 73677,
+      "raster_max_us": 13625,
+      "build_p95_us": 67084,
+      "raster_p95_us": 12233,
+      "frames_over_16ms": 6,
+      "frames_over_8ms": 70
+    },
+    {
+      "phase": "complete",
+      "result": "PASS"
+    },
+    {
+      "phase": "operational_android_launch",
+      "mode": "cold_process",
+      "sample": 0,
+      "TotalTime": 319,
+      "WaitTime": 329
+    },
+    {
+      "phase": "operational_android_launch",
+      "mode": "cold_process",
+      "sample": 1,
+      "TotalTime": 266,
+      "WaitTime": 277
+    },
+    {
+      "phase": "operational_android_launch",
+      "mode": "cold_process",
+      "sample": 2,
+      "TotalTime": 316,
+      "WaitTime": 325
+    },
+    {
+      "phase": "operational_android_launch",
+      "mode": "warm_resume",
+      "sample": 0,
+      "TotalTime": 54,
+      "WaitTime": 55
+    },
+    {
+      "phase": "operational_android_launch",
+      "mode": "warm_resume",
+      "sample": 1,
+      "TotalTime": 63,
+      "WaitTime": 66
+    },
+    {
+      "phase": "operational_android_launch",
+      "mode": "warm_resume",
+      "sample": 2,
+      "TotalTime": 56,
+      "WaitTime": 57
+    }
+  ]
+}

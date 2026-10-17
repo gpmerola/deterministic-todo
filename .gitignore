@@ -33,7 +33,6 @@ migrate_working_dir/
 /build/
 /coverage/
 /app_pronta_macOS/
-/app_pronta_Android/
 /private_release_keys/
 
 # Symbolication related
@@ -46,3 +45,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local validation intermediates and SQL test dependencies
+/temp/
+/tools/sql-tests/node_modules/
+
+# Kotlin compiler local session/cache files
+/android/.kotlin/

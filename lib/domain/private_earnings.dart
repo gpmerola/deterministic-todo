@@ -1,0 +1,161 @@
+import 'agenda.dart';
+import 'text_fold.dart';
+
+/// OPUK schedule, September 2026. Pounds are represented as integer pence.
+enum PrivateFee {
+  initial('Prima visita · 60 min', 17000),
+  childInitial('Prima visita C&A · 90 min', 20000),
+  followUp15('Follow-up · 15 min', 6500),
+  followUp30('Follow-up · 30 min', 11000),
+  prescription('Repeat prescription', 1000),
+  letter('Report / lettera', 4500),
+  adhdAssessment('ADHD · valutazione', 21500),
+  adhdFeedback('ADHD · feedback', 8500);
+
+  const PrivateFee(this.label, this.pence);
+  final String label;
+  final int pence;
+}
+
+bool isPrivateWorkCalendar(AgendaCalendar calendar) => RegExp(
+  r'\b(opuk|semble|heydoc)\b|online psychiatry',
+  caseSensitive: false,
+).hasMatch('${calendar.name} ${calendar.accountName}');
+
+/// Only explicit service labels are priced. A person's name or duration alone
+/// is never enough. ASD has no final agreed fee and is deliberately unpriced.
+PrivateFee? privateFeeFor(AgendaEntry entry) {
+  final title = foldForSearch(entry.title);
+  bool has(String pattern) => RegExp(pattern).hasMatch(title);
+  final slotMinutes = entry.end.difference(entry.start).inSeconds / 60;
+  final durations = RegExp(
+    r'\b(\d{1,3})\s*(?:minutes|minuti|mins|min)\b',
+  ).allMatches(title).map((m) => int.parse(m.group(1)!)).toSet();
+  if (durations.length > 1) return null;
+  // Booking systems can append administration time to the calendar slot.
+  // Use an explicit service duration only if it fits inside that slot.
+  final minutes = durations.isEmpty ? slotMinutes : durations.single;
+  if (minutes <= 0 || minutes > slotMinutes) return null;
+  final child = has(
+    r'\bc\s*&\s*a\b|\b(child|adolescent|children|adolescenti|bambini|minori)\b',
+  );
+  if (has(r'\b(asd|autism|autismo)\b')) return null;
+  if (has(r'\badhd\b')) {
+    // Follow-ups use the ordinary schedule; reports/admin are already included
+    // in the assessment package, so never charge them for a second time.
+    if (has(r'\bfollow[\s‐‑–-]?up\b')) {
+      return switch (minutes) {
+        15 => PrivateFee.followUp15,
+        30 => PrivateFee.followUp30,
+        _ => null,
+      };
+    }
+    // The available assessment package is explicitly for adults only.
+    if (child) return null;
+    if (has(r'\b(report|reports|letter|letters|admin)\b')) return null;
+    if (has(r'\bfeedback\b')) return PrivateFee.adhdFeedback;
+    if (has(r'\b(assessment|valutazione)\b')) {
+      return PrivateFee.adhdAssessment;
+    }
+    return null;
+  }
+  if (has(r'\brepeat prescription\b|\brinnovo ricetta\b')) {
+    return PrivateFee.prescription;
+  }
+  if (has(r'\b(report|reports|letter|letters|lettera|relazione)\b')) {
+    return PrivateFee.letter;
+  }
+  if (has(r'\bfollow[\s‐‑–-]?up\b|\bcontrollo\b')) {
+    return switch (minutes) {
+      15 => PrivateFee.followUp15,
+      30 => PrivateFee.followUp30,
+      _ => null,
+    };
+  }
+  if (has(r'\b(prima visita|initial|first|new patient)\b')) {
+    if (minutes == 60) return PrivateFee.initial;
+    if (minutes == 90 && child) {
+      return PrivateFee.childInitial;
+    }
+  }
+  return null;
+}
+
+class PrivateEarnings {
+  const PrivateEarnings({
+    required this.asOf,
+    required this.counts,
+    required this.unpriced,
+    required this.scheduledCounts,
+    required this.scheduledUnpriced,
+  });
+  final DateTime asOf;
+  final Map<PrivateFee, int> counts;
+  final int unpriced;
+
+  /// Appointments not yet ended, including those currently in progress.
+  final Map<PrivateFee, int> scheduledCounts;
+  final int scheduledUnpriced;
+  int get pence =>
+      counts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
+  int get visits => counts.values.fold(0, (sum, n) => sum + n);
+  int get scheduledPence =>
+      scheduledCounts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
+  int get scheduledVisits =>
+      scheduledCounts.values.fold(0, (sum, n) => sum + n);
+  int get monthPence => pence + scheduledPence;
+}
+
+PrivateEarnings estimatePrivateEarnings(
+  Iterable<AgendaEntry> entries,
+  DateTime now,
+) {
+  final start = DateTime(now.year, now.month);
+  final until = DateTime(now.year, now.month + 1);
+  final seen = <String>{};
+  final counts = <PrivateFee, int>{};
+  final scheduledCounts = <PrivateFee, int>{};
+  var unpriced = 0;
+  var scheduledUnpriced = 0;
+  for (final entry in entries) {
+    if (entry.isTask ||
+        entry.allDay ||
+        entry.unanswered ||
+        entry.start.isBefore(start) ||
+        !entry.start.isBefore(until) ||
+        !entry.end.isAfter(entry.start) ||
+        isCanceledTitle(entry.title)) {
+      continue;
+    }
+    final title = foldForSearch(entry.title);
+    if (RegExp(
+      r'\b(cancelled|canceled|annullat[oa]|no[ -]?show|dna)\b',
+    ).hasMatch(title)) {
+      continue;
+    }
+    final key = '${entry.instanceId}|${entry.start.millisecondsSinceEpoch}';
+    if (!seen.add(key)) continue;
+    final fee = privateFeeFor(entry);
+    final scheduled = entry.end.isAfter(now);
+    if (fee == null) {
+      if (scheduled) {
+        scheduledUnpriced++;
+      } else {
+        unpriced++;
+      }
+    } else {
+      (scheduled ? scheduledCounts : counts).update(
+        fee,
+        (n) => n + 1,
+        ifAbsent: () => 1,
+      );
+    }
+  }
+  return PrivateEarnings(
+    asOf: now,
+    counts: Map.unmodifiable(counts),
+    unpriced: unpriced,
+    scheduledCounts: Map.unmodifiable(scheduledCounts),
+    scheduledUnpriced: scheduledUnpriced,
+  );
+}
