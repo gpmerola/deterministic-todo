@@ -1,0 +1,16 @@
+{"phase": "harness_android_launch", "TotalTime": 623}
+{"phase": "harness_android_launch", "WaitTime": 629}
+{"phase": "harness_first_frame", "duration_us": 114412}
+{"phase": "calendar_scroll", "sample": 0, "events_per_day": 12, "variant": "build_267", "frames": 67, "build_max_us": 136230, "raster_max_us": 18683, "build_p95_us": 98612, "raster_p95_us": 15351, "frames_over_16ms": 8, "frames_over_8ms": 67}
+{"phase": "calendar_scroll", "sample": 1, "events_per_day": 12, "variant": "current", "frames": 96, "build_max_us": 56856, "raster_max_us": 16994, "build_p95_us": 41815, "raster_p95_us": 15689, "frames_over_16ms": 7, "frames_over_8ms": 96}
+{"phase": "calendar_scroll", "sample": 2, "events_per_day": 12, "variant": "build_267", "frames": 56, "build_max_us": 153123, "raster_max_us": 15558, "build_p95_us": 118128, "raster_p95_us": 15162, "frames_over_16ms": 7, "frames_over_8ms": 56}
+{"phase": "calendar_scroll", "sample": 3, "events_per_day": 12, "variant": "current", "frames": 97, "build_max_us": 45417, "raster_max_us": 17758, "build_p95_us": 41238, "raster_p95_us": 16943, "frames_over_16ms": 11, "frames_over_8ms": 97}
+{"phase": "calendar_scroll", "sample": 4, "events_per_day": 12, "variant": "build_267", "frames": 69, "build_max_us": 139209, "raster_max_us": 24951, "build_p95_us": 91592, "raster_p95_us": 12303, "frames_over_16ms": 7, "frames_over_8ms": 69}
+{"phase": "calendar_scroll", "sample": 5, "events_per_day": 12, "variant": "current", "frames": 97, "build_max_us": 38851, "raster_max_us": 18667, "build_p95_us": 37487, "raster_p95_us": 14502, "frames_over_16ms": 7, "frames_over_8ms": 97}
+{"phase": "calendar_scroll", "sample": 6, "events_per_day": 12, "variant": "build_267", "frames": 67, "build_max_us": 133469, "raster_max_us": 22557, "build_p95_us": 104074, "raster_p95_us": 16361, "frames_over_16ms": 9, "frames_over_8ms": 67}
+{"phase": "calendar_scroll", "sample": 7, "events_per_day": 12, "variant": "current", "frames": 95, "build_max_us": 53799, "raster_max_us": 23858, "build_p95_us": 43169, "raster_p95_us": 19534, "frames_over_16ms": 10, "frames_over_8ms": 95}
+{"phase": "calendar_scroll", "sample": 8, "events_per_day": 12, "variant": "build_267", "frames": 60, "build_max_us": 144078, "raster_max_us": 24170, "build_p95_us": 129947, "raster_p95_us": 17293, "frames_over_16ms": 11, "frames_over_8ms": 60}
+{"phase": "calendar_scroll", "sample": 9, "events_per_day": 12, "variant": "current", "frames": 94, "build_max_us": 80673, "raster_max_us": 18520, "build_p95_us": 44245, "raster_p95_us": 16551, "frames_over_16ms": 9, "frames_over_8ms": 94}
+{"phase": "calendar_scroll", "sample": 10, "events_per_day": 12, "variant": "build_267", "frames": 61, "build_max_us": 151329, "raster_max_us": 17812, "build_p95_us": 101730, "raster_p95_us": 15366, "frames_over_16ms": 7, "frames_over_8ms": 61}
+{"phase": "calendar_scroll", "sample": 11, "events_per_day": 12, "variant": "current", "frames": 94, "build_max_us": 68634, "raster_max_us": 32556, "build_p95_us": 41066, "raster_p95_us": 16679, "frames_over_16ms": 9, "frames_over_8ms": 94}
+{"phase": "complete", "result": "PASS"}

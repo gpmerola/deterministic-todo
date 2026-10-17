@@ -1,0 +1,99 @@
+{
+  "comment": "Synthetic rows only. Postgres (tools/sql-tests/safe_purge.mjs), SQLite and the Dart reference must produce the same v2 bucket digests.",
+  "rows": [
+    {
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "title": "Synthetic plain",
+      "notes": null,
+      "item_kind": "task",
+      "status": "inbox",
+      "show_date": null,
+      "priority": 1,
+      "project_id": null,
+      "section_id": null,
+      "position": 1024,
+      "recurrence": null,
+      "series_id": null,
+      "occurrence_key": null,
+      "created_at": 1,
+      "updated_at": 2,
+      "completed_at": null,
+      "deleted_at": null,
+      "logical_version": 3,
+      "device_id": "d0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "title": "Àccénti, emoji 🧪 e 漢字",
+      "notes": "",
+      "item_kind": "reference",
+      "status": "scheduled",
+      "show_date": "2026-10-12",
+      "priority": 4,
+      "project_id": "b0000000-0000-4000-8000-000000000001",
+      "section_id": "c0000000-0000-4000-8000-000000000001",
+      "position": 9007199254740,
+      "recurrence": "every 2 weeks",
+      "series_id": "e0000000-0000-4000-8000-000000000001",
+      "occurrence_key": "2026-10-12",
+      "created_at": 1,
+      "updated_at": 2,
+      "completed_at": 1760000000000000,
+      "deleted_at": null,
+      "logical_version": 7,
+      "device_id": "d0000000-0000-4000-8000-000000000002"
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "title": "sep:;,#- 3#x",
+      "notes": "line one\nline two;-",
+      "item_kind": "task",
+      "status": "completed",
+      "show_date": null,
+      "priority": 2,
+      "project_id": null,
+      "section_id": null,
+      "position": -5,
+      "recurrence": null,
+      "series_id": null,
+      "occurrence_key": null,
+      "created_at": 1,
+      "updated_at": 2,
+      "completed_at": null,
+      "deleted_at": 1760000000000001,
+      "logical_version": 1,
+      "device_id": "d0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "f2000000-0000-4000-8000-000000000001",
+      "title": "hinge",
+      "notes": null,
+      "item_kind": "task",
+      "status": "inbox",
+      "show_date": null,
+      "priority": 1,
+      "project_id": null,
+      "section_id": null,
+      "position": 2048,
+      "recurrence": null,
+      "series_id": null,
+      "occurrence_key": null,
+      "created_at": 1,
+      "updated_at": 2,
+      "completed_at": null,
+      "deleted_at": null,
+      "logical_version": 12,
+      "device_id": "d0000000-0000-4000-8000-000000000003"
+    }
+  ],
+  "expected": [
+    {
+      "bucket": "a1",
+      "fingerprint": "374b43163821a3e69b1e4aa349ffec31859001dcd5e1e09a90d09c1fa3f0244f"
+    },
+    {
+      "bucket": "f2",
+      "fingerprint": "c47666abfe1781eb249768db8625d9530af2a7e62eb1dc62ed4730795e61a4a4"
+    }
+  ]
+}
