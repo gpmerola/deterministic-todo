@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.99.1 (build 279) — Todo Test
+
+- Interno: completata la divisione di `main.dart` (impalcatura e contenuto
+  delle viste in moduli separati), senza cambi di comportamento.
+
 ## 2.99.0 (build 278) — Todo Test
 
 - Backup automatico: con database grandi codifica e impronta del backup

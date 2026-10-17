@@ -1,109 +1,77 @@
 # TODO e handover
 
-Solo voci **aperte**. Le voci completate fino alla build 238 sono state tolte
-il 7 ottobre 2026: esiti in [STATUS](STATUS.md), storia in
+Solo voci **aperte**; riordinato il 17 ottobre 2026. Esiti in
+[STATUS](STATUS.md), storia in
 [CHANGELOG](CHANGELOG.md) e nella cronologia git di questo file. Leggere insieme
 ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
-## P1 — Manutenzione aperta (revisione del 7 ottobre 2026)
+## Da fare con l'utente
 
-- [ ] «Tutta la serie» dall'app su un calendario Google reale: provata solo su
-  emulatore.
-- [ ] Test UI via ADB: mai toccare la fascia alta dello schermo dove compaiono
-  le notifiche; preferire una schermata appena catturata prima di ogni tocco.
-- [ ] Proseguire la separazione dei flussi UI di `_TaskShellState` quando
-  modificati: avvio, connessione sync e caricamento Calendario estratti nella
-  build 260 ([confini](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md));
-  tema, manutenzione e ✨/ricerca il 16 ottobre 2026. Restano `build` e
-  `_content`, che usano `setState`.
+Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
 
-## P1 — Osservazioni in corso
-
-- [ ] Second Brain: prima esecuzione automatica oraria e frase da una nuova chat
-  con Drive collegato (STATUS).
-- [ ] Un giorno di batteria: il job Calendario a trigger deve fermarsi
-  all'impronta quando non cambia nulla.
-- [ ] Impronte v2: migrazione applicata in produzione il 12 ottobre 2026.
-  Restano da osservare `diverged_buckets` su più cicli reali.
-- [ ] Web: velocità di caricamento in una finestra visibile. Misura headless
-  della build 270: Oggi in 0,41 s in loopback, 4,2 s con Fast 4G alla prima
-  apertura, 0,2 s alle successive; il caricamento differito del Calendario
-  vale 23 ms e non è applicato
-  ([esiti](docs/diagnostics/2026-10-13-web-startup.md)).
-- [ ] Al prossimo avviso sync, non forzare retry: leggere lo stato con il
-  provider ADB `todo_sync_debug` (fase, classe errore, outbox, recupero).
-
-## P0 — Convergenza Android ↔ Web
-
-- [ ] Persistenza dopo chiusura completa di Chrome: dalla build 271 nuove
-  attività, titoli e completamenti restano anche chiudendo Chrome subito
-  dopo (profilo di prova); resta solo il tempo della scrittura, entro circa
-  60 ms. Da confermare una volta nel Chrome reale dell'utente, senza
-  sessioni aperte da interrompere
-  ([esiti](docs/diagnostics/2026-10-13-web-persistence.md); cronologia
-  [8 ottobre](docs/diagnostics/2026-10-08-todo-cross-device-smoke.md)).
 - [ ] Sul Galaxy e sul Web convertire con **Sposta in Inbox** il vecchio
   progetto "Inbox", dopo aver aggiornato e ricaricato entrambi i client.
+- [ ] «Tutta la serie» dall'app su un calendario Google reale: provata solo su
+  emulatore.
 - [ ] Collaudi Web sul profilo Chrome reale ([WEB](docs/operations/WEB.md)):
-  import/export JSON con fixture sintetica; rimozione dalla vista
-  **Attività senza data** e **Svuota cestino** con dati esclusivamente di prova
-  e autorizzazione specifica per la cancellazione permanente.
+  persistenza dopo chiusura completa di Chrome (sul profilo di prova si perde
+  solo un completamento chiuso entro circa 12–60 ms,
+  [esiti](docs/diagnostics/2026-10-13-web-persistence.md)); import/export
+  JSON con fixture sintetica; rimozione dalla vista **Attività senza data** e
+  **Svuota cestino** con dati esclusivamente di prova e autorizzazione
+  specifica per la cancellazione permanente.
 
-## P2 — Idee e decisioni future
+## Osservazioni passive
 
-- Titolo degli eventi creati nel calendario Google del telefono: oggi con il
-  Markdown grezzo dei link. Pulirlo riscriverebbe eventi reali già creati:
-  solo con decisione dell'utente.
+Nessuna azione finché non emerge un problema.
+
+- Second Brain: prima esecuzione automatica oraria e frase da una nuova chat
+  con Drive collegato (STATUS).
+- Un giorno di batteria: il job Calendario a trigger deve fermarsi
+  all'impronta quando non cambia nulla.
+- Impronte v2 (produzione dal 12 ottobre 2026): `diverged_buckets` su più
+  cicli reali.
+- Al prossimo avviso sync, non forzare retry: leggere lo stato con il
+  provider ADB `todo_sync_debug` (fase, classe errore, outbox, recupero).
+
+## Idee aperte, solo su richiesta
 
 - Fuso diverso alla creazione di un evento (oggi quello del telefono).
-- Unione heydoc/Semble (stesso inizio, titoli diversi) solo se richiesta.
-- SLaM: lettura ICS nell'app solo se l'abbonamento Google è troppo lento.
+- Unione heydoc/Semble (stesso inizio, titoli diversi).
 - Opzione sincronizzata «Mostra in agenda» (colonna + migrazione Supabase).
-- Calendario dal Web: la coda Web→telefono esiste dalla build 213
-  ([AGENDA](docs/architecture/AGENDA.md#modifiche-dal-web-build-213)). Limiti
-  rimasti: note modificabili dal Web (richiede note nella copia
-  Supabase, decisione di privacy), cambio della ripetizione di una serie,
-  spostamento in un altro calendario. «Riprova» aggiunto nella build 257;
-  le altre tre escluse dall'utente il 12 ottobre 2026.
-- Azioni dirette per elementi rifiutati in Problemi di sincronizzazione.
 - Rimuovere `due_date` da Supabase solo con migrazione approvata.
-- Valutare se `LIKE` solo ASCII basta per le lettere accentate.
 - RPC Supabase transazionale prima di un «cancella tutto» cloud + dispositivo.
 - Commenti, allegati, etichette, sotto-attività Todoist solo se negli export.
-- Revoca remota del singolo dispositivo (il backup cifrato è nella build 255).
-- Backup automatico anche fuori dal telefono (es. Supabase cifrato) solo se
-  richiesto: oggi Documenti/Todo backup, copiabile dall'utente.
+- Revoca remota del singolo dispositivo.
+- Backup automatico anche fuori dal telefono (es. Supabase cifrato): oggi
+  Documenti/Todo backup, copiabile dall'utente.
 
-## P2 — Performance
+Escluse dall'utente (12 e 16 ottobre 2026), da non riproporre: ulteriore
+aggregazione dei calendari KCL/SLaM (anche via ICS), pulizia del Markdown nei
+titoli degli eventi creati, azioni dirette in Problemi di sincronizzazione,
+ricerca indipendente dagli accenti, misure di prestazioni sul Galaxy, note,
+ripetizione e cambio calendario degli eventi modificati dal Web.
 
-- Backup e Settimana (build 278): codifica del backup in isolate da 500
-  attività e a capo memorizzati; misurati solo sul Mac. Ripetere sul Galaxy
-  `--scenario calendar` e la preparazione backup a 10.000 righe
-  ([esiti](docs/diagnostics/2026-10-16-backup-isolate-and-week-wrap.md)).
-- Calendario denso: il cambio settimana con 12 eventi al giorno resta lento
-  (costo quasi tutto nell'impaginazione dei titoli). Il tentativo della 269
-  era più veloce ma cambiava l'aspetto ed è stato ritirato nella 270. Un
-  nuovo tentativo deve passare le immagini di riferimento senza
-  aggiornarle ([esiti](docs/diagnostics/2026-10-13-calendar-week-build.md)).
-
-
-Misurare prima di ottimizzare: cold/warm start, RAM e frame con 100/1.000/10.000
-task, CPU a riposo, latenza del database browser, primo sync e reimport
-Todoist. Baseline in `docs/diagnostics/2026-08-08-web-android.md`. Non
-introdurre polling, timer o dipendenze senza una misura che li giustifichi.
+Prima di ottimizzare, misurare: baseline in
+`docs/diagnostics/2026-08-08-web-android.md`; ultimi esiti
+[Settimana](docs/diagnostics/2026-10-13-calendar-week-build.md),
+[backup](docs/diagnostics/2026-10-16-backup-isolate-and-week-wrap.md),
+[avvio Web](docs/diagnostics/2026-10-13-web-startup.md). Non introdurre
+polling, timer o dipendenze senza una misura che li giustifichi.
 
 ## Stato corrente
 
 - Repository sorgente `gpmerola/deterministic-todo`; release Android
-  `gpmerola/deterministic-todo-releases`; branch operativo
-  `agent/remove-admin-sessions` (build 268–272, sopra
-  `agent/todo-ux-sync-hardening`).
+  `gpmerola/deterministic-todo-releases`. Ultima stabile 2.98.0 / 277;
+  branch operativo `agent/maintenance-perf` (build 279 su Todo Test,
+  [PR #4](https://github.com/gpmerola/deterministic-todo/pull/4)).
 - Galaxy S21 (`arm64-v8a`): **Todo Test** (`.dev`) è il solo client operativo;
   la build Play 121 resta installata ma `disabled-user`. Runbook:
   [ANDROID_DEV_CHANNEL](docs/operations/ANDROID_DEV_CHANNEL.md).
 - Movimento archiviato dalla build 190: solo contapassi
-  ([MOVIMENTO](docs/archive/MOVIMENTO.md)); le vecchie checklist GPS, Bip U,
-  Fit e diagnostica non sono più applicabili.
+  ([MOVIMENTO](docs/archive/MOVIMENTO.md)).
+- Shell divisa in `lib/ui/shell/` (vedi [HANDOFF](docs/HANDOFF.md)); nuovi
+  flussi vanno nei `part` esistenti, non di nuovo in `main.dart`.
 
 ## Checklist di consegna
 

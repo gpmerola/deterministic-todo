@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 16 ottobre 2026 (build 278).
+Aggiornato il 17 ottobre 2026 (build 279).
+
+## Build 279 — divisione di `main.dart` completata
+
+Impalcatura e contenuto delle viste spostati in `ui/shell/shell_layout.dart`
+e `ui/shell/shell_content.dart`; `main.dart` scende a circa 630 righe.
+Nessun cambio di comportamento; `TODO_NEXT.md` riordinato con le sole voci
+aperte e le idee escluse dall'utente.
 
 ## Build 278 — manutenzione e prestazioni
 

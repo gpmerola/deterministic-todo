@@ -170,6 +170,12 @@ necessariamente la stessa porta mostrata nella schermata principale per
 `adb connect`. Il codice scade rapidamente e non deve essere annotato o
 inserito in log, documentazione o Git.
 
+## Test UI via ADB
+
+Non toccare mai la fascia alta dello schermo, dove compaiono le notifiche:
+un tocco lì apre la tendina o una notifica reale. Catturare una schermata
+appena prima di ogni tocco e calcolare le coordinate su quella.
+
 ## Diagnosi dei problemi comuni
 
 - `adb devices -l` vuoto: nessuna connessione attiva; usare `adb connect`.

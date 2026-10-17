@@ -51,10 +51,13 @@ e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
 - `lib/domain/agenda.dart` — modello e unione del Calendario; link a
   riunioni e Maps in `agenda_links.dart`, impaginazione giornaliera in
   `agenda_timeline.dart` (riesportati da `agenda.dart`).
-- `lib/ui/` — shell (`lib/main.dart`, circa 1.160 righe; tema e `TodoApp` in
-  `ui/shell/todo_app.dart`, manutenzione giornaliera in
-  `ui/shell/shell_maintenance.dart`, ✨ e ricerca universale in
-  `ui/shell/shell_capture.dart`), stato navigazione in
+- `lib/ui/` — shell: `lib/main.dart` (circa 630 righe) tiene stato e ciclo
+  di vita di `_TaskShellState`; i flussi sono `part` in `ui/shell/` come
+  estensioni dello stato: `todo_app.dart` (tema), `shell_layout.dart`
+  (impalcatura, scorciatoie, pannello desktop), `shell_content.dart` (vista
+  selezionata e riquadri attività), `shell_capture.dart` (✨ e ricerca),
+  `shell_maintenance.dart` (manutenzione giornaliera). Le estensioni usano
+  `_update` al posto di `setState`. Stato navigazione in
   `ui/shell/shell_navigation.dart`; creazione rapida in
   `services/quick_add_service.dart`. Calendario: orchestrazione in
   `ui/views/agenda_view.dart`, filtri, header ed elenco in moduli separati
@@ -96,7 +99,6 @@ firma e token restano segreti.
 
 1. Leggere `AGENTS.md`, `TODO_NEXT.md` e questo file; controllare `git status -sb`.
 2. Le voci aperte più utili sono i riscontri dell'utente sul Galaxy e la
-   manutenzione elencata in `TODO_NEXT.md` (dipendenze bloccate, resto di
-   `build` e `_content` in `main.dart`).
+   le voci con l'utente elencate in `TODO_NEXT.md`.
 3. Ogni modifica funzionale: versione/build in `pubspec.yaml`, CHANGELOG,
    STATUS, `make check`, `make todo-test` e prova sul Galaxy.
