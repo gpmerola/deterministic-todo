@@ -2,6 +2,25 @@
 
 Aggiornato il 17 ottobre 2026 (build 279).
 
+## Release stabile 2.99.1 / 279 — 17 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA`. Run coordinato
+[39019078505](https://github.com/gpmerola/deterministic-todo/actions/runs/39019078505)
+verde in tutti gli otto job, da `agent/todo-ux-sync-hardening` avanzato
+senza riscritture al commit `9e0042613f882c106fc9a0e6571b9e0d61367945`
+(contiene le build 278 e 279).
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  2.99.1 / 279 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.99.1):
+  release `v2.99.1` `latest`, non prerelease; manifest con quattro APK e
+  SHA-256 identici agli asset pubblicati. APK arm64 scaricato: certificato di
+  firma identico alla 2.98.0, aggiornamento in-place compatibile.
+- Google Play: bundle 279 accettato nel track `internal`; propagazione e
+  installazione non verificate.
+- Galaxy: Todo Test 279 sul manifest rolling; installazione da confermare
+  dall'utente.
+
 ## Build 279 — divisione di `main.dart` completata
 
 Impalcatura e contenuto delle viste spostati in `ui/shell/shell_layout.dart`

@@ -62,7 +62,7 @@ polling, timer o dipendenze senza una misura che li giustifichi.
 ## Stato corrente
 
 - Repository sorgente `gpmerola/deterministic-todo`; release Android
-  `gpmerola/deterministic-todo-releases`. Ultima stabile 2.98.0 / 277;
+  `gpmerola/deterministic-todo-releases`. Ultima stabile 2.99.1 / 279 (17 ottobre 2026);
   branch operativo `agent/maintenance-perf` (build 279 su Todo Test,
   [PR #4](https://github.com/gpmerola/deterministic-todo/pull/4)).
 - Galaxy S21 (`arm64-v8a`): **Todo Test** (`.dev`) è il solo client operativo;

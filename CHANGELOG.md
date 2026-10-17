@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.99.1 (build 279) — Todo Test
+## 2.99.1 (build 279) — Release stabile e Todo Test
 
 - Interno: completata la divisione di `main.dart` (impalcatura e contenuto
   delle viste in moduli separati), senza cambi di comportamento.
