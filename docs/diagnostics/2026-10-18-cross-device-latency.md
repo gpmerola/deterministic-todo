@@ -51,8 +51,30 @@ indietro fino al timer di 10 minuti o a una nuova pausa. Ora un ritorno al
 focus dopo almeno 30 s dall'ultimo controllo ne avvia uno (una richiesta se
 nulla è cambiato).
 
-## Da misurare sul Galaxy
+## Galaxy, 18 ottobre 2026
 
-Con ADB riattivato: leggere `todo_sync_debug/status` dopo alcuni cambi di
-dispositivo reali (`last_failure_*`, `consecutive_failures`, durata) per
-confermare la quota di fallimenti al risveglio.
+Lettura di `todo_sync_debug/status` e ritorno in primo piano via ADB (app
+aperta 4 s, poi Home per 20 s e riapertura), rete Wi-Fi + Tailscale, nessun
+dato scritto. Tempo dal comando di apertura al successo registrato dall'app,
+che comprende anche la ripresa dell'attività Android:
+
+| Build | Dalla riapertura al controllo concluso | Durata del ciclo | Richieste |
+| --- | --- | --- | ---: |
+| 2279 | 851, 710, 707 ms | 96, 88, 83 ms | 1 |
+| 2280 | 780, 1.757, 683 ms | 117, 1.162, 67 ms | 1 |
+
+Con rete sana le due build si equivalgono, come previsto: il cambiamento agisce
+solo dopo un fallimento. Il campione da 1.757 ms è una singola richiesta lenta
+(1.162 ms).
+
+Episodio reale nella stessa mattina: dopo il passaggio del telefono al Wi-Fi
+(10:36 UTC) il DNS di Tailscale (100.100.100.100) non risolveva più alcun nome,
+mentre `ping 1.1.1.1` rispondeva in 4 ms. Cicli 30–36 falliti in `overview` con
+`ClientException`, Realtime in `channelError`, coda vuota. Dopo il riavvio di
+Tailscale da parte dell'utente il primo controllo è riuscito in 59 ms. Nessun
+retry può superare un DNS guasto; il backoff più breve serve ai fallimenti
+transitori di pochi secondi.
+
+Non provati sul telefono: il controllo al ritorno di focus (richiede la
+tendina in alto, da non toccare) e un fallimento transitorio reale alla
+ripresa.

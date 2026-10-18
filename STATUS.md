@@ -7,8 +7,10 @@ Aggiornato il 18 ottobre 2026 (build 280).
 Catena misurata con server sintetico a 120 ms per richiesta: sotto 1,5 s in
 totale; i secondi in più venivano dal backoff dopo un fallimento al risveglio.
 Backoff 1/3/10/30/120 s e controllo al ritorno di focus dopo 30 s. Prima/dopo
-in [diagnostica](docs/diagnostics/2026-10-18-cross-device-latency.md). Misura
-reale sul Galaxy non eseguita: ADB non raggiungibile.
+in [diagnostica](docs/diagnostics/2026-10-18-cross-device-latency.md). Todo Test
+2.100.0 / 2280 installata via ADB sul Galaxy, dati conservati, primo ciclo
+riuscito con Realtime `subscribed`. Riapertura → controllo concluso: 2279
+707–851 ms, 2280 683–1.757 ms (una richiesta), equivalenti con rete sana.
 
 ## Release stabile 2.99.1 / 279 — 17 ottobre 2026
 
