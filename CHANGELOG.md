@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.101.0 (build 281) — Todo Test
+## 2.101.0 (build 281) — Release stabile e Todo Test
 
 - Sincronizzazione più rapida quando torna la rete: un cambio di rete
   (Wi-Fi, dati mobili, VPN) o il ritorno online del Web avvia subito un

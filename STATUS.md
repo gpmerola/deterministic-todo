@@ -1,6 +1,23 @@
 # Stato corrente
 
-Aggiornato il 18 ottobre 2026 (build 281).
+Aggiornato il 18 ottobre 2026 (build 281, stabile).
+
+## Release stabile 2.101.0 / 281 — 18 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 10:59
+UTC). `agent/todo-ux-sync-hardening` avanzato senza riscritture al commit
+`a37d6520dcbe442db22d3877de47989c352d65ff`; run coordinato
+[39122045869](https://github.com/gpmerola/deterministic-todo/actions/runs/39122045869)
+verde in tutti gli otto job.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  2.101.0 / 281 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.101.0):
+  `v2.101.0` `latest`, non prerelease; manifest con quattro APK e SHA-256
+  identici ai digest degli asset.
+- Google Play: job `publish-google-play` riuscito (track `internal`);
+  propagazione e installazione non verificate.
+- Galaxy: Todo Test 2281 già installata via ADB.
 
 ## Build 281 — rete che torna, timeout e messaggi
 
@@ -13,8 +30,7 @@ fallimento transitorio; errori di rete e DNS in italiano. Dettagli in
 `3c368c3`. Todo Test 2.101.0 / 2281 installata via ADB sul Galaxy, dati
 conservati: primo ciclo riuscito, Realtime `subscribed`, coda vuota;
 riapertura → controllo concluso 755–875 ms (ciclo 91–132 ms, una richiesta).
-Release stabile non avviata: il dispatch è stato bloccato dai permessi della
-sessione e attende l'avvio da parte dell'utente.
+Release stabile avviata dopo il messaggio `PUBBLICA` (sezione sopra).
 
 ## Build 280 — latenza tra dispositivi
 
