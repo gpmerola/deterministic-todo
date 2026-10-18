@@ -36,3 +36,9 @@ Future<int> databaseSizeBytes() async {
 
 /// Only the web needs it; native code reads the zone from Android.
 String? get browserTimeZoneId => null;
+
+/// Web only: the browser asks before closing a page with unsent edits.
+void guardPageUnload(bool Function() hasUnsentWork) {}
+
+/// Web only: reloads the page to run a newer deployment.
+void reloadPage() {}

@@ -19,15 +19,25 @@ const isPlayDistribution =
 class AppUpdateFlow {
   static const automaticInterval = Duration(hours: 6);
 
+  /// A same-origin `release-info.json` is tiny: a Web tab kept open for days
+  /// learns about a new deployment when it returns to the foreground.
+  static const webInterval = Duration(minutes: 30);
+
   bool _checking = false;
   DateTime? _lastCheck;
 
   bool isDue(DateTime now) =>
-      _lastCheck == null || now.difference(_lastCheck!) >= automaticInterval;
+      _lastCheck == null ||
+      now.difference(_lastCheck!) >=
+          (isWebPlatform ? webInterval : automaticInterval);
 
   Future<void> check(BuildContext context, {bool automatic = false}) async {
     if (isPlayDistribution) {
       await _checkPlayUpdate(context, automatic: automatic);
+      return;
+    }
+    if (isWebPlatform) {
+      await _checkWebRelease(context);
       return;
     }
     if (_checking) return;
@@ -94,6 +104,57 @@ class AppUpdateFlow {
           ),
         );
       }
+      _checking = false;
+    }
+  }
+
+  /// Proposes a reload when this origin serves a newer build. Local data
+  /// stays in the browser's SQLite; unsent edits are sent after the reload.
+  Future<void> _checkWebRelease(BuildContext context) async {
+    if (_checking) return;
+    _checking = true;
+    _lastCheck = DateTime.now();
+    try {
+      final update = await UpdateService().checkWebRelease(
+        Uri.base.resolve('release-info.json'),
+      );
+      if (update == null || !context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Nuova versione disponibile'),
+          content: Text(
+            'È pubblicata la versione ${update.version}. Ricarica la pagina '
+            'per usarla: i dati salvati nel browser restano.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Più tardi'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                reloadPage();
+              },
+              child: const Text('Ricarica'),
+            ),
+          ],
+        ),
+      );
+    } on Object catch (error) {
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'update_check',
+          level: 'warning',
+          fields: {
+            'channel': 'web',
+            'result': 'error',
+            'error_type': error.runtimeType.toString(),
+          },
+        ),
+      );
+    } finally {
       _checking = false;
     }
   }

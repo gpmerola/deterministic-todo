@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.102.0 (build 282) — Todo Test
+
+- Correzione: una quotidiana completata su un dispositivo poteva riaprirsi
+  quando un altro dispositivo rimasto indietro (per esempio una scheda Web
+  aperta dal giorno prima) la spostava automaticamente a oggi prima di
+  ricevere il completamento. Lo spostamento automatico ora si applica sul
+  server solo se l'attività è ancora aperta e con una data precedente;
+  altrimenti vale la versione del server.
+- Web: se si chiude o ricarica la pagina con modifiche non ancora inviate,
+  il browser chiede conferma.
+- Web: al ritorno sulla scheda (al massimo ogni 30 minuti) l'app controlla
+  `release-info.json` e, se è pubblicata una build più nuova, propone di
+  ricaricare la pagina.
+
 ## 2.101.0 (build 281) — Release stabile e Todo Test
 
 - Sincronizzazione più rapida quando torna la rete: un cambio di rete

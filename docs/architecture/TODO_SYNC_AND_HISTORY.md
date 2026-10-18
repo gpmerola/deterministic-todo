@@ -97,6 +97,26 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Spostamento automatico delle quotidiane e Web — build 282
+
+Riprodotto con due client sintetici: il Web con la copia di ieri sposta la
+quotidiana a oggi (`maintainDailyTasks`) e invia la patch prima di scaricare
+il completamento fatto sul telefono; il writer applicava la patch campo per
+campo sulla riga completata e la riapriva (`status` da `scheduled` ad
+`available`). Ora la patch porta `guard: daily_rollover` e `TaskSyncWriter`
+la applica solo se la riga del server è aperta (`inbox`, `available`,
+`scheduled`), non eliminata e con `show_date` precedente alla nuova data;
+altrimenti la scarta e il ciclo conferma la riga del server, che il client
+adotta. Le altre modifiche manuali non cambiano. Test:
+`test/daily_reschedule_sync_test.dart`.
+
+Web: `guardPageUnload` registra `beforeunload` e chiede conferma solo se
+`SyncService.hasUnsentWork` (outbox non vuota). `AppUpdateFlow` sul Web legge
+`release-info.json` della stessa origine (al massimo ogni 30 minuti, al
+ritorno in primo piano) e propone di ricaricare se la build è più nuova di
+`TODO_BUILD`; un bundle senza build non mostra nulla. Test:
+`test/web_release_check_test.dart`.
+
 ### Rete che torna e errori leggibili — build 281
 
 - `SyncConnection.onOnline` (connettività Android o eventi online del Web,

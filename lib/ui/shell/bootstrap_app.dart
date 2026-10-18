@@ -19,6 +19,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
         beforeSyncStart: (service) {
           syncLifecycle?.dispose();
           syncLifecycle = bindSyncToLifecycle(service);
+          guardPageUnload(() => service.hasUnsentWork);
         },
       );
   AppLifecycleListener? syncLifecycle;

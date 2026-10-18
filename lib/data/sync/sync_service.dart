@@ -135,6 +135,10 @@ class SyncService {
   @visibleForTesting
   bool get isPaused => _paused;
 
+  /// Local edits not yet acknowledged by the server, read synchronously
+  /// (the Web page-close guard cannot wait).
+  bool get hasUnsentWork => _observedOutboxOperations.isNotEmpty;
+
   Stream<SyncSnapshot> get snapshots => _state.stream;
   Stream<Set<String>> get remoteTaskChanges => _remoteTaskChanges.stream;
   SyncSnapshot get latest => _latest;

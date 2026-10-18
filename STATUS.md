@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 18 ottobre 2026 (build 281, stabile).
+Aggiornato il 18 ottobre 2026 (build 282).
+
+## Build 282 — quotidiane, chiusura Web e nuove versioni Web
+
+Riprodotta e corretta la riapertura di una quotidiana completata da parte di
+un dispositivo rimasto indietro; avviso alla chiusura del Web con modifiche
+non inviate; proposta di ricaricare il Web su nuova build. Dettagli in
+[sync e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
 ## Release stabile 2.101.0 / 281 — 18 ottobre 2026
 

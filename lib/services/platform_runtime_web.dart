@@ -27,3 +27,35 @@ extension type _DateTimeFormat._(JSObject _) implements JSObject {
 extension type _ResolvedOptions._(JSObject _) implements JSObject {
   external String get timeZone;
 }
+
+/// Asks the browser to confirm closing or reloading the page while edits
+/// are still waiting to be sent. The browser shows its own generic text.
+void guardPageUnload(bool Function() hasUnsentWork) {
+  _window.addEventListener(
+    'beforeunload',
+    ((_BeforeUnloadEvent event) {
+      if (!hasUnsentWork()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    }).toJS,
+  );
+}
+
+void reloadPage() => _window.location.reload();
+
+@JS('window')
+external _Window get _window;
+
+extension type _Window._(JSObject _) implements JSObject {
+  external void addEventListener(String type, JSFunction listener);
+  external _Location get location;
+}
+
+extension type _Location._(JSObject _) implements JSObject {
+  external void reload();
+}
+
+extension type _BeforeUnloadEvent._(JSObject _) implements JSObject {
+  external void preventDefault();
+  external set returnValue(String value);
+}

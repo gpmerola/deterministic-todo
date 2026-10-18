@@ -102,6 +102,50 @@ class UpdateService {
     );
   }
 
+  /// Web: the deployment served by this origin, from `release-info.json`.
+  /// Null when the running bundle is current or has no build identity.
+  Future<AvailableUpdate?> checkWebRelease(Uri releaseInfo) async {
+    final response = await _client
+        .get(
+          cacheBustedManifest(releaseInfo, DateTime.now()),
+          headers: const {'Cache-Control': 'no-cache'},
+        )
+        .timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) return null;
+    final current = await appPackageInfo();
+    return newerWebRelease(
+      jsonDecode(response.body),
+      installedVersion: current.version,
+      installedBuild: int.tryParse(current.buildNumber),
+      url: releaseInfo,
+    );
+  }
+
+  static AvailableUpdate? newerWebRelease(
+    Object? root, {
+    required String installedVersion,
+    required int? installedBuild,
+    required Uri url,
+  }) {
+    if (installedBuild == null ||
+        root is! Map<String, Object?> ||
+        root['schema_version'] != 1) {
+      return null;
+    }
+    final version = root['version'], build = root['build'];
+    if (version is! String || build is! int) return null;
+    if (!isNewerRelease(
+      candidateVersion: version,
+      candidateBuild: build,
+      installedVersion: installedVersion,
+      installedBuild: installedBuild,
+      distributionChannel: 'direct',
+    )) {
+      return null;
+    }
+    return AvailableUpdate(version: version, build: build, url: url);
+  }
+
   static bool isNewerVersion(String candidate, String installed) =>
       _compareVersions(candidate, installed) > 0;
 

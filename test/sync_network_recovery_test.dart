@@ -170,6 +170,7 @@ void main() {
       await sync.sync(pullAll: false);
       expect(sync.latest.retryAt, isNotNull);
       expect(await db.select(db.outboxEntries).get(), isNotEmpty);
+      expect(sync.hasUnsentWork, isTrue); // The Web page-close guard asks.
 
       server.onRequest = null; // The network works again.
       sync.pause();
@@ -177,6 +178,9 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }
       expect(server.tables['tasks']!.containsKey(id), isTrue);
+      while (sync.hasUnsentWork) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
       await sync.dispose();
       await client.dispose();
     },

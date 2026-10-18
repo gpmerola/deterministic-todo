@@ -8,6 +8,7 @@ import '../domain/task.dart';
 import '../domain/task_planning.dart';
 import '../domain/text_fold.dart';
 import 'local/database.dart';
+import 'sync/task_sync_writer.dart' show dailyRolloverGuard;
 
 class TaskRepository {
   TaskRepository(this.db, {required this.deviceId, Uuid? uuid})
@@ -99,6 +100,7 @@ class TaskRepository {
               showDate: Value(today),
               status: Value(TaskStatus.available.name),
             ),
+            guard: dailyRolloverGuard,
           );
         }
         return overdue.length;
@@ -776,10 +778,13 @@ class TaskRepository {
     );
   }
 
+  /// [guard] marks an automatic change that the server applies only while
+  /// its precondition still holds there (see [dailyRolloverGuard]).
   Future<void> _update(
     Task task,
     TasksCompanion changes, {
     String operation = 'upsert',
+    String? guard,
   }) => db.transaction(() async {
     final current = await (db.select(
       db.tasks,
@@ -818,6 +823,7 @@ class TaskRepository {
         'id': task.id,
         'version': nextVersion,
         'changes': patch,
+        'guard': ?guard,
       }),
     );
   });

@@ -6,6 +6,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../local/database.dart';
 import 'sync_request_scope.dart';
 
+/// Outbox guard of the automatic move of an overdue daily task to today.
+/// Another device may have completed, deleted or moved the task meanwhile:
+/// the move is then dropped instead of reopening or redating that row.
+const dailyRolloverGuard = 'daily_rollover';
+
+bool _guardHolds(Task remote, Map<String, dynamic> op) {
+  if (op['guard'] != dailyRolloverGuard) return true;
+  final target = (op['changes'] as Map)['showDate'] as String?;
+  final shown = remote.showDate;
+  return remote.deletedAt == null &&
+      const {'inbox', 'available', 'scheduled'}.contains(remote.status) &&
+      target != null &&
+      shown != null &&
+      shown.compareTo(target) < 0;
+}
+
 /// An old outbox has no field-level intent. Never guess and overwrite a server row.
 final class SyncIntentConflictException implements Exception {
   const SyncIntentConflictException();
@@ -151,6 +167,7 @@ class TaskSyncWriter {
           continue;
         }
         if (op['kind'] != 'patch') continue;
+        if (!_guardHolds(base, op)) continue;
         final patch = Map<String, dynamic>.from(op['changes'] as Map);
         if (base.deletedAt != null && !patch.containsKey('deletedAt')) {
           await _conflict(initial, remote, operationIds);
