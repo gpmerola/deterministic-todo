@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.100.0 (build 280) — Todo Test
+
+- Sincronizzazione: dopo un cambio di dispositivo le modifiche compaiono
+  prima. Se il primo tentativo al risveglio fallisce, il nuovo tentativo parte
+  dopo 1 s e poi 3 s (prima 2 s e 10 s): nella misura sintetica, con due
+  fallimenti si passa da 12,3 s a 4,3 s.
+- Tornando sull'app o sulla scheda Web senza averla nascosta, se l'ultimo
+  controllo ha almeno 30 s ne parte uno (una richiesta se nulla è cambiato):
+  copre un collegamento in tempo reale caduto senza avviso.
+- L'indicatore neutro di nuovo tentativo vale per i primi tre fallimenti.
+
 ## 2.99.1 (build 279) — Release stabile e Todo Test
 
 - Interno: completata la divisione di `main.dart` (impalcatura e contenuto

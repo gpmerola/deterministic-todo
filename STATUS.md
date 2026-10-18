@@ -1,6 +1,14 @@
 # Stato corrente
 
-Aggiornato il 17 ottobre 2026 (build 279).
+Aggiornato il 18 ottobre 2026 (build 280).
+
+## Build 280 — latenza tra dispositivi
+
+Catena misurata con server sintetico a 120 ms per richiesta: sotto 1,5 s in
+totale; i secondi in più venivano dal backoff dopo un fallimento al risveglio.
+Backoff 1/3/10/30/120 s e controllo al ritorno di focus dopo 30 s. Prima/dopo
+in [diagnostica](docs/diagnostics/2026-10-18-cross-device-latency.md). Misura
+reale sul Galaxy non eseguita: ADB non raggiungibile.
 
 ## Release stabile 2.99.1 / 279 — 17 ottobre 2026
 

@@ -177,6 +177,38 @@ void main() {
     });
   });
 
+  testWidgets('focus without a pause checks only a stale copy', (tester) async {
+    tester.binding.defaultBinaryMessenger.setMockStreamHandler(
+      const EventChannel('dev.fluttercommunity.plus/connectivity_status'),
+      MockStreamHandler.inline(onListen: (_, _) {}),
+    );
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final server = SyntheticSyncServer()
+      ..overview = true
+      ..contentFingerprints = true;
+    final client = await tester.runAsync(server.client);
+    final sync = SyncService(db, client!)
+      ..focusRefreshAfter = const Duration(milliseconds: 300);
+    await tester.runAsync(() async {
+      sync.start();
+      await sync.sync();
+      sync.resume(); // Focus right after a success: nothing to do.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(server.overviewReads, 1);
+
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      sync.resume(); // Stale: one fingerprint request.
+      await sync.sync(); // Joins the focus check.
+      expect(server.overviewReads, 2);
+      sync.resume(); // Fresh again.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(server.overviewReads, 2);
+      await sync.dispose();
+      await client.dispose();
+      await db.close();
+    });
+  });
+
   test('only real background states suspend sync', () {
     expect(isBackgroundLifecycle(AppLifecycleState.hidden), isTrue);
     expect(isBackgroundLifecycle(AppLifecycleState.paused), isTrue);
@@ -186,7 +218,7 @@ void main() {
     expect(isBackgroundLifecycle(null), isFalse);
   });
 
-  test('only a first transient retry is presented as non-alarming', () {
+  test('the first transient retries are presented as non-alarming', () {
     final retryAt = DateTime.utc(2026, 9, 25, 18, 30);
     expect(
       isBriefSyncRetry(
@@ -197,6 +229,12 @@ void main() {
     expect(
       isBriefSyncRetry(
         SyncSnapshot(SyncPhase.error, retryAt: retryAt, consecutiveFailures: 3),
+      ),
+      isTrue,
+    );
+    expect(
+      isBriefSyncRetry(
+        SyncSnapshot(SyncPhase.error, retryAt: retryAt, consecutiveFailures: 4),
       ),
       isFalse,
     );

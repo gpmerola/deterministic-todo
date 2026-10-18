@@ -41,6 +41,12 @@ class SyntheticSyncServer {
   Future<void> Function(String table, String id)? beforeWrite;
   Future<void> Function(String table)? beforeRead;
 
+  /// Called with the last path segment (table or RPC) of every request.
+  void Function(String name)? onRequest;
+
+  /// Simulated round trip added to every request.
+  Duration latency = Duration.zero;
+
   List<Map<String, String>> taskFingerprints({
     int version = taskFingerprintV1,
   }) {
@@ -75,9 +81,12 @@ class SyntheticSyncServer {
     return sha256.convert(utf8.encode(values.join())).toString();
   }
 
-  Future<SupabaseClient> client() async {
+  /// [url] also locates Realtime; the default host is never reachable.
+  Future<SupabaseClient> client({
+    String url = 'https://synthetic.invalid',
+  }) async {
     final client = SupabaseClient(
-      'https://synthetic.invalid',
+      url,
       'synthetic-key',
       authOptions: const AuthClientOptions(autoRefreshToken: false),
       httpClient: MockClient((request) async {
@@ -89,6 +98,8 @@ class SyntheticSyncServer {
           headers: {'content-type': 'application/json'},
         );
         final table = request.url.pathSegments.last;
+        onRequest?.call(table);
+        if (latency > Duration.zero) await Future<void>.delayed(latency);
         final v2 = table.endsWith('_v2');
         if (v2 && !contentFingerprints) {
           return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);

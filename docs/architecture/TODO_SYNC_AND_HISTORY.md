@@ -97,6 +97,33 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Latenza tra dispositivi — build 280
+
+Catena misurata con server sintetico e 120 ms per richiesta (media reale del
+Galaxy, build 178): invio di una modifica da A 0,38 s (lettura, scrittura CAS,
+ricevuta), ricezione Realtime su B 0,13 s (una lettura per ID), controllo
+completo alla ripresa 0,39 s con una modifica e 0,13 s senza. Le attese di 120
+ms (outbox e Realtime) restano. I secondi in più venivano dal backoff: al
+risveglio la prima richiesta fallisce spesso (`overview`, `ClientException`,
+build 185–187) e il retry partiva dopo 2 s, il secondo dopo altri 10 s.
+
+- Backoff 1 s, 3 s, 10 s, 30 s, 2 min (prima 2 s, 10 s, 30 s, 2 min). In un
+  guasto persistente aggiunge un solo tentativo; misura sintetica: con un
+  fallimento la modifica compare su B in 1,3 s invece di 2,3 s, con due in
+  4,3 s invece di 12,3 s.
+- Un ritorno al focus senza pausa (scheda Web, tendina Android) avvia un
+  controllo completo solo se l'ultimo successo e l'ultimo controllo da focus
+  hanno almeno 30 s e non c'è un ciclo o un retry in corso. Copre un socket
+  Realtime caduto senza segnale, che prima restava fino al timer di 10 minuti;
+  con server invariato costa una richiesta. Nessun timer nuovo.
+- Verificato che la ripresa non aspetta il `phx_leave` del canale precedente
+  (`realtime_client` 2.13 lo considera concluso subito): test con server
+  Realtime locale che non risponde al leave.
+
+Test: `test/sync_resume_latency_test.dart`, `test/sync_foreground_test.dart`,
+`test/sync_service_test.dart`. Esiti in
+[diagnostica](../diagnostics/2026-10-18-cross-device-latency.md).
+
 ### Pausa indipendente dai frame — build 186
 
 Con la 2185 installata a schermo spento, il registro eventi Android mostra
@@ -180,8 +207,8 @@ Test: `test/sync_throughput_test.dart`.
 - Il rinnovo di un token scaduto è già eseguito dal SDK prima di ogni richiesta
   (`GoTrueClient.getSession`, deduplicato). Un fallimento di trasporto durante il
   rinnovo resta un errore transitorio con retry; nessuna logica duplicata.
-- `isBriefSyncRetry`: errore con retry programmato e al massimo due fallimenti
-  consecutivi. L'indicatore è neutro e mostra l'orario del nuovo tentativo.
+- `isBriefSyncRetry`: errore con retry programmato e al massimo tre fallimenti
+  consecutivi (due fino alla build 279). L'indicatore è neutro e mostra l'orario del nuovo tentativo.
 
 Test: `test/sync_foreground_test.dart`.
 

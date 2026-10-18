@@ -29,6 +29,14 @@ class SyncService {
   static const periodicInterval = Duration(minutes: 10);
   static const eventDebounce = Duration(milliseconds: 120);
 
+  /// A visible client that regains focus (a Web tab, Android after the
+  /// notification shade) relies on Realtime. A socket that died silently
+  /// would leave it stale until [periodicInterval]; a focus at least this
+  /// long after the last successful check runs one. An unchanged server
+  /// answers it with a single fingerprint request.
+  @visibleForTesting
+  Duration focusRefreshAfter = const Duration(seconds: 30);
+
   /// Keeps `id=in.(...)` URLs well below common proxy limits.
   static const idBatchSize = 100;
   static const receiptBatchSize = 200;
@@ -248,14 +256,37 @@ class SyncService {
     }
   }
 
-  /// Only undoes [pause]. A transient interruption that never paused (for
-  /// example a system dialog) must not rebuild Realtime or rescan the server.
+  /// Undoes [pause]. A transient interruption that never paused (for
+  /// example a system dialog) keeps Realtime and only runs a check when the
+  /// last success is older than [focusRefreshAfter].
   void resume() {
-    if (_disposed || !_paused) return;
+    if (_disposed) return;
+    if (!_paused) {
+      _refreshIfStale();
+      return;
+    }
     _paused = false;
     _flushUploads = false;
     _startTimer();
     unawaited(_restoreRealtimeAndSync());
+  }
+
+  DateTime? _lastFocusRefresh;
+
+  void _refreshIfStale() {
+    if (!_started ||
+        _inFlight != null ||
+        _retryTimer != null ||
+        client.auth.currentUser == null) {
+      return;
+    }
+    final now = DateTime.now().toUtc();
+    bool recent(DateTime? at) =>
+        at != null && now.difference(at) < focusRefreshAfter;
+    // A failing server is not asked again at every focus either.
+    if (recent(_latest.lastSuccess) || recent(_lastFocusRefresh)) return;
+    _lastFocusRefresh = now;
+    unawaited(sync());
   }
 
   Future<void> _suspendRealtime() {

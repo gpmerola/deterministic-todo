@@ -9,9 +9,13 @@ import 'paged_remote.dart';
 import 'sync_status.dart';
 import 'task_sync_writer.dart';
 
+/// The first steps are short: a check started on resume or on waking often
+/// fails once while the radio or Wi-Fi reconnects, and the other device's
+/// edit should then appear in seconds. Later steps stay sparse.
 Duration syncRetryDelay(int failureIndex) {
   const delays = [
-    Duration(seconds: 2),
+    Duration(seconds: 1),
+    Duration(seconds: 3),
     Duration(seconds: 10),
     Duration(seconds: 30),
     Duration(minutes: 2),

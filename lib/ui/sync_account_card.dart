@@ -5,7 +5,7 @@ part of '../main.dart';
 bool isBriefSyncRetry(SyncSnapshot snapshot) =>
     snapshot.phase == SyncPhase.error &&
     snapshot.retryAt != null &&
-    snapshot.consecutiveFailures <= 2;
+    snapshot.consecutiveFailures <= 3;
 
 class SyncStatusAction extends StatefulWidget {
   const SyncStatusAction({
