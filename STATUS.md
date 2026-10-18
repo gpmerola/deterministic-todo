@@ -1,6 +1,25 @@
 # Stato corrente
 
-Aggiornato il 18 ottobre 2026 (build 282).
+Aggiornato il 18 ottobre 2026 (build 282, stabile).
+
+## Release stabile 2.102.0 / 282 — 18 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 11:40
+UTC). `agent/todo-ux-sync-hardening` avanzato senza riscritture al commit
+`6f49fca2c2fc23b6a1f52d2809e41d5424a20f38`; run coordinato
+[39125103172](https://github.com/gpmerola/deterministic-todo/actions/runs/39125103172)
+verde in tutti gli otto job.
+
+- Web: `release-info.json` 2.102.0 / 282 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.102.0):
+  `v2.102.0` `latest`, non prerelease; manifest con quattro APK e SHA-256
+  identici ai digest degli asset.
+- Google Play: `publish-google-play` riuscito (track `internal`);
+  propagazione non verificata.
+- Galaxy: Todo Test 2282 installata via ADB, dati conservati, sync verde,
+  Realtime `subscribed`, coda vuota; riapertura → controllo 712–881 ms.
+- Web release locale: `tools/web_persistence.mjs` (1 giro) conserva
+  creazione, modifica e completamento dopo chiusura e kill di Chrome.
 
 ## Build 282 — quotidiane, chiusura Web e nuove versioni Web
 

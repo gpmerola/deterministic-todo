@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.102.0 (build 282) — Todo Test
+## 2.102.0 (build 282) — Release stabile e Todo Test
 
 - Correzione: una quotidiana completata su un dispositivo poteva riaprirsi
   quando un altro dispositivo rimasto indietro (per esempio una scheda Web
