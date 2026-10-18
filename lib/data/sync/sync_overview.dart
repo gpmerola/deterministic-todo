@@ -22,13 +22,15 @@ class SyncOverview {
 
   static Future<SyncOverview?> fetch(
     SupabaseClient client,
-    SyncRequestScope scope,
-  ) async {
+    SyncRequestScope scope, {
+    Duration? timeout,
+  }) async {
     final fetched = await fetchWithFingerprintFallback(
       client,
       scope,
       rpcV2: 'todo_sync_overview_v2',
       rpcV1: 'todo_sync_overview_v1',
+      timeout: timeout,
     );
     if (fetched == null) return null;
     final raw = Map<String, dynamic>.from(fetched.value as Map);

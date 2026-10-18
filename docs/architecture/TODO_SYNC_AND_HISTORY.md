@@ -97,6 +97,27 @@ Test: `test/sync_isolation_test.dart` (rifiuto isolato e ritentato, marker
 conservato dopo errore di trasporto, errore di account che ferma il ciclo,
 snapshot fresco, lotti Realtime, fallback dopo fetch fallito).
 
+### Rete che torna e errori leggibili — build 281
+
+- `SyncConnection.onOnline` (connettività Android o eventi online del Web,
+  solo in primo piano) chiama `_onNetworkChanged`: annulla il retry
+  programmato, azzera i fallimenti consecutivi, riattiva Realtime se manca e
+  avvia un controllo completo. Nessun timer nuovo.
+- `SyncOverview.fetch` usa `firstCheckTimeout` (8 s) quando non ci sono
+  fallimenti consecutivi; dal secondo tentativo vale il limite di 20 s della
+  richiesta. Un timeout è transitorio e segue il backoff.
+- `pause()` avvia l'invio anche quando l'outbox contiene voci e un retry è
+  programmato (fallimento transitorio); voci rifiutate o in conflitto senza
+  retry non generano richieste a ogni pausa. Web: `hidden` è già una pausa;
+  la chiusura della scheda non garantisce tempo per l'invio.
+- `isDnsSyncError` riconosce `Failed host lookup` senza salvare il messaggio;
+  `safeSyncErrorClass` restituisce `dns`. `SyncSnapshot.errorClass` porta la
+  classe all'interfaccia, che mostra `syncErrorText`.
+- Il server sintetico dei test rispetta ora gli abort delle richieste come i
+  client reali, quindi anche i timeout.
+
+Test: `test/sync_network_recovery_test.dart`.
+
 ### Latenza tra dispositivi — build 280
 
 Catena misurata con server sintetico e 120 ms per richiesta (media reale del

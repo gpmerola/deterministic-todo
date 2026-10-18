@@ -35,6 +35,9 @@ class SyncService {
   /// long after the last successful check runs one. An unchanged server
   /// answers it with a single fingerprint request.
   @visibleForTesting
+  Duration firstCheckTimeout = const Duration(seconds: 8);
+
+  @visibleForTesting
   Duration focusRefreshAfter = const Duration(seconds: 30);
 
   /// Keeps `id=in.(...)` URLs well below common proxy limits.
@@ -153,6 +156,7 @@ class SyncService {
         retryAt: snapshot.retryAt,
         consecutiveFailures: snapshot.consecutiveFailures,
         alignment: _alignment,
+        errorClass: snapshot.errorClass,
       );
     }
     _latest = snapshot;
@@ -174,10 +178,25 @@ class SyncService {
         ),
       );
     },
-    onOnline: () => unawaited(sync()),
+    onOnline: _onNetworkChanged,
     onSubscribed: () => unawaited(sync(freshSnapshot: true)),
     onRecord: _queueRealtimeChange,
   );
+
+  /// A network that comes back or changes (Wi-Fi, mobile, VPN) gets a full
+  /// check now instead of waiting for the backoff, and the following
+  /// retries restart from the shortest step. Realtime is re-joined if lost.
+  void _onNetworkChanged() {
+    if (_disposed || _paused || client.auth.currentUser == null) return;
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _consecutiveFailures = 0;
+    unawaited(_subscribeRealtime());
+    unawaited(sync());
+  }
+
+  @visibleForTesting
+  void networkChangedForTesting() => _onNetworkChanged();
 
   void _onAuth(AuthState state) {
     if (_disposed) return;
@@ -232,8 +251,12 @@ class SyncService {
     if (_disposed || _paused) return;
     // A debounced edit, or one queued behind the active cycle, is sent now
     // instead of waiting for the next foreground: the other device sees it.
+    // Edits left by a transient failure (retry scheduled) get one more try
+    // too; rejected or conflicting entries wait for the user.
     final unsentEdits =
-        _outboxTimer?.isActive == true || (_inFlight != null && _syncAgain);
+        _outboxTimer?.isActive == true ||
+        (_inFlight != null && _syncAgain) ||
+        (_retryTimer != null && _observedOutboxOperations.isNotEmpty);
     _paused = true;
     _timer?.cancel();
     _timer = null;
@@ -704,6 +727,7 @@ class SyncService {
           lastRecovery: _lastRecoveryAt,
           retryAt: retryAt,
           consecutiveFailures: _consecutiveFailures,
+          errorClass: safeSyncErrorClass(error),
         ),
       );
       final unmarked = entries
@@ -881,7 +905,14 @@ class SyncService {
     int? divergedBuckets;
     _activeSnapshotStarted = true;
     enter(SyncStage.overview, remoteCount);
-    final overview = await SyncOverview.fetch(client, _requests);
+    // A connection that died while the device slept can hang without an
+    // error. The first check gives up early and retries; after a failure the
+    // normal limit applies, so a slow server still completes.
+    final overview = await SyncOverview.fetch(
+      client,
+      _requests,
+      timeout: _consecutiveFailures == 0 ? firstCheckTimeout : null,
+    );
     final repair = await needsRemoteNullRepair(db);
     enter(SyncStage.projects, remoteCount);
     await _syncProjects(repair ? null : overview);

@@ -29,6 +29,7 @@ class SyncSnapshot {
     this.retryAt,
     this.consecutiveFailures = 0,
     this.alignment,
+    this.errorClass,
   });
   final SyncPhase phase;
   final int pending;
@@ -41,6 +42,10 @@ class SyncSnapshot {
   final DateTime? lastRecovery;
   final DateTime? retryAt;
   final int consecutiveFailures;
+
+  /// [safeSyncErrorClass] of the last failure: `network`, `dns`, `timeout`,
+  /// `auth_transport`, `supabase`… Lets the UI explain it in plain words.
+  final String? errorClass;
 
   /// Result of the last complete check against the server; null until one ran.
   final SyncAlignment? alignment;

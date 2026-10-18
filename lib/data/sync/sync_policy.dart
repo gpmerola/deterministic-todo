@@ -55,7 +55,22 @@ Future<String> safeSyncNetworkState() async {
   }
 }
 
+/// True when the name of the server could not be resolved, while the
+/// network itself may work (for example a VPN whose DNS stopped). Reads the
+/// message only to classify it; the message is never stored or logged.
+bool isDnsSyncError(Object error) {
+  final text = switch (error) {
+    http.ClientException(:final message) => message,
+    AuthRetryableFetchException(:final message) => message,
+    _ => error.runtimeType.toString().contains('Socket') ? '$error' : '',
+  }.toLowerCase();
+  return text.contains('failed host lookup') ||
+      text.contains('no address associated with hostname') ||
+      text.contains('nodename nor servname');
+}
+
 String safeSyncErrorClass(Object error) {
+  if (isDnsSyncError(error)) return 'dns';
   if (error is SyncPaginationException) return 'pagination';
   if (error is SyncIntentConflictException) return 'intent_conflict';
   if (error is SyncConcurrentWriteException) return 'concurrent_write';

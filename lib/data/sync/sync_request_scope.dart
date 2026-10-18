@@ -56,13 +56,17 @@ class SyncRequestScope {
     if (!isActive) throw const SyncCancelled();
   }
 
-  Future<T> send<T>(PostgrestBuilder<T, dynamic, dynamic> request) async {
+  /// [timeout] overrides the scope default for this request only.
+  Future<T> send<T>(
+    PostgrestBuilder<T, dynamic, dynamic> request, {
+    Duration? timeout,
+  }) async {
     check();
     requestCount++;
     final timer = Stopwatch()..start();
     try {
       final result = await request
-          .retry(enabled: false, requestTimeout: timeout)
+          .retry(enabled: false, requestTimeout: timeout ?? this.timeout)
           .abortSignal(_abort.future);
       check();
       return result;

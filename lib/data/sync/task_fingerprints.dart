@@ -89,11 +89,12 @@ Future<({dynamic value, int version})?> fetchWithFingerprintFallback(
   SyncRequestScope scope, {
   required String rpcV2,
   required String rpcV1,
+  Duration? timeout,
 }) async {
   if (_v2Missing[client] != true) {
     try {
       return (
-        value: await scope.send(client.rpc(rpcV2)),
+        value: await scope.send(client.rpc(rpcV2), timeout: timeout),
         version: taskFingerprintV2,
       );
     } on PostgrestException catch (e) {
@@ -103,7 +104,7 @@ Future<({dynamic value, int version})?> fetchWithFingerprintFallback(
   }
   try {
     return (
-      value: await scope.send(client.rpc(rpcV1)),
+      value: await scope.send(client.rpc(rpcV1), timeout: timeout),
       version: taskFingerprintV1,
     );
   } on PostgrestException catch (e) {

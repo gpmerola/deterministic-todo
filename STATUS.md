@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 18 ottobre 2026 (build 280).
+Aggiornato il 18 ottobre 2026 (build 281).
+
+## Build 281 — rete che torna, timeout e messaggi
+
+Cambio di rete → controllo immediato con backoff azzerato e Realtime
+ricollegato; primo controllo con limite 8 s; invio in pausa anche dopo un
+fallimento transitorio; errori di rete e DNS in italiano. Dettagli in
+[sync e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
 
 ## Build 280 — latenza tra dispositivi
 

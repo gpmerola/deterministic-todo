@@ -2,6 +2,22 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.101.0 (build 281) — Todo Test
+
+- Sincronizzazione più rapida quando torna la rete: un cambio di rete
+  (Wi-Fi, dati mobili, VPN) o il ritorno online del Web avvia subito un
+  controllo e ricollega il canale in tempo reale, senza attendere il nuovo
+  tentativo programmato; i tentativi successivi ripartono da 1 s.
+- Il primo controllo si arrende dopo 8 s invece di 20 s se la connessione
+  resta appesa senza errore; dopo un fallimento torna il limite normale,
+  così un server lento completa comunque.
+- Andando in background l'app riprova anche le modifiche rimaste in coda per
+  un errore di rete (prima solo quelle appena fatte).
+- In Impostazioni gli errori di rete sono in italiano: «Nessuna connessione ·
+  riprovo alle …» oppure «La rete non trova il server: controlla VPN o
+  Wi-Fi» quando non funziona il DNS. Il dettaglio tecnico resta nel provider
+  di debug (`last_error_class` può valere ora `dns`).
+
 ## 2.100.0 (build 280) — Todo Test
 
 - Sincronizzazione: dopo un cambio di dispositivo le modifiche compaiono

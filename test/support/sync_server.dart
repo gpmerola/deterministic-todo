@@ -89,164 +89,176 @@ class SyntheticSyncServer {
       url,
       'synthetic-key',
       authOptions: const AuthClientOptions(autoRefreshToken: false),
-      httpClient: MockClient((request) async {
-        requests++;
-        http.Response reply(Object? body, [int status = 200]) => http.Response(
-          jsonEncode(body),
-          status,
-          request: request,
-          headers: {'content-type': 'application/json'},
-        );
-        final table = request.url.pathSegments.last;
-        onRequest?.call(table);
-        if (latency > Duration.zero) await Future<void>.delayed(latency);
-        final v2 = table.endsWith('_v2');
-        if (v2 && !contentFingerprints) {
-          return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
-        }
-        final version = v2 ? taskFingerprintV2 : taskFingerprintV1;
-        if (table == 'todo_sync_overview_v1' ||
-            table == 'todo_sync_overview_v2') {
-          if (!overview) {
+      httpClient: _AbortAware(
+        MockClient((request) async {
+          requests++;
+          http.Response reply(Object? body, [int status = 200]) =>
+              http.Response(
+                jsonEncode(body),
+                status,
+                request: request,
+                headers: {'content-type': 'application/json'},
+              );
+          final table = request.url.pathSegments.last;
+          onRequest?.call(table);
+          if (latency > Duration.zero) await Future<void>.delayed(latency);
+          final v2 = table.endsWith('_v2');
+          if (v2 && !contentFingerprints) {
             return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
           }
-          overviewReads++;
-          return reply({
-            'schema': version,
-            'tasks': taskFingerprints(version: version),
-            for (final name in [
-              'projects',
-              'project_sections',
-              'purged_entities',
-            ])
-              name: tableDigest(name),
-          });
-        }
-        if (table == 'todo_task_fingerprints_v1' ||
-            table == 'todo_task_fingerprints_v2') {
-          if (!fingerprints) {
-            return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
-          }
-          fingerprintReads++;
-          return reply(taskFingerprints(version: version));
-        }
-        if (table == 'sync_operations') {
-          if (failReceipt) throw StateError('synthetic receipt failure');
-          receiptBatches++;
-          for (final raw in jsonDecode(request.body) as List) {
-            final row = Map<String, dynamic>.from(raw as Map);
-            if (!const {'upsert', 'delete'}.contains(row['operation'])) {
-              return reply({
-                'code': '23514',
-                'message': 'invalid operation',
-              }, 400);
+          final version = v2 ? taskFingerprintV2 : taskFingerprintV1;
+          if (table == 'todo_sync_overview_v1' ||
+              table == 'todo_sync_overview_v2') {
+            if (!overview) {
+              return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
             }
-            receipts[row['operation_id'] as String] = Map<String, dynamic>.from(
-              row as Map,
-            );
+            overviewReads++;
+            return reply({
+              'schema': version,
+              'tasks': taskFingerprints(version: version),
+              for (final name in [
+                'projects',
+                'project_sections',
+                'purged_entities',
+              ])
+                name: tableDigest(name),
+            });
           }
-          return reply([]);
-        }
-        final data = tables[table];
-        if (data == null) {
-          throw StateError('Unexpected synthetic endpoint $table');
-        }
-        final q = request.url.queryParameters;
-        final filter = q['id'];
-        if (request.method == 'GET') {
-          pages++;
-          await beforeRead?.call(table);
-          var rows = data.values.toList()
-            ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
-          if (q['order']?.startsWith('id.desc') == true) {
-            rows = rows.reversed.toList();
-          }
-          if (filter?.startsWith('in.(') == true) {
-            final ids = filter!
-                .substring(4, filter.length - 1)
-                .split(',')
-                .map((id) => id.replaceAll('"', ''))
-                .toSet();
-            if (ids.length > maxInIds) {
-              return reply({'message': 'URI too long'}, 414);
+          if (table == 'todo_task_fingerprints_v1' ||
+              table == 'todo_task_fingerprints_v2') {
+            if (!fingerprints) {
+              return reply({'code': 'PGRST202', 'message': 'RPC missing'}, 404);
             }
-            inReads++;
-            rows = rows.where((r) => ids.contains(r['id'])).toList();
+            fingerprintReads++;
+            return reply(taskFingerprints(version: version));
           }
-          if (filter?.startsWith('eq.') == true) {
-            rows = rows.where((r) => r['id'] == filter!.substring(3)).toList();
-          }
-          if (filter?.startsWith('gt.') == true) {
-            rows = rows
-                .where(
-                  (r) =>
-                      (r['id'] as String).compareTo(filter!.substring(3)) > 0,
-                )
-                .toList();
-          }
-          final filters = request.url.queryParametersAll['id'] ?? [];
-          for (final condition in filters) {
-            if (condition.startsWith('gte.')) {
-              rows = rows
-                  .where(
-                    (r) =>
-                        (r['id'] as String).compareTo(condition.substring(4)) >=
-                        0,
-                  )
-                  .toList();
-            } else if (condition.startsWith('lt.')) {
-              rows = rows
-                  .where(
-                    (r) =>
-                        (r['id'] as String).compareTo(condition.substring(3)) <
-                        0,
-                  )
-                  .toList();
-            } else if (condition.startsWith('gt.')) {
-              rows = rows
-                  .where(
-                    (r) =>
-                        (r['id'] as String).compareTo(condition.substring(3)) >
-                        0,
-                  )
-                  .toList();
+          if (table == 'sync_operations') {
+            if (failReceipt) throw StateError('synthetic receipt failure');
+            receiptBatches++;
+            for (final raw in jsonDecode(request.body) as List) {
+              final row = Map<String, dynamic>.from(raw as Map);
+              if (!const {'upsert', 'delete'}.contains(row['operation'])) {
+                return reply({
+                  'code': '23514',
+                  'message': 'invalid operation',
+                }, 400);
+              }
+              receipts[row['operation_id'] as String] =
+                  Map<String, dynamic>.from(row as Map);
             }
-          }
-          final requested = int.tryParse(q['limit'] ?? '') ?? pageCap;
-          return reply(
-            rows.take(requested < pageCap ? requested : pageCap).toList(),
-          );
-        }
-        final candidate = Map<String, dynamic>.from(
-          jsonDecode(request.body) as Map,
-        );
-        final id = candidate['id'] as String;
-        await beforeWrite?.call(table, id);
-        final rejection = rejectWrite[id];
-        if (rejection != null) {
-          return reply({
-            'code': rejection,
-            'message': 'synthetic rejection',
-          }, 400);
-        }
-        if (request.method == 'POST' && data.containsKey(id)) {
-          return reply({'code': '23505', 'message': 'duplicate id'}, 409);
-        }
-        if (request.method == 'PATCH') {
-          final old = data[id];
-          if (old == null ||
-              q['logical_version'] != 'eq.${old['logical_version']}' ||
-              q['device_id'] != 'eq.${old['device_id']}') {
             return reply([]);
           }
-        }
-        writes++;
-        data[id] = candidate;
-        if (loseResponse.contains(id)) {
-          throw StateError('synthetic response lost');
-        }
-        return reply([candidate]);
-      }),
+          final data = tables[table];
+          if (data == null) {
+            throw StateError('Unexpected synthetic endpoint $table');
+          }
+          final q = request.url.queryParameters;
+          final filter = q['id'];
+          if (request.method == 'GET') {
+            pages++;
+            await beforeRead?.call(table);
+            var rows = data.values.toList()
+              ..sort(
+                (a, b) => (a['id'] as String).compareTo(b['id'] as String),
+              );
+            if (q['order']?.startsWith('id.desc') == true) {
+              rows = rows.reversed.toList();
+            }
+            if (filter?.startsWith('in.(') == true) {
+              final ids = filter!
+                  .substring(4, filter.length - 1)
+                  .split(',')
+                  .map((id) => id.replaceAll('"', ''))
+                  .toSet();
+              if (ids.length > maxInIds) {
+                return reply({'message': 'URI too long'}, 414);
+              }
+              inReads++;
+              rows = rows.where((r) => ids.contains(r['id'])).toList();
+            }
+            if (filter?.startsWith('eq.') == true) {
+              rows = rows
+                  .where((r) => r['id'] == filter!.substring(3))
+                  .toList();
+            }
+            if (filter?.startsWith('gt.') == true) {
+              rows = rows
+                  .where(
+                    (r) =>
+                        (r['id'] as String).compareTo(filter!.substring(3)) > 0,
+                  )
+                  .toList();
+            }
+            final filters = request.url.queryParametersAll['id'] ?? [];
+            for (final condition in filters) {
+              if (condition.startsWith('gte.')) {
+                rows = rows
+                    .where(
+                      (r) =>
+                          (r['id'] as String).compareTo(
+                            condition.substring(4),
+                          ) >=
+                          0,
+                    )
+                    .toList();
+              } else if (condition.startsWith('lt.')) {
+                rows = rows
+                    .where(
+                      (r) =>
+                          (r['id'] as String).compareTo(
+                            condition.substring(3),
+                          ) <
+                          0,
+                    )
+                    .toList();
+              } else if (condition.startsWith('gt.')) {
+                rows = rows
+                    .where(
+                      (r) =>
+                          (r['id'] as String).compareTo(
+                            condition.substring(3),
+                          ) >
+                          0,
+                    )
+                    .toList();
+              }
+            }
+            final requested = int.tryParse(q['limit'] ?? '') ?? pageCap;
+            return reply(
+              rows.take(requested < pageCap ? requested : pageCap).toList(),
+            );
+          }
+          final candidate = Map<String, dynamic>.from(
+            jsonDecode(request.body) as Map,
+          );
+          final id = candidate['id'] as String;
+          await beforeWrite?.call(table, id);
+          final rejection = rejectWrite[id];
+          if (rejection != null) {
+            return reply({
+              'code': rejection,
+              'message': 'synthetic rejection',
+            }, 400);
+          }
+          if (request.method == 'POST' && data.containsKey(id)) {
+            return reply({'code': '23505', 'message': 'duplicate id'}, 409);
+          }
+          if (request.method == 'PATCH') {
+            final old = data[id];
+            if (old == null ||
+                q['logical_version'] != 'eq.${old['logical_version']}' ||
+                q['device_id'] != 'eq.${old['device_id']}') {
+              return reply([]);
+            }
+          }
+          writes++;
+          data[id] = candidate;
+          if (loseResponse.contains(id)) {
+            throw StateError('synthetic response lost');
+          }
+          return reply([candidate]);
+        }),
+      ),
     );
     await client.auth.setInitialSession(
       jsonEncode({
@@ -265,4 +277,26 @@ class SyntheticSyncServer {
     );
     return client;
   }
+}
+
+/// Honours request aborts (and so request timeouts) like the real IO and
+/// browser clients; [MockClient] alone ignores them.
+class _AbortAware extends http.BaseClient {
+  _AbortAware(this._inner);
+  final http.Client _inner;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    final trigger = request is http.Abortable ? request.abortTrigger : null;
+    if (trigger == null) return _inner.send(request);
+    return Future.any([
+      _inner.send(request),
+      trigger.then<http.StreamedResponse>(
+        (_) => throw http.RequestAbortedException(request.url),
+      ),
+    ]);
+  }
+
+  @override
+  void close() => _inner.close();
 }

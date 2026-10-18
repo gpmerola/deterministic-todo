@@ -7,6 +7,28 @@ bool isBriefSyncRetry(SyncSnapshot snapshot) =>
     snapshot.retryAt != null &&
     snapshot.consecutiveFailures <= 3;
 
+/// Plain Italian for a failed sync. Network failures say what happens next;
+/// the technical class stays in the debug provider and diagnostics.
+String syncErrorText(SyncSnapshot snapshot) {
+  final retryAt = snapshot.retryAt;
+  final retry = retryAt == null
+      ? null
+      : DateFormat('HH:mm:ss').format(retryAt.toLocal());
+  return switch (snapshot.errorClass) {
+    'dns' =>
+      'La rete non trova il server: controlla VPN o Wi-Fi'
+          '${retry == null ? '' : ' · riprovo alle $retry'}',
+    'network' || 'timeout' || 'auth_transport' =>
+      retry == null
+          ? 'Nessuna connessione, riprovo appena torna la rete'
+          : 'Nessuna connessione · riprovo alle $retry',
+    _ =>
+      snapshot.error == null
+          ? 'Errore di sincronizzazione'
+          : 'Errore · ${snapshot.error}',
+  };
+}
+
 class SyncStatusAction extends StatefulWidget {
   const SyncStatusAction({
     required this.service,
@@ -97,9 +119,7 @@ class _SyncStatusActionState extends State<SyncStatusAction> {
       return IconButton(
         tooltip: snapshot.phase == SyncPhase.offline
             ? 'Offline'
-            : snapshot.error == null
-            ? 'Sincronizzazione non riuscita'
-            : 'Sincronizzazione non riuscita · ${snapshot.error}',
+            : syncErrorText(snapshot),
         onPressed: _openIssues,
         icon: Icon(
           snapshot.phase == SyncPhase.offline
@@ -295,10 +315,7 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
       snapshot!.lastSuccess == null
           ? 'Sincronizzato'
           : 'Sincronizzato · ${DateFormat('HH:mm').format(snapshot.lastSuccess!.toLocal())}',
-    SyncPhase.error =>
-      snapshot?.error == null
-          ? 'Errore di sincronizzazione'
-          : 'Errore · ${snapshot!.error}',
+    SyncPhase.error => syncErrorText(snapshot!),
     SyncPhase.offline => 'Offline',
     SyncPhase.disabled || null => 'Collegato',
   };
