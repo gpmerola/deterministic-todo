@@ -1,6 +1,23 @@
 # Stato corrente
 
-Aggiornato il 19 ottobre 2026 (build 283).
+Aggiornato il 19 ottobre 2026 (build 283, stabile).
+
+## Release stabile 2.103.0 / 283 — 19 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 12:44
+UTC). `agent/todo-ux-sync-hardening` avanzato senza riscritture al commit
+`43a2155ab2a5b829728f2c400a71c439976e70ba`; run coordinato
+[39254399798](https://github.com/gpmerola/deterministic-todo/actions/runs/39254399798)
+verde in tutti gli otto job.
+
+- Web: `release-info.json` 2.103.0 / 283 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.103.0):
+  `v2.103.0` `latest`, non prerelease; manifest con quattro APK e SHA-256
+  identici ai digest degli asset.
+- Google Play: `publish-google-play` riuscito (track `internal`);
+  propagazione non verificata.
+- Galaxy: Todo Test 2283 installata via ADB, dati conservati, nessun crash;
+  prova in primo piano della linea non eseguita (telefono bloccato).
 
 ## Build 283 — linea dell'ora corrente nel Calendario
 

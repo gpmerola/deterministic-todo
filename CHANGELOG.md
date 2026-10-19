@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.103.0 (build 283) — Todo Test
+## 2.103.0 (build 283) — Release stabile e Todo Test
 
 - Calendario: la linea rossa dell'ora corrente (Giorno, 3 giorni, Settimana)
   si sposta da sola a ogni minuto e torna subito all'ora giusta quando si
