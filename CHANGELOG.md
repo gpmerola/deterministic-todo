@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.103.0 (build 283) — Todo Test
+
+- Calendario: la linea rossa dell'ora corrente (Giorno, 3 giorni, Settimana)
+  si sposta da sola a ogni minuto e torna subito all'ora giusta quando si
+  riapre il telefono o la scheda Web dopo il blocco schermo. Il timer si
+  ferma in background e aggiorna solo la linea, non la griglia.
+
 ## 2.102.0 (build 282) — Release stabile e Todo Test
 
 - Correzione: una quotidiana completata su un dispositivo poteva riaprirsi

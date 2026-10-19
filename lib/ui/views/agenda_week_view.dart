@@ -10,6 +10,7 @@ import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
+import 'agenda_now_tick.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
@@ -553,15 +554,19 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                   child: AgendaDragGhost(span: _drag!),
                 ),
               if (date == widget.today)
-                Positioned(
-                  top: () {
-                    final now = widget.now();
-                    return scale.y(now.hour * 60 + now.minute) - 1;
-                  }(),
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(height: 2, color: theme.colorScheme.error),
+                AgendaNowTick(
+                  now: widget.now,
+                  builder: (context, now) => Positioned(
+                    key: const ValueKey('agenda-week-now'),
+                    top: scale.y(now.hour * 60 + now.minute) - 1,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Container(
+                        height: 2,
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
                   ),
                 ),
             ],

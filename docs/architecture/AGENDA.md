@@ -382,7 +382,12 @@ quell'account non compare; non esiste un aggiramento lato app.
   durata minima visibile di 20 minuti; gli eventi a cavallo della mezzanotte
   sono tagliati al giorno; quelli di giornata intera stanno in alto. La pagina
   si apre poco prima del primo impegno, oppure intorno all'ora attuale se il
-  giorno è vuoto. Oggi ha una linea dell'ora corrente. Scorrendo in orizzontale
+  giorno è vuoto. Oggi ha una linea dell'ora corrente (Giorno, 3 giorni,
+  Settimana): dalla build 283 `AgendaNowTick` la ridisegna da sola a ogni nuovo
+  minuto con un timer allineato al minuto, attivo solo in primo piano, e la
+  rilegge subito al ritorno in primo piano (anche sul Web, scheda di nuovo
+  visibile); si ricostruisce solo la linea, non la griglia. Il cambio di giorno
+  resta a `CivilDayClock`. Scorrendo in orizzontale
   si passa al giorno precedente o successivo. Un blocco di almeno un'ora mostra
   «Partecipa · Teams/Zoom/Meet». Il calcolo è `layoutDayTimeline`, puro e
   testato.

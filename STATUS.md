@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 18 ottobre 2026 (build 282, stabile).
+Aggiornato il 19 ottobre 2026 (build 283).
+
+## Build 283 — linea dell'ora corrente nel Calendario
+
+La linea era calcolata solo alla costruzione della griglia: restava ferma
+finché qualcosa non ridisegnava la vista, anche dopo un blocco schermo.
+`AgendaNowTick` (timer al minuto solo in primo piano, rilettura alla ripresa)
+la aggiorna senza ricostruire la griglia. Golden Settimana/3 giorni invariati.
 
 ## Release stabile 2.102.0 / 282 — 18 ottobre 2026
 

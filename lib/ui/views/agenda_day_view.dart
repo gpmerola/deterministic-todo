@@ -9,6 +9,7 @@ import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_header.dart' show AgendaTodayIcon;
+import 'agenda_now_tick.dart';
 import 'agenda_page_frame.dart';
 import 'calendar_visit_group.dart';
 
@@ -471,7 +472,10 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                           groups[block.entry.instanceId],
                         ),
                       if (widget.day == widget.today)
-                        _nowLine(context, constraints.maxWidth),
+                        AgendaNowTick(
+                          now: widget.now,
+                          builder: (context, now) => _nowLine(context, now),
+                        ),
                       if (_drag case final span?)
                         Positioned(
                           key: const ValueKey('agenda-day-drag'),
@@ -571,11 +575,11 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     );
   }
 
-  Widget _nowLine(BuildContext context, double width) {
-    final now = widget.now();
+  Widget _nowLine(BuildContext context, DateTime now) {
     final top = scale.y(now.hour * 60 + now.minute);
     final color = Theme.of(context).colorScheme.error;
     return Positioned(
+      key: const ValueKey('agenda-day-now'),
       top: top - 4,
       left: _gutter - 4,
       right: 0,
