@@ -237,6 +237,11 @@ intercettato localmente e non aggiunge listener persistenti globali.
 
 ## Telemetria prestazionale locale
 
+Le istruzioni del dialogo prestazioni sono indipendenti dal fornitore AI:
+l'utente può portare il prompt e i log esportati all'assistente che preferisce.
+«Copia prompt» ed «Esporta log» restano azioni esplicite; l'app non apre né
+invia automaticamente il materiale a un servizio AI.
+
 Dalla 2.2.0 la diagnostica registra solo sul dispositivo, senza timer o invii esterni:
 
 - `performance_snapshot`: millisecondi di avvio, RAM RSS e, su Android dalla

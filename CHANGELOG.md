@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.103.1 (build 284) — Istruzioni diagnostiche indipendenti dall'assistente
+
+- Il dialogo delle prestazioni invita a usare un assistente AI a scelta, senza
+  indirizzare esclusivamente a Codex. Copia del prompt ed esportazione dei log
+  mantengono il comportamento esistente e non inviano nulla automaticamente.
+
 ## 2.103.0 (build 283) — Release stabile e Todo Test
 
 - Calendario: la linea rossa dell'ora corrente (Giorno, 3 giorni, Settimana)
