@@ -1,6 +1,17 @@
 # Stato corrente
 
-Aggiornato il 19 ottobre 2026 (build 283, stabile).
+Aggiornato il 21 ottobre 2026. Stabile: build 283; modifica in collaudo: build 284.
+
+## Build 284 — istruzioni diagnostiche agnostiche
+
+Il dialogo prestazioni propone «un assistente AI a tua scelta». Prompt copiato,
+esportazione manuale e provider dell'assistente integrato restano invariati.
+
+- `make check`: analisi statica, strumenti, SQL e 571 test Flutter superati
+  (3 test saltati).
+- `make check-generated`: superato, nessuna differenza nel database generato.
+- Consegna Todo Test e collaudo dispositivo da completare; nessuna nuova
+  pubblicazione stabile Web/Play autorizzata da questa modifica.
 
 ## Release stabile 2.103.0 / 283 — 19 ottobre 2026
 

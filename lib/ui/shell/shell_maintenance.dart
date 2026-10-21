@@ -52,7 +52,8 @@ extension _ShellMaintenance on _TaskShellState {
       title: const Text('Controllare le prestazioni?'),
       content: const Text(
         'Se hai usato abbastanza l’app, puoi esportare i log e inviarli a '
-        'Codex con questo prompt:\n\n“Analizza questi log prestazionali, '
+        'un assistente AI a tua scelta con questo prompt:\n\n'
+        '“Analizza questi log prestazionali, '
         'individua colli di bottiglia di RAM, CPU, storage, frame e sync e '
         'implementa le ottimizzazioni sicure.”',
       ),
