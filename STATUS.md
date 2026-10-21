@@ -10,8 +10,11 @@ esportazione manuale e provider dell'assistente integrato restano invariati.
 - `make check`: analisi statica, strumenti, SQL e 571 test Flutter superati
   (3 test saltati).
 - `make check-generated`: superato, nessuna differenza nel database generato.
-- Consegna Todo Test e collaudo dispositivo da completare; nessuna nuova
-  pubblicazione stabile Web/Play autorizzata da questa modifica.
+- `make build-web`: build release locale riuscita; nessuna pubblicazione Web.
+- `make todo-test`: APK firmato verificato, installato in-place e avviato sul
+  Galaxy S21. Verifica successiva del package: `2.103.1-dev`, `versionCode 2284`;
+  dati conservati. Il dialogo diagnostico non è stato ispezionato sul telefono.
+- Nessuna nuova pubblicazione stabile Web/Play autorizzata da questa modifica.
 
 ## Release stabile 2.103.0 / 283 — 19 ottobre 2026
 
