@@ -175,7 +175,8 @@ già unite: `SembleLayer.directEntries` vi passa `sembleDirectEntries`, che
 aggiunge le prenotazioni non cancellate solo se un calendario Semble è
 visibile e nessuna voce con orario, di qualsiasi calendario, inizia nello
 stesso minuto (build 290: la copia iCal può stare in un calendario con un
-altro nome). Le voci
+altro nome). `start` ed `end` arrivano in UTC anche senza `Z`: un orario
+senza fuso è letto come UTC (build 291). Le voci
 aggiunte hanno `instanceId` con prefisso `semble-booking:`, il primo
 calendario Semble, titolo uguale al tipo di visita, `isOrganizer` falso; il
 tocco apre una scheda di sola lettura e non esistono modifica, eliminazione

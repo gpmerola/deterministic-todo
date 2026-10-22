@@ -69,6 +69,22 @@ void main() {
       expect(SembleBooking.fromJson({'start': null}), isNull);
     });
 
+    test('orari senza Z sono UTC, non ora del telefono', () {
+      final utc = DateTime.utc(2026, 10, 23, 15, 30);
+      for (final text in [
+        '2026-10-23T15:30:00.000',
+        '2026-10-23 15:30:00',
+        '2026-10-23T15:30:00.000Z',
+        '2026-10-23T16:30:00+01:00',
+      ]) {
+        expect(
+          SembleBooking.fromJson({'start': text})!.start,
+          utc.toLocal(),
+          reason: text,
+        );
+      }
+    });
+
     test('abbinamento per minuto, tipo di visita e cognome', () {
       final entry = visit('Follow-up 30 · Mario R.', at10);
       // Same minute, other clinician: excluded by name.

@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.105.3 (build 291) — Orari Semble corretti
+
+- Semble manda gli orari delle prenotazioni in UTC senza indicarlo: l'app li
+  leggeva come ora del telefono e, con l'ora legale, le copie dirette
+  comparivano un'ora prima di quelle del calendario, quindi doppie. Ora un
+  orario senza fuso è letto come UTC. Lo stesso errore impediva di abbinare
+  DNA e cancellazioni nella Stima lavoro privato.
+
 ## 2.105.2 (build 290) — Niente prenotazioni Semble doppie
 
 - La prenotazione letta da Semble sparisce appena un qualsiasi evento con

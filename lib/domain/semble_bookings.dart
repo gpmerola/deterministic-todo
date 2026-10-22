@@ -60,7 +60,9 @@ final class SembleBooking {
     );
   }
 
-  /// ISO 8601 (with Z or an offset) or epoch milliseconds, as local time.
+  /// ISO 8601 or epoch milliseconds, as local time. Semble sends booking
+  /// times in UTC, sometimes without the `Z`: a string with no offset is
+  /// read as UTC, not as device time (build 291, copies an hour early).
   static DateTime? _instant(Object? value) {
     if (value is int) {
       return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true).toLocal();
@@ -70,7 +72,12 @@ final class SembleBooking {
     if (epoch != null) {
       return DateTime.fromMillisecondsSinceEpoch(epoch, isUtc: true).toLocal();
     }
-    return DateTime.tryParse(value)?.toLocal();
+    final zoned = RegExp(r'(Z|[+-]\d{2}(:?\d{2})?)$', caseSensitive: false);
+    final text = value.trim();
+    final hasTime = text.contains(RegExp('[T ]'));
+    return DateTime.tryParse(
+      hasTime && !zoned.hasMatch(text) ? '${text}Z' : text,
+    )?.toLocal();
   }
 }
 

@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 290.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 291.
+
+## Build 291 — orari Semble in UTC
+
+Lo screenshot dell'utente del 22 ottobre 2026 mostrava le copie dirette
+un'ora prima delle visite iCal: Semble manda `start`/`end` in UTC senza `Z`.
+Ora un orario senza fuso è letto come UTC. Test superati su Linux; da
+provare sul Galaxy.
 
 ## Build 290 — niente doppioni Semble
 
