@@ -28,6 +28,7 @@ class SembleSettingsView extends StatefulWidget {
 class _SembleSettingsViewState extends State<SembleSettingsView> {
   final keyInput = TextEditingController();
   final userInput = TextEditingController();
+  final nameInput = TextEditingController();
   late final SembleClient client = widget.client ?? SembleClient();
   SembleConfig? config;
   bool busy = false;
@@ -46,6 +47,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
   void dispose() {
     keyInput.dispose();
     userInput.dispose();
+    nameInput.dispose();
     super.dispose();
   }
 
@@ -55,6 +57,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     setState(() {
       config = next;
       if (userInput.text.isEmpty) userInput.text = next.userId ?? '';
+      if (nameInput.text.isEmpty) nameInput.text = next.doctorName ?? '';
     });
   }
 
@@ -87,7 +90,11 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
         return;
       }
     }
-    await widget.settings.save(key: typed.isEmpty ? null : typed, userId: user);
+    await widget.settings.save(
+      key: typed.isEmpty ? null : typed,
+      userId: user,
+      doctorName: nameInput.text,
+    );
     keyInput.clear();
     await widget.layer.reset(today: _today);
     await _reload();
@@ -176,9 +183,11 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                     'Semble: dietro agli eventi in Giorno, 3 giorni e '
                     'Settimana, come barretta sotto la data in 4 settimane e '
                     'Mese (dalle 7 a mezzanotte). '
-                    'Sola lettura: Todo non modifica nulla in Semble e legge '
-                    'solo date e orari delle regole, senza commenti né '
-                    'pazienti. Gli appuntamenti prenotati restano quelli del '
+                    'Sola lettura: Todo non modifica nulla in Semble. Legge '
+                    'date e orari delle regole e, per la Stima lavoro '
+                    'privato, orario, tipo, medico ed esito (arrivo o DNA) '
+                    'delle prenotazioni del mese, mai i dati dei pazienti. '
+                    'Gli appuntamenti nel Calendario restano quelli del '
                     'calendario Google alimentato da Semble. La chiave resta '
                     'cifrata su questo telefono: non va nei backup, nei log '
                     'né su Supabase.',
@@ -236,6 +245,18 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                     decoration: const InputDecoration(
                       labelText: 'User ID Semble',
                       helperText: 'Dal tuo profilo utente nell\'app Semble',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const ValueKey('semble-name-input'),
+                    controller: nameInput,
+                    autocorrect: false,
+                    decoration: const InputDecoration(
+                      labelText: 'Il tuo cognome in Semble',
+                      helperText:
+                          'Riconosce le tue prenotazioni per DNA e '
+                          'cancellazioni nella Stima lavoro privato',
                     ),
                   ),
                   const SizedBox(height: 12),

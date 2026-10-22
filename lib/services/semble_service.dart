@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../domain/agenda.dart';
 import '../domain/semble_availability.dart';
+import '../domain/semble_bookings.dart';
 import '../domain/task.dart';
 
 /// Semble public API (GraphQL). The key authenticates with `x-token`.
@@ -34,6 +35,28 @@ query SembleAvailability(\$userIds: [String], \$range: DateRange, \$page: Pagina
   }
 }''';
 
+/// Bookings of the whole clinic for a date range (build 288): the key has
+/// no clinician filter, so the app keeps the user's by `doctorName`. Only
+/// times, deletion, type, clinician name and the reception journey are
+/// read; never `patient`, `comments`, `reference` or `cancellationReason`.
+String sembleBookingsQuery({
+  required CivilDate first,
+  required CivilDate end,
+  required int page,
+  required int pageSize,
+}) =>
+    '''
+query {
+  bookings(dateRange: {start: "$first", end: "$end"}, pagination: {page: $page, pageSize: $pageSize}) {
+    data {
+      start end deleted doctorName
+      appointment { title }
+      bookingJourney { arrived consultation departed dna }
+    }
+    pageInfo { hasMore }
+  }
+}''';
+
 enum SembleFailure { noKey, rejected, forbidden, unreachable, badResponse }
 
 class SembleException implements Exception {
@@ -57,7 +80,12 @@ final class SembleConfig {
     required this.maskedKey,
     required this.userId,
     required this.enabled,
+    this.doctorName,
   });
+
+  /// Surname as Semble writes it in `doctorName` (build 288): picks the
+  /// user's bookings, since the key cannot read the clinician's id.
+  final String? doctorName;
 
   /// "…a1b2" or null; the key itself never returns to the UI.
   final String? maskedKey;
@@ -78,6 +106,7 @@ class SembleSettings {
   static const _apiKey = 'semble_api_key';
   static const _userId = 'semble_user_id';
   static const _enabled = 'semble_layer_enabled';
+  static const _doctorName = 'semble_doctor_name';
 
   final FlutterSecureStorage _storage;
 
@@ -91,12 +120,20 @@ class SembleSettings {
       maskedKey: key == null || key.isEmpty ? null : mask(key),
       userId: user == null || user.isEmpty ? null : user,
       enabled: await _storage.read(key: _enabled) != 'false',
+      doctorName: switch (await _storage.read(key: _doctorName)) {
+        final name? when name.trim().isNotEmpty => name.trim(),
+        _ => null,
+      },
     );
   }
 
   Future<String?> apiKey() => _storage.read(key: _apiKey);
 
-  Future<void> save({String? key, required String userId}) async {
+  Future<void> save({
+    String? key,
+    required String userId,
+    String? doctorName,
+  }) async {
     final trimmedUser = userId.trim();
     if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(trimmedUser)) {
       throw const FormatException('User ID non valido');
@@ -107,6 +144,9 @@ class SembleSettings {
       await _storage.write(key: _apiKey, value: trimmed);
     }
     await _storage.write(key: _userId, value: trimmedUser);
+    if (doctorName != null) {
+      await _storage.write(key: _doctorName, value: doctorName.trim());
+    }
   }
 
   Future<void> setEnabled(bool enabled) =>
@@ -116,6 +156,7 @@ class SembleSettings {
     await _storage.delete(key: _apiKey);
     await _storage.delete(key: _userId);
     await _storage.delete(key: _enabled);
+    await _storage.delete(key: _doctorName);
   }
 }
 
@@ -149,6 +190,48 @@ class SembleClient {
       // `exclusions` may be an object type in this schema: read without it.
       return _rules(key, userId, first, last, exclusions: false);
     }
+  }
+
+  /// The user's bookings from [first] to [last] inclusive. [doctorName]
+  /// null keeps every booking (matching then relies on time and type).
+  Future<List<SembleBooking>> bookings({
+    required String key,
+    required CivilDate first,
+    required CivilDate last,
+    String? doctorName,
+    int pageSize = 100,
+    int maxPages = 20,
+  }) async {
+    final bookings = <SembleBooking>[];
+    for (var page = 1; page <= maxPages; page++) {
+      final data = await _post(
+        key,
+        sembleBookingsQuery(
+          first: first,
+          end: last.addDays(1),
+          page: page,
+          pageSize: pageSize,
+        ),
+        const {},
+      );
+      final (list, hasMore) = switch (data['bookings']) {
+        {'data': final List<Object?> list, 'pageInfo': final Object? info} => (
+          list,
+          info is Map<String, Object?> && info['hasMore'] == true,
+        ),
+        {'data': final List<Object?> list} => (list, false),
+        _ => throw const SembleException(SembleFailure.badResponse),
+      };
+      for (final item in list) {
+        if (item is! Map<String, Object?>) continue;
+        final booking = SembleBooking.fromJson(item);
+        if (booking != null && sembleBookingIsMine(booking, doctorName)) {
+          bookings.add(booking);
+        }
+      }
+      if (!hasMore || list.isEmpty) break;
+    }
+    return bookings;
   }
 
   Future<List<SembleRule>> _rules(

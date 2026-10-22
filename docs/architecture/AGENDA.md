@@ -149,6 +149,24 @@ restano distinte e il limite è dichiarato nella scheda. Nessun dato personale
 viene usato come fixture. Permessi mancanti, calendari assenti o errore provider
 producono un messaggio, mai un falso importo zero.
 
+**DNA da Semble (build 288).** Con chiave e cognome in Impostazioni →
+Semble, `PrivateEarningsService` legge con `SembleClient.bookings` le
+prenotazioni del mese (query `bookings` per intervallo di date, pagine da
+100, al massimo 20, timeout 12 s) selezionando solo `start`, `end`,
+`deleted`, `doctorName`, `appointment { title }` e `bookingJourney { arrived
+consultation departed dna }`. La chiave non può leggere il medico come
+utente (`settingsSeeUsers`), quindi le prenotazioni dell'utente si
+riconoscono dal cognome contenuto in `doctorName`; la query restituisce
+quelle di tutta la clinica, scartate in memoria. Semble non ha uno stato di
+presenza: l'esito viene dal percorso (`dna` valorizzato = DNA; arrivo, visita
+o uscita = svolta; `deleted` = cancellata). `sembleOutcomeFor` abbina ogni
+evento del calendario Semble (`isSembleCalendar`) alla prenotazione che
+inizia nello stesso minuto, restringendo per tipo di visita contenuto nel
+titolo se più medici iniziano insieme; esiti discordi o assenti restano
+sconosciuti e non cambiano nulla. DNA e cancellate escono da maturato e
+previsto e compaiono a parte. Nessun dato viene salvato; senza cognome, senza
+rete o con errore la stima resta quella per titolo e la scheda lo dice.
+
 Tariffario OPUK di settembre 2026 verificato nel Second Brain il 12 ottobre;
 regole e importi in pence in `lib/domain/private_earnings.dart`. La stima è
 lorda, non certifica l'esecuzione della prestazione né l'incasso. Il previsto

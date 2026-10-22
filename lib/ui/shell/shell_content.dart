@@ -14,7 +14,7 @@ extension _ShellContent on _TaskShellState {
           syncService: widget.syncService,
           autoBackup: autoBackup,
           earnings: isAndroidPlatform
-              ? PrivateEarningsService(agendaService)
+              ? PrivateEarningsService(agendaService, semble: SembleSettings())
               : null,
           checkForUpdates: _checkForUpdates,
           showCompleted: () => _navigateTo(AppSection.completed),

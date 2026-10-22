@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.105.0 (build 288) — DNA e cancellazioni da Semble nella stima
+
+- **Stima lavoro privato** legge da Semble le prenotazioni del mese con il
+  proprio cognome (nuovo campo in Impostazioni → Semble) e, per ogni visita
+  del calendario Semble, l'esito registrato in reception: le visite segnate
+  DNA (did not attend) e le prenotazioni cancellate in Semble escono dai
+  totali e sono mostrate a parte con l'importo non maturato.
+- Si leggono solo orario, tipo di visita, nome del medico e i quattro
+  momenti del percorso (arrivo, visita, uscita, DNA): mai paziente, commenti,
+  riferimenti o motivo di cancellazione. Nulla viene salvato. Senza chiave,
+  senza cognome o se Semble non risponde la stima resta quella di prima e lo
+  dice.
+
 ## 2.104.2 (build 287) — Solo gli spazi davvero liberi
 
 - Il verde Semble (fasce in Giorno, 3 giorni e Settimana, barretta in 4

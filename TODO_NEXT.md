@@ -21,8 +21,10 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   **Svuota cestino** con dati esclusivamente di prova e autorizzazione
   specifica per la cancellazione permanente.
 
-- [ ] Build 287: controllare sul Galaxy che il verde Semble resti solo
-  sugli spazi liberi. Successivi possibili, solo su richiesta: `availabilitySlots`
+- [ ] Build 288: scrivere il cognome in Impostazioni → Semble e confrontare
+  i DNA della Stima lavoro privato con Semble. Prossimo passo concordato:
+  prenotazioni nuove nel Calendario direttamente da Semble, nascoste quando
+  arriva la copia iCal. Successivi possibili, solo su richiesta: `availabilitySlots`
   (slot davvero prenotabili), scrittura verso
   Semble solo dopo autorizzazione della clinica e test su una regola creata
   apposta.

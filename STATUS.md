@@ -1,6 +1,19 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 287.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 288.
+
+## Build 288 — DNA e cancellazioni da Semble nella stima
+
+Esplorazione dell'API Semble dal Mac il 22 ottobre 2026, con chiave in
+`~/.semble_api_key` e risultati solo in `temp/semble_api/` (ignorata da git):
+query `bookings` per intervallo di date senza filtro per medico; `doctor`
+vietato (`settingsSeeUsers`), `doctorName` leggibile; nessuno stato di
+presenza, ma `bookingJourney` con `arrived`, `consultation`, `departed`,
+`dna` (date ISO in UTC); la chiave può leggere anche i pazienti collegati,
+che l'app non seleziona mai. Prova di scrittura innocua:
+`deleteAvailability` con ID tutto zeri ha risposto «not found», non
+FORBIDDEN, quindi la chiave va considerata capace di scrivere disponibilità.
+`flutter analyze` e `flutter test` superati su Linux; da provare sul Galaxy.
 
 ## Build 287 — verde Semble solo sugli spazi liberi
 

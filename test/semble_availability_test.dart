@@ -397,6 +397,10 @@ void main() {
       );
       final settings = SembleSettings();
       final layer = SembleLayer(settings: settings, client: client);
+      // Tall enough for the whole page: the status sits below the fields.
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           home: SembleSettingsView(
@@ -416,6 +420,10 @@ void main() {
         find.byKey(const ValueKey('semble-key-input')),
         'secret-1234',
       );
+      await tester.enterText(
+        find.byKey(const ValueKey('semble-name-input')),
+        ' Merola ',
+      );
       await tester.tap(find.byKey(const ValueKey('semble-save')));
       await tester.pumpAndSettle();
       expect(find.textContaining('rifiutato'), findsOne);
@@ -427,6 +435,7 @@ void main() {
       expect(await settings.apiKey(), 'secret-1234');
       expect(find.text('Chiave …1234'), findsOne);
       expect(find.textContaining('Lette 0 regole'), findsOne);
+      expect((await settings.read()).doctorName, 'Merola');
     });
   });
 
