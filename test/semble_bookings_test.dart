@@ -294,7 +294,7 @@ void main() {
       expect(added.start, at11);
       expect(added.calendarIds, ['semble']);
       expect(added.isOrganizer, isFalse);
-      // A KCL meeting at the same minute does not hide a Semble booking.
+      // The iCal copy in a calendar with another name hides it too.
       expect(
         sembleDirectEntries(
           bookings: [parsed(booking(at10))],
@@ -311,7 +311,7 @@ void main() {
           calendars: calendars,
           hiddenCalendarIds: const {},
         ),
-        hasLength(1),
+        isEmpty,
       );
       // Semble calendar hidden or missing: nothing is added.
       expect(

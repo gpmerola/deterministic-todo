@@ -173,7 +173,9 @@ prenotazioni con il cognome da ieri a +28 giorni e le tiene solo in memoria
 (`bookingsRevision`). `buildAgenda` accetta `extra`, una funzione delle voci
 già unite: `SembleLayer.directEntries` vi passa `sembleDirectEntries`, che
 aggiunge le prenotazioni non cancellate solo se un calendario Semble è
-visibile e nessuna sua voce con orario inizia nello stesso minuto. Le voci
+visibile e nessuna voce con orario, di qualsiasi calendario, inizia nello
+stesso minuto (build 290: la copia iCal può stare in un calendario con un
+altro nome). Le voci
 aggiunte hanno `instanceId` con prefisso `semble-booking:`, il primo
 calendario Semble, titolo uguale al tipo di visita, `isOrganizer` falso; il
 tocco apre una scheda di sola lettura e non esistono modifica, eliminazione

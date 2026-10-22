@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 289.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 290.
+
+## Build 290 — niente doppioni Semble
+
+Nella 289 le prenotazioni dirette comparivano accanto alla copia iCal
+(segnalato dall'utente il 22 ottobre 2026). Ora le nasconde qualsiasi
+evento con orario nello stesso minuto. Test superati su Linux; da provare
+sul Galaxy.
 
 ## Build 289 — prenotazioni Semble dirette nel Calendario
 

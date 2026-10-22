@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.105.2 (build 290) — Niente prenotazioni Semble doppie
+
+- La prenotazione letta da Semble sparisce appena un qualsiasi evento con
+  orario inizia nello stesso minuto, non solo uno del calendario chiamato
+  Semble: la copia iCal può stare in un calendario con un altro nome e nella
+  build 289 compariva due volte.
+
 ## 2.105.1 (build 289) — Prenotazioni Semble subito nel Calendario
 
 - Con chiave e cognome in Impostazioni → Semble, le prenotazioni delle

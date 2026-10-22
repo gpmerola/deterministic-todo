@@ -136,8 +136,10 @@ extension SembleBookingEntry on AgendaEntry {
 /// Semble bookings not yet in the phone calendar (build 289): the iCal
 /// export reaches Google and the phone with a delay, the API at once. Shown
 /// only while a Semble calendar is visible, coloured like it, and dropped as
-/// soon as an event of that calendar starts in the same minute. Cancelled
-/// bookings are never added. Titles are the appointment type only.
+/// soon as any timed event starts in the same minute: the iCal copy may sit
+/// in a calendar with another name (build 290), and a missing booking is
+/// better than a doubled one. Cancelled bookings are never added. Titles are
+/// the appointment type only.
 List<AgendaEntry> sembleDirectEntries({
   required Iterable<SembleBooking> bookings,
   required List<AgendaEntry> merged,
@@ -153,7 +155,7 @@ List<AgendaEntry> sembleDirectEntries({
   if (semble.isEmpty) return const [];
   final taken = {
     for (final entry in merged)
-      if (!entry.allDay && entry.calendarIds.any(semble.contains))
+      if (!entry.allDay && !entry.isTask && !entry.isSembleBooking)
         _minute(entry.start),
   };
   final seen = <int>{};
