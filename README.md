@@ -135,6 +135,12 @@ e altri tipi di appuntamento restano separati; nessun evento viene modificato.
 Su Android, **Calendario → ⋮ → Aggiungi alla schermata Home** propone un'icona
 che apre direttamente questa sezione, previa conferma del launcher.
 
+Con **Impostazioni → Semble** (Android, build 285) le viste Giorno, 3 giorni
+e Settimana mostrano dietro agli eventi le disponibilità impostate in Semble:
+verde dove si è prenotabili, righe grigie dove l'orario è bloccato. È sola
+lettura, la chiave API resta nel Keystore del telefono e gli appuntamenti
+continuano ad arrivare dal calendario Google collegato a Semble.
+
 L'editor conserva una bozza locale recuperabile e rimane aperto se il
 salvataggio fallisce. Mostra calendario di destinazione, data finale e durata;
 Android permette di scegliere un fuso IANA per nuovi eventi. Una copia «solo

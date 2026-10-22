@@ -1,6 +1,20 @@
 # Stato corrente
 
-Aggiornato il 21 ottobre 2026. Stabile: build 283; modifica in collaudo: build 284.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 285.
+
+## Build 285 — disponibilità Semble nel Calendario
+
+Livello di sola lettura con le regole di disponibilità Semble nelle viste
+Giorno, 3 giorni e Settimana; chiave in Impostazioni → Semble
+([contratto](docs/architecture/AGENDA.md)).
+
+- `flutter analyze` e `flutter test` superati in un ambiente Linux con
+  Flutter 3.47.7 (test golden saltati come in CI).
+- Non ancora verificato con la chiave reale: forma effettiva di `startDate`,
+  `exclusions` e `daysOfTheWeek` nel tenant; il parser accetta date ISO e
+  ripete la lettura senza `exclusions` se lo schema la rifiuta.
+- Todo Test sul Galaxy: da installare e provare dopo che l'utente ha
+  incollato chiave e User ID.
 
 ## Build 284 — istruzioni diagnostiche agnostiche
 

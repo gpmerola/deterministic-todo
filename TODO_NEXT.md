@@ -21,6 +21,13 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   **Svuota cestino** con dati esclusivamente di prova e autorizzazione
   specifica per la cancellazione permanente.
 
+- [ ] Build 285: incollare chiave API e User ID in **Impostazioni → Semble**
+  sul Galaxy, poi confrontare le fasce di una settimana con Semble.
+  Successivi possibili, solo su richiesta: `availabilitySlots` (slot
+  davvero prenotabili), fasce anche in Mese/2 settimane, scrittura verso
+  Semble solo dopo autorizzazione della clinica e test su una regola creata
+  apposta.
+
 ## Osservazioni passive
 
 Nessuna azione finché non emerge un problema.

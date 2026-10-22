@@ -47,6 +47,7 @@ import 'services/platform_runtime_native.dart'
 import 'services/private_earnings_service.dart';
 import 'services/quick_add_service.dart';
 import 'services/run_tracker_service.dart';
+import 'services/semble_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/todoist_import_verification.dart';
 import 'ui/activity_history_view.dart';
@@ -63,6 +64,7 @@ import 'ui/priority_color.dart';
 import 'ui/private_earnings_sheet.dart';
 import 'ui/quick_add_sheet.dart';
 import 'ui/search.dart';
+import 'ui/semble_settings_view.dart';
 import 'ui/shell/app_update_flow.dart';
 import 'ui/shell/civil_day_clock.dart';
 import 'ui/shell/daily_steps_controller.dart';

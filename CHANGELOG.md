@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.104.0 (build 285) — Disponibilità Semble nel Calendario
+
+- Nuova voce **Impostazioni → Semble** (solo Android): si incollano la chiave
+  API Semble e il proprio User ID; la chiave resta cifrata nel Keystore del
+  telefono, fuori da backup, log e Supabase.
+- Calendario: nelle viste Giorno, 3 giorni e Settimana le regole di
+  disponibilità Semble compaiono dietro agli eventi, verde dove si è
+  prenotabili e a righe grigie dove Semble blocca l'orario (ricorrenze
+  settimanali, aggiunte una tantum, indisponibilità ed esclusioni).
+- Sola lettura: l'app invia a Semble soltanto `__typename` per verificare la
+  chiave e la lettura di `availabilityRules`; nessuna mutazione, nessun
+  campo stanza o commento. Gli appuntamenti prenotati restano quelli del
+  calendario Google alimentato dal feed iCal di Semble, senza duplicati.
+
 ## 2.103.1 (build 284) — Istruzioni diagnostiche indipendenti dall'assistente
 
 - Il dialogo delle prestazioni invita a usare un assistente AI a scelta, senza

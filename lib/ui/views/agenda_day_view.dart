@@ -11,6 +11,7 @@ import 'agenda_colors.dart';
 import 'agenda_header.dart' show AgendaTodayIcon;
 import 'agenda_now_tick.dart';
 import 'agenda_page_frame.dart';
+import 'agenda_semble_layer.dart';
 import 'calendar_visit_group.dart';
 
 typedef AgendaDaysLoader =
@@ -461,6 +462,11 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                             }),
                           ),
                         ),
+                      AgendaSembleBands(
+                        day: widget.day,
+                        scale: scale,
+                        left: _gutter,
+                      ),
                       for (var hour = 0; hour < 24; hour++)
                         ..._hourRow(context, hour, constraints.maxWidth),
                       for (final block in blocks)

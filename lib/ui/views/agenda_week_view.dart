@@ -13,6 +13,7 @@ import 'agenda_month_view.dart';
 import 'agenda_now_tick.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
+import 'agenda_semble_layer.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
 import 'agenda_word_wrap.dart';
 import 'calendar_visit_group.dart';
@@ -496,6 +497,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     }),
                   ),
                 ),
+              AgendaSembleBands(day: date, scale: scale),
               for (var hour = 0; hour < 24; hour++)
                 if (scale.isFolded(hour))
                   Positioned(

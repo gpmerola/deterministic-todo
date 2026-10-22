@@ -10,6 +10,7 @@ import '../../services/agenda_reminders.dart';
 import '../../services/agenda_service.dart';
 import '../../services/platform_runtime_native.dart'
     if (dart.library.js_interop) '../../services/platform_runtime_web.dart';
+import '../../services/semble_service.dart';
 import 'agenda_backup_sheet.dart';
 import 'agenda_calendar_picker.dart';
 import 'agenda_colors.dart';
@@ -218,6 +219,16 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         unawaited(
           AgendaReminders(widget.service).foreground(requestPermission: true),
         );
+        // Semble layer (build 285): read after the events, never awaited.
+        if (result.access == AgendaAccess.granted) {
+          unawaited(
+            SembleLayer.shared.refresh(
+              today: widget.today,
+              zoneLabel: zone,
+              force: changed,
+            ),
+          );
+        }
       }
     } catch (_) {
       // Deliberately not logged: messages may carry event details.

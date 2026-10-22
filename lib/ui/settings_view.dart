@@ -563,6 +563,23 @@ class SettingsView extends StatelessWidget {
             ),
           ),
         ),
+      // Android only, like the Calendar layer it feeds (build 285).
+      if (isAndroidPlatform)
+        ListTile(
+          key: const ValueKey('settings-semble'),
+          leading: const Icon(Icons.event_available_outlined),
+          title: const Text('Semble'),
+          subtitle: const Text('Disponibilità nel Calendario (sola lettura)'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => SembleSettingsView(
+                settings: SembleSettings(),
+                layer: SembleLayer.shared,
+              ),
+            ),
+          ),
+        ),
       ListTile(
         leading: const Icon(Icons.health_and_safety_outlined),
         title: const Text('Salute dati'),

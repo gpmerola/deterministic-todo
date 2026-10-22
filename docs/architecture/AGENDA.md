@@ -4,6 +4,57 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Disponibilità Semble — build 285
+
+Richiesta dell'utente (22 ottobre 2026): vedere nel Calendario le fasce di
+disponibilità impostate in Semble, il gestionale della clinica privata. Primo
+passo in **sola lettura**, Semble → Todo.
+
+- **Cosa si vede.** Nelle viste Giorno, 3 giorni e Settimana
+  `AgendaSembleBands` disegna dietro agli eventi una tinta verde con bordo a
+  sinistra dove la regola rende prenotabili, e righe grigie dove una
+  indisponibilità blocca l'orario. Le indisponibilità fuori dalle fasce
+  disponibili restano visibili (per esempio una sera bloccata). Le fasce
+  ignorano i tocchi: toccare uno spazio libero crea ancora un evento. Mese,
+  2 settimane, Elenco, ricerca, ✨ e copia per il Web non mostrano Semble.
+- **Appuntamenti.** Le prenotazioni arrivano già dal calendario Google
+  alimentato dal feed iCal di Semble (script Apps Script esterno all'app) e
+  sono eventi normali: il livello Semble non legge né duplica appuntamenti.
+  Sono regole configurate, non la prova che uno slot sia libero.
+- **Dati.** `lib/domain/semble_availability.dart`, puro: `SembleRule`
+  (ricorrenza `daily`/`weekly` con `interval` e `daysOfTheWeek` 0 = domenica,
+  date di inizio e fine, `exclusions`) e `sembleBandsFor`, che unisce le
+  disponibilità e vi sottrae le indisponibilità. Forme sconosciute (altre
+  frequenze, orari non validi) sono scartate, mai indovinate.
+- **Rete.** `lib/services/semble_service.dart`: `POST
+  https://open.semble.io/graphql` con header `x-token`. Le sole operazioni
+  inviate sono `query { __typename }` (verifica della chiave) e
+  `availabilityRules(userIds, dateRange, pagination)` con i campi `id`,
+  `unavailability`, date, orari, `exclusions` e `recurrence`. Mai mutazioni
+  (`createAvailability`, `updateAvailability`, `deleteAvailability`), mai
+  `room { … }` (vietato alla chiave, permesso `settingsGeneral`), mai
+  `comment`, che può contenere nomi. Se lo schema rifiuta `exclusions`
+  come scalare la lettura è ripetuta senza. Errori GraphQL con HTTP 200
+  sono classificati (`UNAUTHENTICATED`, `FORBIDDEN`) e non registrati.
+- **Quando legge.** `SembleLayer.shared` legge da 7 giorni prima a 92 giorni
+  dopo oggi al caricamento del Calendario (avvio, ritorno in primo piano),
+  al massimo ogni 15 minuti; pull-to-refresh e cambi di calendari forzano
+  la lettura. Pagine da 50, al massimo 10. Nessun polling, job o cache su
+  disco: le regole restano in memoria per la sessione. Fuori dalla finestra
+  letta non si disegna nulla, per non mostrare un quadro incompleto.
+- **Fuso.** Le regole sono orari civili della clinica (`Europe/London`). Se
+  il telefono è in un altro fuso il livello è nascosto e Impostazioni lo
+  dice, invece di mostrare fasce spostate.
+- **Chiave.** Impostazioni → Semble: chiave e User ID nel Keystore Android
+  (`flutter_secure_storage`), come la chiave dell'assistente. Mai in SQLite,
+  backup, log, Supabase o repository. «Verifica e salva» non salva una chiave
+  rifiutata; si può spegnere il livello o eliminare la chiave. La chiave è
+  stata creata da un Manager della clinica: revocarla si fa in Semble.
+- **Test.** `test/semble_availability_test.dart`: espansione delle regole,
+  sottrazione, esclusioni, intervallo, query senza mutazioni/stanza/commenti,
+  paginazione, classificazione degli errori, finestra e fuso, schermata
+  Impostazioni.
+
 ## Promemoria locali — build 245
 
 **Calendario → ⋮ → Promemoria** controlla un avviso a 30 minuti per tutti gli
