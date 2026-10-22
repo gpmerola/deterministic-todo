@@ -295,7 +295,10 @@ class AgendaDayCell extends StatelessWidget {
             listenable: semble ?? SembleLayer.shared,
             builder: (context, _) => LayoutBuilder(
               builder: (context, constraints) {
-                final bands = (semble ?? SembleLayer.shared).bandsFor(date);
+                final bands = (semble ?? SembleLayer.shared).bandsFor(
+                  date,
+                  busy: entries,
+                );
                 final items = groupVisits
                     ? calendarVisitItems(entries, date)
                     : entries.map((e) => CalendarVisitItem([e])).toList();

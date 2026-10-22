@@ -487,4 +487,88 @@ void main() {
       );
     });
   });
+
+  group('spazi liberi', () {
+    AgendaEntry event(
+      String id,
+      DateTime start,
+      DateTime end, {
+      bool allDay = false,
+      bool unanswered = false,
+      String? taskId,
+    }) => AgendaEntry(
+      instanceId: id,
+      calendarIds: const ['c'],
+      title: 'x',
+      start: start,
+      end: end,
+      allDay: allDay,
+      unanswered: unanswered,
+      taskId: taskId,
+    );
+
+    test('le visite tolgono il verde, i blocchi restano', () {
+      final rules = parse([
+        weekly('a', [4], '10:00', '18:00'),
+        once('x', '2026-10-22', '14:00', '15:00'),
+      ]);
+      final busy = agendaBusyMinutes([
+        event('v1', DateTime(2026, 10, 22, 10), DateTime(2026, 10, 22, 11)),
+        event(
+          'v2',
+          DateTime(2026, 10, 22, 13, 30),
+          DateTime(2026, 10, 22, 14, 30),
+        ),
+        event(
+          'invite',
+          DateTime(2026, 10, 22, 16),
+          DateTime(2026, 10, 22, 17),
+          unanswered: true,
+        ),
+        event(
+          'task',
+          DateTime(2026, 10, 22, 16),
+          DateTime(2026, 10, 22, 17),
+          taskId: 't',
+        ),
+        event(
+          'allday',
+          DateTime(2026, 10, 22),
+          DateTime(2026, 10, 23),
+          allDay: true,
+        ),
+        event(
+          'night',
+          DateTime(2026, 10, 21, 23),
+          DateTime(2026, 10, 22, 10, 15),
+        ),
+      ], thu22);
+      expect(busy, [(600, 660), (810, 870), (0, 615)]);
+      expect(sembleFreeBands(sembleBandsFor(rules, thu22), busy), [
+        const SembleBand(SembleBandKind.available, 660, 810),
+        const SembleBand(SembleBandKind.unavailable, 840, 900),
+        const SembleBand(SembleBandKind.available, 900, 1080),
+      ]);
+    });
+
+    test('il livello applica le visite del giorno', () {
+      final layer = SembleLayer()
+        ..seed(
+          parse([
+            weekly('a', [4], '10:00', '18:00'),
+          ]),
+          thu22,
+          mon26,
+        );
+      expect(
+        layer.bandsFor(
+          thu22,
+          busy: [
+            event('v', DateTime(2026, 10, 22, 10), DateTime(2026, 10, 22, 18)),
+          ],
+        ),
+        isEmpty,
+      );
+    });
+  });
 }

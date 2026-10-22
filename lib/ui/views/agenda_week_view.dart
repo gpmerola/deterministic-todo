@@ -497,7 +497,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     }),
                   ),
                 ),
-              AgendaSembleBands(day: date, scale: scale),
+              AgendaSembleBands(day: date, scale: scale, entries: entries),
               for (var hour = 0; hour < 24; hour++)
                 if (scale.isFolded(hour))
                   Positioned(

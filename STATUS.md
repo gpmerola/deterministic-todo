@@ -1,6 +1,12 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 286.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 287.
+
+## Build 287 — verde Semble solo sugli spazi liberi
+
+Le fasce e la barretta Semble escludono il tempo già occupato da eventi con
+orario. `flutter analyze` e `flutter test` superati su Linux; da provare sul
+Galaxy.
 
 ## Build 286 — barretta Semble in 4 settimane e Mese
 

@@ -16,6 +16,13 @@ passo in **sola lettura**, Semble → Todo.
   indisponibilità blocca l'orario. Le indisponibilità fuori dalle fasce
   disponibili restano visibili (per esempio una sera bloccata). Le fasce
   ignorano i tocchi: toccare uno spazio libero crea ancora un evento.
+- **Spazi liberi (build 287).** Su richiesta dell'utente il verde mostra
+  solo il tempo prenotabile e libero: `sembleFreeBands` sottrae alle fasce
+  disponibili i minuti di `agendaBusyMinutes`, cioè gli eventi già filtrati
+  e uniti della giornata con orario, esclusi giornata intera, attività Todo
+  e inviti senza risposta (contorno tratteggiato). Gli eventi a cavallo
+  della mezzanotte sono tagliati al giorno. Vale per fasce e barretta; le
+  indisponibilità non cambiano. Calcolo solo in memoria a ogni disegno.
 - **4 settimane e Mese (build 286).** Su richiesta dell'utente, che usa
   soprattutto le 4 settimane: `AgendaSembleStrip` disegna sotto la data di
   ogni `AgendaDayCell` una barretta di 4 dp che va dalle 07:00 (bordo

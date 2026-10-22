@@ -21,8 +21,8 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   **Svuota cestino** con dati esclusivamente di prova e autorizzazione
   specifica per la cancellazione permanente.
 
-- [ ] Build 286: controllare sul Galaxy la barretta Semble nelle 4
-  settimane. Successivi possibili, solo su richiesta: `availabilitySlots`
+- [ ] Build 287: controllare sul Galaxy che il verde Semble resti solo
+  sugli spazi liberi. Successivi possibili, solo su richiesta: `availabilitySlots`
   (slot davvero prenotabili), scrittura verso
   Semble solo dopo autorizzazione della clinica e test su una regola creata
   apposta.

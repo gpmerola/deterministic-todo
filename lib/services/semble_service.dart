@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../domain/agenda.dart';
 import '../domain/semble_availability.dart';
 import '../domain/task.dart';
 
@@ -289,12 +290,20 @@ class SembleLayer extends ChangeNotifier {
 
   /// Bands for [day], or none outside the window read: a one-off rule
   /// there would be missing and the layer would look complete.
-  List<SembleBand> bandsFor(CivilDate day) {
+  /// [busy] are the day's events: their time is not shown as free
+  /// (build 287).
+  List<SembleBand> bandsFor(
+    CivilDate day, {
+    Iterable<AgendaEntry> busy = const [],
+  }) {
     final first = _first;
     final last = _last;
     if (!active || first == null || last == null) return const [];
     if (day.compareTo(first) < 0 || day.compareTo(last) > 0) return const [];
-    return sembleBandsFor(_rules, day);
+    return sembleFreeBands(
+      sembleBandsFor(_rules, day),
+      agendaBusyMinutes(busy, day),
+    );
   }
 
   /// [zoneLabel] as shown by the Calendar ("Europe/London · UTC+1").

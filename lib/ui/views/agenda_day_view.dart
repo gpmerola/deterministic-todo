@@ -466,6 +466,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                         day: widget.day,
                         scale: scale,
                         left: _gutter,
+                        entries: entries,
                       ),
                       for (var hour = 0; hour < 24; hour++)
                         ..._hourRow(context, hour, constraints.maxWidth),

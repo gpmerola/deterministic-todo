@@ -1,3 +1,4 @@
+import 'agenda.dart';
 import 'task.dart';
 
 /// Availability rules read from Semble (build 285): when the clinic's
@@ -214,22 +215,77 @@ List<SembleBand> sembleBandsFor(Iterable<SembleRule> rules, CivilDate day) {
     ));
   }
   final blocked = _union(closed);
-  final available = <(int, int)>[];
-  for (final (start, end) in _union(open)) {
-    var from = start;
-    for (final (blockStart, blockEnd) in blocked) {
-      if (blockEnd <= from || blockStart >= end) continue;
-      if (blockStart > from) available.add((from, blockStart));
-      from = blockEnd > from ? blockEnd : from;
-    }
-    if (from < end) available.add((from, end));
-  }
+  final available = [
+    for (final span in _union(open)) ..._subtract(span, blocked),
+  ];
   return [
     for (final (start, end) in available)
       SembleBand(SembleBandKind.available, start, end),
     for (final (start, end) in blocked)
       SembleBand(SembleBandKind.unavailable, start, end),
   ]..sort((a, b) => a.startMinute.compareTo(b.startMinute));
+}
+
+/// Minutes of [day] taken by events (build 287): timed, not tasks, not
+/// invitations still unanswered. Clipped to the day, end exclusive.
+List<(int, int)> agendaBusyMinutes(
+  Iterable<AgendaEntry> entries,
+  CivilDate day,
+) {
+  final dayStart = day.asLocalDate;
+  final dayEnd = day.addDays(1).asLocalDate;
+  int minuteOf(DateTime value) {
+    if (!value.isAfter(dayStart)) return 0;
+    if (!value.isBefore(dayEnd)) return 24 * 60;
+    return value.hour * 60 + value.minute;
+  }
+
+  return [
+    for (final entry in entries)
+      if (!entry.allDay &&
+          !entry.isTask &&
+          !entry.unanswered &&
+          entry.end.isAfter(dayStart) &&
+          entry.start.isBefore(dayEnd))
+        (minuteOf(entry.start), minuteOf(entry.end)),
+  ].where((span) => span.$2 > span.$1).toList();
+}
+
+/// [bands] with [busy] cut out of the available ones: what is still free
+/// to book. Unavailable bands stay as they are.
+List<SembleBand> sembleFreeBands(
+  List<SembleBand> bands,
+  Iterable<(int, int)> busy,
+) {
+  final taken = _union(busy.toList());
+  if (taken.isEmpty) return bands;
+  final result = <SembleBand>[];
+  for (final band in bands) {
+    if (band.kind != SembleBandKind.available) {
+      result.add(band);
+      continue;
+    }
+    for (final (start, end) in _subtract((
+      band.startMinute,
+      band.endMinute,
+    ), taken)) {
+      result.add(SembleBand(SembleBandKind.available, start, end));
+    }
+  }
+  return result..sort((a, b) => a.startMinute.compareTo(b.startMinute));
+}
+
+List<(int, int)> _subtract((int, int) span, List<(int, int)> blocked) {
+  final (start, end) = span;
+  final out = <(int, int)>[];
+  var from = start;
+  for (final (blockStart, blockEnd) in blocked) {
+    if (blockEnd <= from || blockStart >= end) continue;
+    if (blockStart > from) out.add((from, blockStart));
+    if (blockEnd > from) from = blockEnd;
+  }
+  if (from < end) out.add((from, end));
+  return out;
 }
 
 List<(int, int)> _union(List<(int, int)> spans) {

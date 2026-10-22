@@ -14,8 +14,12 @@ class AgendaSembleBands extends StatelessWidget {
     required this.scale,
     this.left = 0,
     this.layer,
+    this.entries = const [],
     super.key,
   });
+
+  /// The day's events; their time is not drawn as free.
+  final List<AgendaEntry> entries;
 
   final CivilDate day;
   final TimelineScale scale;
@@ -46,7 +50,7 @@ class AgendaSembleBands extends StatelessWidget {
         child: ListenableBuilder(
           listenable: source,
           builder: (context, _) {
-            final bands = source.bandsFor(day);
+            final bands = source.bandsFor(day, busy: entries);
             if (bands.isEmpty) return const SizedBox.shrink();
             return CustomPaint(
               key: ValueKey('agenda-semble-$day'),

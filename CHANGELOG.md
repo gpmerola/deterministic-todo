@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.104.2 (build 287) — Solo gli spazi davvero liberi
+
+- Il verde Semble (fasce in Giorno, 3 giorni e Settimana, barretta in 4
+  settimane e Mese) non copre più il tempo già occupato da eventi con
+  orario: resta solo dove si è prenotabili e liberi. Contano tutti gli
+  eventi mostrati, visite Semble e riunioni di altri calendari; non contano
+  eventi di giornata intera, attività Todo e inviti senza risposta. Le
+  indisponibilità restano grigie com'erano.
+
 ## 2.104.1 (build 286) — Disponibilità Semble anche in 4 settimane e Mese
 
 - Nelle viste 4 settimane e Mese ogni giorno con regole Semble mostra sotto
