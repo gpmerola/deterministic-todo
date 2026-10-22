@@ -185,10 +185,12 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                     'Mese (dalle 7 a mezzanotte). '
                     'Sola lettura: Todo non modifica nulla in Semble. Legge '
                     'date e orari delle regole e, per la Stima lavoro '
-                    'privato, orario, tipo, medico ed esito (arrivo o DNA) '
-                    'delle prenotazioni del mese, mai i dati dei pazienti. '
-                    'Gli appuntamenti nel Calendario restano quelli del '
-                    'calendario Google alimentato da Semble. La chiave resta '
+                    'privato e per il Calendario, orario, tipo, medico ed '
+                    'esito (arrivo o DNA) delle prenotazioni, mai i dati dei '
+                    'pazienti. Con il cognome impostato le tue prenotazioni '
+                    'nuove compaiono nel Calendario prima che arrivino dal '
+                    'calendario Google alimentato da Semble, poi resta solo '
+                    'la copia Google. La chiave resta '
                     'cifrata su questo telefono: non va nei backup, nei log '
                     'né su Supabase.',
                     style: theme.textTheme.bodySmall,
@@ -255,8 +257,8 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                     decoration: const InputDecoration(
                       labelText: 'Il tuo cognome in Semble',
                       helperText:
-                          'Riconosce le tue prenotazioni per DNA e '
-                          'cancellazioni nella Stima lavoro privato',
+                          'Riconosce le tue prenotazioni: DNA nella stima e '
+                          'visite nuove nel Calendario',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -314,10 +316,14 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
       return 'Non ancora letta';
     }
     final day = DateFormat('d MMM', 'it');
+    final bookings = layer.bookingCount > 0
+        ? ' · ${layer.bookingCount} prenotazioni tue nelle prossime 4 '
+              'settimane'
+        : '';
     return '${layer.ruleCount} regole, dal '
         '${day.format(layer.first!.asLocalDate)} al '
         '${day.format(layer.last!.asLocalDate)} · lette alle '
-        '${DateFormat.Hm('it').format(fetched)}';
+        '${DateFormat.Hm('it').format(fetched)}$bookings';
   }
 
   Widget _legend(ThemeData theme) {

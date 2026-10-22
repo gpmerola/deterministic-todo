@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
+import '../../services/semble_service.dart';
 
 class AgendaLoadResult {
   const AgendaLoadResult({
@@ -119,6 +120,7 @@ class AgendaLoadController {
       filter: filter,
       first: first,
       days: count,
+      extra: SembleLayer.shared.directEntries(calendars, hidden),
     );
   }
 

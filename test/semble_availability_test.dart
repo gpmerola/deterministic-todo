@@ -385,10 +385,17 @@ void main() {
           (request) async => accept
               ? http.Response(
                   jsonEncode({
-                    'data': {
-                      '__typename': 'Query',
-                      'availabilityRules': {'data': <Object?>[]},
-                    },
+                    'data': request.body.contains('bookings(')
+                        ? {
+                            'bookings': {
+                              'data': <Object?>[],
+                              'pageInfo': {'hasMore': false},
+                            },
+                          }
+                        : {
+                            '__typename': 'Query',
+                            'availabilityRules': {'data': <Object?>[]},
+                          },
                   }),
                   200,
                 )

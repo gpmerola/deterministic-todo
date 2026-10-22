@@ -167,6 +167,18 @@ sconosciuti e non cambiano nulla. DNA e cancellate escono da maturato e
 previsto e compaiono a parte. Nessun dato viene salvato; senza cognome, senza
 rete o con errore la stima resta quella per titolo e la scheda lo dice.
 
+**Prenotazioni dirette (build 289).** `SembleLayer`, insieme alle regole e
+con lo stesso limite di 15 minuti, legge con `SembleClient.bookings` le
+prenotazioni con il cognome da ieri a +28 giorni e le tiene solo in memoria
+(`bookingsRevision`). `buildAgenda` accetta `extra`, una funzione delle voci
+già unite: `SembleLayer.directEntries` vi passa `sembleDirectEntries`, che
+aggiunge le prenotazioni non cancellate solo se un calendario Semble è
+visibile e nessuna sua voce con orario inizia nello stesso minuto. Le voci
+aggiunte hanno `instanceId` con prefisso `semble-booking:`, il primo
+calendario Semble, titolo uguale al tipo di visita, `isOrganizer` falso; il
+tocco apre una scheda di sola lettura e non esistono modifica, eliminazione
+o scrittura verso Semble.
+
 Tariffario OPUK di settembre 2026 verificato nel Second Brain il 12 ottobre;
 regole e importi in pence in `lib/domain/private_earnings.dart`. La stima è
 lorda, non certifica l'esecuzione della prestazione né l'incasso. Il previsto

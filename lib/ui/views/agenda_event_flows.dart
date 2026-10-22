@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/editor_drafts.dart';
 import '../../domain/agenda.dart';
+import '../../domain/semble_bookings.dart';
 import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
 import '../../services/agenda_web_service.dart' show AgendaQueueBusy;
@@ -89,6 +90,10 @@ class AgendaEventFlows {
       await onOpenTask?.call(entry.taskId!);
       return true;
     }
+    if (entry.isSembleBooking) {
+      await showSembleBookingSheet(context, entry);
+      return false;
+    }
     final calendar = calendarOf(entry);
     final overlaps = await _overlapsOf(entry);
     if (!context.mounted) return false;
@@ -117,7 +122,7 @@ class AgendaEventFlows {
   /// Long press: the frequent actions in a short menu, without the detail
   /// sheet (build 221). True when something may have changed.
   Future<bool> quickActions(BuildContext context, AgendaEntry entry) async {
-    if (entry.isTask) return show(context, entry);
+    if (entry.isTask || entry.isSembleBooking) return show(context, entry);
     final meeting = entry.meeting;
     final maps = agendaMapsUri(entry.location);
     final canEdit = editable(entry);
@@ -544,4 +549,51 @@ class AgendaEventFlows {
       if (context.mounted) _say(context, 'Impossibile salvare la copia.');
     }
   }
+}
+
+/// A booking read straight from Semble (build 289): read-only, with the
+/// way to open Semble itself.
+Future<void> showSembleBookingSheet(BuildContext context, AgendaEntry entry) {
+  final time = DateFormat.Hm('it');
+  final day = DateFormat('EEEE d MMMM', 'it');
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) => Padding(
+      key: const ValueKey('semble-booking-sheet'),
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(entry.title, style: Theme.of(sheetContext).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            '${day.format(entry.start)} · '
+            '${time.format(entry.start)}–${time.format(entry.end)}',
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Prenotazione letta direttamente da Semble, non ancora arrivata '
+            'nel calendario Google. Quando arriva, resta solo quella. Il '
+            'paziente si vede in Semble.',
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonal(
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                launchUrl(
+                  Uri.parse('https://app.semble.io'),
+                  mode: LaunchMode.externalApplication,
+                ).ignore();
+              },
+              child: const Text('Apri Semble'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

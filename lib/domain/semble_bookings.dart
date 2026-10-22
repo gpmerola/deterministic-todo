@@ -119,4 +119,65 @@ SembleOutcome sembleOutcomeFor(
   return outcomes.length == 1 ? outcomes.single : SembleOutcome.unknown;
 }
 
+/// The calendar fed by Semble's iCal export.
+bool isSembleCalendar(AgendaCalendar calendar) => RegExp(
+  r'\bsemble\b',
+  caseSensitive: false,
+).hasMatch('${calendar.name} ${calendar.accountName}');
+
+/// Prefix of [AgendaEntry.instanceId] for bookings read straight from
+/// Semble (build 289).
+const sembleBookingPrefix = 'semble-booking:';
+
+extension SembleBookingEntry on AgendaEntry {
+  bool get isSembleBooking => instanceId.startsWith(sembleBookingPrefix);
+}
+
+/// Semble bookings not yet in the phone calendar (build 289): the iCal
+/// export reaches Google and the phone with a delay, the API at once. Shown
+/// only while a Semble calendar is visible, coloured like it, and dropped as
+/// soon as an event of that calendar starts in the same minute. Cancelled
+/// bookings are never added. Titles are the appointment type only.
+List<AgendaEntry> sembleDirectEntries({
+  required Iterable<SembleBooking> bookings,
+  required List<AgendaEntry> merged,
+  required List<AgendaCalendar> calendars,
+  required Set<String> hiddenCalendarIds,
+}) {
+  final semble = [
+    for (final calendar in calendars)
+      if (isSembleCalendar(calendar) &&
+          !hiddenCalendarIds.contains(calendar.id))
+        calendar.id,
+  ];
+  if (semble.isEmpty) return const [];
+  final taken = {
+    for (final entry in merged)
+      if (!entry.allDay && entry.calendarIds.any(semble.contains))
+        _minute(entry.start),
+  };
+  final seen = <int>{};
+  return [
+    for (final booking in bookings)
+      if (!booking.deleted &&
+          booking.end != null &&
+          booking.end!.isAfter(booking.start) &&
+          !taken.contains(_minute(booking.start)) &&
+          seen.add(_minute(booking.start)))
+        AgendaEntry(
+          instanceId:
+              '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}',
+          calendarIds: [semble.first],
+          title: switch (booking.appointmentTitle?.trim()) {
+            final type? when type.isNotEmpty => type,
+            _ => 'Prenotazione Semble',
+          },
+          start: booking.start,
+          end: booking.end!,
+          allDay: false,
+          isOrganizer: false,
+        ),
+  ];
+}
+
 int _minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;

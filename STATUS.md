@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 288.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 289.
+
+## Build 289 — prenotazioni Semble dirette nel Calendario
+
+Le prenotazioni con il proprio cognome da ieri a 4 settimane compaiono nel
+Calendario dall'API e spariscono quando la copia iCal inizia nello stesso
+minuto. `flutter analyze` e `flutter test` superati su Linux; da provare sul
+Galaxy dopo aver scritto il cognome in Impostazioni → Semble.
 
 ## Build 288 — DNA e cancellazioni da Semble nella stima
 

@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.105.1 (build 289) — Prenotazioni Semble subito nel Calendario
+
+- Con chiave e cognome in Impostazioni → Semble, le prenotazioni delle
+  prossime 4 settimane compaiono nel Calendario appena esistono in Semble,
+  senza aspettare il giro iCal → Google → telefono. Hanno il colore del
+  calendario Semble, come titolo solo il tipo di visita e si aprono in una
+  scheda di sola lettura con il pulsante «Apri Semble».
+- Quando arriva la copia dal calendario Google (stesso minuto di inizio nel
+  calendario Semble) quella diretta sparisce: nessun doppione. Le cancellate
+  non compaiono; se il calendario Semble è nascosto non compare nulla.
+- Lettura insieme alle regole di disponibilità, al massimo ogni 15 minuti
+  all'apertura del Calendario; niente salvato, niente paziente.
+
 ## 2.105.0 (build 288) — DNA e cancellazioni da Semble nella stima
 
 - **Stima lavoro privato** legge da Semble le prenotazioni del mese con il

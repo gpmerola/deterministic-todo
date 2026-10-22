@@ -141,8 +141,11 @@ verde dove si è prenotabili, righe grigie dove l'orario è bloccato. In 4
 settimane e Mese (build 286) una barretta sotto la data, dalle 7 a
 mezzanotte, riassume la giornata. Dalla build 287 il verde resta solo dove si è anche
 liberi da eventi. È sola
-lettura, la chiave API resta nel Keystore del telefono e gli appuntamenti
-continuano ad arrivare dal calendario Google collegato a Semble.
+lettura e la chiave API resta nel Keystore del telefono. Gli appuntamenti
+arrivano dal calendario Google collegato a Semble; con il cognome impostato
+(build 289) quelli nuovi compaiono subito dall'API e la copia diretta sparisce
+quando arriva quella del calendario. Con lo stesso cognome la Stima lavoro
+privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il
 salvataggio fallisce. Mostra calendario di destinazione, data finale e durata;

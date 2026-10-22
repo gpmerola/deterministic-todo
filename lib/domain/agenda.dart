@@ -474,14 +474,20 @@ List<AgendaDay> buildAgenda({
   required int days,
   AgendaFilter filter = AgendaFilter.none,
   List<AgendaTaskItem> tasks = const [],
+  List<AgendaEntry> Function(List<AgendaEntry> merged)? extra,
 }) {
-  final entries = mergeAgendaEntries(
+  final merged = mergeAgendaEntries(
     events: events,
     calendars: calendars,
     hiddenCalendarIds: hiddenCalendarIds,
     filter: filter,
     tasks: tasks,
   );
+  // Entries from outside the phone calendars (Semble bookings, build 289).
+  final added = extra?.call(merged) ?? const <AgendaEntry>[];
+  final entries = added.isEmpty
+      ? merged
+      : ([...merged, ...added]..sort(_compareEntries));
   return [
     for (var index = 0; index < days; index++)
       _day(first.addDays(index), entries),

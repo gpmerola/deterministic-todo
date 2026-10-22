@@ -150,6 +150,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     AgendaBackup.pending.addListener(_backupChanged);
+    SembleLayer.shared.addListener(_sembleChanged);
     listScroll.addListener(_listScrolled);
     _seedFromMemory();
     unawaited(_load(changed: false));
@@ -178,6 +179,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     AgendaBackup.pending.removeListener(_backupChanged);
+    SembleLayer.shared.removeListener(_sembleChanged);
     loader.dispose();
     monthPage.dispose();
     weeksPage.dispose();
@@ -185,6 +187,16 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     threeDaysPage.dispose();
     listScroll.dispose();
     super.dispose();
+  }
+
+  int _sembleBookings = SembleLayer.shared.bookingsRevision;
+
+  /// New Semble bookings (build 289): pages re-read to add or drop them.
+  void _sembleChanged() {
+    final next = SembleLayer.shared.bookingsRevision;
+    if (next == _sembleBookings) return;
+    _sembleBookings = next;
+    unawaited(_load(changed: false));
   }
 
   void _backupChanged() {
@@ -346,6 +358,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       filter: filter,
       first: first,
       days: count,
+      extra: SembleLayer.shared.directEntries(calendars, hidden),
     );
   }
 

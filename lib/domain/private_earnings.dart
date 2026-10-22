@@ -18,12 +18,6 @@ enum PrivateFee {
   final int pence;
 }
 
-/// The calendar fed by Semble's iCal export (build 288).
-bool isSembleCalendar(AgendaCalendar calendar) => RegExp(
-  r'\bsemble\b',
-  caseSensitive: false,
-).hasMatch('${calendar.name} ${calendar.accountName}');
-
 bool isPrivateWorkCalendar(AgendaCalendar calendar) => RegExp(
   r'\b(opuk|semble|heydoc)\b|online psychiatry',
   caseSensitive: false,

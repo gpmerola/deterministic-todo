@@ -266,6 +266,92 @@ void main() {
       },
     );
   });
+
+  group('calendario', () {
+    const calendars = [
+      AgendaCalendar(id: 'semble', name: 'Semble', accountName: ''),
+      AgendaCalendar(id: 'kcl', name: 'KCL', accountName: ''),
+    ];
+    final at11 = at10.add(const Duration(hours: 1));
+
+    test('solo le prenotazioni non ancora arrivate dal calendario', () {
+      final merged = [visit('Follow-up 30 · M.R.', at10)];
+      final entries = sembleDirectEntries(
+        bookings: [
+          parsed(booking(at10)),
+          parsed(booking(at11, type: 'Prima visita')),
+          parsed(booking(at11, type: 'Prima visita')),
+          parsed(booking(at11.add(const Duration(hours: 1)), deleted: true)),
+        ],
+        merged: merged,
+        calendars: calendars,
+        hiddenCalendarIds: const {},
+      );
+      expect(entries, hasLength(1));
+      final added = entries.single;
+      expect(added.isSembleBooking, isTrue);
+      expect(added.title, 'Prima visita');
+      expect(added.start, at11);
+      expect(added.calendarIds, ['semble']);
+      expect(added.isOrganizer, isFalse);
+      // A KCL meeting at the same minute does not hide a Semble booking.
+      expect(
+        sembleDirectEntries(
+          bookings: [parsed(booking(at10))],
+          merged: [
+            AgendaEntry(
+              instanceId: 'k',
+              calendarIds: const ['kcl'],
+              title: 'Meeting',
+              start: at10,
+              end: at11,
+              allDay: false,
+            ),
+          ],
+          calendars: calendars,
+          hiddenCalendarIds: const {},
+        ),
+        hasLength(1),
+      );
+      // Semble calendar hidden or missing: nothing is added.
+      expect(
+        sembleDirectEntries(
+          bookings: [parsed(booking(at10))],
+          merged: const [],
+          calendars: calendars,
+          hiddenCalendarIds: const {'semble'},
+        ),
+        isEmpty,
+      );
+    });
+
+    test('buildAgenda le mette nel giorno giusto, in ordine', () {
+      final layer = SembleLayer()
+        ..seedBookings([parsed(booking(at11, type: 'Prima visita'))]);
+      final days = buildAgenda(
+        events: [
+          AgendaSourceEvent(
+            instanceId: 'ical',
+            calendarId: 'semble',
+            title: 'Follow-up 30',
+            start: at10,
+            end: at10.add(const Duration(minutes: 30)),
+            allDay: false,
+          ),
+        ],
+        calendars: calendars,
+        hiddenCalendarIds: const {},
+        first: const CivilDate(2026, 10, 5),
+        days: 1,
+        extra: layer.directEntries(calendars, const {}),
+      );
+      expect(days.single.entries.map((e) => e.title), [
+        'Follow-up 30',
+        'Prima visita',
+      ]);
+      expect(SembleLayer().directEntries(calendars, const {}), isNull);
+    });
+  });
 }
 
 class SocketExceptionLike implements Exception {

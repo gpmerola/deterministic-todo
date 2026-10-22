@@ -350,10 +350,18 @@ class SembleLayer extends ChangeNotifier {
   static const daysAhead = 92;
   static const minAge = Duration(minutes: 15);
 
+  /// Bookings read for the Calendar (build 289): from yesterday to four
+  /// weeks ahead, where a new booking matters before iCal brings it.
+  static const bookingDaysAhead = 28;
+
   final SembleSettings _settings;
   final SembleClient _client;
 
   List<SembleRule> _rules = const [];
+  List<SembleBooking> _bookings = const [];
+
+  /// Bumped whenever the bookings change, so Calendar pages re-read.
+  int bookingsRevision = 0;
   CivilDate? _first;
   CivilDate? _last;
   DateTime? _fetchedAt;
@@ -367,6 +375,24 @@ class SembleLayer extends ChangeNotifier {
   bool get active => _enabled && _zoneMatches && _first != null;
   bool get zoneMatches => _zoneMatches;
   int get ruleCount => _rules.length;
+  int get bookingCount => _bookings.length;
+
+  /// Builds the Calendar's extra entries: the user's Semble bookings not
+  /// yet in the phone calendar; null when there is nothing to add.
+  List<AgendaEntry> Function(List<AgendaEntry> merged)? directEntries(
+    List<AgendaCalendar> calendars,
+    Set<String> hiddenCalendarIds,
+  ) {
+    final bookings = _bookings;
+    if (!_enabled || bookings.isEmpty) return null;
+    return (merged) => sembleDirectEntries(
+      bookings: bookings,
+      merged: merged,
+      calendars: calendars,
+      hiddenCalendarIds: hiddenCalendarIds,
+    );
+  }
+
   DateTime? get fetchedAt => _fetchedAt;
   CivilDate? get first => _first;
   CivilDate? get last => _last;
@@ -422,9 +448,10 @@ class SembleLayer extends ChangeNotifier {
         ? await _settings.apiKey()
         : null;
     if (key == null || config.userId == null) {
-      final changed = _enabled || _first != null;
+      final changed = _enabled || _first != null || _bookings.isNotEmpty;
       _enabled = false;
       _rules = const [];
+      _setBookings(const []);
       _first = _last = _fetchedAt = null;
       if (changed) notifyListeners();
       return;
@@ -454,16 +481,48 @@ class SembleLayer extends ChangeNotifier {
       // The previous rules stay drawn; Settings shows the failure.
       failure = error.failure;
     }
+    final doctor = config.doctorName;
+    if (doctor == null) {
+      _setBookings(const []);
+    } else {
+      try {
+        _setBookings(
+          await _client.bookings(
+            key: key,
+            first: today.addDays(-1),
+            last: today.addDays(bookingDaysAhead),
+            doctorName: doctor,
+          ),
+        );
+      } on SembleException catch (error) {
+        // Old bookings stay until the next read; iCal still brings them.
+        failure ??= error.failure;
+      }
+    }
     notifyListeners();
+  }
+
+  void _setBookings(List<SembleBooking> bookings) {
+    if (bookings.isEmpty && _bookings.isEmpty) return;
+    _bookings = bookings;
+    bookingsRevision++;
   }
 
   /// After Settings changes: drop everything and read again.
   Future<void> reset({required CivilDate today, String? zoneLabel}) async {
     _rules = const [];
+    _setBookings(const []);
     _first = _last = _fetchedAt = null;
     failure = null;
     notifyListeners();
     await refresh(today: today, zoneLabel: zoneLabel, force: true);
+  }
+
+  @visibleForTesting
+  void seedBookings(List<SembleBooking> bookings) {
+    _enabled = true;
+    _setBookings(bookings);
+    notifyListeners();
   }
 
   @visibleForTesting
