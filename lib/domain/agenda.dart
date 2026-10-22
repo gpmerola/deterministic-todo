@@ -474,7 +474,7 @@ List<AgendaDay> buildAgenda({
   required int days,
   AgendaFilter filter = AgendaFilter.none,
   List<AgendaTaskItem> tasks = const [],
-  List<AgendaEntry> Function(List<AgendaEntry> merged)? extra,
+  List<AgendaEntry> Function(List<AgendaEntry> merged)? adjust,
 }) {
   final merged = mergeAgendaEntries(
     events: events,
@@ -483,11 +483,9 @@ List<AgendaDay> buildAgenda({
     filter: filter,
     tasks: tasks,
   );
-  // Entries from outside the phone calendars (Semble bookings, build 289).
-  final added = extra?.call(merged) ?? const <AgendaEntry>[];
-  final entries = added.isEmpty
-      ? merged
-      : ([...merged, ...added]..sort(_compareEntries));
+  // Semble bookings applied to the phone calendars (builds 289–292); the
+  // result must stay sorted with [compareAgendaEntries].
+  final entries = adjust?.call(merged) ?? merged;
   return [
     for (var index = 0; index < days; index++)
       _day(first.addDays(index), entries),
@@ -595,7 +593,7 @@ List<AgendaEntry> mergeAgendaEntries({
         taskId: task.id,
         completed: task.completed,
       ),
-  ]..sort(_compareEntries);
+  ]..sort(compareAgendaEntries);
   return entries;
 }
 
@@ -634,7 +632,7 @@ bool _overlaps(AgendaEntry entry, DateTime dayStart, DateTime dayEnd) {
   return entry.start.isBefore(dayEnd) && end.isAfter(dayStart);
 }
 
-int _compareEntries(AgendaEntry a, AgendaEntry b) {
+int compareAgendaEntries(AgendaEntry a, AgendaEntry b) {
   if (a.allDay != b.allDay) return a.allDay ? -1 : 1;
   // Calendar events first, then Todo tasks of the same day.
   if (a.isTask != b.isTask) return a.isTask ? 1 : -1;

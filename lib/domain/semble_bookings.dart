@@ -97,14 +97,20 @@ SembleOutcome sembleOutcomeFor(
   AgendaEntry entry,
   Iterable<SembleBooking> bookings, {
   String? surname,
+  Duration Function(DateTime) offsetOf = deviceOffset,
 }) {
-  final minute = _minute(entry.start);
-  var candidates = [
+  List<SembleBooking> at(int minute) => [
     for (final booking in bookings)
       if (_minute(booking.start) == minute &&
           sembleBookingIsMine(booking, surname))
         booking,
   ];
+  var candidates = at(_minute(entry.start));
+  // The iCal copy may show UTC digits as local time (seen in BST, build 292).
+  final offset = offsetOf(entry.start);
+  if (candidates.isEmpty && offset != Duration.zero) {
+    candidates = at(_minute(entry.start.add(offset)));
+  }
   if (candidates.length > 1) {
     final title = foldForSearch(entry.title);
     final typed = [
@@ -140,18 +146,28 @@ extension SembleBookingEntry on AgendaEntry {
   bool get isSembleBooking => instanceId.startsWith(sembleBookingPrefix);
 }
 
-/// Semble bookings not yet in the phone calendar (build 289): the iCal
-/// export reaches Google and the phone with a delay, the API at once. Shown
-/// only while a Semble calendar is visible, coloured like it, and dropped as
-/// soon as any timed event starts in the same minute: the iCal copy may sit
-/// in a calendar with another name (build 290), and a missing booking is
-/// better than a doubled one. Cancelled bookings are never added. Titles are
-/// the appointment type only.
-List<AgendaEntry> sembleDirectEntries({
+/// The device's UTC offset at [moment]. Semble's iCal export writes UTC
+/// wall-clock digits as local time, so in British Summer Time every copy is
+/// an hour early (seen on 22 October 2026): adding this offset gives the
+/// instant it meant. Tests pass another zone.
+Duration deviceOffset(DateTime moment) => moment.toLocal().timeZoneOffset;
+
+/// The Calendar entries with Semble's bookings applied (builds 289–292):
+///
+/// An event of a visible Semble calendar that starts exactly one UTC offset
+/// before a live booking is the iCal copy written in UTC digits: it is drawn
+/// at the booking's time, keeping its title and id. Bookings still missing
+/// from the phone calendar are added, coloured like the Semble calendar and
+/// titled with the appointment type only; any timed event starting in the
+/// same minute hides them, and a missing booking is better than a doubled
+/// one. Cancelled bookings are never added. Nothing happens without a
+/// visible Semble calendar.
+List<AgendaEntry> sembleAdjustEntries({
   required Iterable<SembleBooking> bookings,
   required List<AgendaEntry> merged,
   required List<AgendaCalendar> calendars,
   required Set<String> hiddenCalendarIds,
+  Duration Function(DateTime) offsetOf = deviceOffset,
 }) {
   final semble = [
     for (final calendar in calendars)
@@ -159,20 +175,41 @@ List<AgendaEntry> sembleDirectEntries({
           !hiddenCalendarIds.contains(calendar.id))
         calendar.id,
   ];
-  if (semble.isEmpty) return const [];
-  final taken = {
-    for (final entry in merged)
-      if (!entry.allDay && !entry.isTask && !entry.isSembleBooking)
-        _minute(entry.start),
-  };
-  final seen = <int>{};
-  return [
+  if (semble.isEmpty) return merged;
+  final live = <int, SembleBooking>{
     for (final booking in bookings)
       if (!booking.deleted &&
           booking.end != null &&
-          booking.end!.isAfter(booking.start) &&
-          !taken.contains(_minute(booking.start)) &&
-          seen.add(_minute(booking.start)))
+          booking.end!.isAfter(booking.start))
+        _minute(booking.start): booking,
+  };
+  final exact = {
+    for (final entry in merged)
+      if (!entry.allDay && entry.calendarIds.any(semble.contains))
+        _minute(entry.start),
+  };
+  var moved = false;
+  final entries = <AgendaEntry>[];
+  for (final entry in merged) {
+    final offset = offsetOf(entry.start);
+    final meant = _minute(entry.start.add(offset));
+    final early =
+        !entry.allDay &&
+        offset != Duration.zero &&
+        entry.calendarIds.any(semble.contains) &&
+        !live.containsKey(_minute(entry.start)) &&
+        live.containsKey(meant) &&
+        !exact.contains(meant);
+    if (early) moved = true;
+    entries.add(early ? _shifted(entry, offset) : entry);
+  }
+  final taken = {
+    for (final entry in entries)
+      if (!entry.allDay && !entry.isTask) _minute(entry.start),
+  };
+  final added = [
+    for (final MapEntry(key: minute, value: booking) in live.entries)
+      if (!taken.contains(minute))
         AgendaEntry(
           instanceId:
               '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}',
@@ -187,6 +224,27 @@ List<AgendaEntry> sembleDirectEntries({
           isOrganizer: false,
         ),
   ];
+  if (!moved && added.isEmpty) return merged;
+  return [...entries, ...added]..sort(compareAgendaEntries);
 }
+
+AgendaEntry _shifted(AgendaEntry entry, Duration by) => AgendaEntry(
+  instanceId: entry.instanceId,
+  calendarIds: entry.calendarIds,
+  title: entry.title,
+  start: entry.start.add(by),
+  end: entry.end.add(by),
+  allDay: entry.allDay,
+  location: entry.location,
+  meeting: entry.meeting,
+  timeZone: entry.timeZone,
+  eventZoneTimes: entry.eventZoneTimes,
+  isOrganizer: entry.isOrganizer,
+  changedOccurrence: entry.changedOccurrence,
+  taskId: entry.taskId,
+  completed: entry.completed,
+  unanswered: entry.unanswered,
+  key: entry.key,
+);
 
 int _minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;

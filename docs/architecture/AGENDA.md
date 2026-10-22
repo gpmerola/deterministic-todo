@@ -167,16 +167,24 @@ sconosciuti e non cambiano nulla. DNA e cancellate escono da maturato e
 previsto e compaiono a parte. Nessun dato viene salvato; senza cognome, senza
 rete o con errore la stima resta quella per titolo e la scheda lo dice.
 
+**Copie iCal un'ora prima (build 292).** Il feed iCal di Semble scrive le
+cifre UTC come ora locale: in BST ogni visita è un'ora prima. `buildAgenda`
+accetta `adjust` (lista completa, ordinata con `compareAgendaEntries`);
+`SembleLayer.adjustEntries` vi passa `sembleAdjustEntries`, che sposta di
+`deviceOffset` (scarto UTC del telefono) una voce con orario di un calendario
+Semble visibile quando nessuna prenotazione inizia al suo minuto, una
+prenotazione viva inizia al minuto spostato e nessun'altra voce Semble lo
+occupa già. Titolo, id e calendario restano; il provider non viene toccato.
+`sembleOutcomeFor` usa lo stesso scarto se l'abbinamento esatto fallisce.
+
 **Prenotazioni dirette (build 289).** `SembleLayer`, insieme alle regole e
 con lo stesso limite di 15 minuti, legge con `SembleClient.bookings` le
 prenotazioni con il cognome da ieri a +28 giorni e le tiene solo in memoria
-(`bookingsRevision`). `buildAgenda` accetta `extra`, una funzione delle voci
-già unite: `SembleLayer.directEntries` vi passa `sembleDirectEntries`, che
-aggiunge le prenotazioni non cancellate solo se un calendario Semble è
-visibile e nessuna voce con orario, di qualsiasi calendario, inizia nello
-stesso minuto (build 290: la copia iCal può stare in un calendario con un
-altro nome). `start` ed `end` arrivano in UTC anche senza `Z`: un orario
-senza fuso è letto come UTC (build 291). Le voci
+(`bookingsRevision`). La stessa `sembleAdjustEntries` aggiunge le
+prenotazioni non cancellate solo se un calendario Semble è visibile e nessuna
+voce con orario, di qualsiasi calendario, inizia nello stesso minuto dopo
+l'eventuale spostamento sopra (build 290). `start` ed `end` arrivano in UTC
+con `Z`; un orario senza fuso sarebbe letto come UTC (build 291). Le voci
 aggiunte hanno `instanceId` con prefisso `semble-booking:`, il primo
 calendario Semble, titolo uguale al tipo di visita, `isOrganizer` falso; il
 tocco apre una scheda di sola lettura e non esistono modifica, eliminazione

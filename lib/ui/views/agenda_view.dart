@@ -358,7 +358,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       filter: filter,
       first: first,
       days: count,
-      extra: SembleLayer.shared.directEntries(calendars, hidden),
+      adjust: SembleLayer.shared.adjustEntries(calendars, hidden),
     );
   }
 

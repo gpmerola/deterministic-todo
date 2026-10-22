@@ -289,61 +289,118 @@ void main() {
       AgendaCalendar(id: 'kcl', name: 'KCL', accountName: ''),
     ];
     final at11 = at10.add(const Duration(hours: 1));
+    Duration utc(DateTime _) => Duration.zero;
+    Duration bst(DateTime _) => const Duration(hours: 1);
+    List<AgendaEntry> adjust(
+      List<SembleBooking> bookings,
+      List<AgendaEntry> merged, {
+      Set<String> hidden = const {},
+      Duration Function(DateTime)? offsetOf,
+    }) => sembleAdjustEntries(
+      bookings: bookings,
+      merged: merged,
+      calendars: calendars,
+      hiddenCalendarIds: hidden,
+      offsetOf: offsetOf ?? utc,
+    );
 
-    test('solo le prenotazioni non ancora arrivate dal calendario', () {
+    test('aggiunge solo le prenotazioni non ancora arrivate', () {
       final merged = [visit('Follow-up 30 · M.R.', at10)];
-      final entries = sembleDirectEntries(
-        bookings: [
-          parsed(booking(at10)),
-          parsed(booking(at11, type: 'Prima visita')),
-          parsed(booking(at11, type: 'Prima visita')),
-          parsed(booking(at11.add(const Duration(hours: 1)), deleted: true)),
-        ],
-        merged: merged,
-        calendars: calendars,
-        hiddenCalendarIds: const {},
-      );
-      expect(entries, hasLength(1));
-      final added = entries.single;
+      final entries = adjust([
+        parsed(booking(at10)),
+        parsed(booking(at11, type: 'Prima visita')),
+        parsed(booking(at11, type: 'Prima visita')),
+        parsed(booking(at11.add(const Duration(hours: 1)), deleted: true)),
+      ], merged);
+      expect(entries, hasLength(2));
+      expect(entries.first, same(merged.single));
+      final added = entries.last;
       expect(added.isSembleBooking, isTrue);
       expect(added.title, 'Prima visita');
       expect(added.start, at11);
       expect(added.calendarIds, ['semble']);
       expect(added.isOrganizer, isFalse);
-      // The iCal copy in a calendar with another name hides it too.
+      // Any timed event in the same minute hides it.
+      final kcl = AgendaEntry(
+        instanceId: 'k',
+        calendarIds: const ['kcl'],
+        title: 'Meeting',
+        start: at10,
+        end: at11,
+        allDay: false,
+      );
+      expect(adjust([parsed(booking(at10))], [kcl]), [kcl]);
+      // Semble calendar hidden: nothing changes.
       expect(
-        sembleDirectEntries(
-          bookings: [parsed(booking(at10))],
-          merged: [
-            AgendaEntry(
-              instanceId: 'k',
-              calendarIds: const ['kcl'],
-              title: 'Meeting',
-              start: at10,
-              end: at11,
-              allDay: false,
-            ),
-          ],
-          calendars: calendars,
-          hiddenCalendarIds: const {},
-        ),
+        adjust([parsed(booking(at10))], const [], hidden: {'semble'}),
         isEmpty,
       );
-      // Semble calendar hidden or missing: nothing is added.
+    });
+
+    test('la copia iCal scritta in UTC torna all ora giusta', () {
+      // Booking 17:30 local in BST; the iCal copy shows 16:30.
+      final early = visit('Prima visita · M.R.', at10, id: 'ical');
+      final entries = adjust(
+        [parsed(booking(at11, minutes: 75, type: 'Initial Consultation'))],
+        [early],
+        offsetOf: bst,
+      );
+      final moved = entries.single;
+      expect(moved.instanceId, 'ical');
+      expect(moved.title, 'Prima visita · M.R.');
+      expect(moved.start, at11);
+      expect(moved.end, at11.add(const Duration(minutes: 30)));
+      // Without the offset, or with a booking at its own time, it stays.
       expect(
-        sembleDirectEntries(
-          bookings: [parsed(booking(at10))],
-          merged: const [],
-          calendars: calendars,
-          hiddenCalendarIds: const {'semble'},
-        ),
-        isEmpty,
+        adjust([parsed(booking(at11))], [early]).map((e) => e.instanceId),
+        ['ical', '$sembleBookingPrefix${at11.millisecondsSinceEpoch}'],
+      );
+      expect(
+        adjust(
+          [parsed(booking(at10)), parsed(booking(at11))],
+          [early],
+          offsetOf: bst,
+        ).first.start,
+        at10,
+      );
+      // A KCL meeting is never moved.
+      final kcl = AgendaEntry(
+        instanceId: 'k',
+        calendarIds: const ['kcl'],
+        title: 'Meeting',
+        start: at10,
+        end: at11,
+        allDay: false,
+      );
+      expect(
+        adjust([parsed(booking(at11))], [kcl], offsetOf: bst).first,
+        same(kcl),
+      );
+    });
+
+    test('l esito si abbina anche alla copia un ora prima', () {
+      expect(
+        sembleOutcomeFor(visit('Follow-up', at10), [
+          parsed(booking(at11, dna: true)),
+        ], offsetOf: bst),
+        SembleOutcome.dna,
+      );
+      expect(
+        sembleOutcomeFor(visit('Follow-up', at10), [
+          parsed(booking(at11, dna: true)),
+        ], offsetOf: utc),
+        SembleOutcome.unknown,
       );
     });
 
     test('buildAgenda le mette nel giorno giusto, in ordine', () {
       final layer = SembleLayer()
-        ..seedBookings([parsed(booking(at11, type: 'Prima visita'))]);
+        ..seedBookings([
+          // Not one hour after the iCal visit, which in BST would be moved.
+          parsed(
+            booking(at10.add(const Duration(hours: 3)), type: 'Prima visita'),
+          ),
+        ]);
       final days = buildAgenda(
         events: [
           AgendaSourceEvent(
@@ -359,13 +416,13 @@ void main() {
         hiddenCalendarIds: const {},
         first: const CivilDate(2026, 10, 5),
         days: 1,
-        extra: layer.directEntries(calendars, const {}),
+        adjust: layer.adjustEntries(calendars, const {}),
       );
       expect(days.single.entries.map((e) => e.title), [
         'Follow-up 30',
         'Prima visita',
       ]);
-      expect(SembleLayer().directEntries(calendars, const {}), isNull);
+      expect(SembleLayer().adjustEntries(calendars, const {}), isNull);
     });
   });
 }

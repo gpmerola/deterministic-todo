@@ -377,15 +377,15 @@ class SembleLayer extends ChangeNotifier {
   int get ruleCount => _rules.length;
   int get bookingCount => _bookings.length;
 
-  /// Builds the Calendar's extra entries: the user's Semble bookings not
-  /// yet in the phone calendar; null when there is nothing to add.
-  List<AgendaEntry> Function(List<AgendaEntry> merged)? directEntries(
+  /// Applies the user's Semble bookings to the Calendar entries (see
+  /// [sembleAdjustEntries]); null when there is nothing to apply.
+  List<AgendaEntry> Function(List<AgendaEntry> merged)? adjustEntries(
     List<AgendaCalendar> calendars,
     Set<String> hiddenCalendarIds,
   ) {
     final bookings = _bookings;
     if (!_enabled || bookings.isEmpty) return null;
-    return (merged) => sembleDirectEntries(
+    return (merged) => sembleAdjustEntries(
       bookings: bookings,
       merged: merged,
       calendars: calendars,

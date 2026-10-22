@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.106.0 (build 292) — Visite Semble all'ora giusta
+
+- Il calendario Google collegato a Semble scrive l'ora UTC come se fosse
+  l'ora di Londra: con l'ora legale ogni visita compare un'ora prima. Con
+  chiave e cognome in Impostazioni → Semble, una visita del calendario Semble
+  che inizia esattamente un'ora (lo scarto UTC del telefono) prima di una
+  prenotazione reale viene mostrata all'ora della prenotazione, con il suo
+  titolo; la copia letta da Semble non viene più aggiunta. Gli eventi degli
+  altri calendari non vengono mai spostati e il calendario del telefono non
+  viene modificato.
+- La Stima lavoro privato abbina DNA e cancellazioni anche a queste visite.
+- Correzione delle note della build 291: l'API manda gli orari in UTC con
+  `Z`; la lettura degli orari senza fuso resta come difesa ma non era la
+  causa dei doppioni.
+
 ## 2.105.3 (build 291) — Orari Semble corretti
 
 - Semble manda gli orari delle prenotazioni in UTC senza indicarlo: l'app li

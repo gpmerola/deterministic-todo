@@ -1,6 +1,17 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 291.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 292.
+
+## Build 292 — visite iCal Semble riportate all'ora giusta
+
+Lettura dal Mac del 22 ottobre 2026 (solo orari e tipo di visita): le
+prenotazioni API sono corrette in UTC con `Z`, mentre le copie iCal nel
+calendario del telefono sono un'ora prima in BST. Nelle build 289–291 le copie
+dirette (titoli in inglese) erano all'ora giusta e quelle iCal (titoli in
+italiano) no. Ora l'Agenda sposta solo in visualizzazione le visite del
+calendario Semble che coincidono con una prenotazione spostata dello scarto
+UTC. Test superati su Linux anche con `TZ=Europe/London`; da provare sul
+Galaxy.
 
 ## Build 291 — orari Semble in UTC
 
