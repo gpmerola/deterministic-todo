@@ -6,6 +6,7 @@ import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/semble_service.dart';
 import 'package:deterministic_todo/ui/semble_settings_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_semble_layer.dart';
+import 'package:deterministic_todo/ui/views/agenda_weeks_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -426,6 +427,64 @@ void main() {
       expect(await settings.apiKey(), 'secret-1234');
       expect(find.text('Chiave …1234'), findsOne);
       expect(find.textContaining('Lette 0 regole'), findsOne);
+    });
+  });
+
+  group('4 settimane e mese', () {
+    test('descrizione accessibile delle fasce', () {
+      final rules = parse([
+        weekly('a', [4], '10:00', '18:00'),
+        once('x', '2026-10-22', '14:00', '15:00'),
+      ]);
+      expect(
+        AgendaSembleStrip.describe(sembleBandsFor(rules, thu22)),
+        'Semble: disponibile 10:00–14:00, 15:00–18:00; '
+        'non disponibile 14:00–15:00',
+      );
+    });
+
+    testWidgets('la barretta compare solo nei giorni con regole', (
+      tester,
+    ) async {
+      final layer = SembleLayer()
+        ..seed(
+          parse([
+            weekly('a', [4], '10:00', '18:00'),
+          ]),
+          thu22,
+          mon26,
+        );
+      Widget cell(CivilDate date) => SizedBox(
+        width: 60,
+        height: 120,
+        child: AgendaDayCell(
+          date: date,
+          today: thu22,
+          entries: const [],
+          colors: const {},
+          onDay: (_) {},
+          semble: layer,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Material(child: Row(children: [cell(thu22), cell(fri23)])),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('agenda-semble-strip-2026-10-22')),
+        findsOne,
+      );
+      expect(
+        find.byKey(const ValueKey('agenda-semble-strip-2026-10-23')),
+        findsNothing,
+      );
+      layer.seed(const [], thu22, mon26);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('agenda-semble-strip-2026-10-22')),
+        findsNothing,
+      );
     });
   });
 }

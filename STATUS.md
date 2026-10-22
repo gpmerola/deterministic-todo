@@ -1,6 +1,11 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 285.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 286.
+
+## Build 286 — barretta Semble in 4 settimane e Mese
+
+Barretta di disponibilità sotto la data nelle griglie 4 settimane e Mese.
+`flutter analyze` e `flutter test` superati su Linux; da provare sul Galaxy.
 
 ## Build 285 — disponibilità Semble nel Calendario
 
@@ -13,8 +18,9 @@ Giorno, 3 giorni e Settimana; chiave in Impostazioni → Semble
 - Non ancora verificato con la chiave reale: forma effettiva di `startDate`,
   `exclusions` e `daysOfTheWeek` nel tenant; il parser accetta date ISO e
   ripete la lettura senza `exclusions` se lo schema la rifiuta.
-- Todo Test sul Galaxy: da installare e provare dopo che l'utente ha
-  incollato chiave e User ID.
+- Galaxy, 22 ottobre 2026: chiave e User ID salvati, 34 regole lette (15
+  ottobre – 22 gennaio); in vista Settimana giovedì 22 verde 10–18 con la
+  fascia bloccata delle 14, come in Semble.
 
 ## Build 284 — istruzioni diagnostiche agnostiche
 

@@ -6,11 +6,13 @@ import 'package:intl/intl.dart';
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
+import '../../services/semble_service.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
+import 'agenda_semble_layer.dart';
 import 'calendar_visit_group.dart';
 
 /// Monday of the week containing [day].
@@ -224,8 +226,13 @@ class AgendaDayCell extends StatelessWidget {
     this.outside = false,
     this.groupVisits = false,
     this.onOpenEntry,
+    this.semble,
     super.key,
   });
+
+  /// Semble layer for the availability strip; defaults to
+  /// [SembleLayer.shared].
+  final SembleLayer? semble;
 
   /// Height of one single-line entry (10 px text plus spacing).
   static const chipHeight = 15.0;
@@ -284,88 +291,100 @@ class AgendaDayCell extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final items = groupVisits
-                  ? calendarVisitItems(entries, date)
-                  : entries.map((e) => CalendarVisitItem([e])).toList();
-              final shown = _shownHeights([
-                for (final item in items)
-                  item.grouped
-                      ? CalendarVisitGroup.height
-                      : item.first.allDay || item.first.isTask
-                      ? chipHeight
-                      : AgendaChip.twoLineHeight,
-              ], constraints.maxHeight - 19);
-              final hiddenCount = items
-                  .skip(shown)
-                  .fold<int>(0, (sum, item) => sum + item.entries.length);
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ColoredBox(
-                    color: agendaDateHeaderFill(theme.colorScheme),
-                    child: Center(
-                      child: Container(
-                        height: 17,
-                        constraints: const BoxConstraints(minWidth: 17),
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        alignment: Alignment.center,
-                        decoration: isToday
-                            ? BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(9),
-                              )
-                            : null,
-                        child: Text(
-                          label,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10.5,
-                            fontWeight: isToday ? FontWeight.w800 : null,
-                            color: isToday
-                                ? theme.colorScheme.onPrimary
-                                : outside
-                                ? theme.colorScheme.onSurfaceVariant
-                                : theme.colorScheme.onSurface,
+          child: ListenableBuilder(
+            listenable: semble ?? SembleLayer.shared,
+            builder: (context, _) => LayoutBuilder(
+              builder: (context, constraints) {
+                final bands = (semble ?? SembleLayer.shared).bandsFor(date);
+                final items = groupVisits
+                    ? calendarVisitItems(entries, date)
+                    : entries.map((e) => CalendarVisitItem([e])).toList();
+                final shown = _shownHeights(
+                  [
+                    for (final item in items)
+                      item.grouped
+                          ? CalendarVisitGroup.height
+                          : item.first.allDay || item.first.isTask
+                          ? chipHeight
+                          : AgendaChip.twoLineHeight,
+                  ],
+                  constraints.maxHeight -
+                      19 -
+                      (bands.isEmpty ? 0 : AgendaSembleStrip.extra),
+                );
+                final hiddenCount = items
+                    .skip(shown)
+                    .fold<int>(0, (sum, item) => sum + item.entries.length);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ColoredBox(
+                      color: agendaDateHeaderFill(theme.colorScheme),
+                      child: Center(
+                        child: Container(
+                          height: 17,
+                          constraints: const BoxConstraints(minWidth: 17),
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          alignment: Alignment.center,
+                          decoration: isToday
+                              ? BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(9),
+                                )
+                              : null,
+                          child: Text(
+                            label,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10.5,
+                              fontWeight: isToday ? FontWeight.w800 : null,
+                              color: isToday
+                                  ? theme.colorScheme.onPrimary
+                                  : outside
+                                  ? theme.colorScheme.onSurfaceVariant
+                                  : theme.colorScheme.onSurface,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 1),
-                  for (final item in items.take(shown))
-                    if (item.grouped)
-                      CalendarVisitGroup(
-                        item: item,
-                        color:
-                            colors[item.first.calendarIds.first] ??
-                            theme.colorScheme.primary,
-                        onOpen:
-                            onOpenEntry ??
-                            (_) async {
-                              onDay(date);
-                            },
-                      )
+                    if (bands.isEmpty)
+                      const SizedBox(height: 1)
                     else
-                      AgendaChip(
-                        entry: item.first,
-                        twoLines: true,
-                        day: date,
-                        color:
-                            colors[item.first.calendarIds.first] ??
-                            theme.colorScheme.primary,
+                      AgendaSembleStrip(day: date, bands: bands),
+                    for (final item in items.take(shown))
+                      if (item.grouped)
+                        CalendarVisitGroup(
+                          item: item,
+                          color:
+                              colors[item.first.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                          onOpen:
+                              onOpenEntry ??
+                              (_) async {
+                                onDay(date);
+                              },
+                        )
+                      else
+                        AgendaChip(
+                          entry: item.first,
+                          twoLines: true,
+                          day: date,
+                          color:
+                              colors[item.first.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                        ),
+                    if (hiddenCount > 0)
+                      Text(
+                        '+$hiddenCount',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 9.5,
+                        ),
                       ),
-                  if (hiddenCount > 0)
-                    Text(
-                      '+$hiddenCount',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 9.5,
-                      ),
-                    ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

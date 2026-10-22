@@ -15,8 +15,15 @@ passo in **sola lettura**, Semble → Todo.
   sinistra dove la regola rende prenotabili, e righe grigie dove una
   indisponibilità blocca l'orario. Le indisponibilità fuori dalle fasce
   disponibili restano visibili (per esempio una sera bloccata). Le fasce
-  ignorano i tocchi: toccare uno spazio libero crea ancora un evento. Mese,
-  2 settimane, Elenco, ricerca, ✨ e copia per il Web non mostrano Semble.
+  ignorano i tocchi: toccare uno spazio libero crea ancora un evento.
+- **4 settimane e Mese (build 286).** Su richiesta dell'utente, che usa
+  soprattutto le 4 settimane: `AgendaSembleStrip` disegna sotto la data di
+  ogni `AgendaDayCell` una barretta di 4 dp che va dalle 07:00 (bordo
+  sinistro) a mezzanotte (bordo destro), verde per le fasce prenotabili e
+  grigia per quelle bloccate; la descrizione testuale degli orari è nella
+  semantica. Solo i giorni con fasce perdono 5 dp per gli eventi; gli altri
+  restano identici. Elenco, ricerca, ✨ e copia per il Web non mostrano
+  Semble.
 - **Appuntamenti.** Le prenotazioni arrivano già dal calendario Google
   alimentato dal feed iCal di Semble (script Apps Script esterno all'app) e
   sono eventi normali: il livello Semble non legge né duplica appuntamenti.

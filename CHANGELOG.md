@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.104.1 (build 286) — Disponibilità Semble anche in 4 settimane e Mese
+
+- Nelle viste 4 settimane e Mese ogni giorno con regole Semble mostra sotto
+  la data una barretta sottile dalle 7 a mezzanotte: verde dove si è
+  prenotabili, grigia dove l'orario è bloccato. Gli orari esatti sono letti
+  dal lettore di schermo.
+- Legenda di Impostazioni → Semble con colori pieni, leggibili anche nel
+  tema scuro.
+
 ## 2.104.0 (build 285) — Disponibilità Semble nel Calendario
 
 - Nuova voce **Impostazioni → Semble** (solo Android): si incollano la chiave

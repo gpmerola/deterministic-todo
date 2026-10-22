@@ -137,7 +137,9 @@ che apre direttamente questa sezione, previa conferma del launcher.
 
 Con **Impostazioni → Semble** (Android, build 285) le viste Giorno, 3 giorni
 e Settimana mostrano dietro agli eventi le disponibilità impostate in Semble:
-verde dove si è prenotabili, righe grigie dove l'orario è bloccato. È sola
+verde dove si è prenotabili, righe grigie dove l'orario è bloccato. In 4
+settimane e Mese (build 286) una barretta sotto la data, dalle 7 a
+mezzanotte, riassume la giornata. È sola
 lettura, la chiave API resta nel Keystore del telefono e gli appuntamenti
 continuano ad arrivare dal calendario Google collegato a Semble.
 
