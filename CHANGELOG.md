@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.107.0 (build 293) — Stima dalle prenotazioni Semble
+
+- Con chiave e cognome in Impostazioni → Semble, la **Stima lavoro privato**
+  prende le visite Semble del mese direttamente dalle prenotazioni: tipo di
+  visita, orario ed esito (svolta, DNA, cancellata) arrivano da Semble e non
+  più dai titoli e dagli orari del calendario. Le copie del calendario Semble,
+  e quelle di altri calendari privati che iniziano con una prenotazione
+  (anche un'ora prima), non sono contate. heydoc e le altre visite restano
+  dal calendario.
+- Una prenotazione cancellata e sostituita nello stesso minuto non conta
+  come cancellazione. Senza chiave, cognome o rete la stima resta quella
+  per titolo e lo dice.
+
 ## 2.106.0 (build 292) — Visite Semble all'ora giusta
 
 - Il calendario Google collegato a Semble scrive l'ora UTC come se fosse

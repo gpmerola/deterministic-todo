@@ -94,6 +94,7 @@ class PrivateEarnings {
     this.sembleCancelled = 0,
     this.sembleMatched,
     this.sembleProblem,
+    this.sembleVisits,
   });
   final DateTime asOf;
   final Map<PrivateFee, int> counts;
@@ -119,18 +120,29 @@ class PrivateEarnings {
   /// configured.
   final String? sembleProblem;
 
-  PrivateEarnings withSembleProblem(String problem) => PrivateEarnings(
-    asOf: asOf,
-    counts: counts,
-    unpriced: unpriced,
-    scheduledCounts: scheduledCounts,
-    scheduledUnpriced: scheduledUnpriced,
-    dnaCounts: dnaCounts,
-    dnaUnpriced: dnaUnpriced,
-    sembleCancelled: sembleCancelled,
-    sembleMatched: sembleMatched,
-    sembleProblem: problem,
-  );
+  /// Semble visits of the month taken from the bookings themselves (build
+  /// 293), not from the calendar; null when the calendar was used.
+  final int? sembleVisits;
+
+  PrivateEarnings withSembleProblem(String problem) =>
+      _copy(sembleProblem: problem);
+
+  PrivateEarnings withSembleVisits(int visits) => _copy(sembleVisits: visits);
+
+  PrivateEarnings _copy({String? sembleProblem, int? sembleVisits}) =>
+      PrivateEarnings(
+        asOf: asOf,
+        counts: counts,
+        unpriced: unpriced,
+        scheduledCounts: scheduledCounts,
+        scheduledUnpriced: scheduledUnpriced,
+        dnaCounts: dnaCounts,
+        dnaUnpriced: dnaUnpriced,
+        sembleCancelled: sembleCancelled,
+        sembleMatched: sembleMatched,
+        sembleProblem: sembleProblem ?? this.sembleProblem,
+        sembleVisits: sembleVisits ?? this.sembleVisits,
+      );
   int get dnaPence =>
       dnaCounts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
   int get dnaVisits =>
@@ -229,4 +241,67 @@ PrivateEarnings estimatePrivateEarnings(
         ? null
         : (matched: matched, checked: checked),
   );
+}
+
+/// The month's private work with Semble's bookings as the source of its
+/// visits (build 293): type, times and outcome come from each booking, so
+/// the estimate no longer depends on the iCal copy, its titles or its wrong
+/// summer times. Calendar entries of a Semble calendar are dropped, and so
+/// is any other private calendar entry starting with a booking (also one UTC
+/// offset early, like the iCal copy). heydoc and other visits stay. A
+/// deleted booking counts as cancelled only when no live booking of the user
+/// starts in the same minute (moved in place).
+PrivateEarnings estimateWithSembleBookings({
+  required Iterable<AgendaEntry> calendarEntries,
+  required Iterable<SembleBooking> bookings,
+  required Set<String> sembleCalendarIds,
+  required DateTime now,
+  Duration Function(DateTime) offsetOf = deviceOffset,
+}) {
+  int minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;
+  final all = bookings.toList();
+  final booked = {for (final booking in all) minute(booking.start)};
+  final live = {
+    for (final booking in all)
+      if (!booking.deleted) minute(booking.start),
+  };
+  final outcomes = <String, SembleOutcome>{};
+  final visits = <AgendaEntry>[];
+  for (final (index, booking) in all.indexed) {
+    if (booking.deleted && live.contains(minute(booking.start))) continue;
+    final id =
+        '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}#$index';
+    outcomes[id] = booking.outcome;
+    visits.add(
+      AgendaEntry(
+        instanceId: id,
+        calendarIds: const ['semble'],
+        title: booking.appointmentTitle ?? '',
+        start: booking.start,
+        end: booking.end ?? booking.start,
+        allDay: false,
+      ),
+    );
+  }
+  final others = [
+    for (final entry in calendarEntries)
+      if (!entry.calendarIds.any(sembleCalendarIds.contains) &&
+          !booked.contains(minute(entry.start)) &&
+          !booked.contains(minute(entry.start.add(offsetOf(entry.start)))))
+        entry,
+  ];
+  final result = estimatePrivateEarnings(
+    [...others, ...visits],
+    now,
+    outcome: (entry) => outcomes[entry.instanceId] ?? SembleOutcome.unknown,
+    sembleEntry: (entry) => outcomes.containsKey(entry.instanceId),
+  );
+  final month = visits
+      .where(
+        (visit) =>
+            !visit.start.isBefore(DateTime(now.year, now.month)) &&
+            visit.start.isBefore(DateTime(now.year, now.month + 1)),
+      )
+      .length;
+  return result.withSembleVisits(month);
 }

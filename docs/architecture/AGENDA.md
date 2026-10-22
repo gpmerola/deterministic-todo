@@ -149,6 +149,16 @@ restano distinte e il limite è dichiarato nella scheda. Nessun dato personale
 viene usato come fixture. Permessi mancanti, calendari assenti o errore provider
 producono un messaggio, mai un falso importo zero.
 
+**Stima dalle prenotazioni (build 293).** Quando le prenotazioni del mese
+sono state lette, `estimateWithSembleBookings` le trasforma in voci con il
+tipo di visita come titolo e l'esito della prenotazione, scarta le voci dei
+calendari Semble e ogni altra voce privata che inizia al minuto di una
+prenotazione o un `deviceOffset` prima, e passa tutto a
+`estimatePrivateEarnings`. Le prenotazioni cancellate con una prenotazione
+viva nello stesso minuto sono ignorate. La scheda mostra quante visite
+vengono da Semble; senza prenotazioni resta il calcolo per titolo descritto
+sotto.
+
 **DNA da Semble (build 288).** Con chiave e cognome in Impostazioni →
 Semble, `PrivateEarningsService` legge con `SembleClient.bookings` le
 prenotazioni del mese (query `bookings` per intervallo di date, pagine da

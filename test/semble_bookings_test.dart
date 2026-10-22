@@ -161,6 +161,70 @@ void main() {
     });
   });
 
+  test('stima dalle prenotazioni: tipi Semble, copie del calendario tolte', () {
+    final now = DateTime(2026, 10, 23, 12);
+    final day = DateTime(2026, 10, 23);
+    DateTime h(int hour, [int minute = 0]) =>
+        day.add(Duration(hours: hour, minutes: minute));
+    Map<String, Object?> typed(
+      DateTime start,
+      int minutes,
+      String type, {
+      bool deleted = false,
+      bool dna = false,
+      bool arrived = false,
+    }) => booking(
+      start,
+      minutes: minutes,
+      type: type,
+      deleted: deleted,
+      dna: dna,
+      arrived: arrived,
+    );
+    final bookings = [
+      typed(h(10), 30, 'Follow-up Consultation (15 min)', arrived: true),
+      typed(h(11), 45, 'Follow-up Consultation - 30 min (PLE)', dna: true),
+      typed(h(17, 30), 75, 'Initial Consultation (Adult) (60 min)'),
+      // Moved in place: the deleted copy is not a cancellation.
+      typed(
+        h(17, 30),
+        75,
+        'Initial Consultation (Adult) (60 min)',
+        deleted: true,
+      ),
+      typed(h(19), 30, 'Follow-up Consultation (15 min)', deleted: true),
+    ].map(parsed).toList();
+    AgendaEntry entry(String id, String calendar, String title, DateTime at) =>
+        AgendaEntry(
+          instanceId: id,
+          calendarIds: [calendar],
+          title: title,
+          start: at,
+          end: at.add(const Duration(minutes: 30)),
+          allDay: false,
+        );
+    final result = estimateWithSembleBookings(
+      calendarEntries: [
+        entry('ical', 'semble', 'Follow-up 15', h(10)),
+        // The iCal copy one hour early in a calendar named otherwise.
+        entry('opuk', 'opuk', 'Prima visita 60 min', h(16, 30)),
+        entry('heydoc', 'heydoc', 'Follow-up 15 min', h(14)),
+      ],
+      bookings: bookings,
+      sembleCalendarIds: const {'semble'},
+      now: now,
+      offsetOf: (_) => const Duration(hours: 1),
+    );
+    expect(result.counts, {PrivateFee.followUp15: 1});
+    expect(result.scheduledCounts, {
+      PrivateFee.initial: 1,
+      PrivateFee.followUp15: 1,
+    });
+    expect(result.dnaCounts, {PrivateFee.followUp30: 1});
+    expect(result.sembleCancelled, 1);
+    expect(result.sembleVisits, 4);
+  });
+
   group('client', () {
     test(
       'legge solo campi senza pazienti, filtra per cognome e pagina',
@@ -245,7 +309,7 @@ void main() {
       expect(result.dnaCounts, {PrivateFee.followUp30: 1});
       // The heydoc visit is not a Semble one and is left as it is.
       expect(result.scheduledPence, PrivateFee.followUp15.pence);
-      expect(result.sembleMatched, (matched: 1, checked: 1));
+      expect(result.sembleVisits, 1);
       expect(result.sembleProblem, isNull);
     });
 

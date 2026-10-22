@@ -20,8 +20,8 @@ class PrivateEarningsService {
   final AgendaService agenda;
 
   /// When set and configured with a key and the user's name in Semble, the
-  /// month's bookings give each Semble visit its recorded outcome (build
-  /// 288): "did not attend" and deleted bookings leave the totals.
+  /// month's bookings are the Semble visits (build 293): "did not attend"
+  /// and deleted bookings leave the totals.
   final SembleSettings? semble;
   final SembleClient sembleClient;
 
@@ -64,14 +64,16 @@ class PrivateEarningsService {
         if (isSembleCalendar(calendar)) calendar.id,
     };
     final (bookings, problem) = await _sembleBookings(asOf);
-    final result = estimatePrivateEarnings(
-      entries,
-      asOf,
-      outcome: bookings == null
-          ? null
-          : (entry) => sembleOutcomeFor(entry, bookings),
-      sembleEntry: (entry) => entry.calendarIds.any(sembleCalendars.contains),
-    );
+    // With bookings, Semble itself gives its visits (build 293); otherwise
+    // the calendar copies are priced by title as before.
+    final result = bookings == null
+        ? estimatePrivateEarnings(entries, asOf)
+        : estimateWithSembleBookings(
+            calendarEntries: entries,
+            bookings: bookings,
+            sembleCalendarIds: sembleCalendars,
+            now: asOf,
+          );
     return problem == null ? result : result.withSembleProblem(problem);
   }
 

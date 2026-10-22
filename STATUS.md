@@ -1,6 +1,14 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 292.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 293.
+
+## Build 293 — stima dalle prenotazioni Semble
+
+La Stima lavoro privato usa le prenotazioni del mese come fonte delle visite
+Semble (`estimateWithSembleBookings`). Classificatore verificato sui tipi
+reali in inglese («Follow-up Consultation (15 min)», «Initial Consultation
+(Adult) (60 min)», «… - 30 min (PLE)», «… - Insurance»). Test superati su
+Linux anche con `TZ=Europe/London`; da confrontare sul Galaxy con Semble.
 
 ## Build 292 — visite iCal Semble riportate all'ora giusta
 
