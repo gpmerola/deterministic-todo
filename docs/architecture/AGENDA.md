@@ -4,6 +4,14 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Bordo ambra solo sul futuro — build 302
+
+Su richiesta dell'utente `SembleLayer.overlapsFor` passa `now` a
+`sembleOverlaps`, che salta gli eventi con fine non successiva: un evento
+passato non ha più bordo ambra né pulsante «Blocca in Semble». Il calcolo
+avviene a ogni disegno, senza timer: un evento che finisce mentre la vista è
+aperta perde il bordo al ridisegno successivo.
+
 ## Blocco dagli eventi ambra e niente barretta — build 301
 
 - **Un tocco.** `AgendaEventFlows._canSembleBlock`: evento a orario, non

@@ -519,10 +519,15 @@ class SembleLayer extends ChangeNotifier {
 
   /// Ids of [entries] on [day] that are not Semble visits but fall in
   /// bookable Semble time (build 300): the Calendar highlights them.
-  Set<String> overlapsFor(CivilDate day, Iterable<AgendaEntry> entries) {
+  /// Only events not yet over (build 302).
+  Set<String> overlapsFor(
+    CivilDate day,
+    Iterable<AgendaEntry> entries, {
+    DateTime Function() now = DateTime.now,
+  }) {
     final bands = _bandsOf(day);
     if (bands.isEmpty) return const {};
-    return sembleOverlaps(entries, day, bands, isVisit);
+    return sembleOverlaps(entries, day, bands, isVisit, now: now());
   }
 
   /// A booking read from Semble or an event of a Semble calendar.

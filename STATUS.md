@@ -4,7 +4,12 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 301 — blocco dagli eventi ambra, niente barretta (in collaudo)
+## Build 302 — bordo ambra solo sugli eventi non finiti (in collaudo)
+
+`sembleOverlaps(now:)`: `SembleLayer.overlapsFor` esclude gli eventi già
+finiti. Da provare sul Galaxy.
+
+## Build 301 — blocco dagli eventi ambra, niente barretta
 
 Pulsante «Blocca in Semble» nella scheda degli eventi ambra (intero
 orario dell'evento) e rimozione di `AgendaSembleStrip` dalle griglie. Da

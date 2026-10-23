@@ -2,6 +2,11 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.115.0 (build 302) — Bordo ambra solo sul futuro
+
+- Il bordo ambra (e il pulsante «Blocca in Semble») compare solo sugli
+  eventi non ancora finiti.
+
 ## 2.114.0 (build 301) — Blocca dall'evento, griglie più pulite
 
 - Toccando un evento con il bordo ambra, la scheda ha in alto il pulsante

@@ -41,6 +41,17 @@ void main() {
     expect(overlaps, {'dentro', 'a cavallo'});
   });
 
+  test('gli eventi già finiti non sono evidenziati (build 302)', () {
+    final overlaps = sembleOverlaps(
+      [_event('finito', 10, 30), _event('in corso', 11, 60)],
+      day,
+      bands,
+      isVisit,
+      now: DateTime(2026, 10, 23, 11, 30),
+    );
+    expect(overlaps, {'in corso'});
+  });
+
   test('giornate intere e attività non contano', () {
     final allDay = AgendaEntry(
       instanceId: 'ferie',

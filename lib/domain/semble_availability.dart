@@ -275,13 +275,15 @@ List<(int, int)> agendaBusyMinutes(
 
 /// Instance ids of [entries] that are not visits ([isVisit]) and overlap
 /// bookable time in [bands] on [day] (build 300): the user wants them
-/// highlighted, since they may clash with bookings.
+/// highlighted, since they may clash with bookings. With [now], events
+/// already over are left out (build 302): nothing to block any more.
 Set<String> sembleOverlaps(
   Iterable<AgendaEntry> entries,
   CivilDate day,
   List<SembleBand> bands,
-  bool Function(AgendaEntry entry) isVisit,
-) {
+  bool Function(AgendaEntry entry) isVisit, {
+  DateTime? now,
+}) {
   final open = [
     for (final band in bands)
       if (band.kind == SembleBandKind.available)
@@ -290,7 +292,7 @@ Set<String> sembleOverlaps(
   if (open.isEmpty) return const {};
   return {
     for (final entry in entries)
-      if (!isVisit(entry))
+      if (!isVisit(entry) && (now == null || entry.end.isAfter(now)))
         for (final (start, end) in agendaBusyMinutes([entry], day))
           if (open.any((band) => start < band.$2 && end > band.$1))
             entry.instanceId,
