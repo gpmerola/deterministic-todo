@@ -332,12 +332,8 @@ class AgendaEventFlows {
           initialCalendarId: initialCalendar,
           zoneLabel: zone,
           onSembleBlock: sembleBlock
-              ? (start, end, type) => createSembleBlock(
-                  context,
-                  start: start,
-                  end: end,
-                  type: type,
-                )
+              ? (start, end) =>
+                    createSembleBlock(context, start: start, end: end)
               : null,
         ),
       ),

@@ -273,6 +273,30 @@ List<(int, int)> agendaBusyMinutes(
   ].where((span) => span.$2 > span.$1).toList();
 }
 
+/// Instance ids of [entries] that are not visits ([isVisit]) and overlap
+/// bookable time in [bands] on [day] (build 300): the user wants them
+/// highlighted, since they may clash with bookings.
+Set<String> sembleOverlaps(
+  Iterable<AgendaEntry> entries,
+  CivilDate day,
+  List<SembleBand> bands,
+  bool Function(AgendaEntry entry) isVisit,
+) {
+  final open = [
+    for (final band in bands)
+      if (band.kind == SembleBandKind.available)
+        (band.startMinute, band.endMinute),
+  ];
+  if (open.isEmpty) return const {};
+  return {
+    for (final entry in entries)
+      if (!isVisit(entry))
+        for (final (start, end) in agendaBusyMinutes([entry], day))
+          if (open.any((band) => start < band.$2 && end > band.$1))
+            entry.instanceId,
+  };
+}
+
 /// [bands] with [busy] cut out of the available ones: what is still free
 /// to book. Unavailable bands stay as they are. A piece left shorter than
 /// [minFree] is not bookable (Semble's shortest slot is 30 minutes) and is

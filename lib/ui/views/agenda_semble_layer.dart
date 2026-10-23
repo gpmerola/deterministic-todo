@@ -5,6 +5,38 @@ import '../../domain/semble_availability.dart';
 import '../../domain/task.dart';
 import '../../services/semble_service.dart';
 
+/// Semble colours, one green family (build 300, user request): visits
+/// solid green, bookable time a light green tint, blocked time grey-green
+/// stripes. Events of other calendars inside bookable time get an amber
+/// edge.
+abstract final class SemblePalette {
+  static bool _dark(ColorScheme scheme) => scheme.brightness == Brightness.dark;
+
+  static Color visit(ColorScheme scheme) =>
+      _dark(scheme) ? const Color(0xFF4CAF7A) : const Color(0xFF1B7F4B);
+
+  static Color availableEdge(ColorScheme scheme) =>
+      _dark(scheme) ? const Color(0xFF7FD6A4) : const Color(0xFF2FA866);
+
+  static Color available(ColorScheme scheme) =>
+      availableEdge(scheme).withValues(alpha: _dark(scheme) ? 0.16 : 0.12);
+
+  static Color _blocked(ColorScheme scheme) =>
+      _dark(scheme) ? const Color(0xFF9DB5A6) : const Color(0xFF52705E);
+
+  static Color unavailable(ColorScheme scheme) =>
+      _blocked(scheme).withValues(alpha: 0.3);
+
+  static Color stripAvailable(ColorScheme scheme) =>
+      availableEdge(scheme).withValues(alpha: 0.9);
+
+  static Color stripUnavailable(ColorScheme scheme) =>
+      _blocked(scheme).withValues(alpha: 0.6);
+
+  static Color overlap(ColorScheme scheme) =>
+      _dark(scheme) ? const Color(0xFFFFC857) : const Color(0xFFD08A00);
+}
+
 /// Semble availability behind the events of one day column (build 285):
 /// a green tint where the clinician is bookable, grey stripes where Semble
 /// blocks the time. Never tappable, so free-time taps still create events.
@@ -32,13 +64,10 @@ class AgendaSembleBands extends StatelessWidget {
 
   /// Fill colours, shared with the legend in Settings.
   static Color availableColor(ColorScheme scheme) =>
-      (scheme.brightness == Brightness.dark
-              ? const Color(0xFF81C784)
-              : const Color(0xFF2E7D32))
-          .withValues(alpha: scheme.brightness == Brightness.dark ? 0.16 : 0.1);
+      SemblePalette.available(scheme);
 
   static Color unavailableColor(ColorScheme scheme) =>
-      scheme.onSurface.withValues(alpha: 0.12);
+      SemblePalette.unavailable(scheme);
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +87,9 @@ class AgendaSembleBands extends StatelessWidget {
                 bands: bands,
                 scale: scale,
                 available: availableColor(scheme),
-                accent: availableColor(scheme).withValues(alpha: 0.6),
+                accent: SemblePalette.availableEdge(
+                  scheme,
+                ).withValues(alpha: 0.7),
                 unavailable: unavailableColor(scheme),
               ),
             );
@@ -150,13 +181,10 @@ class AgendaSembleStrip extends StatelessWidget {
 
   /// Solid colours of the bar, also used by the legend in Settings.
   static Color availableColor(ColorScheme scheme) =>
-      (scheme.brightness == Brightness.dark
-              ? const Color(0xFF81C784)
-              : const Color(0xFF2E7D32))
-          .withValues(alpha: 0.85);
+      SemblePalette.stripAvailable(scheme);
 
   static Color unavailableColor(ColorScheme scheme) =>
-      scheme.onSurface.withValues(alpha: 0.35);
+      SemblePalette.stripUnavailable(scheme);
 
   /// Height added to the cell compared with the usual 1 px gap.
   static const extra = barHeight + 1;

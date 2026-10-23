@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.113.0 (build 300) — Ritocchi Semble
+
+- Nelle viste a più settimane toccare un gruppo «N visite» apre il giorno;
+  nella giornata il gruppo si espande come prima.
+- Il blocco Semble è sempre di tipo Other e senza commento: il modulo non
+  chiede più il tipo.
+- Il messaggio «Bloccato in Semble» sparisce da solo dopo 8 secondi
+  (prima restava finché non lo si chiudeva).
+- Gli eventi che non sono visite ma cadono in un orario prenotabile di
+  Semble hanno un bordo ambra, nelle giornate, nelle settimane e nelle
+  griglie.
+- Palette Semble tutta verde: visite verde pieno, disponibilità verde
+  chiaro, indisponibilità a righe grigio-verdi; leggibile anche in tema
+  scuro.
+
 ## 2.112.0 (build 299) — Calendario più semplice
 
 - Viste: restano 4 settimane, 2 settimane, Settimana e 3 giorni (toccando

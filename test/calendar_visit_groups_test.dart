@@ -108,12 +108,13 @@ void main() {
       expect(calendarVisitItems(entries, day).single.grouped, true);
     },
   );
-  testWidgets('group expands and selecting a visit opens that original only', (
+  testWidgets('in the multi-week grids a group opens the day, not visits', (
     tester,
   ) async {
+    // User request (build 300): the day view expands groups instead.
     final entries = [visit(0), visit(15), visit(30)];
     AgendaEntry? selected;
-    var openedDay = false;
+    CivilDate? openedDay;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -127,7 +128,7 @@ void main() {
                 entries: entries,
                 colors: const {},
                 groupVisits: true,
-                onDay: (_) => openedDay = true,
+                onDay: (date) => openedDay = date,
                 onOpenEntry: (entry) async {
                   selected = entry;
                 },
@@ -140,11 +141,9 @@ void main() {
     expect(find.byType(CalendarVisitGroup), findsOneWidget);
     await tester.tap(find.byType(CalendarVisitGroup));
     await tester.pumpAndSettle();
-    expect(openedDay, false);
-    expect(find.text('09:15 – 09:30'), findsOneWidget);
-    await tester.tap(find.text(entries[1].title));
-    await tester.pumpAndSettle();
-    expect(identical(selected, entries[1]), true);
+    expect(openedDay, day);
+    expect(selected, isNull);
+    expect(find.text('09:15 – 09:30'), findsNothing);
   });
   testWidgets('day timeline expands groups and opens the original visit', (
     tester,

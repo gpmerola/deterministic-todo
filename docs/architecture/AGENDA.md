@@ -4,6 +4,27 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Ritocchi Semble — build 300
+
+- **Gruppi nelle griglie.** In 2 e 4 settimane `AgendaDayCell` passa
+  `onTap: onDay` a `CalendarVisitGroup`: il tocco apre la giornata, dove il
+  gruppo si espande nelle visite. Giorno, Settimana e 3 giorni invariati.
+- **Blocco.** `createUnavailability` usa per default `other` e invia
+  `comment` solo se passato; Todo non lo passa. Il modulo non mostra tipi.
+  Lo snackbar «Bloccato in Semble» ha `persist: false` (con un'azione
+  Flutter lo terrebbe fino alla chiusura).
+- **Eventi in orario prenotabile.** `sembleOverlaps` restituisce gli id
+  degli eventi a orario, non attività né inviti senza risposta, che non sono
+  visite (prenotazione Semble o calendario Semble, ricordati da
+  `adjustEntries`) e toccano una fascia disponibile prima del taglio degli
+  occupati. Giornata e settimane li bordano d'ambra
+  (`SemblePalette.overlap`), le griglie con una riga ambra a sinistra; il
+  conflitto fra eventi resta rosso e prevale.
+- **Palette.** `SemblePalette` riunisce i colori: visite (il calendario
+  Semble prende `visit` al posto del colore di sistema), disponibilità,
+  bordo, indisponibilità, barretta delle griglie e ambra, con varianti per
+  il tema scuro.
+
 ## Calendario più semplice — build 299
 
 Richiesta dell'utente (23 ottobre 2026: «il calendario è inondato di

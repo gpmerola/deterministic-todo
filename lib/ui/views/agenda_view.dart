@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/agenda_request.dart';
+import '../../domain/semble_bookings.dart' show isSembleCalendar;
 import '../../domain/task.dart';
 import '../../services/agenda_backup.dart';
 import '../../services/agenda_reminders.dart';
@@ -21,6 +22,7 @@ import 'agenda_list_widgets.dart';
 import 'agenda_load_controller.dart';
 import 'agenda_month_view.dart';
 import 'agenda_reminder_sheet.dart';
+import 'agenda_semble_layer.dart' show SemblePalette;
 import 'agenda_week_view.dart';
 import 'agenda_weeks_view.dart';
 
@@ -592,9 +594,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         onAction: _requestAccess,
       );
     }
+    final scheme = Theme.of(context).colorScheme;
     final colors = {
       for (final calendar in calendars)
-        calendar.id: parseCalendarColor(calendar.colorHex),
+        // Semble visits share the green of its availability (build 300).
+        calendar.id: isSembleCalendar(calendar)
+            ? SemblePalette.visit(scheme)
+            : parseCalendarColor(calendar.colorHex),
     };
     final names = {
       for (final calendar in calendars) calendar.id: calendar.name,

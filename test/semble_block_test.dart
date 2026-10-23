@@ -75,7 +75,6 @@ void main() {
         roomId: 'room1',
         start: start,
         end: start.add(const Duration(minutes: 30)),
-        type: SembleBlockType.clinicalAdmin,
       );
       expect(id, 'block1');
       expect(bodies.single['query'], sembleCreateBlockMutation);
@@ -87,8 +86,7 @@ void main() {
           'startDate': '2026-10-23',
           'startTime': '14:00',
           'endTime': '14:30',
-          'unavailabilityType': 'clinicalAdmin',
-          'comment': sembleBlockComment,
+          'unavailabilityType': 'other',
         },
       });
       await client.deleteUnavailability(key: 'k', id: id);
@@ -149,7 +147,6 @@ void main() {
                   context,
                   start: start,
                   end: start.add(const Duration(hours: 1)),
-                  type: SembleBlockType.cpd,
                   settings: settings,
                   client: client,
                   layer: layer,
@@ -165,8 +162,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(queries.first, sembleCreateBlockMutation);
       expect(queries.where((q) => q.startsWith('mutation')), hasLength(1));
-      expect(lastSembleBlockType, SembleBlockType.cpd);
       expect(find.text('Bloccato in Semble.'), findsOne);
+      final bar = tester.widget<SnackBar>(find.byType(SnackBar));
+      expect(bar.persist, isFalse, reason: 'deve sparire da solo');
       await tester.tap(find.text('Annulla'));
       await tester.pumpAndSettle();
       expect(
@@ -174,45 +172,42 @@ void main() {
         hasLength(1),
       );
       expect(find.text('Blocco Semble annullato.'), findsOne);
-      lastSembleBlockType = SembleBlockType.generalAdmin;
     });
 
-    Widget editor(
-      List<(DateTime, DateTime, SembleBlockType)> blocked, {
-      Object? failure,
-    }) => MaterialApp(
-      home: Builder(
-        builder: (context) => TextButton(
-          onPressed: () => Navigator.of(context).push<AgendaEventDraft>(
-            MaterialPageRoute(
-              builder: (_) => AgendaEventEditor(
-                calendars: const [
-                  AgendaCalendar(
-                    id: 'g',
-                    name: 'Personale',
-                    accountName: 'me@example.com',
-                    writable: true,
+    Widget editor(List<(DateTime, DateTime)> blocked, {Object? failure}) =>
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push<AgendaEventDraft>(
+                MaterialPageRoute(
+                  builder: (_) => AgendaEventEditor(
+                    calendars: const [
+                      AgendaCalendar(
+                        id: 'g',
+                        name: 'Personale',
+                        accountName: 'me@example.com',
+                        writable: true,
+                      ),
+                    ],
+                    initialStart: DateTime(2026, 10, 23, 14),
+                    initialEnd: DateTime(2026, 10, 23, 15, 30),
+                    zoneLabel: 'Europe/London · UTC+1',
+                    onSembleBlock: (start, end) async {
+                      if (failure != null) throw failure;
+                      blocked.add((start, end));
+                    },
                   ),
-                ],
-                initialStart: DateTime(2026, 10, 23, 14),
-                initialEnd: DateTime(2026, 10, 23, 15, 30),
-                zoneLabel: 'Europe/London · UTC+1',
-                onSembleBlock: (start, end, type) async {
-                  if (failure != null) throw failure;
-                  blocked.add((start, end, type));
-                },
+                ),
               ),
+              child: const Text('apri'),
             ),
           ),
-          child: const Text('apri'),
-        ),
-      ),
-    );
+        );
 
-    testWidgets('dal nuovo evento: Blocco Semble con orari e tipo', (
+    testWidgets('dal nuovo evento: Blocco Semble con gli orari, sempre Other', (
       tester,
     ) async {
-      final blocked = <(DateTime, DateTime, SembleBlockType)>[];
+      final blocked = <(DateTime, DateTime)>[];
       await tester.pumpWidget(editor(blocked));
       await tester.tap(find.text('apri'));
       await tester.pumpAndSettle();
@@ -225,19 +220,12 @@ void main() {
       // Only times and types: no title, calendar or repeat.
       expect(find.byKey(const ValueKey('agenda-event-title')), findsNothing);
       expect(find.byKey(const ValueKey('agenda-event-calendar')), findsNothing);
-      expect(find.byKey(const ValueKey('semble-block-cpd')), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('semble-block-more')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('semble-block-annualLeave')));
-      await tester.pump();
+      // Always Other: no type to choose (build 300).
+      expect(find.byType(ChoiceChip), findsNothing);
       await tester.tap(find.byKey(const ValueKey('agenda-event-semble-block')));
       await tester.pumpAndSettle();
       expect(blocked, [
-        (
-          DateTime(2026, 10, 23, 14),
-          DateTime(2026, 10, 23, 15, 30),
-          SembleBlockType.annualLeave,
-        ),
+        (DateTime(2026, 10, 23, 14), DateTime(2026, 10, 23, 15, 30)),
       ]);
       expect(find.byType(AgendaEventEditor), findsNothing);
     });
@@ -245,7 +233,7 @@ void main() {
     testWidgets('se Semble rifiuta il modulo resta aperto con il motivo', (
       tester,
     ) async {
-      final blocked = <(DateTime, DateTime, SembleBlockType)>[];
+      final blocked = <(DateTime, DateTime)>[];
       await tester.pumpWidget(
         editor(
           blocked,

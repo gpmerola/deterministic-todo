@@ -4,7 +4,17 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 299 — Calendario più semplice (in collaudo)
+## Build 300 — ritocchi Semble (in collaudo)
+
+Richieste dell'utente del 23 ottobre: tocco sui gruppi nelle griglie apre
+il giorno (`CalendarVisitGroup.onTap`); blocco sempre `other` senza
+`comment`; snackbar con `persist: false`; `SembleLayer.overlapsFor` /
+`sembleOverlaps` per il bordo ambra sugli eventi non visite in orario
+prenotabile; `SemblePalette` verde per visite (colore del calendario
+Semble), disponibilità e indisponibilità. Da provare sul Galaxy; il primo
+blocco reale conferma che Semble accetta l'assenza di commento.
+
+## Build 299 — Calendario più semplice (pubblicata su Todo Test)
 
 Su richiesta dell'utente: viste ridotte a 4 settimane, 2 settimane,
 Settimana, 3 giorni (migrazione una tantum alla chiave v4), Assistente nel

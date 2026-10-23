@@ -295,10 +295,9 @@ class AgendaDayCell extends StatelessWidget {
             listenable: semble ?? SembleLayer.shared,
             builder: (context, _) => LayoutBuilder(
               builder: (context, constraints) {
-                final bands = (semble ?? SembleLayer.shared).bandsFor(
-                  date,
-                  busy: entries,
-                );
+                final layer = semble ?? SembleLayer.shared;
+                final bands = layer.bandsFor(date, busy: entries);
+                final inSemble = layer.overlapsFor(date, entries);
                 final items = groupVisits
                     ? calendarVisitItems(entries, date)
                     : entries.map((e) => CalendarVisitItem([e])).toList();
@@ -366,12 +365,16 @@ class AgendaDayCell extends StatelessWidget {
                               (_) async {
                                 onDay(date);
                               },
+                          // In the grids a group opens the day; the day
+                          // view expands it (user request, build 300).
+                          onTap: () => onDay(date),
                         )
                       else
                         AgendaChip(
                           entry: item.first,
                           twoLines: true,
                           day: date,
+                          inSemble: inSemble.contains(item.first.instanceId),
                           color:
                               colors[item.first.calendarIds.first] ??
                               theme.colorScheme.primary,

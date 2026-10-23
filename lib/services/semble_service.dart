@@ -64,11 +64,7 @@ const sembleCreateBlockMutation =
 const sembleDeleteBlockMutation =
     r'''mutation($id: ID!) { deleteAvailability(id: $id) { data { id } } }''';
 
-/// Comment on every block created from Todo, so it is recognisable in
-/// Semble.
-const sembleBlockComment = 'Da Todo';
-
-/// Semble's `UnavailabilityType` values offered in the sheet.
+/// Semble's `UnavailabilityType` values; Todo sends only `other` (build 300).
 enum SembleBlockType {
   other('Altro'),
   clinicalAdmin('Admin clinico'),
@@ -319,8 +315,8 @@ class SembleClient {
     required String roomId,
     required DateTime start,
     required DateTime end,
-    required SembleBlockType type,
-    String comment = sembleBlockComment,
+    SembleBlockType type = SembleBlockType.other,
+    String? comment,
   }) async {
     final block = sembleBlockFor(start, end);
     if (block == null) throw const FormatException('Orario non valido');
@@ -333,7 +329,8 @@ class SembleClient {
         'startTime': block.startTime,
         'endTime': block.endTime,
         'unavailabilityType': type.name,
-        'comment': comment,
+        // No comment unless asked (build 300: the user wants none).
+        'comment': ?comment,
       },
     });
     final id = switch (data['createAvailability']) {
@@ -485,6 +482,10 @@ class SembleLayer extends ChangeNotifier {
     List<AgendaCalendar> calendars,
     Set<String> hiddenCalendarIds,
   ) {
+    _sembleCalendarIds = {
+      for (final calendar in calendars)
+        if (isSembleCalendar(calendar)) calendar.id,
+    };
     final bookings = _bookings;
     if (!_enabled || bookings.isEmpty) return null;
     return (merged) => sembleAdjustEntries(
@@ -506,16 +507,30 @@ class SembleLayer extends ChangeNotifier {
   List<SembleBand> bandsFor(
     CivilDate day, {
     Iterable<AgendaEntry> busy = const [],
-  }) {
+  }) => sembleFreeBands(_bandsOf(day), agendaBusyMinutes(busy, day));
+
+  List<SembleBand> _bandsOf(CivilDate day) {
     final first = _first;
     final last = _last;
     if (!active || first == null || last == null) return const [];
     if (day.compareTo(first) < 0 || day.compareTo(last) > 0) return const [];
-    return sembleFreeBands(
-      sembleShiftBands(sembleBandsFor(_rules, day), zoneShift(day)),
-      agendaBusyMinutes(busy, day),
-    );
+    return sembleShiftBands(sembleBandsFor(_rules, day), zoneShift(day));
   }
+
+  /// Ids of [entries] on [day] that are not Semble visits but fall in
+  /// bookable Semble time (build 300): the Calendar highlights them.
+  Set<String> overlapsFor(CivilDate day, Iterable<AgendaEntry> entries) {
+    final bands = _bandsOf(day);
+    if (bands.isEmpty) return const {};
+    return sembleOverlaps(entries, day, bands, isVisit);
+  }
+
+  /// A booking read from Semble or an event of a Semble calendar.
+  bool isVisit(AgendaEntry entry) =>
+      entry.isSembleBooking ||
+      entry.calendarIds.any(_sembleCalendarIds.contains);
+
+  Set<String> _sembleCalendarIds = const {};
 
   /// [zoneLabel] as shown by the Calendar ("Europe/London · UTC+1").
   /// Concurrent calls share one read.

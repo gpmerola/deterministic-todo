@@ -155,7 +155,10 @@ finisce il tempo clinico scritto nel titolo, senza i 15 minuti di pausa
 nell'ora del telefono, anche in Italia (build 296). Con l'ID stanza in
 Impostazioni → Semble, il nuovo evento offre in cima «Blocco Semble»:
 giorno, orari, tipo e «Blocca» creano un'indisponibilità in Semble,
-annullabile subito (build 297, semplificato nella 298). Con lo stesso cognome la Stima lavoro
+annullabile subito (build 297, semplificato nella 298; dalla 300 sempre
+Other e senza commento). Le visite Semble sono verdi come la disponibilità,
+e un evento che non è una visita ma cade in orario prenotabile ha un bordo
+ambra (build 300). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

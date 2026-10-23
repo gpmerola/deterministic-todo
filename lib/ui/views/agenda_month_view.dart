@@ -8,6 +8,7 @@ import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
+import 'agenda_semble_layer.dart' show SemblePalette;
 import 'agenda_weeks_view.dart' show AgendaDayCell;
 
 /// One whole month per screen, Monday first, like Google Calendar's month
@@ -275,8 +276,12 @@ class AgendaChip extends StatelessWidget {
     this.showTime = false,
     this.twoLines = false,
     this.day,
+    this.inSemble = false,
     super.key,
   });
+
+  /// Not a visit, inside bookable Semble time: amber mark (build 300).
+  final bool inSemble;
 
   /// The cell's day: a multi-day all-day event then joins its neighbours
   /// as one bar, titled once (on its first day and on Mondays).
@@ -369,8 +374,18 @@ class AgendaChip extends StatelessWidget {
       // Month and two-week cells are ~50 dp wide: the time gets its own
       // line, in the calendar colour, so it is always readable and the
       // title keeps the whole width below it.
-      return Padding(
+      return Container(
         padding: const EdgeInsets.only(bottom: 2, left: 1),
+        decoration: inSemble
+            ? BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: SemblePalette.overlap(theme.colorScheme),
+                    width: 2,
+                  ),
+                ),
+              )
+            : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

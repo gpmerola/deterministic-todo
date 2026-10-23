@@ -94,6 +94,14 @@ void main() {
       await tester.ensureVisible(group);
       await tester.tap(group);
       await tester.pumpAndSettle();
+      if (mode.gridWeeks > 0 || mode == AgendaViewMode.month) {
+        // The grids open the day first (build 300); there it expands.
+        expect(find.text('09:30 – 09:45'), findsNothing);
+        final inDay = find.byType(CalendarVisitGroup).last;
+        await tester.ensureVisible(inDay);
+        await tester.tap(inDay);
+        await tester.pumpAndSettle();
+      }
       expect(find.text('09:30 – 09:45'), findsOneWidget);
       await tester.tap(find.text('Visita sintetica 1'));
       await tester.pumpAndSettle();

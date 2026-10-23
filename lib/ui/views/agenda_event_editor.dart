@@ -9,9 +9,7 @@ import '../../data/editor_drafts.dart';
 import '../../domain/agenda.dart';
 import '../../domain/semble_bookings.dart' show sembleBlockFor;
 import '../../domain/task.dart' show CivilDate;
-import '../../services/semble_service.dart'
-    show SembleBlockType, SembleException, sembleBlockComment;
-import '../semble_block_sheet.dart';
+import '../../services/semble_service.dart' show SembleException;
 import 'agenda_zone_picker.dart';
 
 /// Event form with local recovery. When supplied, onSave must succeed before
@@ -41,12 +39,7 @@ class AgendaEventEditor extends StatefulWidget {
   /// Offered on a new event when Semble is set up (builds 297, 298): the
   /// "Blocco Semble" switch at the top turns the form into a block of the
   /// chosen times in Semble instead of an event. Throws when Semble refuses.
-  final Future<void> Function(
-    DateTime start,
-    DateTime end,
-    SembleBlockType type,
-  )?
-  onSembleBlock;
+  final Future<void> Function(DateTime start, DateTime end)? onSembleBlock;
 
   /// Title of the page when neither "Nuovo evento" nor "Modifica evento"
   /// fits, e.g. a copy edited in Todo only.
@@ -123,8 +116,6 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
       widget.existing != null ||
       (widget.prefill?.location?.trim().isNotEmpty ?? false) ||
       (widget.prefill?.notes?.trim().isNotEmpty ?? false);
-  bool moreBlockTypes = !sembleQuickBlockTypes.contains(lastSembleBlockType);
-  SembleBlockType blockType = lastSembleBlockType;
   String? error;
   String? selectedZone;
   bool missingCalendar = false;
@@ -397,7 +388,7 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
       error = null;
     });
     try {
-      await widget.onSembleBlock!(start, end, blockType);
+      await widget.onSembleBlock!(start, end);
     } on Object catch (failure) {
       if (!mounted) return;
       setState(() {
@@ -421,7 +412,7 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
     Navigator.of(context).pop();
   }
 
-  /// Only times and a type: everything else of an event is irrelevant to a
+  /// Only times: everything else of an event is irrelevant to a
   /// Semble block.
   List<Widget> _blockFields(BuildContext context) {
     final theme = Theme.of(context);
@@ -433,12 +424,6 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
     final block = sembleBlockFor(start, end);
     final local = '${time(startTime)}–${time(endTime)}';
     final london = block == null ? null : '${block.startTime}–${block.endTime}';
-    final types = [
-      ...sembleQuickBlockTypes,
-      if (moreBlockTypes)
-        for (final type in SembleBlockType.values)
-          if (!sembleQuickBlockTypes.contains(type)) type,
-    ];
     return [
       if (error != null)
         Padding(
@@ -477,30 +462,9 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
           style: theme.textTheme.bodySmall,
         ),
       const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 4,
-        children: [
-          for (final type in types)
-            ChoiceChip(
-              key: ValueKey('semble-block-${type.name}'),
-              label: Text(type.label),
-              selected: blockType == type,
-              onSelected: (_) => setState(() => blockType = type),
-            ),
-          if (!moreBlockTypes)
-            ActionChip(
-              key: const ValueKey('semble-block-more'),
-              label: const Text('Altri tipi'),
-              onPressed: () => setState(() => moreBlockTypes = true),
-            ),
-        ],
-      ),
-      const SizedBox(height: 12),
       Text(
-        'Tocca Blocca: in Semble risulterai non disponibile in questo orario '
-        '(commento «$sembleBlockComment»). Nel calendario del telefono non '
-        'viene salvato niente.',
+        'Tocca Blocca: in Semble risulterai non disponibile (Other) in questo '
+        'orario. Nel calendario del telefono non viene salvato niente.',
         style: theme.textTheme.bodySmall,
       ),
     ];

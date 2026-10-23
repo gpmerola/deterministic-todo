@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
+import '../../services/semble_service.dart' show SembleLayer;
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
@@ -429,6 +430,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
   ) {
     final theme = Theme.of(context);
     final clashing = agendaOverlaps(entries).keys.toSet();
+    final inSemble = SembleLayer.shared.overlapsFor(date, entries);
     final line = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -544,6 +546,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                           widget.colors[block.entry.calendarIds.first] ??
                               theme.colorScheme.primary,
                           clash: clashing.contains(block.entry.instanceId),
+                          inSemble: inSemble.contains(block.entry.instanceId),
                         ),
                 ),
               if (_dragDate == date && _drag != null)
@@ -583,6 +586,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     AgendaEntry entry,
     Color color, {
     bool clash = false,
+    bool inSemble = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
     final fill = agendaEventFill(color, scheme);
@@ -596,6 +600,9 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
         borderRadius: BorderRadius.circular(3),
         side: clash
             ? BorderSide(color: scheme.error, width: 1.5)
+            // Not a visit, inside bookable Semble time (build 300).
+            : inSemble
+            ? BorderSide(color: SemblePalette.overlap(scheme), width: 1.5)
             : outlined
             ? BorderSide(color: fill, width: 1.5)
             : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),

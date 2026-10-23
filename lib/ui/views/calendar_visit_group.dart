@@ -11,8 +11,13 @@ class CalendarVisitGroup extends StatelessWidget {
     required this.item,
     required this.color,
     required this.onOpen,
+    this.onTap,
     super.key,
   });
+
+  /// Replaces expanding the visits, e.g. opening the day from a cell of the
+  /// multi-week grids (build 300).
+  final VoidCallback? onTap;
   static const height = 39.0;
   final CalendarVisitItem item;
   final Color color;
@@ -66,10 +71,11 @@ class CalendarVisitGroup extends StatelessWidget {
       button: true,
       label:
           '${item.entries.length} visite, dalle ${_time(item.first.start)} '
-          'alle ${_time(item.end)}. Tocca per espandere.',
+          'alle ${_time(item.end)}. '
+          '${onTap == null ? 'Tocca per espandere.' : 'Tocca per aprire il giorno.'}',
       child: InkWell(
         key: ValueKey('calendar-visit-group-${item.first.instanceId}'),
-        onTap: () => _expand(context),
+        onTap: onTap ?? () => _expand(context),
         child: Container(
           height: height,
           margin: const EdgeInsets.only(bottom: 1),
@@ -96,7 +102,8 @@ class CalendarVisitGroup extends StatelessWidget {
                           style: Theme.of(context).textTheme.labelMedium,
                         ),
                       ),
-                      const Icon(Icons.expand_more, size: 18),
+                      if (onTap == null)
+                        const Icon(Icons.expand_more, size: 18),
                     ],
                   ),
                 );

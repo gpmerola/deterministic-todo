@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
+import '../../services/semble_service.dart' show SembleLayer;
 import 'agenda_colors.dart';
 import 'agenda_header.dart' show AgendaTodayIcon;
 import 'agenda_now_tick.dart';
@@ -362,6 +363,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
       hourHeight: AgendaDayPage.hourHeight,
     );
     final clashing = agendaOverlaps(entries).keys.toSet();
+    final inSemble = SembleLayer.shared.overlapsFor(widget.day, entries);
     // The first layout fixes the initial position; reloads keep the scroll.
     scroll ??= data == null
         ? null
@@ -476,6 +478,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                           block,
                           constraints.maxWidth,
                           clashing,
+                          inSemble,
                           groups[block.entry.instanceId],
                         ),
                       if (widget.day == widget.today)
@@ -551,6 +554,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     TimelineBlock block,
     double width,
     Set<String> clashing,
+    Set<String> inSemble,
     CalendarVisitItem? group,
   ) {
     final slot = timelineSlot(block, width - _gutter - 4);
@@ -578,6 +582,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                       await _load();
                     },
               clash: clashing.contains(block.entry.instanceId),
+              inSemble: inSemble.contains(block.entry.instanceId),
             ),
     );
   }
@@ -613,9 +618,13 @@ class _Block extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.clash = false,
+    this.inSemble = false,
   });
 
   final Future<void> Function(AgendaEntry entry)? onLongPress;
+
+  /// Not a visit, but inside bookable Semble time: amber edge (build 300).
+  final bool inSemble;
 
   /// Overlaps another timed event: outlined and marked with ⚠.
   final bool clash;
@@ -637,6 +646,8 @@ class _Block extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         side: clash
             ? BorderSide(color: scheme.error, width: 2)
+            : inSemble
+            ? BorderSide(color: SemblePalette.overlap(scheme), width: 2)
             : outlined
             ? BorderSide(color: color, width: 1.5)
             : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),

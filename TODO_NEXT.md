@@ -28,9 +28,11 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   (slot davvero prenotabili); blocchi di indisponibilità dalla build 297,
   semplificati nella 298 (provare sul Galaxy con l'ID stanza in
   Impostazioni). Semplificazione del Calendario fatta nella build 299:
-  provarla sul Galaxy. Idee non ancora approvate: blocco Semble da pressione
-  lunga su una fascia libera, fasce Semble più leggere con interruttore,
-  niente gruppi «N visite».
+  provarla sul Galaxy. Build 300: verificare che il primo blocco reale
+  (Other, senza commento) sia accettato da Semble, il bordo ambra e la
+  palette verde in tema chiaro e scuro. Idee non ancora approvate: blocco
+  Semble da pressione lunga su una fascia libera, interruttore per le
+  fasce Semble. I gruppi «N visite» restano (scelta dell'utente).
 
 ## Osservazioni passive
 
