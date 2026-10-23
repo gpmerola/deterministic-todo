@@ -1,6 +1,6 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 296.
+Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 ## Build 296 — Semble in ora legale, solare e in Italia
 
@@ -118,6 +118,28 @@ esportazione manuale e provider dell'assistente integrato restano invariati.
   Galaxy S21. Verifica successiva del package: `2.103.1-dev`, `versionCode 2284`;
   dati conservati. Il dialogo diagnostico non è stato ispezionato sul telefono.
 - Nessuna nuova pubblicazione stabile Web/Play autorizzata da questa modifica.
+
+## Release stabile 2.109.0 / 296 — 23 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` e scelta "B" (merge in `main`) dei
+messaggi dell'utente delle 11:12 e 12:49 UTC. `main` avanzato in fast-forward,
+senza riscritture, al commit `2a22ff74a2435763feccea54fafe71446457667b`
+(`agent/semble-availability`). Un primo run dal branch
+([39949008302](https://github.com/gpmerola/deterministic-todo/actions/runs/39949008302))
+è stato annullato in `verify`, senza pubblicare nulla: `github-pages` non
+ammette quel branch. Run coordinato da `main`
+[39956436806](https://github.com/gpmerola/deterministic-todo/actions/runs/39956436806)
+verde in tutti gli otto job.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  2.109.0 / 296 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.109.0):
+  `v2.109.0` `latest`, non prerelease; manifest con quattro APK e SHA-256
+  identici ai digest degli asset.
+- Google Play: `publish-google-play` riuscito (track `internal`);
+  propagazione non verificata.
+- Galaxy: ADB non raggiungibile (porta 5555 rifiutata dopo il riavvio); nessuna
+  verifica sul dispositivo per questa release.
 
 ## Release stabile 2.103.0 / 283 — 19 ottobre 2026
 
