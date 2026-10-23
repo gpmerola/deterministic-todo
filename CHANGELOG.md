@@ -2,6 +2,18 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.112.0 (build 299) — Calendario più semplice
+
+- Viste: restano 4 settimane, 2 settimane, Settimana e 3 giorni (toccando
+  un giorno si apre la giornata). Tolte 3 settimane, Mese ed Elenco: se
+  erano la vista salvata, il Calendario si apre su 4 settimane.
+- L'Assistente ✨ passa nel menu «Altro» della barra.
+- Scheda di un evento: in vista Partecipa, Modifica ed Elimina; Nascondi,
+  Modifica solo in Todo, Preparare, Follow-up e Apri nel calendario sono
+  sotto il pulsante «⋯».
+- Nuovo evento: subito titolo, giorno e ore; calendario, Ripeti, fuso,
+  luogo e note sotto «Altre opzioni».
+
 ## 2.111.0 (build 298) — Blocco Semble più semplice
 
 - In cima al modulo **Nuovo evento** c'è la scelta **Evento | Blocco

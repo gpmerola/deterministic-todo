@@ -31,6 +31,17 @@ enum AgendaViewMode {
   month,
   list;
 
+  /// Views offered in the menu: 3 weeks, Month and List were removed at the
+  /// user's request (build 299). Their renderers stay for tests and for a
+  /// saved choice older than the removal, which moves to 4 weeks once.
+  bool get offered => switch (this) {
+    threeWeeks || month || list => false,
+    _ => true,
+  };
+
+  /// [this], or 4 weeks when the view is no longer offered.
+  AgendaViewMode get orOffered => offered ? this : fourWeeks;
+
   int get gridWeeks => switch (this) {
     twoWeeks => 2,
     threeWeeks => 3,
@@ -55,7 +66,10 @@ class AgendaService {
   static const calendarChoicesKey = 'agenda_calendar_choices';
 
   /// Version 3 migrates the former month default to four weeks once.
-  static const viewModeKey = 'agenda_view_mode_v3';
+  static const viewModeKey = 'agenda_view_mode_v4';
+
+  /// Before build 299: may hold a view that is no longer offered.
+  static const legacyViewModeKey = 'agenda_view_mode_v3';
 
   /// The user's main calendar ("Nuovi eventi in"), used by + and by task
   /// exports; set only explicitly.
@@ -396,6 +410,21 @@ class AgendaService {
         orElse: () => AgendaViewMode.fourWeeks,
       );
     }
+    // One-time move off the views removed in build 299.
+    final v3 =
+        await (_database.select(_database.appSettings)
+              ..where((setting) => setting.key.equals(legacyViewModeKey)))
+            .getSingleOrNull();
+    if (v3 != null) {
+      final mode = AgendaViewMode.values
+          .firstWhere(
+            (mode) => mode.name == v3.value,
+            orElse: () => AgendaViewMode.fourWeeks,
+          )
+          .orOffered;
+      await _saveMode(mode);
+      return mode;
+    }
     // One-time move from the old month default. Other saved views survive;
     // choosing Month again writes v3 and remains an explicit preference.
     final legacy =
@@ -406,9 +435,7 @@ class AgendaService {
       (mode) => mode.name == legacy?.value,
       orElse: () => AgendaViewMode.fourWeeks,
     );
-    final mode = previous == AgendaViewMode.month
-        ? AgendaViewMode.fourWeeks
-        : previous;
+    final mode = previous.orOffered;
     await _saveMode(mode);
     return mode;
   }

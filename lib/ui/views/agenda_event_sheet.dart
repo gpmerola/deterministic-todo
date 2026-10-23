@@ -273,45 +273,71 @@ class AgendaEventSheet extends StatelessWidget {
                       localOnly ? 'Elimina' : 'Elimina dal calendario',
                     ),
                   ),
-                if (!localOnly && canCopyInTodo)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-edit-in-todo'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.editInTodo),
-                    icon: const Icon(Icons.edit_note),
-                    label: const Text('Modifica solo in Todo'),
-                  ),
-                if (!localOnly)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-hide'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.hide),
-                    icon: const Icon(Icons.visibility_off_outlined),
-                    label: const Text('Nascondi in Todo'),
-                  ),
-                if (canCreateTasks)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-prepare'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.prepareTask),
-                    icon: const Icon(Icons.playlist_add),
-                    label: const Text('Preparare (giorno prima)'),
-                  ),
-                if (canCreateTasks)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-follow-up'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.followUpTask),
-                    icon: const Icon(Icons.playlist_add_check),
-                    label: const Text('Follow-up (giorno dopo)'),
-                  ),
-                if (canOpenInCalendar)
-                  TextButton(
-                    onPressed: () => Navigator.pop(
-                      context,
-                      AgendaEventAction.openInCalendar,
+                // Rarer actions behind one button (build 299).
+                if (!localOnly || canCreateTasks || canOpenInCalendar)
+                  PopupMenuButton<AgendaEventAction>(
+                    key: const ValueKey('agenda-sheet-more'),
+                    tooltip: 'Altro',
+                    onSelected: (action) => Navigator.pop(context, action),
+                    itemBuilder: (_) => [
+                      if (!localOnly && canCopyInTodo)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-edit-in-todo'),
+                          value: AgendaEventAction.editInTodo,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.edit_note),
+                            title: Text('Modifica solo in Todo'),
+                          ),
+                        ),
+                      if (!localOnly)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-hide'),
+                          value: AgendaEventAction.hide,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.visibility_off_outlined),
+                            title: Text('Nascondi in Todo'),
+                          ),
+                        ),
+                      if (canCreateTasks)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-prepare'),
+                          value: AgendaEventAction.prepareTask,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.playlist_add),
+                            title: Text('Preparare (giorno prima)'),
+                          ),
+                        ),
+                      if (canCreateTasks)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-follow-up'),
+                          value: AgendaEventAction.followUpTask,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.playlist_add_check),
+                            title: Text('Follow-up (giorno dopo)'),
+                          ),
+                        ),
+                      if (canOpenInCalendar)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-open'),
+                          value: AgendaEventAction.openInCalendar,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.open_in_new),
+                            title: Text('Apri nel calendario'),
+                          ),
+                        ),
+                    ],
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Icon(Icons.more_horiz),
                     ),
-                    child: const Text('Apri nel calendario'),
                   ),
               ],
             ),

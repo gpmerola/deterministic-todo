@@ -506,7 +506,7 @@ class AgendaBackup {
     final mode = AgendaViewMode.values
         .where((mode) => mode.name == settings['view_mode'])
         .firstOrNull;
-    if (mode != null) await service.saveViewMode(mode);
+    if (mode != null) await service.saveViewMode(mode.orOffered);
     final links = settings['task_links'];
     if (links is List) {
       await service.taskLinks.addKeys(links.whereType<String>());

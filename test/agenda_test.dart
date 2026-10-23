@@ -439,10 +439,16 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('agenda-mode')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('agenda-mode-list')));
+    // Month and List left the menu in build 299; the current view stays
+    // listed only until another is chosen.
+    expect(find.byKey(const ValueKey('agenda-mode-list')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('agenda-mode-fourWeeks')));
     await tester.pumpAndSettle();
-    expect(find.text('Oggi · Lunedì 5 ottobre'), findsOneWidget);
-    expect(await service.viewMode(), AgendaViewMode.list);
+    expect(await service.viewMode(), AgendaViewMode.fourWeeks);
+    await tester.tap(find.byKey(const ValueKey('agenda-mode')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('agenda-mode-month')), findsNothing);
+    expect(find.byKey(const ValueKey('agenda-mode-threeWeeks')), findsNothing);
   });
 
   AgendaEntry entryAt(String id, int startHour, int startMinute, int minutes) {
@@ -980,6 +986,8 @@ void main() {
       find.byKey(const ValueKey('agenda-event-title')),
       'Corso',
     );
+    await tester.tap(find.byKey(const ValueKey('agenda-event-more')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-event-repeat')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ogni settimana di lunedì').last);
@@ -1270,6 +1278,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('TNG Meeting'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-sheet-prepare')));
     await tester.pumpAndSettle();
@@ -1670,7 +1680,7 @@ void main() {
       }
 
       await open();
-      for (final mode in AgendaViewMode.values) {
+      for (final mode in AgendaViewMode.values.where((m) => m.offered)) {
         await tester.tap(find.byKey(const ValueKey('agenda-mode')));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(ValueKey('agenda-mode-${mode.name}')));
@@ -1683,13 +1693,6 @@ void main() {
                 .widget<AgendaWeeksView>(find.byType(AgendaWeeksView))
                 .weekCount,
             mode.gridWeeks,
-          );
-        } else if (mode == AgendaViewMode.month) {
-          expect(find.byType(AgendaMonthView), findsOneWidget);
-        } else if (mode == AgendaViewMode.list) {
-          expect(
-            find.byKey(const ValueKey('agenda-list:2026-10-05')),
-            findsOneWidget,
           );
         } else {
           expect(find.byType(AgendaWeekView), findsOneWidget);

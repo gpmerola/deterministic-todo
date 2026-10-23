@@ -110,15 +110,16 @@ class AgendaHeader extends StatelessWidget {
             ),
             itemBuilder: (_) => [
               for (final entry in _modes.entries)
-                PopupMenuItem(
-                  key: ValueKey('agenda-mode-${entry.key.name}'),
-                  value: entry.key,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(entry.value.$1),
-                    title: Text(entry.value.$2),
+                if (entry.key.offered || entry.key == mode)
+                  PopupMenuItem(
+                    key: ValueKey('agenda-mode-${entry.key.name}'),
+                    value: entry.key,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(entry.value.$1),
+                      title: Text(entry.value.$2),
+                    ),
                   ),
-                ),
             ],
           ),
           if (onToday != null)
@@ -175,14 +176,6 @@ class AgendaHeader extends StatelessWidget {
                 ),
               ),
             ),
-          if (onCapture != null)
-            IconButton(
-              key: const ValueKey('agenda-ai-capture'),
-              tooltip: 'Assistente: scrivi o detta',
-              visualDensity: VisualDensity.compact,
-              onPressed: onCapture,
-              icon: const Icon(Icons.auto_awesome),
-            ),
           TextButton.icon(
             key: const ValueKey('agenda-choose-calendars'),
             style: TextButton.styleFrom(
@@ -199,7 +192,9 @@ class AgendaHeader extends StatelessWidget {
               semanticsLabel: 'Calendari: $visible di $total',
             ),
           ),
-          if (onSearch != null ||
+          // The assistant lives here since build 299, to keep the row short.
+          if (onCapture != null ||
+              onSearch != null ||
               onSettings != null ||
               onBackup != null ||
               onReminders != null ||
@@ -208,6 +203,7 @@ class AgendaHeader extends StatelessWidget {
               key: const ValueKey('agenda-more'),
               tooltip: 'Altro',
               onSelected: (value) {
+                if (value == 'capture') onCapture?.call();
                 if (value == 'search') onSearch?.call();
                 if (value == 'settings') onSettings?.call();
                 if (value == 'backup') onBackup?.call();
@@ -215,6 +211,16 @@ class AgendaHeader extends StatelessWidget {
                 if (value == 'pinCalendar') onPinCalendar?.call();
               },
               itemBuilder: (_) => [
+                if (onCapture != null)
+                  const PopupMenuItem(
+                    key: ValueKey('agenda-ai-capture'),
+                    value: 'capture',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.auto_awesome),
+                      title: Text('Assistente: scrivi o detta'),
+                    ),
+                  ),
                 if (onReminders != null)
                   const PopupMenuItem(
                     value: 'reminders',

@@ -121,9 +121,14 @@ gli eventi nascosti restano ripristinabili da «Calendari e filtri».
 
 La sezione **Calendario** riunisce i calendari già sincronizzati dal telefono:
 Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
-4 settimane (predefinito iniziale: corrente più le tre successive), mese,
-3 settimane (corrente più due), 2 settimane,
-settimana, 3 giorni ed elenco. Il cambio
+4 settimane (predefinito iniziale: corrente più le tre successive),
+2 settimane, settimana e 3 giorni; toccando un giorno si apre la sua
+giornata. Mese, 3 settimane ed Elenco sono stati tolti nella build 299 su
+richiesta dell'utente: una vista salvata fra queste passa una volta a
+4 settimane. L'Assistente ✨ è nel menu «Altro»; nella scheda di un evento
+restano in vista Partecipa, Modifica ed Elimina, il resto è sotto «⋯»; nel
+nuovo evento calendario, ripetizione, fuso, luogo e note sono sotto «Altre
+opzioni». Il cambio
 vista conserva la data selezionata. L’ultima vista scelta viene salvata sul
 dispositivo e ripristinata alla riapertura; i filtri sono espliciti e azzerabili.
 

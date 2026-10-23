@@ -4,7 +4,15 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 298 — blocco Semble più semplice (in collaudo)
+## Build 299 — Calendario più semplice (in collaudo)
+
+Su richiesta dell'utente: viste ridotte a 4 settimane, 2 settimane,
+Settimana, 3 giorni (migrazione una tantum alla chiave v4), Assistente nel
+menu Altro, azioni secondarie della scheda evento sotto «⋯», campi
+secondari del nuovo evento sotto «Altre opzioni». Dettagli in
+`docs/architecture/AGENDA.md`. Da provare sul Galaxy.
+
+## Build 298 — blocco Semble più semplice (pubblicata su Todo Test)
 
 L'utente non trovava l'icona della build 297. Il nuovo evento ha un
 `SegmentedButton` «Evento | Blocco Semble»; in modalità blocco il modulo

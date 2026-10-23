@@ -27,8 +27,10 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   copia iCal. Successivi possibili, solo su richiesta: `availabilitySlots`
   (slot davvero prenotabili); blocchi di indisponibilità dalla build 297,
   semplificati nella 298 (provare sul Galaxy con l'ID stanza in
-  Impostazioni). In attesa della scelta dell'utente sulla semplificazione
-  generale del Calendario (viste, intestazione, scheda evento, modulo).
+  Impostazioni). Semplificazione del Calendario fatta nella build 299:
+  provarla sul Galaxy. Idee non ancora approvate: blocco Semble da pressione
+  lunga su una fascia libera, fasce Semble più leggere con interruttore,
+  niente gruppi «N visite».
 
 ## Osservazioni passive
 

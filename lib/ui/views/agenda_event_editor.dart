@@ -116,6 +116,13 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
   AgendaRepeat repeat = AgendaRepeat.none;
   DateTime? repeatUntil;
   bool blockMode = false;
+
+  /// Calendar, repeat, zone, place and notes stay folded until asked for
+  /// (build 299), unless the event already uses them.
+  late bool moreOptions =
+      widget.existing != null ||
+      (widget.prefill?.location?.trim().isNotEmpty ?? false) ||
+      (widget.prefill?.notes?.trim().isNotEmpty ?? false);
   bool moreBlockTypes = !sembleQuickBlockTypes.contains(lastSembleBlockType);
   SembleBlockType blockType = lastSembleBlockType;
   String? error;
@@ -209,6 +216,12 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
           repeat = AgendaRepeat.values.byName(value['repeat'] as String);
           repeatUntil = DateTime.tryParse(value['until'] as String? ?? '');
           restored = true;
+          moreOptions =
+              moreOptions ||
+              repeat != AgendaRepeat.none ||
+              selectedZone != null ||
+              location.text.trim().isNotEmpty ||
+              notes.text.trim().isNotEmpty;
         } else {
           await widget.drafts?.remove(widget.draftId!);
         }
@@ -735,34 +748,6 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
                   },
                 ),
                 const SizedBox(height: 12),
-                if (widget.calendars.isEmpty)
-                  const Text('Nessun calendario modificabile sul telefono.')
-                else
-                  DropdownButtonFormField<String>(
-                    key: const ValueKey('agenda-event-calendar'),
-                    initialValue: calendarId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Calendario'),
-                    items: [
-                      for (final calendar in widget.calendars)
-                        DropdownMenuItem(
-                          value: calendar.id,
-                          child: Text(
-                            calendar.name == calendar.accountName ||
-                                    calendar.accountName.isEmpty
-                                ? calendar.name
-                                : '${calendar.name} · ${calendar.accountName}',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                    onChanged: widget.existing != null
-                        ? null
-                        : (value) => setState(() {
-                            calendarId = value ?? '';
-                            missingCalendar = false;
-                          }),
-                  ),
                 SwitchListTile(
                   key: const ValueKey('agenda-event-all-day'),
                   contentPadding: EdgeInsets.zero,
@@ -803,93 +788,135 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
                         : 'Durata${selectedZone == null ? '' : ' nominale'}: ${duration.inHours} h ${duration.inMinutes.remainder(60)} min',
                     key: const ValueKey('agenda-event-duration'),
                   ),
-                if (widget.existing == null) ...[
-                  DropdownButtonFormField<AgendaRepeat>(
-                    key: const ValueKey('agenda-event-repeat'),
-                    initialValue: repeat,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Ripeti',
-                      prefixIcon: Icon(Icons.repeat),
+                if (!moreOptions && !missingCalendar)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      key: const ValueKey('agenda-event-more'),
+                      onPressed: () => setState(() => moreOptions = true),
+                      icon: const Icon(Icons.expand_more),
+                      label: const Text('Altre opzioni'),
                     ),
-                    items: [
-                      for (final option in AgendaRepeat.values)
-                        DropdownMenuItem(
-                          value: option,
+                  )
+                else ...[
+                  if (widget.calendars.isEmpty)
+                    const Text('Nessun calendario modificabile sul telefono.')
+                  else
+                    DropdownButtonFormField<String>(
+                      key: const ValueKey('agenda-event-calendar'),
+                      initialValue: calendarId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Calendario',
+                      ),
+                      items: [
+                        for (final calendar in widget.calendars)
+                          DropdownMenuItem(
+                            value: calendar.id,
+                            child: Text(
+                              calendar.name == calendar.accountName ||
+                                      calendar.accountName.isEmpty
+                                  ? calendar.name
+                                  : '${calendar.name} · ${calendar.accountName}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: widget.existing != null
+                          ? null
+                          : (value) => setState(() {
+                              calendarId = value ?? '';
+                              missingCalendar = false;
+                            }),
+                    ),
+                  if (widget.existing == null) ...[
+                    DropdownButtonFormField<AgendaRepeat>(
+                      key: const ValueKey('agenda-event-repeat'),
+                      initialValue: repeat,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Ripeti',
+                        prefixIcon: Icon(Icons.repeat),
+                      ),
+                      items: [
+                        for (final option in AgendaRepeat.values)
+                          DropdownMenuItem(
+                            value: option,
+                            child: Text(
+                              agendaRepeatLabel(option, day),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => repeat = value ?? AgendaRepeat.none),
+                    ),
+                    if (repeat != AgendaRepeat.none)
+                      ListTile(
+                        key: const ValueKey('agenda-event-repeat-until'),
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.event_busy_outlined),
+                        title: Text(
+                          repeatUntil == null
+                              ? 'Senza fine'
+                              : 'Fino al ${dayFormat.format(repeatUntil!)}',
+                        ),
+                        trailing: repeatUntil == null
+                            ? null
+                            : IconButton(
+                                tooltip: 'Senza fine',
+                                icon: const Icon(Icons.close),
+                                onPressed: () =>
+                                    setState(() => repeatUntil = null),
+                              ),
+                        onTap: _pickRepeatUntil,
+                      ),
+                    const SizedBox(height: 8),
+                  ],
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.public, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            agendaRepeatLabel(option, day),
-                            overflow: TextOverflow.ellipsis,
+                            allDay
+                                ? 'Giornata intera: stessa data in ogni fuso'
+                                : 'Fuso orario: ${selectedZone ?? widget.zoneLabel ?? 'non riconosciuto'}',
+                            key: const ValueKey('agenda-event-zone'),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => repeat = value ?? AgendaRepeat.none),
-                  ),
-                  if (repeat != AgendaRepeat.none)
-                    ListTile(
-                      key: const ValueKey('agenda-event-repeat-until'),
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.event_busy_outlined),
-                      title: Text(
-                        repeatUntil == null
-                            ? 'Senza fine'
-                            : 'Fino al ${dayFormat.format(repeatUntil!)}',
-                      ),
-                      trailing: repeatUntil == null
-                          ? null
-                          : IconButton(
-                              tooltip: 'Senza fine',
-                              icon: const Icon(Icons.close),
-                              onPressed: () =>
-                                  setState(() => repeatUntil = null),
-                            ),
-                      onTap: _pickRepeatUntil,
+                      ],
                     ),
-                  const SizedBox(height: 8),
-                ],
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.public, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          allDay
-                              ? 'Giornata intera: stessa data in ogni fuso'
-                              : 'Fuso orario: ${selectedZone ?? widget.zoneLabel ?? 'non riconosciuto'}',
-                          key: const ValueKey('agenda-event-zone'),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-                if (!allDay &&
-                    widget.loadTimeZones != null &&
-                    widget.existing == null)
-                  TextButton(
-                    onPressed: _pickZone,
-                    child: const Text('Scegli fuso orario'),
-                  ),
-                TextField(
-                  controller: location,
-                  decoration: const InputDecoration(
-                    labelText: 'Luogo (facoltativo)',
-                    prefixIcon: Icon(Icons.place_outlined),
-                  ),
-                ),
-                if (widget.notesEditable) ...[
-                  const SizedBox(height: 12),
+                  if (!allDay &&
+                      widget.loadTimeZones != null &&
+                      widget.existing == null)
+                    TextButton(
+                      onPressed: _pickZone,
+                      child: const Text('Scegli fuso orario'),
+                    ),
                   TextField(
-                    controller: notes,
-                    minLines: 2,
-                    maxLines: 6,
+                    controller: location,
                     decoration: const InputDecoration(
-                      labelText: 'Note (facoltative)',
-                      prefixIcon: Icon(Icons.notes),
+                      labelText: 'Luogo (facoltativo)',
+                      prefixIcon: Icon(Icons.place_outlined),
                     ),
                   ),
+                  if (widget.notesEditable) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notes,
+                      minLines: 2,
+                      maxLines: 6,
+                      decoration: const InputDecoration(
+                        labelText: 'Note (facoltative)',
+                        prefixIcon: Icon(Icons.notes),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ],

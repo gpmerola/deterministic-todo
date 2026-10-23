@@ -4,6 +4,29 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Calendario più semplice — build 299
+
+Richiesta dell'utente (23 ottobre 2026: «il calendario è inondato di
+funzioni»). Scelte confermate da lui: la vista 4 settimane resta; via
+3 settimane, Mese ed Elenco; il resto della proposta approvato.
+
+- **Viste.** `AgendaViewMode.offered` esclude `threeWeeks`, `month` e
+  `list`: il menu le mostra solo se sono la vista corrente. La preferenza
+  passa alla chiave v4: alla prima lettura la v3 (o la v2) viene copiata con
+  `orOffered`, quindi una vista tolta diventa 4 settimane una sola volta; il
+  ripristino di un backup fa lo stesso. I renderer restano nel codice (test e
+  griglia condivisa con 4 settimane).
+- **Barra.** L'Assistente ✨ (`agenda-ai-capture`) è una voce del menu
+  «Altro»; restano Vista, Oggi, +, Calendari e Altro.
+- **Scheda evento.** In vista Partecipa, Modifica ed Elimina; Modifica solo
+  in Todo, Nascondi, Preparare, Follow-up e Apri nel calendario sono nel menu
+  `agenda-sheet-more`, con le stesse azioni di prima.
+- **Nuovo evento.** Titolo, «Tutto il giorno», giorno e ore in vista;
+  calendario, ripetizione, fuso, luogo e note dietro «Altre opzioni»
+  (`agenda-event-more`). Restano aperti modificando un evento, con una
+  proposta che ha luogo o note, con una bozza ripristinata che li usa e
+  quando il calendario predefinito manca.
+
 ## Disponibilità Semble — build 285
 
 Richiesta dell'utente (22 ottobre 2026): vedere nel Calendario le fasce di
@@ -317,8 +340,8 @@ della settimana corrente alla domenica della terza successiva, esattamente
 28 giorni anche a cavallo di mese e anno. Scorrimento laterale di 28 giorni;
 «Oggi» riporta alla settimana corrente. Riusa la griglia parametrica delle due
 settimane, senza query a mesi interi né nuove dipendenze. La preferenza v3
-migra una volta il vecchio «Mese» a «4 settimane» e conserva le altre viste;
-una successiva scelta esplicita di «Mese» resta memorizzata.
+migrava una volta il vecchio «Mese» a «4 settimane»; dalla build 299 Mese
+non è più offerto e la v4 sposta anche un «Mese» esplicito (vedi sopra).
 
 Dalla build 232 il «+» per creare un evento è nella barra superiore, accanto
 a «Oggi», con gli stessi permessi e flusso di salvataggio. Il pulsante flottante
