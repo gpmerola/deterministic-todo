@@ -2,6 +2,18 @@
 
 Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
+
+## Prova di scrittura Semble — 23 ottobre 2026
+
+Su richiesta esplicita dell'utente, dal Mac: una sola indisponibilità di
+prova (23/10/2026, 23:00–23:15 ora di Londra, tipo `other`, commento di test,
+stanza `6a5116a7c2ac13bafdfe9cf1`) creata con `createAvailability`, riletta
+con `availabilityRule` e cancellata con `deleteAvailability`; la rilettura
+finale risponde «not found». Prima verificato che nessuna regola né
+prenotazione occupasse la fascia. La chiave **può scrivere** disponibilità.
+Per un solo giorno senza ricorrenza `endDate` va omesso (altrimenti l'API
+rifiuta). `createdAt` è un vero UTC, mentre `start`/`end` delle prenotazioni
+sono ora di Londra con `Z`. L'app non scrive verso Semble.
 ## Build 296 — Semble in ora legale, solare e in Italia
 
 Cifre dell'API lette come Europe/London (`londonWallClock`, regole BST) e
