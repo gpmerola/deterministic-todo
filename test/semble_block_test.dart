@@ -100,9 +100,7 @@ void main() {
   group('interfaccia', () {
     setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
-    testWidgets('conferma, blocco creato e Annulla lo cancella', (
-      tester,
-    ) async {
+    testWidgets('blocco creato e Annulla lo cancella', (tester) async {
       final settings = SembleSettings();
       expect(await sembleBlockReady(settings), isFalse);
       await settings.save(key: 'k', userId: 'user1', roomId: 'room1');
@@ -141,17 +139,17 @@ void main() {
       await layer.refresh(today: const CivilDate(2026, 10, 23), force: true);
       expect(layer.canBlock, isTrue);
       queries.clear();
-      bool? result;
       final start = DateTime(2026, 10, 23, 14);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () async => result = await showSembleBlockSheet(
+                onPressed: () => createSembleBlock(
                   context,
                   start: start,
                   end: start.add(const Duration(hours: 1)),
+                  type: SembleBlockType.cpd,
                   settings: settings,
                   client: client,
                   layer: layer,
@@ -162,17 +160,12 @@ void main() {
           ),
         ),
       );
+      expect(queries, isEmpty, reason: 'nulla prima del tocco');
       await tester.tap(find.text('blocca'));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('semble-block-sheet')), findsOne);
-      expect(queries, isEmpty, reason: 'nulla prima della conferma');
-      await tester.tap(find.byKey(const ValueKey('semble-block-cpd')));
-      await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('semble-block-confirm')));
-      await tester.pumpAndSettle();
-      expect(result, isTrue);
       expect(queries.first, sembleCreateBlockMutation);
       expect(queries.where((q) => q.startsWith('mutation')), hasLength(1));
+      expect(lastSembleBlockType, SembleBlockType.cpd);
       expect(find.text('Bloccato in Semble.'), findsOne);
       await tester.tap(find.text('Annulla'));
       await tester.pumpAndSettle();
@@ -181,50 +174,95 @@ void main() {
         hasLength(1),
       );
       expect(find.text('Blocco Semble annullato.'), findsOne);
+      lastSembleBlockType = SembleBlockType.generalAdmin;
     });
 
-    testWidgets('dal nuovo evento: blocca con gli orari del modulo', (
-      tester,
-    ) async {
-      final blocked = <(DateTime, DateTime)>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => Navigator.of(context).push<AgendaEventDraft>(
-                MaterialPageRoute(
-                  builder: (_) => AgendaEventEditor(
-                    calendars: const [
-                      AgendaCalendar(
-                        id: 'g',
-                        name: 'Personale',
-                        accountName: 'me@example.com',
-                        writable: true,
-                      ),
-                    ],
-                    initialStart: DateTime(2026, 10, 23, 14),
-                    initialEnd: DateTime(2026, 10, 23, 15, 30),
-                    zoneLabel: 'Europe/London · UTC+1',
-                    onSembleBlock: (start, end) async {
-                      blocked.add((start, end));
-                      return true;
-                    },
+    Widget editor(
+      List<(DateTime, DateTime, SembleBlockType)> blocked, {
+      Object? failure,
+    }) => MaterialApp(
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => Navigator.of(context).push<AgendaEventDraft>(
+            MaterialPageRoute(
+              builder: (_) => AgendaEventEditor(
+                calendars: const [
+                  AgendaCalendar(
+                    id: 'g',
+                    name: 'Personale',
+                    accountName: 'me@example.com',
+                    writable: true,
                   ),
-                ),
+                ],
+                initialStart: DateTime(2026, 10, 23, 14),
+                initialEnd: DateTime(2026, 10, 23, 15, 30),
+                zoneLabel: 'Europe/London · UTC+1',
+                onSembleBlock: (start, end, type) async {
+                  if (failure != null) throw failure;
+                  blocked.add((start, end, type));
+                },
               ),
-              child: const Text('apri'),
             ),
           ),
+          child: const Text('apri'),
+        ),
+      ),
+    );
+
+    testWidgets('dal nuovo evento: Blocco Semble con orari e tipo', (
+      tester,
+    ) async {
+      final blocked = <(DateTime, DateTime, SembleBlockType)>[];
+      await tester.pumpWidget(editor(blocked));
+      await tester.tap(find.text('apri'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('agenda-event-semble-block')),
+        findsNothing,
+      );
+      await tester.tap(find.text('Blocco Semble'));
+      await tester.pumpAndSettle();
+      // Only times and types: no title, calendar or repeat.
+      expect(find.byKey(const ValueKey('agenda-event-title')), findsNothing);
+      expect(find.byKey(const ValueKey('agenda-event-calendar')), findsNothing);
+      expect(find.byKey(const ValueKey('semble-block-cpd')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('semble-block-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('semble-block-annualLeave')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('agenda-event-semble-block')));
+      await tester.pumpAndSettle();
+      expect(blocked, [
+        (
+          DateTime(2026, 10, 23, 14),
+          DateTime(2026, 10, 23, 15, 30),
+          SembleBlockType.annualLeave,
+        ),
+      ]);
+      expect(find.byType(AgendaEventEditor), findsNothing);
+    });
+
+    testWidgets('se Semble rifiuta il modulo resta aperto con il motivo', (
+      tester,
+    ) async {
+      final blocked = <(DateTime, DateTime, SembleBlockType)>[];
+      await tester.pumpWidget(
+        editor(
+          blocked,
+          failure: const SembleException(SembleFailure.forbidden),
         ),
       );
       await tester.tap(find.text('apri'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Blocco Semble'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('agenda-event-semble-block')));
       await tester.pumpAndSettle();
-      expect(blocked, [
-        (DateTime(2026, 10, 23, 14), DateTime(2026, 10, 23, 15, 30)),
-      ]);
-      expect(find.byType(AgendaEventEditor), findsNothing);
+      expect(find.byType(AgendaEventEditor), findsOne);
+      expect(
+        find.text(const SembleException(SembleFailure.forbidden).message),
+        findsOne,
+      );
     });
   });
 }

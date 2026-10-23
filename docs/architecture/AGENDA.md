@@ -201,11 +201,13 @@ minuti, così la pausa non diventa verde. `buildAgenda` accetta `adjust`
 
 **Blocchi verso Semble (build 297).** È l'unica scrittura verso Semble. Nel
 nuovo evento, quando `SembleLayer.canBlock` (chiave, User ID e ID stanza
-salvati, noto dall'ultima lettura, senza rete), l'icona «Blocca in Semble»
-passa inizio e fine del modulo (senza titolo né calendario) a
-`showSembleBlockSheet`. `sembleBlockFor` converte gli orari del telefono in
+salvati, noto dall'ultima lettura, senza rete), la scelta in cima «Evento |
+Blocco Semble» (build 298) riduce il modulo a giorno, orari del telefono e
+tipo (Admin, Ferie, Malattia, Altro, gli altri sotto «Altri tipi»; l'ultimo
+usato resta in memoria). Il pulsante «Blocca» è la conferma e chiama
+`createSembleBlock`; se Semble rifiuta, il modulo resta aperto col motivo. `sembleBlockFor` converte gli orari del telefono in
 ora di Londra (`londonDigitsOf`) e rifiuta un blocco che attraversa la
-mezzanotte di Londra (24:00 ammesso come fine). Dopo la conferma
+mezzanotte di Londra (24:00 ammesso come fine). Al tocco su «Blocca»
 `createUnavailability` invia `createAvailability` con `unavailability`,
 `room`, `user`, `startDate`, `startTime`, `endTime`, tipo e commento «Da
 Todo», **senza `endDate`** (Semble lo rifiuta senza ricorrenza). Lo

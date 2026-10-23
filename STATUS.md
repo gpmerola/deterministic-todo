@@ -4,7 +4,16 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 297 — blocchi Semble dal Calendario (in collaudo)
+## Build 298 — blocco Semble più semplice (in collaudo)
+
+L'utente non trovava l'icona della build 297. Il nuovo evento ha un
+`SegmentedButton` «Evento | Blocco Semble»; in modalità blocco il modulo
+mostra solo giorno, orari e tipi (4 rapidi più «Altri tipi») e «Blocca»
+chiama `createSembleBlock` direttamente (la scheda di conferma è stata
+tolta: il tocco su «Blocca» è la conferma esplicita). Errori Semble
+mostrati nel modulo. Da provare sul Galaxy.
+
+## Build 297 — blocchi Semble dal Calendario
 
 Richiesta dell'utente del 23 ottobre 2026 («un metodo veloce e comodo per
 aggiungere indisponibilità su Semble»). `SembleClient.createUnavailability`

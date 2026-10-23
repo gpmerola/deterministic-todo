@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.111.0 (build 298) — Blocco Semble più semplice
+
+- In cima al modulo **Nuovo evento** c'è la scelta **Evento | Blocco
+  Semble** (al posto dell'icona senza testo). Con «Blocco Semble» il modulo
+  mostra solo giorno, ora di inizio e fine e il tipo; il pulsante in alto
+  diventa **Blocca** e crea subito il blocco, senza una seconda scheda.
+- Tipi rapidi: Admin, Ferie, Malattia, Altro; gli altri sotto «Altri tipi».
+  L'ultimo tipo usato resta selezionato finché l'app è aperta.
+- Se Semble rifiuta, il modulo resta aperto con il motivo. «Annulla» nello
+  snackbar per 8 secondi resta invariato.
+
 ## 2.110.0 (build 297) — Blocca orari in Semble dal Calendario
 
 - Nel modulo **Nuovo evento** (anche aperto trascinando su uno spazio vuoto
