@@ -27,10 +27,11 @@ abstract final class SemblePalette {
   static Color unavailable(ColorScheme scheme) =>
       _blocked(scheme).withValues(alpha: 0.3);
 
-  static Color stripAvailable(ColorScheme scheme) =>
+  /// Solid swatches of the legend in Settings.
+  static Color legendAvailable(ColorScheme scheme) =>
       availableEdge(scheme).withValues(alpha: 0.9);
 
-  static Color stripUnavailable(ColorScheme scheme) =>
+  static Color legendUnavailable(ColorScheme scheme) =>
       _blocked(scheme).withValues(alpha: 0.6);
 
   static Color overlap(ColorScheme scheme) =>
@@ -164,121 +165,4 @@ class _BandsPainter extends CustomPainter {
     }
     return true;
   }
-}
-
-/// Compact Semble availability for one cell of the 4-week and month grids
-/// (build 286): a thin bar under the date, 07:00 at the left edge and
-/// midnight at the right, green where bookable and grey where blocked.
-class AgendaSembleStrip extends StatelessWidget {
-  const AgendaSembleStrip({required this.day, required this.bands, super.key});
-
-  final CivilDate day;
-  final List<SembleBand> bands;
-
-  static const firstMinute = 7 * 60;
-  static const lastMinute = 24 * 60;
-  static const barHeight = 4.0;
-
-  /// Solid colours of the bar, also used by the legend in Settings.
-  static Color availableColor(ColorScheme scheme) =>
-      SemblePalette.stripAvailable(scheme);
-
-  static Color unavailableColor(ColorScheme scheme) =>
-      SemblePalette.stripUnavailable(scheme);
-
-  /// Height added to the cell compared with the usual 1 px gap.
-  static const extra = barHeight + 1;
-
-  /// "Semble: disponibile 10:00–18:00; non disponibile 14:00–15:00".
-  static String describe(List<SembleBand> bands) {
-    String at(int minute) =>
-        '${(minute ~/ 60).toString().padLeft(2, '0')}:'
-        '${(minute % 60).toString().padLeft(2, '0')}';
-    String spans(SembleBandKind kind) => [
-      for (final band in bands)
-        if (band.kind == kind) '${at(band.startMinute)}–${at(band.endMinute)}',
-    ].join(', ');
-    final open = spans(SembleBandKind.available);
-    final closed = spans(SembleBandKind.unavailable);
-    return [
-      'Semble:',
-      if (open.isNotEmpty) 'disponibile $open',
-      if (open.isNotEmpty && closed.isNotEmpty) ';',
-      if (closed.isNotEmpty) 'non disponibile $closed',
-    ].join(' ').replaceAll(' ;', ';');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      label: describe(bands),
-      child: Padding(
-        key: ValueKey('agenda-semble-strip-$day'),
-        padding: const EdgeInsets.fromLTRB(2, 1, 2, 1),
-        child: SizedBox(
-          height: barHeight,
-          child: CustomPaint(
-            painter: _StripPainter(
-              bands: bands,
-              track: scheme.onSurface.withValues(alpha: 0.06),
-              available: availableColor(scheme),
-              unavailable: unavailableColor(scheme),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StripPainter extends CustomPainter {
-  _StripPainter({
-    required this.bands,
-    required this.track,
-    required this.available,
-    required this.unavailable,
-  });
-
-  final List<SembleBand> bands;
-  final Color track;
-  final Color available;
-  final Color unavailable;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const first = AgendaSembleStrip.firstMinute;
-    const span = AgendaSembleStrip.lastMinute - first;
-    double x(int minute) =>
-        (minute.clamp(first, AgendaSembleStrip.lastMinute) - first) /
-        span *
-        size.width;
-    final radius = Radius.circular(size.height / 2);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, radius),
-      Paint()..color = track,
-    );
-    for (final band in bands) {
-      final left = x(band.startMinute);
-      final right = x(band.endMinute);
-      if (right - left <= 0) continue;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTRB(left, 0, right, size.height),
-          radius,
-        ),
-        Paint()
-          ..color = band.kind == SembleBandKind.available
-              ? available
-              : unavailable,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _StripPainter old) =>
-      old.track != track ||
-      old.available != available ||
-      old.unavailable != unavailable ||
-      !_BandsPainter._same(old.bands, bands);
 }

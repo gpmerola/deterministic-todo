@@ -18,6 +18,10 @@ enum AgendaEventAction {
 
   /// Copy edited in Todo's own calendar that replaces the original here.
   editInTodo,
+
+  /// Blocks the event's time in Semble (build 301): offered when the event
+  /// is not a visit but falls in bookable Semble time.
+  sembleBlock,
 }
 
 /// Google Calendar-like detail of one occurrence. Returns the chosen action.
@@ -33,6 +37,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   bool localOnly = false,
   bool canCopyInTodo = false,
   List<AgendaEntry> overlaps = const [],
+  bool canSembleBlock = false,
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
   showDragHandle: true,
@@ -48,6 +53,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     localOnly: localOnly,
     canCopyInTodo: canCopyInTodo,
     overlaps: overlaps,
+    canSembleBlock: canSembleBlock,
   ),
 );
 
@@ -63,6 +69,7 @@ class AgendaEventSheet extends StatelessWidget {
     this.localOnly = false,
     this.canCopyInTodo = false,
     this.overlaps = const [],
+    this.canSembleBlock = false,
     super.key,
   });
 
@@ -74,6 +81,10 @@ class AgendaEventSheet extends StatelessWidget {
 
   /// Other timed events at the same time (see [agendaOverlaps]).
   final List<AgendaEntry> overlaps;
+
+  /// The event is in bookable Semble time (amber edge): one button blocks
+  /// it there (build 301).
+  final bool canSembleBlock;
 
   /// False on the web: there is no phone calendar app to open.
   final bool canOpenInCalendar;
@@ -238,6 +249,14 @@ class AgendaEventSheet extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                if (canSembleBlock)
+                  FilledButton.icon(
+                    key: const ValueKey('agenda-sheet-semble-block'),
+                    onPressed: () =>
+                        Navigator.pop(context, AgendaEventAction.sembleBlock),
+                    icon: const Icon(Icons.event_busy),
+                    label: const Text('Blocca in Semble'),
+                  ),
                 if (meeting != null)
                   FilledButton.icon(
                     onPressed: () => unawaited(

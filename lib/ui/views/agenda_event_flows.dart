@@ -116,6 +116,7 @@ class AgendaEventFlows {
       localOnly: localOnly(entry),
       canCopyInTodo: service.canCopyInTodo,
       overlaps: overlaps,
+      canSembleBlock: _canSembleBlock(entry),
     );
     if (!context.mounted || action == null) return false;
     return perform(context, entry, action);
@@ -219,12 +220,39 @@ class AgendaEventFlows {
   }
 
   /// Runs one action of the detail sheet or of the quick menu.
+  /// Not a visit, one day, timed and inside bookable Semble time: the
+  /// amber-edged events (build 301). The whole event is blocked; once it
+  /// is, the time is no longer bookable and the button goes away.
+  bool _canSembleBlock(AgendaEntry entry) {
+    final layer = SembleLayer.shared;
+    if (service.writesViaPhone || !layer.canBlock) return false;
+    if (entry.allDay || entry.isTask) return false;
+    if (sembleBlockFor(entry.start, entry.end) == null) return false;
+    return layer.overlapsFor(CivilDate.fromDateTime(entry.start), [
+      entry,
+    ]).isNotEmpty;
+  }
+
   Future<bool> perform(
     BuildContext context,
     AgendaEntry entry,
     AgendaEventAction action,
   ) async {
     switch (action) {
+      case AgendaEventAction.sembleBlock:
+        try {
+          await createSembleBlock(context, start: entry.start, end: entry.end);
+        } on Object catch (error) {
+          if (context.mounted) {
+            _say(
+              context,
+              error is SembleException
+                  ? 'Blocco non creato: ${error.message}'
+                  : 'Blocco non creato: riprova.',
+            );
+          }
+          return false;
+        }
       case AgendaEventAction.edit:
         await edit(context, entry);
       case AgendaEventAction.delete:

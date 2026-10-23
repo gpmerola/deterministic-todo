@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.114.0 (build 301) — Blocca dall'evento, griglie più pulite
+
+- Toccando un evento con il bordo ambra, la scheda ha in alto il pulsante
+  **Blocca in Semble**: un tocco blocca in Semble l'orario dell'evento
+  (Other, senza commento), con «Annulla» per 8 secondi. Poi il bordo
+  sparisce.
+- Tolta la barretta di disponibilità sotto la data nelle viste a 2 e 4
+  settimane.
+
 ## 2.113.0 (build 300) — Ritocchi Semble
 
 - Nelle viste a più settimane toccare un gruppo «N visite» apre il giorno;

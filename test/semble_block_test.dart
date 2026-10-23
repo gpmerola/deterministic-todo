@@ -6,6 +6,7 @@ import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/semble_service.dart';
 import 'package:deterministic_todo/ui/semble_block_sheet.dart';
 import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
+import 'package:deterministic_todo/ui/views/agenda_event_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -251,6 +252,51 @@ void main() {
         find.text(const SembleException(SembleFailure.forbidden).message),
         findsOne,
       );
+    });
+
+    testWidgets('evento con bordo ambra: un pulsante blocca in Semble', (
+      tester,
+    ) async {
+      AgendaEventAction? chosen;
+      final entry = AgendaEntry(
+        instanceId: 'e',
+        calendarIds: const ['g'],
+        title: 'Riunione sintetica',
+        start: DateTime(2026, 10, 23, 11),
+        end: DateTime(2026, 10, 23, 12),
+        allDay: false,
+      );
+      Future<void> open(bool offered) async {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () async => chosen = await showAgendaEventSheet(
+                    context,
+                    entry: entry,
+                    calendarName: 'Personale',
+                    editable: true,
+                    zoneLabel: null,
+                    canSembleBlock: offered,
+                  ),
+                  child: const Text('apri'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('apri'));
+        await tester.pumpAndSettle();
+      }
+
+      await open(false);
+      expect(find.text('Blocca in Semble'), findsNothing);
+      await open(true);
+      await tester.tap(find.byKey(const ValueKey('agenda-sheet-semble-block')));
+      await tester.pumpAndSettle();
+      expect(chosen, AgendaEventAction.sembleBlock);
     });
   });
 }

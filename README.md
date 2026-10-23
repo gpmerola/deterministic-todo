@@ -142,9 +142,9 @@ che apre direttamente questa sezione, previa conferma del launcher.
 
 Con **Impostazioni → Semble** (Android, build 285) le viste Giorno, 3 giorni
 e Settimana mostrano dietro agli eventi le disponibilità impostate in Semble:
-verde dove si è prenotabili, righe grigie dove l'orario è bloccato. In 4
-settimane e Mese (build 286) una barretta sotto la data, dalle 7 a
-mezzanotte, riassume la giornata. Dalla build 287 il verde resta solo dove si è anche
+verde dove si è prenotabili, righe grigie dove l'orario è bloccato. La
+barretta sotto la data nelle griglie (build 286) è stata tolta nella 301 su
+richiesta dell'utente. Dalla build 287 il verde resta solo dove si è anche
 liberi da eventi. È sola
 lettura e la chiave API resta nel Keystore del telefono. Gli appuntamenti
 arrivano dal calendario Google collegato a Semble; con il cognome impostato
@@ -158,7 +158,8 @@ giorno, orari, tipo e «Blocca» creano un'indisponibilità in Semble,
 annullabile subito (build 297, semplificato nella 298; dalla 300 sempre
 Other e senza commento). Le visite Semble sono verdi come la disponibilità,
 e un evento che non è una visita ma cade in orario prenotabile ha un bordo
-ambra (build 300). Con lo stesso cognome la Stima lavoro
+ambra (build 300); la sua scheda offre «Blocca in Semble», che blocca
+quell'orario con un tocco (build 301). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

@@ -12,7 +12,6 @@ import 'agenda_day_view.dart';
 import 'agenda_month_view.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
-import 'agenda_semble_layer.dart';
 import 'calendar_visit_group.dart';
 
 /// Monday of the week containing [day].
@@ -295,25 +294,21 @@ class AgendaDayCell extends StatelessWidget {
             listenable: semble ?? SembleLayer.shared,
             builder: (context, _) => LayoutBuilder(
               builder: (context, constraints) {
+                // No availability bar in the grids: clutter for the user
+                // (build 301); only the amber mark on events in it.
                 final layer = semble ?? SembleLayer.shared;
-                final bands = layer.bandsFor(date, busy: entries);
                 final inSemble = layer.overlapsFor(date, entries);
                 final items = groupVisits
                     ? calendarVisitItems(entries, date)
                     : entries.map((e) => CalendarVisitItem([e])).toList();
-                final shown = _shownHeights(
-                  [
-                    for (final item in items)
-                      item.grouped
-                          ? CalendarVisitGroup.height
-                          : item.first.allDay || item.first.isTask
-                          ? chipHeight
-                          : AgendaChip.twoLineHeight,
-                  ],
-                  constraints.maxHeight -
-                      19 -
-                      (bands.isEmpty ? 0 : AgendaSembleStrip.extra),
-                );
+                final shown = _shownHeights([
+                  for (final item in items)
+                    item.grouped
+                        ? CalendarVisitGroup.height
+                        : item.first.allDay || item.first.isTask
+                        ? chipHeight
+                        : AgendaChip.twoLineHeight,
+                ], constraints.maxHeight - 19);
                 final hiddenCount = items
                     .skip(shown)
                     .fold<int>(0, (sum, item) => sum + item.entries.length);
@@ -349,10 +344,7 @@ class AgendaDayCell extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (bands.isEmpty)
-                      const SizedBox(height: 1)
-                    else
-                      AgendaSembleStrip(day: date, bands: bands),
+                    const SizedBox(height: 1),
                     for (final item in items.take(shown))
                       if (item.grouped)
                         CalendarVisitGroup(

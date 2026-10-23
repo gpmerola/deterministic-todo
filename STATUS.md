@@ -4,7 +4,13 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 300 — ritocchi Semble (in collaudo)
+## Build 301 — blocco dagli eventi ambra, niente barretta (in collaudo)
+
+Pulsante «Blocca in Semble» nella scheda degli eventi ambra (intero
+orario dell'evento) e rimozione di `AgendaSembleStrip` dalle griglie. Da
+provare sul Galaxy.
+
+## Build 300 — ritocchi Semble (pubblicata su Todo Test)
 
 Richieste dell'utente del 23 ottobre: tocco sui gruppi nelle griglie apre
 il giorno (`CalendarVisitGroup.onTap`); blocco sempre `other` senza

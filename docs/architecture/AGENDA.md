@@ -4,6 +4,22 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Blocco dagli eventi ambra e niente barretta — build 301
+
+- **Un tocco.** `AgendaEventFlows._canSembleBlock`: evento a orario, non
+  attività, in un solo giorno di Londra (`sembleBlockFor`), con
+  `SembleLayer.canBlock` e almeno una sovrapposizione da `overlapsFor`. La
+  scheda mostra allora il pulsante pieno «Blocca in Semble»
+  (`agenda-sheet-semble-block`, `AgendaEventAction.sembleBlock`), che è la
+  conferma esplicita e chiama `createSembleBlock` sull'intero orario
+  dell'evento (Other, senza commento, Annulla per 8 secondi). Dopo la
+  rilettura la fascia è indisponibile: bordo e pulsante spariscono, quindi
+  un secondo tocco non crea un doppione.
+- **Griglie.** Su richiesta dell'utente («clutter») `AgendaSembleStrip` è
+  stata tolta: le celle di 2 e 4 settimane non hanno più la barretta né i
+  5 dp in meno; restano il bordo ambra e le fasce nelle viste orarie. La
+  legenda delle Impostazioni usa `SemblePalette.legend*`.
+
 ## Ritocchi Semble — build 300
 
 - **Gruppi nelle griglie.** In 2 e 4 settimane `AgendaDayCell` passa
@@ -22,7 +38,7 @@ legata alla rinomina.
   conflitto fra eventi resta rosso e prevale.
 - **Palette.** `SemblePalette` riunisce i colori: visite (il calendario
   Semble prende `visit` al posto del colore di sistema), disponibilità,
-  bordo, indisponibilità, barretta delle griglie e ambra, con varianti per
+  bordo, indisponibilità, legenda delle Impostazioni e ambra, con varianti per
   il tema scuro.
 
 ## Calendario più semplice — build 299
@@ -67,7 +83,7 @@ passo in **sola lettura**, Semble → Todo.
   e inviti senza risposta (contorno tratteggiato). Gli eventi a cavallo
   della mezzanotte sono tagliati al giorno. Vale per fasce e barretta; le
   indisponibilità non cambiano. Calcolo solo in memoria a ogni disegno.
-- **4 settimane e Mese (build 286).** Su richiesta dell'utente, che usa
+- **4 settimane e Mese (build 286, tolta nella 301).** Su richiesta dell'utente, che usa
   soprattutto le 4 settimane: `AgendaSembleStrip` disegna sotto la data di
   ogni `AgendaDayCell` una barretta di 4 dp che va dalle 07:00 (bordo
   sinistro) a mezzanotte (bordo destro), verde per le fasce prenotabili e

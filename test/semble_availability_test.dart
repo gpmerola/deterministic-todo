@@ -453,20 +453,8 @@ void main() {
     });
   });
 
-  group('4 settimane e mese', () {
-    test('descrizione accessibile delle fasce', () {
-      final rules = parse([
-        weekly('a', [4], '10:00', '18:00'),
-        once('x', '2026-10-22', '14:00', '15:00'),
-      ]);
-      expect(
-        AgendaSembleStrip.describe(sembleBandsFor(rules, thu22)),
-        'Semble: disponibile 10:00–14:00, 15:00–18:00; '
-        'non disponibile 14:00–15:00',
-      );
-    });
-
-    testWidgets('la barretta compare solo nei giorni con regole', (
+  group('griglie a settimane', () {
+    testWidgets('nessuna barretta Semble sotto la data (build 301)', (
       tester,
     ) async {
       final layer = SembleLayer(zoneShift: _london)
@@ -477,35 +465,28 @@ void main() {
           thu22,
           mon26,
         );
-      Widget cell(CivilDate date) => SizedBox(
-        width: 60,
-        height: 120,
-        child: AgendaDayCell(
-          date: date,
-          today: thu22,
-          entries: const [],
-          colors: const {},
-          onDay: (_) {},
-          semble: layer,
-        ),
-      );
       await tester.pumpWidget(
         MaterialApp(
-          home: Material(child: Row(children: [cell(thu22), cell(fri23)])),
+          home: Material(
+            child: SizedBox(
+              width: 60,
+              height: 120,
+              child: AgendaDayCell(
+                date: thu22,
+                today: thu22,
+                entries: const [],
+                colors: const {},
+                onDay: (_) {},
+                semble: layer,
+              ),
+            ),
+          ),
         ),
       );
       expect(
-        find.byKey(const ValueKey('agenda-semble-strip-2026-10-22')),
-        findsOne,
-      );
-      expect(
-        find.byKey(const ValueKey('agenda-semble-strip-2026-10-23')),
-        findsNothing,
-      );
-      layer.seed(const [], thu22, mon26);
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey('agenda-semble-strip-2026-10-22')),
+        find.byWidgetPredicate(
+          (widget) => '${widget.key}'.contains('agenda-semble'),
+        ),
         findsNothing,
       );
     });

@@ -190,8 +190,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                   Text(
                     'Mostra nel Calendario le disponibilità impostate in '
                     'Semble: dietro agli eventi in Giorno, 3 giorni e '
-                    'Settimana, come barretta sotto la data nelle viste a più settimane '
-                    '(dalle 7 a mezzanotte). '
+                    'Settimana. '
                     'Sola lettura: Todo non modifica nulla in Semble. Legge '
                     'date e orari delle regole e, per la Stima lavoro '
                     'privato e per il Calendario, orario, tipo, medico ed '
@@ -364,7 +363,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            swatch(AgendaSembleStrip.availableColor(theme.colorScheme)),
+            swatch(SemblePalette.legendAvailable(theme.colorScheme)),
             const SizedBox(width: 6),
             const Text('Disponibile'),
           ],
@@ -372,7 +371,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            swatch(AgendaSembleStrip.unavailableColor(theme.colorScheme)),
+            swatch(SemblePalette.legendUnavailable(theme.colorScheme)),
             const SizedBox(width: 6),
             const Text('Non disponibile (righe)'),
           ],
