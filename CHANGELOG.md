@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.118.0 (build 305) — Avviso Semble anche per gli eventi creati in Todo
+
+- Quando Todo va in background, controlla subito gli eventi in orario
+  Semble prenotabile non ancora segnalati: anche un evento creato o visto
+  nell'app ora riceve la notifica, senza aspettare un altro cambiamento del
+  calendario.
+
 ## 2.117.0 (build 304) — Avviso per eventi arrivati in orario Semble
 
 - Se mentre l'app è chiusa arriva nel calendario un evento (Teams, KCL,

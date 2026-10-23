@@ -47,6 +47,7 @@ import 'services/platform_runtime_native.dart'
 import 'services/private_earnings_service.dart';
 import 'services/quick_add_service.dart';
 import 'services/run_tracker_service.dart';
+import 'services/semble_conflicts.dart';
 import 'services/semble_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/todoist_import_verification.dart';
@@ -440,6 +441,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       appIsForeground = false;
       if (!backgroundSnapshotTaken) {
         backgroundSnapshotTaken = true;
+        // Events created or seen in the app with an amber edge were left
+        // to a background run; notify them now that the app is away
+        // (build 305). Cached rules only, no Semble call.
+        if (isAndroidPlatform) {
+          unawaited(SembleConflicts(agendaService).check());
+        }
         unawaited(PerformanceMonitor.instance.flushFrames());
         final imageCache = PaintingBinding.instance.imageCache;
         imageCache

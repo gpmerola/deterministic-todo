@@ -15,7 +15,10 @@ che cadono in un orario prenotabile mentre l'app non è aperta.
   quando il provider calendario cambia (fingerprint dei prossimi 8 giorni)
   e una volta al giorno; serve quindi che i promemoria siano attivi.
   Nell'engine dell'app il controllo salta se l'app è in primo piano: il
-  bordo ambra si vede già e il registro non viene consumato.
+  bordo ambra si vede già e il registro non viene consumato. Dalla build
+  305 parte anche quando l'app passa in background (una volta per uscita),
+  così un evento creato o visto in Todo viene notificato senza attendere un
+  altro cambiamento del calendario.
 - **Dati.** Nessuna chiamata a Semble: ogni lettura riuscita salva in
   `SembleSettings` (Keystore) regole e finestra (`SembleRule.toJson`, solo
   date e orari). `sembleConflicts` cerca nei prossimi 14 giorni, entro la

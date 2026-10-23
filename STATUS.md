@@ -4,7 +4,15 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 304 — notifica per eventi in orario Semble (in collaudo)
+## Build 305 — controllo Semble anche all'uscita dall'app (in collaudo)
+
+L'utente ha creato «Test» e non ha avuto notifica: probabilmente creato in
+Todo in primo piano, dove il controllo salta, e nessun altro trigger era
+seguito. Ora `didChangeAppLifecycleState` lancia `SembleConflicts.check()`
+alla prima transizione in background (insieme allo snapshot). ADB non
+raggiungibile al momento: diagnosi sul telefono non fatta.
+
+## Build 304 — notifica per eventi in orario Semble
 
 `SembleConflicts.check` gira con il refresh dei promemoria (trigger del
 provider calendario e job giornaliero di `AgendaReminderJob`), headless o
