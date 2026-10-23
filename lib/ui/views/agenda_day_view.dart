@@ -10,7 +10,6 @@ import '../../domain/semble_bookings.dart' show SembleBookingEntry;
 import '../../domain/task.dart';
 import '../../services/semble_service.dart' show SembleLayer;
 import 'agenda_colors.dart';
-import 'agenda_header.dart' show AgendaTodayIcon;
 import 'agenda_now_tick.dart';
 import 'agenda_page_frame.dart';
 import 'agenda_semble_layer.dart';
@@ -135,7 +134,7 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
               tooltip: 'Oggi',
               visualDensity: VisualDensity.compact,
               onPressed: _goToToday,
-              icon: AgendaTodayIcon(day: widget.today.day),
+              icon: const Icon(Icons.today_outlined),
             ),
           // Swiping already moves between days; the arrows make it visible.
           IconButton(

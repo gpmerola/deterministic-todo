@@ -4,6 +4,30 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Dalla notifica alla scheda, codice Semble riordinato — build 306
+
+- **Tocco sulla notifica.** `AgendaSembleConflicts.java` aggiunge all'intent
+  `OPEN_CALENDAR` solo l'istante d'inizio del primo evento e se è l'unico.
+  `CalendarLaunchRequest` lo conserva fino a `consumeLaunch`, che risponde
+  false, true o `{start, single}`. In Dart `CalendarLaunch` arriva ad
+  `AgendaView.launch` (un `ValueNotifier` della shell, consumato una volta):
+  dopo il primo caricamento e `SembleLayer.refresh`, la vista legge il
+  giorno e apre la scheda dell'evento non visita che inizia in quell'istante,
+  altrimenti il giorno.
+- **Intestazione.** Restano vista, + e menu «Altro»; il selettore calendari
+  è la prima voce del menu (icona filtro accesa se qualcosa è nascosto).
+  Nessun pulsante Oggi: nelle griglie si torna con uno scorrimento, nel
+  giorno il pulsante resta quando non si è su oggi.
+- **Viste.** `AgendaViewMode` ha solo 3 giorni, settimana, 2 e 4 settimane;
+  `AgendaViewMode.parse` porta a 4 settimane i nomi tolti o sconosciuti
+  (preferenza v4, v3, v2 e backup). Il loader non legge più giorni: lo fanno
+  le viste. Le parti comuni delle griglie sono in `agenda_chip.dart`.
+- **Semble.** `semble_service.dart` riesporta `semble_client.dart` (tutte le
+  operazioni ammesse elencate in un punto), `semble_settings.dart` e
+  `semble_layer.dart`. Le conversioni ora di Londra ↔ istante
+  (`londonWallClock`, `londonDigitsOf`, `sembleBlockFor`, `sembleZoneShift`)
+  sono in `domain/semble_time.dart`, con test sui due cambi d'ora.
+
 ## Avviso in background per eventi in orario Semble — build 304
 
 Richiesta dell'utente: sapere degli eventi importati da soli (Teams, KCL)
@@ -1163,7 +1187,7 @@ reali su un telefono vuoto.
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
 - `lib/services/agenda_service.dart`: permessi, provider, calendari nascosti.
 - `lib/ui/views/agenda_view.dart`: vista, Elenco, selettore calendari, etichette.
-- `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
+- `lib/ui/views/agenda_chip.dart`: voce di cella e iniziali dei giorni comuni alle griglie (la vista Mese è stata eliminata nella build 306).
 - `lib/ui/views/agenda_day_view.dart`: vista giorno in scala.
 - `lib/ui/views/agenda_weeks_view.dart`: vista a 2 settimane.
 - `lib/ui/views/agenda_week_view.dart`: vista settimana a colonne.

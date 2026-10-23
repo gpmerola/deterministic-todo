@@ -13,7 +13,7 @@ void main() {
   test(
     'cold and warm launches are consumed once; pin status stays explicit',
     () async {
-      var pending = true;
+      Object pending = true;
       var opens = 0;
       var pinStatus = 'requested';
       messenger.setMockMethodCallHandler(CalendarShortcutService.channel, (
@@ -32,8 +32,10 @@ void main() {
           null,
         );
       });
-      await service.attach(() async {
+      final targets = <CalendarLaunch?>[];
+      await service.attach((target) async {
         opens++;
+        targets.add(target);
       });
       expect(opens, 1);
       Future<void> signal() async {
@@ -51,6 +53,15 @@ void main() {
       pending = true;
       await signal();
       expect(opens, 2);
+      // A conflict notification names the event start only (build 306).
+      pending = {'start': 1793530800000, 'single': true};
+      await signal();
+      expect(opens, 3);
+      expect(targets.first, isNull);
+      expect(targets.last!.start.millisecondsSinceEpoch, 1793530800000);
+      expect(targets.last!.single, isTrue);
+      expect(CalendarLaunch.parse(true), isNull);
+      expect(CalendarLaunch.parse({'start': 0}), isNull);
       expect(await service.pin(), 'requested');
       pinStatus = 'alreadyPinned';
       expect(await service.pin(), 'alreadyPinned');

@@ -9,6 +9,7 @@ import '../../domain/task.dart';
 import '../../services/agenda_backup.dart';
 import '../../services/agenda_reminders.dart';
 import '../../services/agenda_service.dart';
+import '../../services/calendar_shortcut_service.dart' show CalendarLaunch;
 import '../../services/platform_runtime_native.dart'
     if (dart.library.js_interop) '../../services/platform_runtime_web.dart';
 import '../../services/semble_service.dart';
@@ -18,9 +19,7 @@ import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
 import 'agenda_event_flows.dart';
 import 'agenda_header.dart';
-import 'agenda_list_widgets.dart';
 import 'agenda_load_controller.dart';
-import 'agenda_month_view.dart';
 import 'agenda_reminder_sheet.dart';
 import 'agenda_semble_layer.dart' show SemblePalette;
 import 'agenda_week_view.dart';
@@ -28,9 +27,6 @@ import 'agenda_weeks_view.dart';
 
 export 'agenda_calendar_picker.dart'
     show AgendaCalendarPicker, AgendaPickerResult;
-export 'agenda_header.dart' show AgendaTodayIcon;
-export 'agenda_list_widgets.dart'
-    show AgendaEntryTile, agendaCalendarLabel, agendaTimeLabel;
 
 /// Read-only agenda that merges every calendar the phone already syncs
 /// (Google, Outlook/Exchange work accounts…). Android only.
@@ -45,8 +41,13 @@ class AgendaView extends StatefulWidget {
     this.onCapture,
     this.onChanged,
     this.onPinCalendar,
+    this.launch,
     super.key,
   });
+
+  /// Set by a Semble conflict notification's tap; consumed (reset to null)
+  /// once the event's sheet or its day is open.
+  final ValueNotifier<CalendarLaunch?>? launch;
 
   /// After a change made here (event, calendars, filters): the shell
   /// refreshes the web mirror.
@@ -71,8 +72,6 @@ class AgendaView extends StatefulWidget {
   onCreateTask;
   final CivilDate today;
 
-  static const pageDays = 14;
-
   @override
   State<AgendaView> createState() => _AgendaViewState();
 }
@@ -84,12 +83,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   List<AgendaCalendar> calendars = const [];
   Set<String> hidden = const {};
   AgendaFilter filter = AgendaFilter.none;
-  List<AgendaDay> days = const [];
-  int dayCount = AgendaView.pageDays;
   late CivilDate selectedDay = widget.today;
-  late CivilDate listFirst = widget.today;
-  final _listViewport = GlobalKey();
-  final Map<CivilDate, GlobalKey> _listDates = {};
   bool get hasFilters =>
       hidden.isNotEmpty ||
       filter.isActive ||
@@ -103,22 +97,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     }
   }
 
-  void _listScrolled() {
-    if (mode != AgendaViewMode.list) return;
-    final viewport = _listViewport.currentContext?.findRenderObject();
-    if (viewport is! RenderBox) return;
-    final top = viewport.localToGlobal(Offset.zero).dy;
-    for (final day in days) {
-      final box = _listDates[day.date]?.currentContext?.findRenderObject();
-      if (box is RenderBox &&
-          box.attached &&
-          box.localToGlobal(Offset(0, box.size.height)).dy > top + 32) {
-        selectedDay = day.date;
-        return;
-      }
-    }
-  }
-
   AgendaViewMode mode = AgendaViewMode.fourWeeks;
 
   /// Recognised device zone, always shown; null only if Android cannot tell.
@@ -126,10 +104,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
 
   /// Bumped on every successful reload so month grids drop cached events.
   int revision = 0;
-  var monthPage = PageController(
-    initialPage: AgendaMonthView.monthsBack,
-    keepPage: false,
-  );
   var weeksPage = PageController(
     initialPage: AgendaWeeksView.pagesBack,
     keepPage: false,
@@ -138,7 +112,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     initialPage: AgendaWeekView.weeksBack,
     keepPage: false,
   );
-  final listScroll = ScrollController();
   var threeDaysPage = PageController(
     initialPage: AgendaWeekView.weeksBack,
     keepPage: false,
@@ -153,7 +126,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     AgendaBackup.pending.addListener(_backupChanged);
     SembleLayer.shared.addListener(_sembleChanged);
-    listScroll.addListener(_listScrolled);
+    widget.launch?.addListener(_launchRequested);
     _seedFromMemory();
     unawaited(_load(changed: false));
   }
@@ -162,6 +135,46 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   void didUpdateWidget(covariant AgendaView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.today != widget.today) unawaited(_load());
+    if (oldWidget.launch != widget.launch) {
+      oldWidget.launch?.removeListener(_launchRequested);
+      widget.launch?.addListener(_launchRequested);
+    }
+  }
+
+  void _launchRequested() => unawaited(_openLaunch());
+
+  /// A conflict notification's tap (build 306): the event's sheet, with
+  /// «Blocca in Semble» first, or the day of the first of several events.
+  /// Waits for the calendars of the first load.
+  Future<void> _openLaunch() async {
+    final notifier = widget.launch;
+    final target = notifier?.value;
+    if (target == null || access != AgendaAccess.granted || !mounted) return;
+    notifier!.value = null;
+    final day = CivilDate.fromDateTime(target.start);
+    if (isAndroidPlatform) {
+      // The sheet offers the block only once the bands are known.
+      await SembleLayer.shared.refresh(today: widget.today, zoneLabel: zone);
+    }
+    if (!mounted) return;
+    if (target.single) {
+      final read = await _readDays(calendars, hidden, filter, day, 1);
+      if (!mounted) return;
+      final match = [
+        for (final d in read)
+          for (final entry in d.entries)
+            if (!entry.isTask &&
+                !entry.allDay &&
+                entry.start.isAtSameMomentAs(target.start) &&
+                !SembleLayer.shared.isVisit(entry))
+              entry,
+      ];
+      if (match.isNotEmpty) {
+        await _showEvent(match.first);
+        return;
+      }
+    }
+    _openDay(day);
   }
 
   @override
@@ -180,14 +193,13 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.launch?.removeListener(_launchRequested);
     AgendaBackup.pending.removeListener(_backupChanged);
     SembleLayer.shared.removeListener(_sembleChanged);
     loader.dispose();
-    monthPage.dispose();
     weeksPage.dispose();
     weekPage.dispose();
     threeDaysPage.dispose();
-    listScroll.dispose();
     super.dispose();
   }
 
@@ -213,7 +225,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       loading = true;
     });
     try {
-      final result = await loader.load(listFirst, dayCount, changed: changed);
+      final result = await loader.load(changed: changed);
       if (!mounted || generation != _generation) return;
       setState(() {
         access = result.access;
@@ -223,12 +235,12 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           calendars = result.calendars!;
           hidden = result.hidden!;
           filter = result.filter!;
-          days = result.days ?? days;
         }
         failed = false;
         revision = result.revision;
         loading = false;
       });
+      if (result.access == AgendaAccess.granted) unawaited(_openLaunch());
       if (isAndroidPlatform) {
         unawaited(
           AgendaReminders(widget.service).foreground(requestPermission: true),
@@ -342,7 +354,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     filter = service.lastFilter ?? AgendaFilter.none;
     mode = service.lastMode ?? AgendaViewMode.fourWeeks;
     zone = service.lastZoneLabel;
-    days = _peekDays(widget.today, dayCount) ?? const [];
   }
 
   List<AgendaDay>? _peekDays(CivilDate first, int count) {
@@ -417,15 +428,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     PageController replacement(int page, int max) =>
         PageController(initialPage: page.clamp(0, max - 1), keepPage: false);
     switch (next) {
-      case AgendaViewMode.month:
-        monthPage.dispose();
-        monthPage = replacement(
-          AgendaMonthView.monthsBack +
-              (selectedDay.year - today.year) * 12 +
-              selectedDay.month -
-              today.month,
-          AgendaMonthView.monthsBack + AgendaMonthView.monthsAhead,
-        );
       case AgendaViewMode.week:
         weekPage.dispose();
         weekPage = replacement(
@@ -440,7 +442,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           AgendaWeekView.weeksBack + AgendaWeekView.weeksAhead,
         );
       case AgendaViewMode.twoWeeks:
-      case AgendaViewMode.threeWeeks:
       case AgendaViewMode.fourWeeks:
         weeksPage.dispose();
         weeksPage = replacement(
@@ -449,66 +450,8 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                   .floor(),
           AgendaWeeksView.pagesBack + AgendaWeeksView.pagesAhead,
         );
-      case AgendaViewMode.list:
-        listFirst = selectedDay;
-        dayCount = AgendaView.pageDays;
-        _listDates.clear();
     }
     await _load();
-  }
-
-  void _scrollToToday() {
-    selectedDay = widget.today;
-    if (mode == AgendaViewMode.list && listFirst != widget.today) {
-      listFirst = widget.today;
-      unawaited(_load());
-    }
-    // The list starts today.
-    if (mode == AgendaViewMode.list && listScroll.hasClients) {
-      unawaited(
-        listScroll.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        ),
-      );
-    }
-    if (mode == AgendaViewMode.threeDays && threeDaysPage.hasClients) {
-      unawaited(
-        threeDaysPage.animateToPage(
-          AgendaWeekView.weeksBack,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        ),
-      );
-    }
-    if (mode == AgendaViewMode.week && weekPage.hasClients) {
-      unawaited(
-        weekPage.animateToPage(
-          AgendaWeekView.weeksBack,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        ),
-      );
-    }
-    if ((mode.gridWeeks > 0) && weeksPage.hasClients) {
-      unawaited(
-        weeksPage.animateToPage(
-          AgendaWeeksView.pagesBack,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        ),
-      );
-    }
-    if (mode == AgendaViewMode.month && monthPage.hasClients) {
-      unawaited(
-        monthPage.animateToPage(
-          AgendaMonthView.monthsBack,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-        ),
-      );
-    }
   }
 
   Future<void> _requestAccess() async {
@@ -558,6 +501,45 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     await _load();
   }
 
+  Map<String, Color?> get _colors {
+    final scheme = Theme.of(context).colorScheme;
+    return {
+      for (final calendar in calendars)
+        // Semble visits share the green of its availability (build 300).
+        calendar.id: isSembleCalendar(calendar)
+            ? SemblePalette.visit(scheme)
+            : parseCalendarColor(calendar.colorHex),
+    };
+  }
+
+  void _openDay(CivilDate day) {
+    final colors = _colors;
+    selectedDay = day;
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AgendaPalette(
+            child: AgendaDayPage(
+              initialDay: day,
+              onDayChanged: (day) => selectedDay = day,
+              today: widget.today,
+              loadDays: (first, count) =>
+                  _readDays(calendars, hidden, filter, first, count),
+              peekDays: _peekDays,
+              colors: colors,
+              onOpen: _showEvent,
+              onLongPress: _quickEvent,
+              onCreate: widget.service.canWrite
+                  ? (start, {end}) => _createEvent(start: start, end: end)
+                  : null,
+              zoneLabel: zone,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (access == null && loading) {
@@ -594,17 +576,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         onAction: _requestAccess,
       );
     }
-    final scheme = Theme.of(context).colorScheme;
-    final colors = {
-      for (final calendar in calendars)
-        // Semble visits share the green of its availability (build 300).
-        calendar.id: isSembleCalendar(calendar)
-            ? SemblePalette.visit(scheme)
-            : parseCalendarColor(calendar.colorHex),
-    };
-    final names = {
-      for (final calendar in calendars) calendar.id: calendar.name,
-    };
+    final colors = _colors;
     final zoneText = [
       zone == null
           // Not yet known while the first load runs.
@@ -633,19 +605,14 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
                 await _load();
               }
             },
-      visible: calendars.length - hidden.length,
-      total: calendars.length,
       loading: loading,
       mode: mode,
       filtered: hasFilters,
       onMode: (next) => unawaited(_setMode(next)),
-      onToday: _scrollToToday,
       onCreate: widget.service.canWrite
           ? () => unawaited(_createEvent())
           : null,
-      today: widget.today,
-      zone: mode == AgendaViewMode.list ? zoneText : null,
-      onChoose: _chooseCalendars,
+      onChoose: calendars.isEmpty ? null : _chooseCalendars,
       failures: widget.service.failedRequests.length,
       onFailures: _showFailures,
       onPinCalendar: widget.onPinCalendar,
@@ -658,33 +625,6 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
               await _load();
             },
     );
-    void openDay(CivilDate day) {
-      selectedDay = day;
-      unawaited(
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => AgendaPalette(
-              child: AgendaDayPage(
-                initialDay: day,
-                onDayChanged: (day) => selectedDay = day,
-                today: widget.today,
-                loadDays: (first, count) =>
-                    _readDays(calendars, hidden, filter, first, count),
-                peekDays: _peekDays,
-                colors: colors,
-                onOpen: _showEvent,
-                onLongPress: _quickEvent,
-                onCreate: widget.service.canWrite
-                    ? (start, {end}) => _createEvent(start: start, end: end)
-                    : null,
-                zoneLabel: zone,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     final body = mode == AgendaViewMode.threeDays
         ? AgendaWeekView(
             key: const ValueKey('agenda-three-days'),
@@ -697,7 +637,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
             peekDays: _peekDays,
-            onOpenDay: openDay,
+            onOpenDay: _openDay,
             onOpen: _showEvent,
             onLongPress: _quickEvent,
             onCreate: widget.service.canWrite
@@ -714,15 +654,15 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
             peekDays: _peekDays,
-            onOpenDay: openDay,
+            onOpenDay: _openDay,
             onOpen: _showEvent,
             onLongPress: _quickEvent,
             onCreate: widget.service.canWrite
                 ? (start, {end}) => _createEvent(start: start, end: end)
                 : null,
           )
-        : mode.gridWeeks > 0
-        ? AgendaWeeksView(
+        // Two or four weeks.
+        : AgendaWeeksView(
             key: ValueKey(mode),
             weekCount: mode.gridWeeks,
             onOpenEntry: _showEvent,
@@ -734,73 +674,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
             loadDays: (first, count) =>
                 _readDays(calendars, hidden, filter, first, count),
             peekDays: _peekDays,
-            onOpenDay: openDay,
-          )
-        : mode == AgendaViewMode.month
-        ? AgendaMonthView(
-            onOpenEntry: _showEvent,
-            today: widget.today,
-            revision: revision,
-            controller: monthPage,
-            onPeriodChanged: (day) =>
-                _periodChanged(day, DateTime(day.year, day.month + 1, 0).day),
-            colors: colors,
-            loadDays: (first, count) =>
-                _readDays(calendars, hidden, filter, first, count),
-            peekDays: _peekDays,
-            onOpenDay: openDay,
-          )
-        // Each day's date stays pinned at the top while its events scroll
-        // under it (build 224).
-        : CustomScrollView(
-            key: ValueKey('agenda-list:$listFirst'),
-            controller: listScroll,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              for (final day in days)
-                SliverMainAxisGroup(
-                  slivers: [
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: AgendaDayHeaderDelegate(
-                        label: AgendaDaySection.dayLabel(
-                          day.date,
-                          widget.today,
-                        ),
-                        background: agendaDateHeaderFill(
-                          Theme.of(context).colorScheme,
-                        ),
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: AgendaDaySection(
-                        key: _listDates.putIfAbsent(day.date, GlobalKey.new),
-                        filtered: hasFilters,
-                        day: day,
-                        today: widget.today,
-                        colors: colors,
-                        names: names,
-                        onOpen: (entry) => unawaited(_showEvent(entry)),
-                        onQuick: (entry) => unawaited(_quickEvent(entry)),
-                      ),
-                    ),
-                  ],
-                ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                sliver: SliverToBoxAdapter(
-                  child: OutlinedButton(
-                    key: const ValueKey('agenda-load-more'),
-                    onPressed: () {
-                      dayCount += AgendaView.pageDays;
-                      unawaited(_load());
-                    },
-                    child: const Text('Mostra altri 14 giorni'),
-                  ),
-                ),
-              ),
-            ],
+            onOpenDay: _openDay,
           );
     return Column(
       children: [
@@ -821,22 +695,18 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
           child: Stack(
             children: [
               Positioned.fill(
-                child: SizedBox(
-                  key: _listViewport,
-                  child: RefreshIndicator(onRefresh: _load, child: body),
-                ),
+                child: RefreshIndicator(onRefresh: _load, child: body),
               ),
               // Grids have a period title on the left of their first
               // row; the zone sits on its right, where there is room
               // (in the header it was cut to "Londo…", build 217).
-              if (mode != AgendaViewMode.list)
-                Positioned(
-                  top: 1,
-                  right: 12,
-                  child: IgnorePointer(
-                    child: AgendaZoneLabel(text: zoneText, loading: loading),
-                  ),
+              Positioned(
+                top: 1,
+                right: 12,
+                child: IgnorePointer(
+                  child: AgendaZoneLabel(text: zoneText, loading: loading),
                 ),
+              ),
             ],
           ),
         ),

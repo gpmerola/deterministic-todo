@@ -2,6 +2,23 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.119.0 (build 306) — Notifica che porta al blocco, Calendario e Impostazioni più ordinati
+
+- Toccando la notifica di un evento in orario Semble si apre direttamente la
+  scheda dell'evento, con «Blocca in Semble» in cima. Se gli eventi sono più
+  di uno si apre il giorno del primo.
+- Intestazione del Calendario più pulita: tolti l'icona Oggi e il contatore
+  dei calendari («16/32»); «Calendari e filtri» è nel menu «Altro».
+- Impostazioni divise in sezioni (Attività, Calendario e lavoro, Movimento,
+  Dati). La pagina Semble mostra prima lo stato, poi cosa fa nel
+  Calendario; i campi di collegamento sono raccolti e si chiudono quando la
+  chiave funziona.
+- Manutenzione del codice: eliminate le viste Mese, Elenco e 3 settimane
+  (già tolte dal menu nella build 299; una scelta salvata apre 4 settimane),
+  servizio Semble diviso in client, impostazioni e livello del Calendario,
+  conversioni dell'ora di Londra in un solo modulo con test per ora legale e
+  solare, una sola copia degli eventi e un registro delle notifiche comune.
+
 ## 2.118.0 (build 305) — Avviso Semble anche per gli eventi creati in Todo
 
 - Quando Todo va in background, controlla subito gli eventi in orario

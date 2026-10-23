@@ -6,13 +6,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
-import org.json.JSONObject;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,24 +31,18 @@ final class AgendaSembleConflicts {
             || manager.getNotificationChannel(CHANNEL).getImportance() == NotificationManager.IMPORTANCE_NONE) return 0;
         Intent open = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         if (open == null) return 0;
-        long now = System.currentTimeMillis();
-        SharedPreferences prefs = context.getSharedPreferences("agenda_semble_conflicts", Context.MODE_PRIVATE);
-        JSONObject stored = new JSONObject(prefs.getString("sent", "{}"));
-        JSONObject sent = new JSONObject();
-        for (Iterator<String> keys = stored.keys(); keys.hasNext();) {
-            String id = keys.next();
-            if (stored.getLong(id) > now) sent.put(id, stored.getLong(id));
-        }
-        List<Map<String, Object>> fresh = new ArrayList<>();
-        for (Map<String, Object> event : events) {
-            String id = (String) event.get("id");
-            long end = ((Number) event.get("end")).longValue();
-            if (end <= now || sent.has(id)) continue;
-            fresh.add(event);
-            sent.put(id, end);
-        }
+        NotificationLedger ledger = new NotificationLedger(context, "agenda_semble_conflicts");
+        List<Map<String, Object>> fresh = ledger.fresh(events);
         if (!fresh.isEmpty()) {
-            open.setAction(context.getPackageName() + ".OPEN_CALENDAR");
+            long first = Long.MAX_VALUE;
+            for (Map<String, Object> event : fresh) {
+                first = Math.min(first, ((Number) event.get("start")).longValue());
+            }
+            // The tap opens that event (or the day of the first one) in the
+            // Calendar: the start instant is the only data in the intent.
+            open.setAction(context.getPackageName() + ".OPEN_CALENDAR")
+                .putExtra(CalendarLaunchRequest.EXTRA_EVENT_START, first)
+                .putExtra(CalendarLaunchRequest.EXTRA_SINGLE, fresh.size() == 1);
             PendingIntent tap = PendingIntent.getActivity(context, 7306, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             String title;
@@ -64,10 +54,10 @@ final class AgendaSembleConflicts {
                 SimpleDateFormat hour = new SimpleDateFormat("HH:mm", Locale.ITALIAN);
                 title = "Evento in orario Semble prenotabile";
                 text = day.format(new Date(start)) + "–" + hour.format(new Date(end))
-                    + ". Tocca l'evento con il bordo ambra e poi «Blocca in Semble».";
+                    + ". Tocca per aprirlo e bloccarlo in Semble.";
             } else {
                 title = fresh.size() + " eventi in orario Semble prenotabile";
-                text = "Apri il Calendario: hanno il bordo ambra e si bloccano in Semble con un tocco.";
+                text = "Tocca per aprire il giorno del primo: hanno il bordo ambra e si bloccano in Semble con un tocco.";
             }
             Notification notification = new Notification.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_calendar_notification)
@@ -80,9 +70,7 @@ final class AgendaSembleConflicts {
             // Stable tag: a newer summary replaces the previous one.
             manager.notify("calendar-semble-conflicts", 7306, notification);
         }
-        if (!prefs.edit().putString("sent", sent.toString()).commit()) {
-            throw new IllegalStateException("Semble conflict ledger unavailable");
-        }
+        ledger.commit();
         return fresh.size();
     }
 }

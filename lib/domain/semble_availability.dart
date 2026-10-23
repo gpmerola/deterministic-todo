@@ -251,15 +251,6 @@ List<SembleBand> sembleBandsFor(Iterable<SembleRule> rules, CivilDate day) {
   ]..sort((a, b) => a.startMinute.compareTo(b.startMinute));
 }
 
-/// Minutes to add to Semble's London wall-clock times to draw them on [day]
-/// in the phone's zone (build 296): 0 in the UK, 60 in Italy. Measured at
-/// London noon, so a change of time at night does not matter.
-int sembleZoneShift(CivilDate day) {
-  final noon = londonWallClock(DateTime.utc(day.year, day.month, day.day, 12));
-  final london = londonSummerTime(noon) ? 60 : 0;
-  return noon.toLocal().timeZoneOffset.inMinutes - london;
-}
-
 /// [bands] moved by [minutes] and clipped to the day: what goes past
 /// midnight is not drawn on the next day.
 List<SembleBand> sembleShiftBands(List<SembleBand> bands, int minutes) {

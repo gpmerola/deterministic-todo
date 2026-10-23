@@ -125,7 +125,9 @@ Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
 2 settimane, settimana e 3 giorni; toccando un giorno si apre la sua
 giornata. Mese, 3 settimane ed Elenco sono stati tolti nella build 299 su
 richiesta dell'utente: una vista salvata fra queste passa una volta a
-4 settimane. L'Assistente ✨ è nel menu «Altro»; nella scheda di un evento
+4 settimane. L'Assistente ✨ e «Calendari e filtri» sono nel menu «Altro»
+(dalla build 306 l'intestazione non ha più l'icona Oggi né il contatore dei
+calendari); nella scheda di un evento
 restano in vista Partecipa, Modifica ed Elimina, il resto è sotto «⋯»; nel
 nuovo evento calendario, ripetizione, fuso, luogo e note sono sotto «Altre
 opzioni». Il cambio
@@ -164,7 +166,8 @@ quell'orario con un tocco (build 301). Solo sugli eventi non ancora finiti
 subito il blocco; le visite annullate restano come sagoma barrata finché il
 loro orario non passa (build 303). Se un evento arriva da solo in orario
 prenotabile mentre l'app è chiusa, una notifica con giorno e ora lo segnala
-(build 304, disattivabile in Impostazioni → Semble). Con lo stesso cognome la Stima lavoro
+(build 304, disattivabile in Impostazioni → Semble); toccandola si apre la
+scheda dell'evento con «Blocca in Semble» (build 306). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

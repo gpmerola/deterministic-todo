@@ -11,7 +11,7 @@ import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
 import '../../services/agenda_web_service.dart' show AgendaQueueBusy;
 import '../../services/semble_service.dart';
-import '../semble_block_sheet.dart';
+import '../semble_block.dart';
 import 'agenda_event_editor.dart';
 import 'agenda_event_sheet.dart';
 

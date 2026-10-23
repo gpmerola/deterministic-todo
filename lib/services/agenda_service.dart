@@ -26,25 +26,15 @@ enum AgendaViewMode {
   threeDays,
   week,
   twoWeeks,
-  threeWeeks,
-  fourWeeks,
-  month,
-  list;
+  fourWeeks;
 
-  /// Views offered in the menu: 3 weeks, Month and List were removed at the
-  /// user's request (build 299). Their renderers stay for tests and for a
-  /// saved choice older than the removal, which moves to 4 weeks once.
-  bool get offered => switch (this) {
-    threeWeeks || month || list => false,
-    _ => true,
-  };
-
-  /// [this], or 4 weeks when the view is no longer offered.
-  AgendaViewMode get orOffered => offered ? this : fourWeeks;
+  /// A saved or restored name; 3 weeks, Month and List were removed at the
+  /// user's request (build 299), so they and unknown names open 4 weeks.
+  static AgendaViewMode parse(String? name) =>
+      values.firstWhere((mode) => mode.name == name, orElse: () => fourWeeks);
 
   int get gridWeeks => switch (this) {
     twoWeeks => 2,
-    threeWeeks => 3,
     fourWeeks => 4,
     _ => 0,
   };
@@ -401,43 +391,19 @@ class AgendaService {
   Future<AgendaViewMode> viewMode() async => lastMode = await _readMode();
 
   Future<AgendaViewMode> _readMode() async {
-    final row = await (_database.select(
-      _database.appSettings,
-    )..where((setting) => setting.key.equals(viewModeKey))).getSingleOrNull();
-    if (row != null) {
-      return AgendaViewMode.values.firstWhere(
-        (mode) => mode.name == row.value,
-        orElse: () => AgendaViewMode.fourWeeks,
-      );
-    }
-    // One-time move off the views removed in build 299.
-    final v3 =
-        await (_database.select(_database.appSettings)
-              ..where((setting) => setting.key.equals(legacyViewModeKey)))
-            .getSingleOrNull();
-    if (v3 != null) {
-      final mode = AgendaViewMode.values
-          .firstWhere(
-            (mode) => mode.name == v3.value,
-            orElse: () => AgendaViewMode.fourWeeks,
-          )
-          .orOffered;
-      await _saveMode(mode);
+    // Older keys are read once and moved to the current one: v3 may hold a
+    // view removed in build 299, v2 the old month default.
+    for (final key in [viewModeKey, legacyViewModeKey, 'agenda_view_mode_v2']) {
+      final row = await (_database.select(
+        _database.appSettings,
+      )..where((setting) => setting.key.equals(key))).getSingleOrNull();
+      if (row == null) continue;
+      final mode = AgendaViewMode.parse(row.value);
+      if (key != viewModeKey) await _saveMode(mode);
       return mode;
     }
-    // One-time move from the old month default. Other saved views survive;
-    // choosing Month again writes v3 and remains an explicit preference.
-    final legacy =
-        await (_database.select(_database.appSettings)
-              ..where((setting) => setting.key.equals('agenda_view_mode_v2')))
-            .getSingleOrNull();
-    final previous = AgendaViewMode.values.firstWhere(
-      (mode) => mode.name == legacy?.value,
-      orElse: () => AgendaViewMode.fourWeeks,
-    );
-    final mode = previous.orOffered;
-    await _saveMode(mode);
-    return mode;
+    await _saveMode(AgendaViewMode.fourWeeks);
+    return AgendaViewMode.fourWeeks;
   }
 
   Future<void> saveViewMode(AgendaViewMode mode) {

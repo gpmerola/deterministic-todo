@@ -156,6 +156,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
   final calendarShortcut = CalendarShortcutService();
+
+  /// Event or day a conflict notification asked the Calendar to open.
+  final calendarLaunch = ValueNotifier<CalendarLaunch?>(null);
   late final dayClock = CivilDayClock(now: widget.clock);
 
   /// Agenda on Android (phone calendars) and on the web (the phone's mirror,
@@ -231,8 +234,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           unawaited(
-            calendarShortcut.attach(() async {
-              if (mounted) await _navigateTo(AppSection.agenda);
+            calendarShortcut.attach((target) async {
+              if (!mounted) return;
+              await _navigateTo(AppSection.agenda);
+              calendarLaunch.value = target;
             }),
           );
         }
@@ -497,6 +502,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     if (widget.enablePlatformServices && isAndroidPlatform) {
       calendarShortcut.detach();
     }
+    calendarLaunch.dispose();
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
     foregroundJobs.dispose();

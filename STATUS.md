@@ -4,7 +4,19 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 305 — controllo Semble anche all'uscita dall'app (in collaudo)
+## Build 306 — notifica verso il blocco, intestazione e Impostazioni (in collaudo)
+
+La notifica dei conflitti mette nell'intent solo l'inizio del primo evento e
+se è unico (`CalendarLaunchRequest`, extra `semble_event_start`/`_single`);
+`consumeLaunch` restituisce false, true o `{start, single}` e
+`AgendaView.launch` apre la scheda dell'evento (dopo `SembleLayer.refresh`,
+così «Blocca in Semble» c'è) o il giorno. Intestazione senza Oggi né
+contatore; Impostazioni in sezioni. Refactoring: viste Mese/Elenco/3
+settimane e `agenda_list_widgets.dart` eliminati, `AgendaViewMode.parse`,
+loader senza giorni, `semble_service.dart` diviso (barrel), `semble_time.dart`,
+`AgendaEntry.copyWith`, `NotificationLedger.java`. Da provare sul Galaxy.
+
+## Build 305 — controllo Semble anche all'uscita dall'app (collaudata: la notifica arriva)
 
 L'utente ha creato «Test» e non ha avuto notifica: probabilmente creato in
 Todo in primo piano, dove il controllo salta, e nessun altro trigger era

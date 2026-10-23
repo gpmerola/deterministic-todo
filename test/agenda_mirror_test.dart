@@ -150,7 +150,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final service = _ReadOnlyService(db);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -164,8 +164,7 @@ void main() {
       find.textContaining('Copia dal telefono · 5 ott 09:00'),
       findsOneWidget,
     );
-    await tester.tap(find.text('Riunione'));
-    await tester.pumpAndSettle();
+    await openEvent(tester, 'Riunione');
     expect(find.byKey(const ValueKey('agenda-sheet-edit')), findsNothing);
     expect(find.byKey(const ValueKey('agenda-sheet-delete')), findsNothing);
     expect(find.text('Apri nel calendario'), findsNothing);
@@ -229,4 +228,12 @@ class _ReadOnlyService extends AgendaService {
       allDay: false,
     ),
   ];
+}
+
+/// Grids open the day first (build 300): the event's sheet is a second tap.
+Future<void> openEvent(WidgetTester tester, String title) async {
+  await tester.tap(find.text(title).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(title).last);
+  await tester.pumpAndSettle();
 }

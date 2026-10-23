@@ -190,25 +190,8 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
               builder: (context, _) => ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
-                  Text(
-                    'Mostra nel Calendario le disponibilità impostate in '
-                    'Semble: dietro agli eventi in Giorno, 3 giorni e '
-                    'Settimana. '
-                    'Sola lettura: Todo non modifica nulla in Semble. Legge '
-                    'date e orari delle regole e, per la Stima lavoro '
-                    'privato e per il Calendario, orario, tipo, medico ed '
-                    'esito (arrivo o DNA) delle prenotazioni, mai i dati dei '
-                    'pazienti. Con il cognome impostato le tue prenotazioni '
-                    'nuove compaiono nel Calendario prima che arrivino dal '
-                    'calendario Google alimentato da Semble, poi resta solo '
-                    'la copia Google. La chiave resta '
-                    'cifrata su questo telefono: non va nei backup, nei log '
-                    'né su Supabase.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  _legend(theme),
-                  const SizedBox(height: 8),
+                  // Build 306: state first, then what it does in the
+                  // Calendar, then the connection, folded once it works.
                   if (current.maskedKey != null)
                     ListTile(
                       key: const ValueKey('semble-current-key'),
@@ -233,15 +216,15 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         ],
                       ),
                     ),
-                  if (current.ready)
+                  if (current.ready) ...[
+                    _heading(theme, 'Nel Calendario'),
                     SwitchListTile(
                       key: const ValueKey('semble-enabled'),
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Mostra nel Calendario'),
+                      title: const Text('Mostra disponibilità e visite'),
                       value: current.enabled,
                       onChanged: busy ? null : _setEnabled,
                     ),
-                  if (current.ready)
                     SwitchListTile(
                       key: const ValueKey('semble-conflict-alerts'),
                       contentPadding: EdgeInsets.zero,
@@ -259,80 +242,99 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                               if (mounted) setState(() => alerts = value);
                             },
                     ),
-                  if (current.ready && !widget.layer.zoneMatches)
-                    Text(
-                      'Il telefono non è nel fuso $sembleZone: orari, '
-                      'disponibilità e prenotazioni sono convertiti nell’ora '
-                      'del telefono.',
-                      key: const ValueKey('semble-zone'),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    key: const ValueKey('semble-user-input'),
-                    controller: userInput,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: const InputDecoration(
-                      labelText: 'User ID Semble',
-                      helperText: 'Dal tuo profilo utente nell\'app Semble',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    key: const ValueKey('semble-name-input'),
-                    controller: nameInput,
-                    autocorrect: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Il tuo cognome in Semble',
-                      helperText:
-                          'Riconosce le tue prenotazioni: DNA nella stima e '
-                          'visite nuove nel Calendario',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    key: const ValueKey('semble-room-input'),
-                    controller: roomInput,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: const InputDecoration(
-                      labelText: 'ID stanza Semble (facoltativo)',
-                      helperText:
-                          'Serve per bloccare orari in Semble dal nuovo '
-                          'evento del Calendario',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    key: const ValueKey('semble-key-input'),
-                    controller: keyInput,
-                    obscureText: obscured,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: InputDecoration(
-                      labelText: current.maskedKey != null
-                          ? 'Nuova chiave API (facoltativa)'
-                          : 'Chiave API Semble',
-                      suffixIcon: IconButton(
-                        tooltip: obscured ? 'Mostra' : 'Nascondi',
-                        onPressed: () => setState(() => obscured = !obscured),
-                        icon: Icon(
-                          obscured ? Icons.visibility : Icons.visibility_off,
+                    _legend(theme),
+                    if (!widget.layer.zoneMatches)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Il telefono non è nel fuso $sembleZone: orari, '
+                          'disponibilità e prenotazioni sono convertiti '
+                          'nell’ora del telefono.',
+                          key: const ValueKey('semble-zone'),
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    key: const ValueKey('semble-save'),
-                    onPressed: busy ? null : _saveAndCheck,
-                    child: busy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Verifica e salva'),
+                  ],
+                  ExpansionTile(
+                    key: const ValueKey('semble-connection'),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    initiallyExpanded: !current.ready,
+                    title: const Text('Collegamento'),
+                    subtitle: const Text('User ID, cognome, stanza e chiave'),
+                    children: [
+                      TextField(
+                        key: const ValueKey('semble-user-input'),
+                        controller: userInput,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: const InputDecoration(
+                          labelText: 'User ID Semble',
+                          helperText: 'Dal tuo profilo utente nell\'app Semble',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const ValueKey('semble-name-input'),
+                        controller: nameInput,
+                        autocorrect: false,
+                        decoration: const InputDecoration(
+                          labelText: 'Il tuo cognome in Semble',
+                          helperText:
+                              'Riconosce le tue prenotazioni: DNA nella stima '
+                              'e visite nuove nel Calendario',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const ValueKey('semble-room-input'),
+                        controller: roomInput,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: const InputDecoration(
+                          labelText: 'ID stanza Semble (facoltativo)',
+                          helperText:
+                              'Serve per bloccare orari in Semble dal '
+                              'Calendario',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const ValueKey('semble-key-input'),
+                        controller: keyInput,
+                        obscureText: obscured,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: InputDecoration(
+                          labelText: current.maskedKey != null
+                              ? 'Nuova chiave API (facoltativa)'
+                              : 'Chiave API Semble',
+                          suffixIcon: IconButton(
+                            tooltip: obscured ? 'Mostra' : 'Nascondi',
+                            onPressed: () =>
+                                setState(() => obscured = !obscured),
+                            icon: Icon(
+                              obscured
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        key: const ValueKey('semble-save'),
+                        onPressed: busy ? null : _saveAndCheck,
+                        child: busy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Verifica e salva'),
+                      ),
+                    ],
                   ),
                   if (status != null)
                     Padding(
@@ -342,11 +344,41 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         key: const ValueKey('semble-status'),
                       ),
                     ),
+                  ExpansionTile(
+                    key: const ValueKey('semble-privacy'),
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Cosa legge e cosa scrive'),
+                    children: [
+                      Text(
+                        'Legge date e orari delle regole di disponibilità e, '
+                        'delle prenotazioni, orario, tipo, medico ed esito '
+                        '(arrivo o DNA): mai i dati dei pazienti. Scrive in '
+                        'Semble solo quando tocchi «Blocca» (un orario non '
+                        'disponibile, tipo Other) o il suo «Annulla». Con il '
+                        'cognome impostato le tue prenotazioni nuove compaiono '
+                        'nel Calendario prima che arrivino dal calendario '
+                        'Google alimentato da Semble. La chiave resta cifrata '
+                        'su questo telefono: non va nei backup, nei log né su '
+                        'Supabase.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
     );
   }
+
+  Widget _heading(ThemeData theme, String text) => Padding(
+    padding: const EdgeInsets.only(top: 16, bottom: 4),
+    child: Text(
+      text,
+      style: theme.textTheme.titleSmall?.copyWith(
+        color: theme.colorScheme.primary,
+      ),
+    ),
+  );
 
   String _summary() {
     final layer = widget.layer;

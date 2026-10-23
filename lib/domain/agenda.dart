@@ -454,6 +454,28 @@ final class AgendaEntry {
   final bool allDay;
   final String? location;
   final MeetingLink? meeting;
+
+  /// This entry with other times or title, every other field kept (build
+  /// 306: hand-written copies dropped fields as new ones were added).
+  AgendaEntry copyWith({String? title, DateTime? start, DateTime? end}) =>
+      AgendaEntry(
+        instanceId: instanceId,
+        calendarIds: calendarIds,
+        title: title ?? this.title,
+        start: start ?? this.start,
+        end: end ?? this.end,
+        allDay: allDay,
+        location: location,
+        meeting: meeting,
+        timeZone: timeZone,
+        eventZoneTimes: eventZoneTimes,
+        isOrganizer: isOrganizer,
+        changedOccurrence: changedOccurrence,
+        taskId: taskId,
+        completed: completed,
+        unanswered: unanswered,
+        key: key,
+      );
 }
 
 final class AgendaDay {

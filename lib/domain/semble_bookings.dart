@@ -1,6 +1,8 @@
 import 'agenda.dart';
-import 'task.dart';
+import 'semble_time.dart';
 import 'text_fold.dart';
+
+export 'semble_time.dart';
 
 /// What Semble recorded for a booking (build 288). Read from
 /// `bookingJourney`: Semble has no status enum for attendance, only the
@@ -91,70 +93,6 @@ final class SembleBooking {
   }
 }
 
-/// The instant of Europe/London wall-clock [digits] (given as a UTC
-/// DateTime holding the London digits): British Summer Time runs from 01:00
-/// UTC on the last Sunday of March to 01:00 UTC on the last Sunday of
-/// October. In the skipped spring hour the digits are read as GMT.
-DateTime londonWallClock(DateTime digits) {
-  final asGmt = DateTime.utc(
-    digits.year,
-    digits.month,
-    digits.day,
-    digits.hour,
-    digits.minute,
-    digits.second,
-    digits.millisecond,
-  );
-  final asBst = asGmt.subtract(const Duration(hours: 1));
-  return londonSummerTime(asBst) ? asBst : asGmt;
-}
-
-/// London wall-clock digits of [instant], as a UTC DateTime: the inverse
-/// of [londonWallClock].
-DateTime londonDigitsOf(DateTime instant) {
-  final utc = instant.toUtc();
-  return londonSummerTime(utc) ? utc.add(const Duration(hours: 1)) : utc;
-}
-
-/// A one-day Semble block in London wall clock: date and "HH:mm" times.
-typedef SembleBlock = ({CivilDate date, String startTime, String endTime});
-
-/// [start]–[end] (phone time) as a Semble block, or null when the end is
-/// not after the start or the block crosses London midnight (Semble's
-/// rules are one day long; 24:00 is allowed as the end).
-SembleBlock? sembleBlockFor(DateTime start, DateTime end) {
-  if (!end.isAfter(start)) return null;
-  final from = londonDigitsOf(start);
-  final to = londonDigitsOf(end);
-  String hm(DateTime value) =>
-      '${value.hour.toString().padLeft(2, '0')}:'
-      '${value.minute.toString().padLeft(2, '0')}';
-  final date = CivilDate(from.year, from.month, from.day);
-  final sameDay =
-      to.year == from.year && to.month == from.month && to.day == from.day;
-  final midnight =
-      to.hour == 0 &&
-      to.minute == 0 &&
-      CivilDate(to.year, to.month, to.day) == date.addDays(1);
-  if (!sameDay && !midnight) return null;
-  return (
-    date: date,
-    startTime: hm(from),
-    endTime: midnight ? '24:00' : hm(to),
-  );
-}
-
-/// Whether [instant] falls in British Summer Time.
-bool londonSummerTime(DateTime instant) {
-  final utc = instant.toUtc();
-  DateTime switchOn(int month) {
-    final last = DateTime.utc(utc.year, month + 1, 0, 1);
-    return last.subtract(Duration(days: last.weekday % 7));
-  }
-
-  return !utc.isBefore(switchOn(3)) && utc.isBefore(switchOn(10));
-}
-
 /// Whether [booking] belongs to the clinician named [surname], when Semble
 /// gave a name; true when it did not (matching then relies on time and type).
 bool sembleBookingIsMine(SembleBooking booking, String? surname) {
@@ -241,24 +179,7 @@ AgendaEntry sembleClinicalEntry(AgendaEntry entry) {
   if (minutes == null || entry.allDay) return entry;
   final end = entry.start.add(Duration(minutes: minutes));
   if (!end.isBefore(entry.end)) return entry;
-  return AgendaEntry(
-    instanceId: entry.instanceId,
-    calendarIds: entry.calendarIds,
-    title: entry.title,
-    start: entry.start,
-    end: end,
-    allDay: entry.allDay,
-    location: entry.location,
-    meeting: entry.meeting,
-    timeZone: entry.timeZone,
-    eventZoneTimes: entry.eventZoneTimes,
-    isOrganizer: entry.isOrganizer,
-    changedOccurrence: entry.changedOccurrence,
-    taskId: entry.taskId,
-    completed: entry.completed,
-    unanswered: entry.unanswered,
-    key: entry.key,
-  );
+  return entry.copyWith(end: end);
 }
 
 /// The Calendar entries with Semble's bookings added (build 289): bookings

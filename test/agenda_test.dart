@@ -6,10 +6,11 @@ import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
 import 'package:deterministic_todo/services/agenda_tasks.dart';
+import 'package:deterministic_todo/services/calendar_shortcut_service.dart';
 import 'package:deterministic_todo/ui/search.dart';
+import 'package:deterministic_todo/ui/views/agenda_chip.dart';
 import 'package:deterministic_todo/ui/views/agenda_day_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
-import 'package:deterministic_todo/ui/views/agenda_month_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_weeks_view.dart';
@@ -94,7 +95,7 @@ void main() {
       await tester.ensureVisible(group);
       await tester.tap(group);
       await tester.pumpAndSettle();
-      if (mode.gridWeeks > 0 || mode == AgendaViewMode.month) {
+      if (mode.gridWeeks > 0) {
         // The grids open the day first (build 300); there it expands.
         expect(find.text('09:30 – 09:45'), findsNothing);
         final inDay = find.byType(CalendarVisitGroup).last;
@@ -229,23 +230,6 @@ void main() {
     ]);
     expect(days[1].entries.map((entry) => entry.title), ['Congresso', 'Notte']);
     expect(days[2].entries, isEmpty);
-
-    final late = days[0].entries.last;
-    expect(agendaTimeLabel(late, first), 'dalle 22:00');
-    expect(agendaTimeLabel(late, first.addDays(1)), 'fino 02:00');
-    expect(agendaTimeLabel(days[0].entries[1], first), '08:00');
-    expect(agendaTimeLabel(days[0].entries.first, first), 'Tutto il giorno');
-  });
-
-  test('non ripete i nomi dei calendari di provenienza', () {
-    expect(
-      agendaCalendarLabel(['Holidays in Italy', 'Holidays in Italy']),
-      'Holidays in Italy',
-    );
-    expect(
-      agendaCalendarLabel(['Calendario', '', 'Calendar']),
-      'Calendario · Calendar',
-    );
   });
 
   test('riconosce Zoom e Meet e ignora testo senza link', () {
@@ -322,7 +306,7 @@ void main() {
         DateTime(2026, 10, 6, 22),
       ),
     ]);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -331,13 +315,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Oggi · Lunedì 5 ottobre'), findsOneWidget);
     expect(find.text('Supervisione'), findsOneWidget);
-    expect(find.text('09:00–10:00'), findsOneWidget);
-    expect(find.text('Teams'), findsOneWidget);
     expect(find.text('Cena'), findsOneWidget);
-    expect(find.text('3/3'), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey('agenda-more')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
     await tester.pumpAndSettle();
     final personal = find.descendant(
@@ -360,103 +342,12 @@ void main() {
     await tester.tap(find.text('Applica'));
     await tester.pumpAndSettle();
     expect(find.text('Cena'), findsNothing);
-    expect(find.text('2/3'), findsOneWidget);
     expect(await service.calendarChoices(), {
       'kcl': true,
       'gmail': false,
       'slam': true,
     });
     expect(service.requestedCalendars.last, ['kcl', 'slam']);
-  });
-
-  testWidgets('la vista mese mostra la griglia e apre il giorno', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 2.625;
-    addTearDown(tester.view.reset);
-    final db = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
-    final service = _FakeAgendaService(db, [
-      event(
-        'k1',
-        'kcl',
-        'Supervisione',
-        DateTime(2026, 10, 5, 9),
-        DateTime(2026, 10, 5, 10),
-        description: 'https://teams.microsoft.com/l/meetup-join/abc',
-      ),
-      for (var hour = 7; hour < 22; hour++)
-        event(
-          'busy$hour',
-          'kcl',
-          'Clinica $hour',
-          DateTime(2026, 10, 7, hour),
-          DateTime(2026, 10, 7, hour, 30),
-        ),
-    ]);
-    await service.saveViewMode(AgendaViewMode.month);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: AgendaView(service: service, today: first),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Ottobre 2026'), findsOneWidget);
-    expect(find.text('L'), findsOneWidget);
-    final monday = find.byKey(const ValueKey('agenda-day-2026-10-05'));
-    // Time over title: both always readable (build 218).
-    expect(
-      find.descendant(of: monday, matching: find.text('Supervisione')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: monday, matching: find.text('9:00')),
-      findsOneWidget,
-    );
-    // The month fills the screen: a day shows every entry that fits its
-    // height, then "+N" for the rest.
-    final busy = find.byKey(const ValueKey('agenda-day-2026-10-07'));
-    expect(
-      find.descendant(of: busy, matching: find.text('Clinica 7')),
-      findsOne,
-    );
-    final shown = tester
-        .widgetList(
-          find.descendant(of: busy, matching: find.byType(AgendaChip)),
-        )
-        .length;
-    expect(shown, greaterThan(3));
-    expect(
-      find.descendant(of: busy, matching: find.text('+${15 - shown}')),
-      findsOne,
-    );
-    // Neighbouring months complete the weeks of October.
-    expect(find.byKey(const ValueKey('agenda-day-2026-09-28')), findsOne);
-    expect(find.byKey(const ValueKey('agenda-day-2026-11-01')), findsOne);
-
-    await tester.tap(monday);
-    await tester.pumpAndSettle();
-    expect(find.text('Lun 5 ottobre'), findsOneWidget);
-    expect(find.text('09:00–10:00'), findsOneWidget);
-    expect(find.text('Partecipa · Teams'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('agenda-mode')));
-    await tester.pumpAndSettle();
-    // Month and List left the menu in build 299; the current view stays
-    // listed only until another is chosen.
-    expect(find.byKey(const ValueKey('agenda-mode-list')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('agenda-mode-fourWeeks')));
-    await tester.pumpAndSettle();
-    expect(await service.viewMode(), AgendaViewMode.fourWeeks);
-    await tester.tap(find.byKey(const ValueKey('agenda-mode')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('agenda-mode-month')), findsNothing);
-    expect(find.byKey(const ValueKey('agenda-mode-threeWeeks')), findsNothing);
   });
 
   AgendaEntry entryAt(String id, int startHour, int startMinute, int minutes) {
@@ -742,7 +633,7 @@ void main() {
     expect(find.byType(FloatingActionButton), findsNothing);
     expect(
       tester.getCenter(find.byKey(const ValueKey('agenda-new-event'))).dy,
-      tester.getCenter(find.byKey(const ValueKey('agenda-today'))).dy,
+      tester.getCenter(find.byKey(const ValueKey('agenda-mode'))).dy,
     );
     await tester.tap(find.byKey(const ValueKey('agenda-new-event')));
     await tester.pumpAndSettle();
@@ -791,7 +682,7 @@ void main() {
         DateTime(2026, 10, 5, 16),
       ),
     ]);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -802,6 +693,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Tentative'), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey('agenda-more')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-hide-unanswered')));
@@ -816,6 +709,8 @@ void main() {
     expect(find.text('Tentative'), findsNothing);
     expect(find.text('Live Broadcast: live from X'), findsNothing);
     expect(find.text('Supervisione'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agenda-more')));
+    await tester.pumpAndSettle();
     expect(find.byIcon(Icons.filter_alt), findsOneWidget);
     expect((await service.filter()).hiddenWords, ['live broadcast']);
   });
@@ -1270,7 +1165,7 @@ void main() {
         DateTime(2026, 10, 8, 16, 30),
       ),
     ]);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     final created = <(String, CivilDate, String)>[];
     await tester.pumpWidget(
       MaterialApp(
@@ -1285,8 +1180,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('TNG Meeting'));
-    await tester.pumpAndSettle();
+    await openEvent(tester, 'TNG Meeting');
     await tester.tap(find.byKey(const ValueKey('agenda-sheet-more')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-sheet-prepare')));
@@ -1636,37 +1530,6 @@ void main() {
     expect(zoneLabel('America/New_York', -14400), 'America/New_York · UTC−4');
   });
 
-  testWidgets('three weeks show 21 days, page by 21 and return to Today', (
-    tester,
-  ) async {
-    final db = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(db.close);
-    final service = _FakeAgendaService(db, const []);
-    await service.saveViewMode(AgendaViewMode.threeWeeks);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: AgendaView(
-            service: service,
-            today: const CivilDate(2026, 12, 30),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byType(AgendaDayCell), findsNWidgets(21));
-    expect(find.byKey(const ValueKey('agenda-day-2026-12-28')), findsOneWidget);
-    expect(find.byKey(const ValueKey('agenda-day-2027-01-17')), findsOneWidget);
-    expect(find.byKey(const ValueKey('agenda-day-2027-01-18')), findsNothing);
-    await tester.drag(find.byType(PageView).first, const Offset(-700, 0));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('agenda-day-2027-01-18')), findsOneWidget);
-    expect(find.byKey(const ValueKey('agenda-day-2027-02-07')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('agenda-today')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('agenda-day-2026-12-28')), findsOneWidget);
-  });
-
   testWidgets(
     'each view selected from the menu survives a fresh Calendar instance',
     (tester) async {
@@ -1688,7 +1551,7 @@ void main() {
       }
 
       await open();
-      for (final mode in AgendaViewMode.values.where((m) => m.offered)) {
+      for (final mode in AgendaViewMode.values) {
         await tester.tap(find.byKey(const ValueKey('agenda-mode')));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(ValueKey('agenda-mode-${mode.name}')));
@@ -1725,7 +1588,7 @@ void main() {
         start.add(const Duration(minutes: 15)),
       ),
     ]);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -1790,7 +1653,8 @@ void main() {
     await tester.drag(find.byType(PageView).first, const Offset(-300, 0));
     await tester.pumpAndSettle();
     expect(find.text('2 – 29 nov 2026'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('agenda-today')));
+    // No Today button since build 306: a swipe back returns.
+    await tester.drag(find.byType(PageView).first, const Offset(300, 0));
     await tester.pumpAndSettle();
     expect(find.text('5 ott – 1 nov 2026'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('agenda-mode')));
@@ -1822,7 +1686,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final service = _FakeAgendaService(db, events)..writableCalendars = true;
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -1847,8 +1711,7 @@ void main() {
         eventZoneTimes: '19:00–20:00',
       ),
     ]);
-    await tester.tap(find.text('Palestra'));
-    await tester.pumpAndSettle();
+    await openEvent(tester, 'Palestra');
     expect(
       find.textContaining('Orario originale 19:00–20:00 Europe/Rome'),
       findsOneWidget,
@@ -1893,21 +1756,56 @@ void main() {
         allDay: false,
       ),
     ]);
-    await tester.tap(find.text('Corso'));
-    await tester.pumpAndSettle();
+    await openEvent(tester, 'Corso');
     await tester.tap(find.byKey(const ValueKey('agenda-sheet-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('agenda-scope-series')));
     await tester.pumpAndSettle();
     expect(service.deletions, [('9@1759654800000', true)]);
 
-    await tester.tap(find.text('Cena'));
-    await tester.pumpAndSettle();
+    await openEvent(tester, 'Cena');
     await tester.tap(find.byKey(const ValueKey('agenda-sheet-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Annulla'));
     await tester.pumpAndSettle();
     expect(service.deletions, hasLength(1));
+  });
+
+  testWidgets('il tocco sulla notifica Semble apre l evento o il giorno', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final start = DateTime(2026, 10, 7, 11);
+    final service = _FakeAgendaService(db, [
+      event('t', 'gmail', 'Test', start, start.add(const Duration(hours: 1))),
+    ]);
+    final launch = ValueNotifier<CalendarLaunch?>(
+      CalendarLaunch(start, single: true),
+    );
+    addTearDown(launch.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AgendaView(service: service, today: first, launch: launch),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Straight to the sheet, consumed once.
+    expect(launch.value, isNull);
+    expect(find.byKey(const ValueKey('agenda-sheet-more')), findsOneWidget);
+    Navigator.of(tester.element(find.byType(AgendaView))).pop();
+    await tester.pumpAndSettle();
+    // Several events: the day of the first.
+    launch.value = CalendarLaunch(start, single: false);
+    await tester.pumpAndSettle();
+    expect(launch.value, isNull);
+    expect(find.byType(AgendaDayPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-sheet-more')), findsNothing);
   });
 
   testWidgets('gli inviti altrui non si modificano', (tester) async {
@@ -1922,8 +1820,7 @@ void main() {
         isOrganizer: false,
       ),
     ]);
-    await tester.tap(find.text('Riunione esterna'));
-    await tester.pumpAndSettle();
+    await openEvent(tester, 'Riunione esterna');
     expect(find.byKey(const ValueKey('agenda-sheet-edit')), findsNothing);
     expect(find.byKey(const ValueKey('agenda-sheet-delete')), findsNothing);
     expect(find.textContaining('Invito di un altro organizzatore'), findsOne);
@@ -2020,7 +1917,8 @@ void main() {
 
     await tester.tap(find.text('Consenti accesso al calendario'));
     await tester.pumpAndSettle();
-    expect(find.text('3/3'), findsOneWidget);
+    expect(find.byKey(const ValueKey('agenda-mode')), findsOneWidget);
+    expect(service.requestedCalendars, isNotEmpty);
   });
 }
 
@@ -2121,4 +2019,12 @@ class _FakeAgendaService extends AgendaService {
           event,
     ];
   }
+}
+
+/// Grids open the day first (build 300): the event's sheet is a second tap.
+Future<void> openEvent(WidgetTester tester, String title) async {
+  await tester.tap(find.text(title).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(title).last);
+  await tester.pumpAndSettle();
 }

@@ -1,6 +1,5 @@
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/task.dart';
-import 'package:deterministic_todo/ui/views/agenda_month_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_week_view.dart';
 import 'package:deterministic_todo/ui/views/agenda_weeks_view.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
   setUpAll(() => initializeDateFormatting('it'));
-  for (final mode in ['month', 'week', 'threeDays', 'weeks']) {
+  for (final mode in ['week', 'threeDays', 'weeks']) {
     testWidgets('$mode exposes failed read and recovers with retry', (
       tester,
     ) async {
@@ -22,14 +21,6 @@ void main() {
 
       final today = CivilDate(2026, 10, 13);
       final Widget view = switch (mode) {
-        'month' => AgendaMonthView(
-          today: today,
-          revision: 0,
-          loadDays: load,
-          peekDays: (_, _) => null,
-          colors: const {},
-          onOpenDay: (_) {},
-        ),
         'weeks' => AgendaWeeksView(
           today: today,
           revision: 0,

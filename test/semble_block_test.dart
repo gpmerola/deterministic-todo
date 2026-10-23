@@ -4,7 +4,7 @@ import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/semble_bookings.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/semble_service.dart';
-import 'package:deterministic_todo/ui/semble_block_sheet.dart';
+import 'package:deterministic_todo/ui/semble_block.dart';
 import 'package:deterministic_todo/ui/views/agenda_event_editor.dart';
 import 'package:deterministic_todo/ui/views/agenda_event_sheet.dart';
 import 'package:flutter/material.dart';

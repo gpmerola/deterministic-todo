@@ -29,6 +29,7 @@ extension _ShellContent on _TaskShellState {
         child: AgendaPalette(
           child: AgendaView(
             service: agendaService,
+            launch: calendarLaunch,
             onPinCalendar: isAndroidPlatform ? _pinCalendarShortcut : null,
             today: dayClock.today,
             onOpenTask: _openTaskById,
