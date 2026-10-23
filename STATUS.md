@@ -1,6 +1,13 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 295.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 296.
+
+## Build 296 — Semble in ora legale, solare e in Italia
+
+Cifre dell'API lette come Europe/London (`londonWallClock`, regole BST) e
+convertite nel fuso del telefono; disponibilità spostate con
+`sembleZoneShift`. Test superati con `TZ` UTC, Europe/London ed Europe/Rome,
+compresi i giorni del cambio d'ora del 25 ottobre 2026 e del 28 marzo 2027.
 
 ## Build 295 — orari API come ora di Londra
 

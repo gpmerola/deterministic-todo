@@ -339,9 +339,15 @@ final class _SchemaMismatch implements Exception {
 /// memory for the app session and reread on Calendar loads at most every
 /// [minAge] (pull-to-refresh forces it). Nothing is stored on disk.
 class SembleLayer extends ChangeNotifier {
-  SembleLayer({SembleSettings? settings, SembleClient? client})
-    : _settings = settings ?? SembleSettings(),
-      _client = client ?? SembleClient();
+  SembleLayer({
+    SembleSettings? settings,
+    SembleClient? client,
+    this.zoneShift = sembleZoneShift,
+  }) : _settings = settings ?? SembleSettings(),
+       _client = client ?? SembleClient();
+
+  /// Minutes from London to the phone's zone on a day; tests pin it.
+  final int Function(CivilDate day) zoneShift;
 
   /// The app's instance, shared by the Calendar views and their routes.
   static final shared = SembleLayer();
@@ -372,7 +378,8 @@ class SembleLayer extends ChangeNotifier {
   /// Last failure, for the Settings page; cleared by a successful read.
   SembleFailure? failure;
 
-  bool get active => _enabled && _zoneMatches && _first != null;
+  /// Shown in any zone: London times are converted (build 296).
+  bool get active => _enabled && _first != null;
   bool get zoneMatches => _zoneMatches;
   int get ruleCount => _rules.length;
   int get bookingCount => _bookings.length;
@@ -410,7 +417,7 @@ class SembleLayer extends ChangeNotifier {
     if (!active || first == null || last == null) return const [];
     if (day.compareTo(first) < 0 || day.compareTo(last) > 0) return const [];
     return sembleFreeBands(
-      sembleBandsFor(_rules, day),
+      sembleShiftBands(sembleBandsFor(_rules, day), zoneShift(day)),
       agendaBusyMinutes(busy, day),
     );
   }

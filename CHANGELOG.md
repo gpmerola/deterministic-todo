@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.109.0 (build 296) — Semble anche fuori dal Regno Unito
+
+- Gli orari di Semble sono ora di Londra: ora vengono convertiti nell'ora
+  del telefono con le regole britanniche di ora legale e solare (ultima
+  domenica di marzo e di ottobre). In Italia una visita alle 10:00 di Londra
+  compare alle 11:00, come la copia del calendario Google, e la stima del
+  lavoro privato usa l'orario giusto.
+- Le disponibilità Semble non sono più nascoste fuori dal fuso di Londra:
+  sono spostate nell'ora del telefono. Le Impostazioni lo indicano.
+
 ## 2.108.0 (build 295) — Orari Semble giusti, durata dal titolo
 
 - Correzione delle build 291–294: l'API di Semble manda l'ora di Londra

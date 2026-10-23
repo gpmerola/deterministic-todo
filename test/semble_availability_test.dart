@@ -286,6 +286,7 @@ void main() {
       final settings = SembleSettings();
       var calls = 0;
       final layer = SembleLayer(
+        zoneShift: _london,
         settings: settings,
         client: SembleClient(
           client: MockClient((request) async {
@@ -329,7 +330,9 @@ void main() {
         zoneLabel: 'Europe/Rome · UTC+2',
         now: () => now,
       );
-      expect(layer.bandsFor(thu22), isEmpty);
+      // Another zone: still shown, converted (build 296).
+      expect(layer.bandsFor(thu22), hasLength(1));
+      expect(layer.zoneMatches, isFalse);
       await layer.refresh(
         today: thu22,
         zoneLabel: 'Europe/London · UTC+1',
@@ -344,7 +347,7 @@ void main() {
     });
 
     testWidgets('le fasce si disegnano dietro agli eventi', (tester) async {
-      final layer = SembleLayer()
+      final layer = SembleLayer(zoneShift: _london)
         ..seed(
           parse([
             weekly('a', [4], '10:00', '18:00'),
@@ -403,7 +406,11 @@ void main() {
         ),
       );
       final settings = SembleSettings();
-      final layer = SembleLayer(settings: settings, client: client);
+      final layer = SembleLayer(
+        settings: settings,
+        client: client,
+        zoneShift: _london,
+      );
       // Tall enough for the whole page: the status sits below the fields.
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1;
@@ -462,7 +469,7 @@ void main() {
     testWidgets('la barretta compare solo nei giorni con regole', (
       tester,
     ) async {
-      final layer = SembleLayer()
+      final layer = SembleLayer(zoneShift: _london)
         ..seed(
           parse([
             weekly('a', [4], '10:00', '18:00'),
@@ -568,7 +575,7 @@ void main() {
     });
 
     test('il livello applica le visite del giorno', () {
-      final layer = SembleLayer()
+      final layer = SembleLayer(zoneShift: _london)
         ..seed(
           parse([
             weekly('a', [4], '10:00', '18:00'),
@@ -588,3 +595,6 @@ void main() {
     });
   });
 }
+
+/// Phone in London: Semble times need no shift.
+int _london(CivilDate _) => 0;

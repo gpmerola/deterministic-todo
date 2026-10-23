@@ -17,7 +17,14 @@ import 'package:http/testing.dart';
 
 // Synthetic bookings shaped like Semble's: clinic wall-clock digits
 // labelled Z; no real data.
-String semble(DateTime local) => '${local.toIso8601String()}Z';
+String semble(DateTime instant) {
+  final utc = instant.toUtc();
+  final digits = londonSummerTime(utc)
+      ? utc.add(const Duration(hours: 1))
+      : utc;
+  return digits.toIso8601String();
+}
+
 Map<String, Object?> booking(
   DateTime start, {
   int minutes = 30,
@@ -73,7 +80,9 @@ void main() {
     });
 
     test('le cifre di Semble sono ora di Londra, anche con Z', () {
-      final wall = DateTime(2026, 10, 23, 10);
+      // 10:00 in London is 09:00 UTC in BST and 10:00 UTC in winter; the
+      // phone shows it in its own zone (11:00 in Rome).
+      final summer = DateTime.utc(2026, 10, 23, 9).toLocal();
       for (final text in [
         '2026-10-23T10:00:00.000Z',
         '2026-10-23T10:00:00.000',
@@ -82,10 +91,31 @@ void main() {
       ]) {
         expect(
           SembleBooking.fromJson({'start': text})!.start,
-          wall,
+          summer,
           reason: text,
         );
       }
+      expect(
+        SembleBooking.fromJson({'start': '2026-11-10T10:00:00.000Z'})!.start,
+        DateTime.utc(2026, 11, 10, 10).toLocal(),
+      );
+      // Around the changes (25 October 2026, 28 March 2027 at 01:00 UTC).
+      expect(
+        SembleBooking.fromJson({'start': '2026-10-25T00:30:00.000Z'})!.start,
+        DateTime.utc(2026, 10, 24, 23, 30).toLocal(),
+      );
+      expect(
+        SembleBooking.fromJson({'start': '2026-10-25T09:00:00.000Z'})!.start,
+        DateTime.utc(2026, 10, 25, 9).toLocal(),
+      );
+      expect(
+        SembleBooking.fromJson({'start': '2027-03-28T09:00:00.000Z'})!.start,
+        DateTime.utc(2027, 3, 28, 8).toLocal(),
+      );
+      expect(
+        SembleBooking.fromJson({'start': '2027-03-27T09:00:00.000Z'})!.start,
+        DateTime.utc(2027, 3, 27, 9).toLocal(),
+      );
       // A real offset is still an instant.
       expect(
         SembleBooking.fromJson({'start': '2026-10-23T11:00:00+01:00'})!.start,
@@ -449,6 +479,32 @@ void main() {
           ('$sembleBookingPrefix${later.millisecondsSinceEpoch}', 15),
         ],
       );
+    });
+
+    test('in Italia le fasce di Londra si spostano di un ora', () {
+      const bands = [
+        SembleBand(SembleBandKind.available, 600, 1080),
+        SembleBand(SembleBandKind.unavailable, 1380, 1440),
+      ];
+      expect(sembleShiftBands(bands, 60), const [
+        SembleBand(SembleBandKind.available, 660, 1140),
+      ]);
+      expect(sembleShiftBands(bands, 0), same(bands));
+      // Phone in London: no shift; elsewhere the difference from London.
+      for (final day in const [
+        CivilDate(2026, 10, 23),
+        CivilDate(2026, 11, 10),
+        CivilDate(2027, 3, 28),
+      ]) {
+        final noon = londonWallClock(
+          DateTime.utc(day.year, day.month, day.day, 12),
+        );
+        expect(
+          sembleZoneShift(day),
+          noon.toLocal().timeZoneOffset.inMinutes -
+              (londonSummerTime(noon) ? 60 : 0),
+        );
+      }
     });
 
     test('la pausa di 15 minuti non diventa spazio libero', () {

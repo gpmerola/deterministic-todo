@@ -62,37 +62,61 @@ final class SembleBooking {
 
   /// Semble's API labels the clinic's wall-clock time as UTC: a booking at
   /// 10:00 London in BST comes as `10:00:00.000Z` (Semble's own screen and
-  /// the iCal copy show 10:00; checked on 23 October 2026). So the digits are
-  /// read as local wall-clock time, never converted; the layer runs only
-  /// when the phone is in Europe/London. ISO strings with or without `Z`, or
-  /// epoch milliseconds of the same digits.
+  /// the iCal copy show 10:00; checked on 23 October 2026). The digits are
+  /// read as Europe/London time and converted to the phone's zone, so a
+  /// visit at 10:00 in London shows at 11:00 with the phone in Italy (build
+  /// 296). ISO strings with or without `Z`, or epoch milliseconds of the same
+  /// digits; an explicit offset other than `Z` is a real instant.
   static DateTime? _instant(Object? value) {
-    DateTime wall(DateTime utc) => DateTime(
-      utc.year,
-      utc.month,
-      utc.day,
-      utc.hour,
-      utc.minute,
-      utc.second,
-      utc.millisecond,
-    );
     final epoch = value is int
         ? value
         : value is String
         ? int.tryParse(value)
         : null;
     if (epoch != null) {
-      return wall(DateTime.fromMillisecondsSinceEpoch(epoch, isUtc: true));
+      return londonWallClock(
+        DateTime.fromMillisecondsSinceEpoch(epoch, isUtc: true),
+      ).toLocal();
     }
     if (value is! String || value.trim().isEmpty) return null;
     final text = value.trim();
-    // An explicit offset other than Z is a real instant: honour it.
     if (RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(text)) {
       return DateTime.tryParse(text)?.toLocal();
     }
-    final parsed = DateTime.tryParse(text.replaceFirst(RegExp('[Zz]\$'), ''));
-    return parsed == null ? null : wall(parsed);
+    final digits = DateTime.tryParse(
+      '${text.replaceFirst(RegExp('[Zz]\$'), '')}Z',
+    );
+    return digits == null ? null : londonWallClock(digits).toLocal();
   }
+}
+
+/// The instant of Europe/London wall-clock [digits] (given as a UTC
+/// DateTime holding the London digits): British Summer Time runs from 01:00
+/// UTC on the last Sunday of March to 01:00 UTC on the last Sunday of
+/// October. In the skipped spring hour the digits are read as GMT.
+DateTime londonWallClock(DateTime digits) {
+  final asGmt = DateTime.utc(
+    digits.year,
+    digits.month,
+    digits.day,
+    digits.hour,
+    digits.minute,
+    digits.second,
+    digits.millisecond,
+  );
+  final asBst = asGmt.subtract(const Duration(hours: 1));
+  return londonSummerTime(asBst) ? asBst : asGmt;
+}
+
+/// Whether [instant] falls in British Summer Time.
+bool londonSummerTime(DateTime instant) {
+  final utc = instant.toUtc();
+  DateTime switchOn(int month) {
+    final last = DateTime.utc(utc.year, month + 1, 0, 1);
+    return last.subtract(Duration(days: last.weekday % 7));
+  }
+
+  return !utc.isBefore(switchOn(3)) && utc.isBefore(switchOn(10));
 }
 
 /// Whether [booking] belongs to the clinician named [surname], when Semble

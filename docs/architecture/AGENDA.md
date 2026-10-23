@@ -181,9 +181,12 @@ rete o con errore la stima resta quella per titolo e la scheda lo dice.
 Londra della clinica: una visita alle 10:00 in BST arriva come
 `10:00:00.000Z`, e la schermata di Semble e la copia iCal mostrano 10:00
 (verificato il 23 ottobre 2026). `SembleBooking.fromJson` legge quindi le
-cifre come ora locale senza conversione (il layer funziona solo con il
-telefono in Europe/London); un offset esplicito diverso da `Z` resta un
-istante. Le build 291–294 interpretavano la `Z` come UTC, mostravano le
+cifre come ora di Londra (`londonWallClock`: BST dall'ultima domenica di marzo
+all'ultima di ottobre, alle 01:00 UTC) e le converte nel fuso del telefono
+(build 296); un offset esplicito diverso da `Z` resta un istante. Anche le
+fasce di disponibilità, scritte in ora di Londra, sono spostate di
+`sembleZoneShift` (differenza a mezzogiorno di Londra) e tagliate alla
+mezzanotte locale: il layer non è più nascosto fuori da Europe/London. Le build 291–294 interpretavano la `Z` come UTC, mostravano le
 prenotazioni un'ora dopo e spostavano di conseguenza il calendario Semble:
 quello spostamento è stato tolto e il calendario non viene mai spostato.
 

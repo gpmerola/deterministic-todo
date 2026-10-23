@@ -1,4 +1,5 @@
 import 'agenda.dart';
+import 'semble_bookings.dart';
 import 'task.dart';
 
 /// Availability rules read from Semble (build 285): when the clinic's
@@ -224,6 +225,27 @@ List<SembleBand> sembleBandsFor(Iterable<SembleRule> rules, CivilDate day) {
     for (final (start, end) in blocked)
       SembleBand(SembleBandKind.unavailable, start, end),
   ]..sort((a, b) => a.startMinute.compareTo(b.startMinute));
+}
+
+/// Minutes to add to Semble's London wall-clock times to draw them on [day]
+/// in the phone's zone (build 296): 0 in the UK, 60 in Italy. Measured at
+/// London noon, so a change of time at night does not matter.
+int sembleZoneShift(CivilDate day) {
+  final noon = londonWallClock(DateTime.utc(day.year, day.month, day.day, 12));
+  final london = londonSummerTime(noon) ? 60 : 0;
+  return noon.toLocal().timeZoneOffset.inMinutes - london;
+}
+
+/// [bands] moved by [minutes] and clipped to the day: what goes past
+/// midnight is not drawn on the next day.
+List<SembleBand> sembleShiftBands(List<SembleBand> bands, int minutes) {
+  if (minutes == 0) return bands;
+  int clip(int minute) => (minute + minutes).clamp(0, 24 * 60);
+  return [
+    for (final band in bands)
+      if (clip(band.endMinute) > clip(band.startMinute))
+        SembleBand(band.kind, clip(band.startMinute), clip(band.endMinute)),
+  ];
 }
 
 /// Minutes of [day] taken by events (build 287): timed, not tasks, not

@@ -232,11 +232,11 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                     ),
                   if (current.ready && !widget.layer.zoneMatches)
                     Text(
-                      'Il telefono non è nel fuso $sembleZone: le '
-                      'disponibilità sono nascoste per non mostrarle a orari '
-                      'sbagliati.',
+                      'Il telefono non è nel fuso $sembleZone: orari, '
+                      'disponibilità e prenotazioni sono convertiti nell’ora '
+                      'del telefono.',
                       key: const ValueKey('semble-zone'),
-                      style: TextStyle(color: theme.colorScheme.error),
+                      style: theme.textTheme.bodySmall,
                     ),
                   const SizedBox(height: 8),
                   TextField(
