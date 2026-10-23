@@ -4,7 +4,18 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 303 — proposta di blocco alla creazione, visite annullate (in collaudo)
+## Build 304 — notifica per eventi in orario Semble (in collaudo)
+
+`SembleConflicts.check` gira con il refresh dei promemoria (trigger del
+provider calendario e job giornaliero di `AgendaReminderJob`), headless o
+nell'engine dell'app se non è in primo piano. Regole dalla cache
+`SembleSettings.saveRules` (Keystore, scritta a ogni lettura riuscita),
+`sembleConflicts` sui prossimi 14 giorni, `notifySembleConflicts` →
+`AgendaSembleConflicts.java` (canale `calendar_semble_conflicts`, registro
+di hash con scadenza). Limite: richiede i promemoria del Calendario attivi.
+Da provare sul Galaxy creando un evento in una fascia da un'altra app.
+
+## Build 303 — proposta di blocco alla creazione, visite annullate
 
 Dopo `create()` un evento con `_canSembleBlock` mostra lo snackbar
 `agenda-offer-semble-block` con l'azione che chiama

@@ -51,6 +51,24 @@ final class SembleRule {
     return rule.appliesOn(day, startDate);
   }
 
+  /// The shape [fromJson] reads (build 304): the rules cached on the phone
+  /// for the background conflict check. Dates and times only.
+  Map<String, Object?> toJson() {
+    String time(int minute) =>
+        '${(minute ~/ 60).toString().padLeft(2, '0')}:'
+        '${(minute % 60).toString().padLeft(2, '0')}';
+    return {
+      'id': id,
+      'unavailability': unavailability,
+      'startDate': '$startDate',
+      'endDate': endDate?.toString(),
+      'startTime': time(startMinute),
+      'endTime': time(endMinute),
+      if (recurrence case final rule?) 'recurrence': rule.toJson(),
+      'exclusions': [for (final day in exclusions) '$day'],
+    };
+  }
+
   /// Null when a field is missing or in a shape this build does not know:
   /// such a rule is counted and left out rather than guessed.
   static SembleRule? fromJson(Map<String, Object?> json) {
@@ -152,6 +170,12 @@ final class SembleRecurrence {
         return weeks % interval == 0;
     }
   }
+
+  Map<String, Object?> toJson() => {
+    'frequency': frequency.name,
+    'interval': interval,
+    'daysOfTheWeek': daysOfTheWeek.toList()..sort(),
+  };
 
   static SembleRecurrence? fromJson(Map<String, Object?> json) {
     final frequency = switch (json['frequency']) {
@@ -298,6 +322,44 @@ Set<String> sembleOverlaps(
           if (open.any((band) => start < band.$2 && end > band.$1))
             entry.instanceId,
   };
+}
+
+/// Events not yet over, from [now] to [until] and inside the rules'
+/// window [first]–[last], that are not visits and fall in bookable Semble
+/// time, blockable as one London day (build 304): what the background check
+/// notifies. [zoneShift] moves London times to the phone's zone.
+List<AgendaEntry> sembleConflicts({
+  required Iterable<AgendaEntry> entries,
+  required List<SembleRule> rules,
+  required CivilDate first,
+  required CivilDate last,
+  required DateTime now,
+  required DateTime until,
+  required bool Function(AgendaEntry entry) isVisit,
+  int Function(CivilDate day) zoneShift = sembleZoneShift,
+}) {
+  final timed = [
+    for (final entry in entries)
+      if (!entry.allDay &&
+          !entry.isTask &&
+          entry.end.isAfter(now) &&
+          entry.start.isBefore(until) &&
+          sembleBlockFor(entry.start, entry.end) != null)
+        entry,
+  ];
+  final found = <String, AgendaEntry>{};
+  var day = CivilDate.fromDateTime(now);
+  if (day.compareTo(first) < 0) day = first;
+  final end = CivilDate.fromDateTime(until);
+  while (day.compareTo(end) <= 0 && day.compareTo(last) <= 0) {
+    final bands = sembleShiftBands(sembleBandsFor(rules, day), zoneShift(day));
+    final ids = sembleOverlaps(timed, day, bands, isVisit, now: now);
+    for (final entry in timed) {
+      if (ids.contains(entry.instanceId)) found[entry.instanceId] = entry;
+    }
+    day = day.addDays(1);
+  }
+  return found.values.toList()..sort((a, b) => a.start.compareTo(b.start));
 }
 
 /// [bands] with [busy] cut out of the available ones: what is still free

@@ -124,6 +124,17 @@ final class SembleConfig {
   bool get ready => maskedKey != null && userId != null;
 }
 
+CivilDate? _civil(Object? value) {
+  if (value is! String) return null;
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+  if (match == null) return null;
+  return CivilDate(
+    int.parse(match[1]!),
+    int.parse(match[2]!),
+    int.parse(match[3]!),
+  );
+}
+
 /// Key and Semble user id in the Android Keystore, like the assistant key:
 /// never in SQLite, backups, logs or Supabase.
 class SembleSettings {
@@ -135,6 +146,8 @@ class SembleSettings {
   static const _enabled = 'semble_layer_enabled';
   static const _doctorName = 'semble_doctor_name';
   static const _roomId = 'semble_room_id';
+  static const _rulesCache = 'semble_rules_cache';
+  static const _conflictAlerts = 'semble_conflict_alerts';
 
   final FlutterSecureStorage _storage;
 
@@ -192,12 +205,59 @@ class SembleSettings {
   Future<void> setEnabled(bool enabled) =>
       _storage.write(key: _enabled, value: '$enabled');
 
+  /// Notifications for events that fall in bookable time (build 304); on
+  /// unless switched off.
+  Future<bool> conflictAlerts() async =>
+      await _storage.read(key: _conflictAlerts) != 'false';
+
+  Future<void> setConflictAlerts(bool enabled) =>
+      _storage.write(key: _conflictAlerts, value: '$enabled');
+
+  /// Rules last read and their window, for the background conflict check:
+  /// it never calls Semble (build 304). Dates and times only.
+  Future<void> saveRules(
+    List<SembleRule> rules,
+    CivilDate first,
+    CivilDate last,
+  ) => _storage.write(
+    key: _rulesCache,
+    value: jsonEncode({
+      'first': '$first',
+      'last': '$last',
+      'rules': [for (final rule in rules) rule.toJson()],
+    }),
+  );
+
+  Future<({List<SembleRule> rules, CivilDate first, CivilDate last})?>
+  cachedRules() async {
+    try {
+      final raw = await _storage.read(key: _rulesCache);
+      if (raw == null) return null;
+      final json = jsonDecode(raw) as Map<String, Object?>;
+      final first = _civil(json['first']);
+      final last = _civil(json['last']);
+      if (first == null || last == null) return null;
+      return (
+        rules: [
+          for (final item in (json['rules'] as List<Object?>? ?? const []))
+            if (item is Map<String, Object?>) ?SembleRule.fromJson(item),
+        ],
+        first: first,
+        last: last,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
   Future<void> clear() async {
     await _storage.delete(key: _apiKey);
     await _storage.delete(key: _userId);
     await _storage.delete(key: _enabled);
     await _storage.delete(key: _doctorName);
     await _storage.delete(key: _roomId);
+    await _storage.delete(key: _rulesCache);
+    await _storage.delete(key: _conflictAlerts);
   }
 }
 
@@ -600,6 +660,11 @@ class SembleLayer extends ChangeNotifier {
       _last = last;
       _fetchedAt = now();
       failure = null;
+      try {
+        await _settings.saveRules(_rules, first, last);
+      } on Object {
+        // Only the background conflict check misses the newest rules.
+      }
     } on SembleException catch (error) {
       // The previous rules stay drawn; Settings shows the failure.
       failure = error.failure;

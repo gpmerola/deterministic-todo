@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.117.0 (build 304) — Avviso per eventi arrivati in orario Semble
+
+- Se mentre l'app è chiusa arriva nel calendario un evento (Teams, KCL,
+  Google…) che cade in un orario prenotabile di Semble, una notifica lo
+  segnala con giorno e ora, senza titolo. Toccandola si apre il Calendario:
+  l'evento ha il bordo ambra e si blocca in Semble con un tocco.
+- Ogni evento è segnalato una sola volta. Interruttore in Impostazioni →
+  Semble, «Avvisa per eventi in orario Semble» (attivo).
+- Nessuna chiamata a Semble in background: usa le disponibilità lette
+  l'ultima volta che l'app era aperta.
+
 ## 2.116.0 (build 303) — Proposta di blocco e visite annullate
 
 - Se crei un evento che cade in un orario prenotabile di Semble, il

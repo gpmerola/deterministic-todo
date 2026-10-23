@@ -4,6 +4,32 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Avviso in background per eventi in orario Semble — build 304
+
+Richiesta dell'utente: sapere degli eventi importati da soli (Teams, KCL)
+che cadono in un orario prenotabile mentre l'app non è aperta.
+
+- **Quando.** Nessun nuovo job né polling: `runAgendaBackground('reminders')`
+  e `AgendaPhoneSync.background('reminders')` chiamano
+  `SembleConflicts.check()` dopo `AgendaReminders.refresh()`. Il job parte
+  quando il provider calendario cambia (fingerprint dei prossimi 8 giorni)
+  e una volta al giorno; serve quindi che i promemoria siano attivi.
+  Nell'engine dell'app il controllo salta se l'app è in primo piano: il
+  bordo ambra si vede già e il registro non viene consumato.
+- **Dati.** Nessuna chiamata a Semble: ogni lettura riuscita salva in
+  `SembleSettings` (Keystore) regole e finestra (`SembleRule.toJson`, solo
+  date e orari). `sembleConflicts` cerca nei prossimi 14 giorni, entro la
+  finestra, gli eventi non finiti, non visite (calendario Semble o
+  prenotazione), bloccabili in un giorno di Londra e sovrapposti a una
+  fascia disponibile. Calendari nascosti esclusi.
+- **Notifica.** `notifySembleConflicts` passa solo hash
+  (`semble|instanceId|start`), inizio e fine. `AgendaSembleConflicts.java`
+  tiene il registro con scadenza alla fine dell'evento, una notifica
+  riassuntiva (giorno e ora per un evento, il numero per più eventi),
+  visibilità privata, tocco su `OPEN_CALENDAR`. Interruttore
+  `semble_conflict_alerts` in Impostazioni → Semble; «Elimina chiave» toglie
+  anche cache e preferenza.
+
 ## Proposta alla creazione e visite annullate — build 303
 
 - **Alla creazione.** Dopo il salvataggio dal modulo, se l'evento (non in

@@ -33,6 +33,9 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   palette verde in tema chiaro e scuro. Idee non ancora approvate: blocco
   Semble da pressione lunga su una fascia libera, interruttore per le
   fasce Semble. I gruppi «N visite» restano (scelta dell'utente).
+  Build 303–304: provare la proposta di blocco dopo «Salva», una visita
+  annullata come sagoma e la notifica creando, ad app chiusa, un evento in
+  una fascia prenotabile da Google Calendar.
 
 ## Osservazioni passive
 

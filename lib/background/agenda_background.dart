@@ -9,6 +9,7 @@ import '../data/sync/secure_supabase_storage.dart';
 import '../services/agenda_phone_sync.dart';
 import '../services/agenda_reminders.dart';
 import '../services/agenda_service.dart';
+import '../services/semble_conflicts.dart';
 import 'background_session_storage.dart';
 
 /// Headless entry point (see `AgendaBackground.java`): runs only when the
@@ -31,7 +32,10 @@ Future<String> runAgendaBackground(String reason) async {
   if (reason == 'reminders') {
     final database = AppDatabase();
     try {
-      await AgendaReminders(AgendaService(database)).refresh();
+      final service = AgendaService(database);
+      await AgendaReminders(service).refresh();
+      // Same trigger: events that arrived in bookable Semble time.
+      await SembleConflicts(service).check();
       return 'done';
     } catch (_) {
       return 'retry';

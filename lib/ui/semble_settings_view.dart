@@ -34,6 +34,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
   SembleConfig? config;
   bool busy = false;
   bool obscured = true;
+  bool alerts = true;
   String? status;
 
   CivilDate get _today => CivilDate.fromDateTime(widget.now());
@@ -55,9 +56,11 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
 
   Future<void> _reload() async {
     final next = await widget.settings.read();
+    final notify = await widget.settings.conflictAlerts();
     if (!mounted) return;
     setState(() {
       config = next;
+      alerts = notify;
       if (userInput.text.isEmpty) userInput.text = next.userId ?? '';
       if (nameInput.text.isEmpty) nameInput.text = next.doctorName ?? '';
       if (roomInput.text.isEmpty) roomInput.text = next.roomId ?? '';
@@ -237,6 +240,24 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                       title: const Text('Mostra nel Calendario'),
                       value: current.enabled,
                       onChanged: busy ? null : _setEnabled,
+                    ),
+                  if (current.ready)
+                    SwitchListTile(
+                      key: const ValueKey('semble-conflict-alerts'),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Avvisa per eventi in orario Semble'),
+                      subtitle: const Text(
+                        'Notifica quando arriva un evento in un orario '
+                        'prenotabile, anche ad app chiusa. Mostra solo giorno '
+                        'e ora.',
+                      ),
+                      value: alerts,
+                      onChanged: busy
+                          ? null
+                          : (value) async {
+                              await widget.settings.setConflictAlerts(value);
+                              if (mounted) setState(() => alerts = value);
+                            },
                     ),
                   if (current.ready && !widget.layer.zoneMatches)
                     Text(

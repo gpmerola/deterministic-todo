@@ -162,7 +162,9 @@ ambra (build 300); la sua scheda offre «Blocca in Semble», che blocca
 quell'orario con un tocco (build 301). Solo sugli eventi non ancora finiti
 (build 302). Creando un evento in orario prenotabile, la conferma offre
 subito il blocco; le visite annullate restano come sagoma barrata finché il
-loro orario non passa (build 303). Con lo stesso cognome la Stima lavoro
+loro orario non passa (build 303). Se un evento arriva da solo in orario
+prenotabile mentre l'app è chiusa, una notifica con giorno e ora lo segnala
+(build 304, disattivabile in Impostazioni → Semble). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il
