@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
+import '../../domain/semble_bookings.dart' show SembleBookingEntry;
 import '../../domain/task.dart';
 import 'agenda_colors.dart';
 import 'agenda_page_cache.dart';
@@ -412,6 +413,10 @@ class AgendaChip extends StatelessWidget {
                     ? theme.colorScheme.onSurfaceVariant
                     : theme.colorScheme.onSurface,
                 fontStyle: entry.unanswered ? FontStyle.italic : null,
+                // Cancelled in Semble: the slot is free again (build 303).
+                decoration: entry.isSembleCancelled
+                    ? TextDecoration.lineThrough
+                    : null,
               ),
             ),
           ],

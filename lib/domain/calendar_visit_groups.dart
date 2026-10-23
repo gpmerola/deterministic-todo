@@ -1,4 +1,5 @@
 import 'agenda.dart';
+import 'semble_bookings.dart';
 import 'task.dart';
 
 /// A presentation item only: the original events and their IDs are retained.
@@ -53,6 +54,7 @@ List<CalendarVisitItem> calendarVisitItems(
       !e.allDay &&
       !e.isTask &&
       !e.unanswered &&
+      !e.isSembleCancelled &&
       !e.title.startsWith('In attesa · ') &&
       e.calendarIds.isNotEmpty &&
       !overlapping.contains(e) &&

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
+import '../../domain/semble_bookings.dart' show SembleBookingEntry;
 import '../../domain/task.dart';
 import '../../services/semble_service.dart' show SembleLayer;
 import 'agenda_colors.dart';
@@ -362,7 +363,9 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
       blocks,
       hourHeight: AgendaDayPage.hourHeight,
     );
-    final clashing = agendaOverlaps(entries).keys.toSet();
+    final clashing = agendaOverlaps(
+      entries.where((entry) => !entry.isSembleCancelled).toList(),
+    ).keys.toSet();
     final inSemble = SembleLayer.shared.overlapsFor(widget.day, entries);
     // The first layout fixes the initial position; reloads keep the scroll.
     scroll ??= data == null
@@ -635,9 +638,15 @@ class _Block extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // Unanswered invitations: outlined, not filled, like Google Calendar.
-    final outlined = entry.unanswered;
-    final onColor = outlined ? scheme.onSurface : agendaOnFill(color);
+    // Unanswered invitations: outlined, not filled, like Google Calendar;
+    // cancelled Semble bookings too, faded and struck through (build 303).
+    final cancelled = entry.isSembleCancelled;
+    final outlined = entry.unanswered || cancelled;
+    final onColor = cancelled
+        ? scheme.onSurfaceVariant
+        : outlined
+        ? scheme.onSurface
+        : agendaOnFill(color);
     final format = DateFormat.Hm('it');
     final meeting = entry.meeting;
     return Material(
@@ -677,6 +686,7 @@ class _Block extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       height: 1.2,
+                      decoration: cancelled ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   if (tall)

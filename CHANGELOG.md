@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.116.0 (build 303) — Proposta di blocco e visite annullate
+
+- Se crei un evento che cade in un orario prenotabile di Semble, il
+  messaggio di conferma offre subito **Blocca in Semble** (10 secondi).
+- Una visita annullata in Semble resta nel Calendario come sagoma vuota e
+  barrata, «Annullata · tipo», finché il suo orario non è passato: lo slot
+  torna verde come libero.
+
 ## 2.115.0 (build 302) — Bordo ambra solo sul futuro
 
 - Il bordo ambra (e il pulsante «Blocca in Semble») compare solo sugli

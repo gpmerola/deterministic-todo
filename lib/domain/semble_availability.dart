@@ -267,6 +267,7 @@ List<(int, int)> agendaBusyMinutes(
       if (!entry.allDay &&
           !entry.isTask &&
           !entry.unanswered &&
+          !entry.isSembleCancelled &&
           entry.end.isAfter(dayStart) &&
           entry.start.isBefore(dayEnd))
         (minuteOf(entry.start), minuteOf(entry.end)),

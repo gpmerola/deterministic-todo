@@ -212,7 +212,14 @@ const sembleBookingPrefix = 'semble-booking:';
 
 extension SembleBookingEntry on AgendaEntry {
   bool get isSembleBooking => instanceId.startsWith(sembleBookingPrefix);
+
+  /// A booking cancelled in Semble, kept as a faded outline until its time
+  /// is over so the freed slot is visible (build 303). Not busy time.
+  bool get isSembleCancelled => instanceId.startsWith(sembleCancelledPrefix);
 }
+
+/// Prefix of cancelled bookings; also a [sembleBookingPrefix].
+const sembleCancelledPrefix = '${sembleBookingPrefix}cancelled:';
 
 /// Clinical minutes written in a Semble visit title: "Follow-up
 /// Consultation (15 min)", "Prima visita (adulto) 60'". Semble's slot adds
@@ -261,12 +268,16 @@ AgendaEntry sembleClinicalEntry(AgendaEntry entry) {
 /// one. Cancelled bookings are never added. Timed events of the Semble
 /// calendar and the added bookings end with their clinical time from the
 /// title (build 295). Nothing happens without a visible Semble calendar.
+/// A cancelled booking whose time is not over, with no live booking or
+/// event at its minute, is added as «Annullata · type» (build 303).
 List<AgendaEntry> sembleAdjustEntries({
   required Iterable<SembleBooking> bookings,
   required List<AgendaEntry> merged,
   required List<AgendaCalendar> calendars,
   required Set<String> hiddenCalendarIds,
+  DateTime? now,
 }) {
+  final at = now ?? DateTime.now();
   final semble = [
     for (final calendar in calendars)
       if (isSembleCalendar(calendar) &&
@@ -285,6 +296,21 @@ List<AgendaEntry> sembleAdjustEntries({
     for (final entry in merged)
       if (!entry.allDay && !entry.isTask) _minute(entry.start),
   };
+  String typeOf(SembleBooking booking) =>
+      switch (booking.appointmentTitle?.trim()) {
+        final type? when type.isNotEmpty => type,
+        _ => 'Prenotazione Semble',
+      };
+  final cancelled = <int, SembleBooking>{
+    for (final booking in bookings)
+      if (booking.deleted &&
+          booking.end != null &&
+          booking.end!.isAfter(booking.start) &&
+          booking.end!.isAfter(at) &&
+          !live.containsKey(_minute(booking.start)) &&
+          !taken.contains(_minute(booking.start)))
+        _minute(booking.start): booking,
+  };
   final added = [
     for (final MapEntry(key: minute, value: booking) in live.entries)
       if (!taken.contains(minute))
@@ -293,16 +319,26 @@ List<AgendaEntry> sembleAdjustEntries({
             instanceId:
                 '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}',
             calendarIds: [semble.first],
-            title: switch (booking.appointmentTitle?.trim()) {
-              final type? when type.isNotEmpty => type,
-              _ => 'Prenotazione Semble',
-            },
+            title: typeOf(booking),
             start: booking.start,
             end: booking.end!,
             allDay: false,
             isOrganizer: false,
           ),
         ),
+    for (final booking in cancelled.values)
+      sembleClinicalEntry(
+        AgendaEntry(
+          instanceId:
+              '$sembleCancelledPrefix${booking.start.millisecondsSinceEpoch}',
+          calendarIds: [semble.first],
+          title: 'Annullata · ${typeOf(booking)}',
+          start: booking.start,
+          end: booking.end!,
+          allDay: false,
+          isOrganizer: false,
+        ),
+      ),
   ];
   var trimmed = false;
   final entries = <AgendaEntry>[];

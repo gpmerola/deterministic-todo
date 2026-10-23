@@ -4,7 +4,16 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
-## Build 302 — bordo ambra solo sugli eventi non finiti (in collaudo)
+## Build 303 — proposta di blocco alla creazione, visite annullate (in collaudo)
+
+Dopo `create()` un evento con `_canSembleBlock` mostra lo snackbar
+`agenda-offer-semble-block` con l'azione che chiama
+`perform(sembleBlock)`. `sembleAdjustEntries(now:)` aggiunge le prenotazioni
+cancellate non ancora finite come `sembleCancelledPrefix` («Annullata ·
+tipo»), escluse da occupato, gruppi e conflitti. Prossimo passo richiesto:
+notifica per gli eventi arrivati in background in orario prenotabile.
+
+## Build 302 — bordo ambra solo sugli eventi non finiti
 
 `sembleOverlaps(now:)`: `SembleLayer.overlapsFor` esclude gli eventi già
 finiti. Da provare sul Galaxy.

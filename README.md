@@ -160,7 +160,9 @@ Other e senza commento). Le visite Semble sono verdi come la disponibilità,
 e un evento che non è una visita ma cade in orario prenotabile ha un bordo
 ambra (build 300); la sua scheda offre «Blocca in Semble», che blocca
 quell'orario con un tocco (build 301). Solo sugli eventi non ancora finiti
-(build 302). Con lo stesso cognome la Stima lavoro
+(build 302). Creando un evento in orario prenotabile, la conferma offre
+subito il blocco; le visite annullate restano come sagoma barrata finché il
+loro orario non passa (build 303). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

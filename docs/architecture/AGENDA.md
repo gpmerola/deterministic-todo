@@ -4,6 +4,21 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Proposta alla creazione e visite annullate — build 303
+
+- **Alla creazione.** Dopo il salvataggio dal modulo, se l'evento (non in
+  un calendario nascosto) supera `_canSembleBlock`, al posto del semplice
+  «Evento salvato» compare uno snackbar di 10 secondi (`persist: false`)
+  con «Blocca in Semble»: è lo stesso `perform(sembleBlock)` della scheda.
+- **Annullate.** `sembleAdjustEntries` aggiunge ogni prenotazione con
+  `deleted` la cui fine è dopo `now`, senza una prenotazione viva né un
+  evento allo stesso minuto, con id `semble-booking:cancelled:<ms>` e titolo
+  «Annullata · tipo». `isSembleCancelled` la esclude da
+  `agendaBusyMinutes` (lo slot torna verde), dai gruppi di visite e dai
+  conflitti rossi; è una visita per `sembleOverlaps`. Giornata, settimane e
+  griglie la disegnano vuota, sbiadita e barrata; la scheda Semble dice che
+  l'orario è di nuovo libero. Nessun dato del paziente.
+
 ## Bordo ambra solo sul futuro — build 302
 
 Su richiesta dell'utente `SembleLayer.overlapsFor` passa `now` a

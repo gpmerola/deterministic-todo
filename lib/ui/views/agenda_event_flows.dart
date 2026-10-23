@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -368,6 +370,37 @@ class AgendaEventFlows {
     );
     if (draft == null || !context.mounted) return;
     final target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
+    if (sembleBlock && !hidden.contains(draft.calendarId)) {
+      final saved = AgendaEntry(
+        instanceId: 'semble-offer',
+        calendarIds: [draft.calendarId],
+        title: '',
+        start: draft.start,
+        end: draft.end,
+        allDay: draft.allDay,
+      );
+      if (_canSembleBlock(saved)) {
+        // In bookable Semble time: offer the block at once (build 303).
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            key: const ValueKey('agenda-offer-semble-block'),
+            content: Text(
+              'Evento salvato in ${target?.name ?? 'calendario'}. Cade in '
+              'una disponibilità Semble.',
+            ),
+            duration: const Duration(seconds: 10),
+            persist: false,
+            action: SnackBarAction(
+              label: 'Blocca in Semble',
+              onPressed: () => unawaited(
+                perform(context, saved, AgendaEventAction.sembleBlock),
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+    }
     try {
       if (!context.mounted) return;
       _say(
@@ -608,10 +641,13 @@ Future<void> showSembleBookingSheet(BuildContext context, AgendaEntry entry) {
             '${time.format(entry.start)}–${time.format(entry.end)}',
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Prenotazione letta direttamente da Semble, non ancora arrivata '
-            'nel calendario Google. Quando arriva, resta solo quella. Il '
-            'paziente si vede in Semble.',
+          Text(
+            entry.isSembleCancelled
+                ? 'Prenotazione annullata in Semble: l\'orario è di nuovo '
+                      'libero. Resta visibile fino alla sua fine.'
+                : 'Prenotazione letta direttamente da Semble, non ancora '
+                      'arrivata nel calendario Google. Quando arriva, resta '
+                      'solo quella. Il paziente si vede in Semble.',
           ),
           const SizedBox(height: 16),
           Align(

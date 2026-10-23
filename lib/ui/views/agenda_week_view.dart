@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
+import '../../domain/semble_bookings.dart' show SembleBookingEntry;
 import '../../domain/task.dart';
 import '../../services/semble_service.dart' show SembleLayer;
 import 'agenda_colors.dart';
@@ -429,7 +430,9 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     Map<String, CalendarVisitItem> groups,
   ) {
     final theme = Theme.of(context);
-    final clashing = agendaOverlaps(entries).keys.toSet();
+    final clashing = agendaOverlaps(
+      entries.where((entry) => !entry.isSembleCancelled).toList(),
+    ).keys.toSet();
     final inSemble = SembleLayer.shared.overlapsFor(date, entries);
     final line = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
     return LayoutBuilder(
@@ -590,9 +593,15 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
   }) {
     final scheme = Theme.of(context).colorScheme;
     final fill = agendaEventFill(color, scheme);
-    // Unanswered invitations: outlined, not filled, like Google Calendar.
-    final outlined = entry.unanswered;
-    final onColor = outlined ? scheme.onSurface : agendaOnFill(fill);
+    // Unanswered invitations: outlined, not filled, like Google Calendar;
+    // cancelled Semble bookings too, faded (build 303).
+    final cancelled = entry.isSembleCancelled;
+    final outlined = entry.unanswered || cancelled;
+    final onColor = cancelled
+        ? scheme.onSurfaceVariant
+        : outlined
+        ? scheme.onSurface
+        : agendaOnFill(fill);
     return Material(
       color: outlined ? scheme.surface : fill,
       // Overlapping another timed event: outlined in the error colour.
@@ -625,7 +634,10 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
               );
               final title = AgendaWordWrap(
                 entry.title.isEmpty ? '(senza titolo)' : entry.title,
-                style: style.copyWith(fontWeight: FontWeight.w600),
+                style: style.copyWith(
+                  fontWeight: FontWeight.w600,
+                  decoration: cancelled ? TextDecoration.lineThrough : null,
+                ),
               );
               // The start time, when the block has room for it: times
               // must read at a glance (user request, build 220).

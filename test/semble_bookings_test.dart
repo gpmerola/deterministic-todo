@@ -394,12 +394,39 @@ void main() {
       List<SembleBooking> bookings,
       List<AgendaEntry> merged, {
       Set<String> hidden = const {},
+      DateTime? now,
     }) => sembleAdjustEntries(
       bookings: bookings,
       merged: merged,
       calendars: calendars,
       hiddenCalendarIds: hidden,
+      // After every fixture unless a test says otherwise: no cancelled
+      // outline left to show.
+      now: now ?? DateTime.utc(2100),
     );
+
+    test('una prenotazione annullata resta come sagoma finché non finisce', () {
+      final noon = at11.add(const Duration(hours: 1));
+      final bookings = [
+        parsed(booking(noon, type: 'Follow-up 30', deleted: true)),
+        // Also cancelled, but a live booking took its minute.
+        parsed(booking(at11, deleted: true)),
+        parsed(booking(at11, type: 'Prima visita')),
+      ];
+      final before = adjust(bookings, const [], now: at10);
+      final ghost = before.singleWhere((e) => e.isSembleCancelled);
+      expect(ghost.isSembleBooking, isTrue);
+      expect(ghost.title, 'Annullata · Follow-up 30');
+      expect(ghost.start, noon);
+      // Not busy: the freed time is bookable again.
+      expect(agendaBusyMinutes([ghost], CivilDate.fromDateTime(noon)), isEmpty);
+      final after = adjust(
+        bookings,
+        const [],
+        now: noon.add(const Duration(hours: 1)),
+      );
+      expect(after.where((e) => e.isSembleCancelled), isEmpty);
+    });
 
     test('aggiunge solo le prenotazioni non ancora arrivate', () {
       final merged = [visit('Follow-up 30 · M.R.', at10)];
