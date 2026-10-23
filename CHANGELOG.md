@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.108.0 (build 295) — Orari Semble giusti, durata dal titolo
+
+- Correzione delle build 291–294: l'API di Semble manda l'ora di Londra
+  etichettata come UTC. Ora le cifre sono lette così come sono, quindi le
+  prenotazioni coincidono con Semble e con il calendario. Il calendario
+  Semble non viene più spostato di un'ora: era giusto.
+- Le visite Semble nel Calendario finiscono quando finisce il tempo clinico
+  scritto nel titolo («15 min», «60'»): i 15 minuti di pausa che Semble
+  aggiunge a ogni slot non sono più disegnati come visita, e non diventano
+  verdi negli spazi liberi.
+
 ## 2.107.1 (build 294) — Correzione dell'ora per giornata intera
 
 - Le visite Semble a mezz'ora o un'ora di distanza non coincidevano con

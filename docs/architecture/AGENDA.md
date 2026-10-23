@@ -177,26 +177,32 @@ sconosciuti e non cambiano nulla. DNA e cancellate escono da maturato e
 previsto e compaiono a parte. Nessun dato viene salvato; senza cognome, senza
 rete o con errore la stima resta quella per titolo e la scheda lo dice.
 
-**Copie iCal un'ora prima (build 292).** Il feed iCal di Semble scrive le
-cifre UTC come ora locale: in BST ogni visita è un'ora prima. `buildAgenda`
-accetta `adjust` (lista completa, ordinata con `compareAgendaEntries`);
-`SembleLayer.adjustEntries` vi passa `sembleAdjustEntries`, che sposta di
-`deviceOffset` (scarto UTC del telefono) le voci con orario di un calendario
-Semble visibile. Dalla build 294 la decisione è per giornata civile: ogni voce
-vota +1 se una prenotazione viva inizia al suo minuto spostato e −1 se ne
-inizia una al suo minuto; con saldo positivo tutte le voci Semble del giorno
-si spostano, perché con visite vicine una copia anticipata cade spesso su
-un'altra prenotazione. Titolo, id e calendario restano; il provider non viene toccato.
-`sembleOutcomeFor` usa lo stesso scarto se l'abbinamento esatto fallisce.
+**Orari dell'API Semble (build 295).** L'API etichetta come UTC l'ora di
+Londra della clinica: una visita alle 10:00 in BST arriva come
+`10:00:00.000Z`, e la schermata di Semble e la copia iCal mostrano 10:00
+(verificato il 23 ottobre 2026). `SembleBooking.fromJson` legge quindi le
+cifre come ora locale senza conversione (il layer funziona solo con il
+telefono in Europe/London); un offset esplicito diverso da `Z` resta un
+istante. Le build 291–294 interpretavano la `Z` come UTC, mostravano le
+prenotazioni un'ora dopo e spostavano di conseguenza il calendario Semble:
+quello spostamento è stato tolto e il calendario non viene mai spostato.
+
+**Durata dal titolo (build 295).** Ogni slot Semble aggiunge 15 minuti di
+pausa (`appointment.duration` = titolo + 15). `sembleTitleMinutes` legge i
+minuti dal titolo («15 min», «60'»); `sembleClinicalEntry` fa finire lì le
+voci del calendario Semble e le prenotazioni aggiunte, solo in
+visualizzazione. `sembleFreeBands` scarta i pezzi liberi più corti di 30
+minuti, così la pausa non diventa verde. `buildAgenda` accetta `adjust`
+(lista completa, ordinata con `compareAgendaEntries`), a cui
+`SembleLayer.adjustEntries` passa `sembleAdjustEntries`.
 
 **Prenotazioni dirette (build 289).** `SembleLayer`, insieme alle regole e
 con lo stesso limite di 15 minuti, legge con `SembleClient.bookings` le
 prenotazioni con il cognome da ieri a +28 giorni e le tiene solo in memoria
 (`bookingsRevision`). La stessa `sembleAdjustEntries` aggiunge le
 prenotazioni non cancellate solo se un calendario Semble è visibile e nessuna
-voce con orario, di qualsiasi calendario, inizia nello stesso minuto dopo
-l'eventuale spostamento sopra (build 290). `start` ed `end` arrivano in UTC
-con `Z`; un orario senza fuso sarebbe letto come UTC (build 291). Le voci
+voce con orario, di qualsiasi calendario, inizia nello stesso minuto
+(build 290). Le voci
 aggiunte hanno `instanceId` con prefisso `semble-booking:`, il primo
 calendario Semble, titolo uguale al tipo di visita, `isOrganizer` falso; il
 tocco apre una scheda di sola lettura e non esistono modifica, eliminazione

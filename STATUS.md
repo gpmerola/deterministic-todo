@@ -1,6 +1,15 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 294.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 295.
+
+## Build 295 — orari API come ora di Londra
+
+Lo screenshot di Semble dell'utente del 23 ottobre 2026 (visite alle 10:00,
+10:30, 11:00, linea dell'ora alle 11:3x BST) e l'API (`10:00:00.000Z`, …)
+mostrano che la `Z` dell'API è l'ora di Londra: le build 291–294 erano
+sbagliate e il calendario iCal era giusto. Tolto lo spostamento, cifre lette
+come ora locale; durata delle visite dal titolo (pausa di 15 minuti esclusa).
+Test superati su Linux anche con `TZ=Europe/London`; da provare sul Galaxy.
 
 ## Build 294 — spostamento per giornata
 

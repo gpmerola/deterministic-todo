@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:deterministic_todo/data/local/database.dart';
 import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/private_earnings.dart';
+import 'package:deterministic_todo/domain/semble_availability.dart';
 import 'package:deterministic_todo/domain/semble_bookings.dart';
 import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/agenda_service.dart';
@@ -14,7 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-// Synthetic bookings shaped like Semble's (ISO in UTC); no real data.
+// Synthetic bookings shaped like Semble's: clinic wall-clock digits
+// labelled Z; no real data.
+String semble(DateTime local) => '${local.toIso8601String()}Z';
 Map<String, Object?> booking(
   DateTime start, {
   int minutes = 30,
@@ -24,16 +27,16 @@ Map<String, Object?> booking(
   bool arrived = false,
   bool dna = false,
 }) => {
-  'start': start.toUtc().toIso8601String(),
-  'end': start.add(Duration(minutes: minutes)).toUtc().toIso8601String(),
+  'start': semble(start),
+  'end': semble(start.add(Duration(minutes: minutes))),
   'deleted': deleted,
   'doctorName': doctor,
   'appointment': {'title': type},
   'bookingJourney': {
-    'arrived': arrived ? start.toUtc().toIso8601String() : null,
+    'arrived': arrived ? semble(start) : null,
     'consultation': null,
     'departed': null,
-    'dna': dna ? start.toUtc().toIso8601String() : null,
+    'dna': dna ? semble(start) : null,
   },
 };
 
@@ -69,20 +72,25 @@ void main() {
       expect(SembleBooking.fromJson({'start': null}), isNull);
     });
 
-    test('orari senza Z sono UTC, non ora del telefono', () {
-      final utc = DateTime.utc(2026, 10, 23, 15, 30);
+    test('le cifre di Semble sono ora di Londra, anche con Z', () {
+      final wall = DateTime(2026, 10, 23, 10);
       for (final text in [
-        '2026-10-23T15:30:00.000',
-        '2026-10-23 15:30:00',
-        '2026-10-23T15:30:00.000Z',
-        '2026-10-23T16:30:00+01:00',
+        '2026-10-23T10:00:00.000Z',
+        '2026-10-23T10:00:00.000',
+        '2026-10-23 10:00:00',
+        '${DateTime.utc(2026, 10, 23, 10).millisecondsSinceEpoch}',
       ]) {
         expect(
           SembleBooking.fromJson({'start': text})!.start,
-          utc.toLocal(),
+          wall,
           reason: text,
         );
       }
+      // A real offset is still an instant.
+      expect(
+        SembleBooking.fromJson({'start': '2026-10-23T11:00:00+01:00'})!.start,
+        DateTime.utc(2026, 10, 23, 10).toLocal(),
+      );
     });
 
     test('abbinamento per minuto, tipo di visita e cognome', () {
@@ -206,14 +214,13 @@ void main() {
     final result = estimateWithSembleBookings(
       calendarEntries: [
         entry('ical', 'semble', 'Follow-up 15', h(10)),
-        // The iCal copy one hour early in a calendar named otherwise.
-        entry('opuk', 'opuk', 'Prima visita 60 min', h(16, 30)),
+        // A copy of a booking in a calendar named otherwise.
+        entry('opuk', 'opuk', 'Prima visita 60 min', h(17, 30)),
         entry('heydoc', 'heydoc', 'Follow-up 15 min', h(14)),
       ],
       bookings: bookings,
       sembleCalendarIds: const {'semble'},
       now: now,
-      offsetOf: (_) => const Duration(hours: 1),
     );
     expect(result.counts, {PrivateFee.followUp15: 1});
     expect(result.scheduledCounts, {
@@ -353,19 +360,15 @@ void main() {
       AgendaCalendar(id: 'kcl', name: 'KCL', accountName: ''),
     ];
     final at11 = at10.add(const Duration(hours: 1));
-    Duration utc(DateTime _) => Duration.zero;
-    Duration bst(DateTime _) => const Duration(hours: 1);
     List<AgendaEntry> adjust(
       List<SembleBooking> bookings,
       List<AgendaEntry> merged, {
       Set<String> hidden = const {},
-      Duration Function(DateTime)? offsetOf,
     }) => sembleAdjustEntries(
       bookings: bookings,
       merged: merged,
       calendars: calendars,
       hiddenCalendarIds: hidden,
-      offsetOf: offsetOf ?? utc,
     );
 
     test('aggiunge solo le prenotazioni non ancora arrivate', () {
@@ -401,101 +404,73 @@ void main() {
       );
     });
 
-    test('la copia iCal scritta in UTC torna all ora giusta', () {
-      // Booking 17:30 local in BST; the iCal copy shows 16:30.
-      final early = visit('Prima visita · M.R.', at10, id: 'ical');
-      final entries = adjust(
-        [parsed(booking(at11, minutes: 75, type: 'Initial Consultation'))],
-        [early],
-        offsetOf: bst,
+    test('la durata viene dal titolo, la pausa resta fuori', () {
+      expect(sembleTitleMinutes('Follow-up Consultation (15 min)'), 15);
+      expect(sembleTitleMinutes('Follow-up Consultation - 30 min (PLE)'), 30);
+      expect(sembleTitleMinutes("Prima visita (adulto) 60'"), 60);
+      expect(sembleTitleMinutes("Follow-up 30' · Insurance"), 30);
+      expect(sembleTitleMinutes('Follow-up 30'), isNull);
+      expect(sembleTitleMinutes('15 min o 30 min'), isNull);
+      final ical = AgendaEntry(
+        instanceId: 'ical',
+        calendarIds: const ['semble'],
+        title: "Prima visita (adulto) 60'",
+        start: at10,
+        end: at10.add(const Duration(minutes: 75)),
+        allDay: false,
       );
-      final moved = entries.single;
-      expect(moved.instanceId, 'ical');
-      expect(moved.title, 'Prima visita · M.R.');
-      expect(moved.start, at11);
-      expect(moved.end, at11.add(const Duration(minutes: 30)));
-      // Without the offset, or with a booking at its own time, it stays.
-      expect(
-        adjust([parsed(booking(at11))], [early]).map((e) => e.instanceId),
-        ['ical', '$sembleBookingPrefix${at11.millisecondsSinceEpoch}'],
-      );
-      expect(
-        adjust(
-          [parsed(booking(at10)), parsed(booking(at11))],
-          [early],
-          offsetOf: bst,
-        ).first.start,
-        at10,
-      );
-      // A KCL meeting is never moved.
       final kcl = AgendaEntry(
         instanceId: 'k',
         calendarIds: const ['kcl'],
-        title: 'Meeting',
-        start: at10,
-        end: at11,
+        title: 'Meeting 15 min',
+        start: at11,
+        end: at11.add(const Duration(minutes: 60)),
         allDay: false,
       );
+      final later = at10.add(const Duration(hours: 3));
+      final entries = adjust(
+        [
+          parsed(booking(at10, minutes: 75)),
+          parsed(
+            booking(
+              later,
+              minutes: 30,
+              type: 'Follow-up Consultation (15 min)',
+            ),
+          ),
+        ],
+        [ical, kcl],
+      );
       expect(
-        adjust([parsed(booking(at11))], [kcl], offsetOf: bst).first,
-        same(kcl),
+        entries.map((e) => (e.instanceId, e.end.difference(e.start).inMinutes)),
+        [
+          ('ical', 60),
+          ('k', 60),
+          ('$sembleBookingPrefix${later.millisecondsSinceEpoch}', 15),
+        ],
       );
     });
 
-    test('visite vicine: la giornata si sposta tutta insieme', () {
-      // 23 October 2026 as read from Semble (local BST) and the iCal copies
-      // in UTC digits: several early copies land on another booking.
+    test('la pausa di 15 minuti non diventa spazio libero', () {
+      const open = SembleBand(SembleBandKind.available, 600, 720);
+      expect(sembleFreeBands([open], [(600, 615), (630, 645)]), const [
+        SembleBand(SembleBandKind.available, 645, 720),
+      ]);
+      expect(sembleFreeBands([open], const []), [open]);
+    });
+
+    test('il calendario Semble non viene mai spostato', () {
+      // 23 October 2026: Semble and its iCal copy agree on 10:00, 10:30…
       final day = DateTime(2026, 10, 23);
       DateTime h(int hour, [int minute = 0]) =>
           day.add(Duration(hours: hour, minutes: minute));
-      final bookings = [
-        for (final (start, minutes) in [
-          (h(11), 30),
-          (h(11, 30), 30),
-          (h(12), 45),
-          (h(13, 15), 45),
-          (h(17), 30),
-          (h(17, 30), 75),
-        ])
-          parsed(booking(start, minutes: minutes)),
-      ];
+      final starts = [h(10), h(10, 30), h(11), h(12, 15), h(16), h(16, 30)];
+      final bookings = [for (final start in starts) parsed(booking(start))];
       final ical = [
-        for (final (index, start) in [
-          h(10),
-          h(10, 30),
-          h(11),
-          h(12, 15),
-          h(16),
-          h(16, 30),
-        ].indexed)
+        for (final (index, start) in starts.indexed)
           visit('Visita $index', start, id: 'ical$index'),
       ];
-      final entries = adjust(bookings, ical, offsetOf: bst);
-      expect(entries.map((e) => e.instanceId), [
-        for (var index = 0; index < 6; index++) 'ical$index',
-      ]);
-      expect(entries.map((e) => e.start), bookings.map((b) => b.start));
-      // A day whose copies are at the right time is left alone.
-      final right = [
-        for (final (index, booking) in bookings.indexed)
-          visit('Visita $index', booking.start, id: 'ok$index'),
-      ];
-      expect(adjust(bookings, right, offsetOf: bst), right);
-    });
-
-    test('l esito si abbina anche alla copia un ora prima', () {
-      expect(
-        sembleOutcomeFor(visit('Follow-up', at10), [
-          parsed(booking(at11, dna: true)),
-        ], offsetOf: bst),
-        SembleOutcome.dna,
-      );
-      expect(
-        sembleOutcomeFor(visit('Follow-up', at10), [
-          parsed(booking(at11, dna: true)),
-        ], offsetOf: utc),
-        SembleOutcome.unknown,
-      );
+      expect(adjust(bookings, ical), same(ical));
     });
 
     test('buildAgenda le mette nel giorno giusto, in ordine', () {

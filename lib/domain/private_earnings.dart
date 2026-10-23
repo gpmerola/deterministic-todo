@@ -246,9 +246,9 @@ PrivateEarnings estimatePrivateEarnings(
 /// The month's private work with Semble's bookings as the source of its
 /// visits (build 293): type, times and outcome come from each booking, so
 /// the estimate no longer depends on the iCal copy, its titles or its wrong
-/// summer times. Calendar entries of a Semble calendar are dropped, and so
-/// is any other private calendar entry starting with a booking (also one UTC
-/// offset early, like the iCal copy). heydoc and other visits stay. A
+/// times. Calendar entries of a Semble calendar are dropped, and so is any
+/// other private calendar entry starting with a booking. heydoc and other
+/// visits stay. A
 /// deleted booking counts as cancelled only when no live booking of the user
 /// starts in the same minute (moved in place).
 PrivateEarnings estimateWithSembleBookings({
@@ -256,7 +256,6 @@ PrivateEarnings estimateWithSembleBookings({
   required Iterable<SembleBooking> bookings,
   required Set<String> sembleCalendarIds,
   required DateTime now,
-  Duration Function(DateTime) offsetOf = deviceOffset,
 }) {
   int minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;
   final all = bookings.toList();
@@ -286,8 +285,7 @@ PrivateEarnings estimateWithSembleBookings({
   final others = [
     for (final entry in calendarEntries)
       if (!entry.calendarIds.any(sembleCalendarIds.contains) &&
-          !booked.contains(minute(entry.start)) &&
-          !booked.contains(minute(entry.start.add(offsetOf(entry.start)))))
+          !booked.contains(minute(entry.start)))
         entry,
   ];
   final result = estimatePrivateEarnings(

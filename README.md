@@ -144,9 +144,9 @@ liberi da eventi. È sola
 lettura e la chiave API resta nel Keystore del telefono. Gli appuntamenti
 arrivano dal calendario Google collegato a Semble; con il cognome impostato
 (build 289) quelli nuovi compaiono subito dall'API e la copia diretta sparisce
-quando arriva quella del calendario. Le copie del calendario che il feed
-Semble mette un'ora prima in ora legale sono mostrate all'ora della
-prenotazione (build 292). Con lo stesso cognome la Stima lavoro
+quando arriva quella del calendario. Le visite Semble finiscono quando
+finisce il tempo clinico scritto nel titolo, senza i 15 minuti di pausa
+(build 295). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

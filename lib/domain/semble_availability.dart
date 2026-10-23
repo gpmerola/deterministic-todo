@@ -252,11 +252,15 @@ List<(int, int)> agendaBusyMinutes(
 }
 
 /// [bands] with [busy] cut out of the available ones: what is still free
-/// to book. Unavailable bands stay as they are.
+/// to book. Unavailable bands stay as they are. A piece left shorter than
+/// [minFree] is not bookable (Semble's shortest slot is 30 minutes) and is
+/// dropped, so the 15 minutes of rest after a visit are not green (build
+/// 295).
 List<SembleBand> sembleFreeBands(
   List<SembleBand> bands,
-  Iterable<(int, int)> busy,
-) {
+  Iterable<(int, int)> busy, {
+  int minFree = 30,
+}) {
   final taken = _union(busy.toList());
   if (taken.isEmpty) return bands;
   final result = <SembleBand>[];
@@ -269,7 +273,10 @@ List<SembleBand> sembleFreeBands(
       band.startMinute,
       band.endMinute,
     ), taken)) {
-      result.add(SembleBand(SembleBandKind.available, start, end));
+      final whole = start == band.startMinute && end == band.endMinute;
+      if (whole || end - start >= minFree) {
+        result.add(SembleBand(SembleBandKind.available, start, end));
+      }
     }
   }
   return result..sort((a, b) => a.startMinute.compareTo(b.startMinute));

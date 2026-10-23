@@ -1,5 +1,4 @@
 import 'agenda.dart';
-import 'task.dart';
 import 'text_fold.dart';
 
 /// What Semble recorded for a booking (build 288). Read from
@@ -61,24 +60,38 @@ final class SembleBooking {
     );
   }
 
-  /// ISO 8601 or epoch milliseconds, as local time. Semble sends booking
-  /// times in UTC, sometimes without the `Z`: a string with no offset is
-  /// read as UTC, not as device time (build 291, copies an hour early).
+  /// Semble's API labels the clinic's wall-clock time as UTC: a booking at
+  /// 10:00 London in BST comes as `10:00:00.000Z` (Semble's own screen and
+  /// the iCal copy show 10:00; checked on 23 October 2026). So the digits are
+  /// read as local wall-clock time, never converted; the layer runs only
+  /// when the phone is in Europe/London. ISO strings with or without `Z`, or
+  /// epoch milliseconds of the same digits.
   static DateTime? _instant(Object? value) {
-    if (value is int) {
-      return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true).toLocal();
-    }
-    if (value is! String || value.isEmpty) return null;
-    final epoch = int.tryParse(value);
+    DateTime wall(DateTime utc) => DateTime(
+      utc.year,
+      utc.month,
+      utc.day,
+      utc.hour,
+      utc.minute,
+      utc.second,
+      utc.millisecond,
+    );
+    final epoch = value is int
+        ? value
+        : value is String
+        ? int.tryParse(value)
+        : null;
     if (epoch != null) {
-      return DateTime.fromMillisecondsSinceEpoch(epoch, isUtc: true).toLocal();
+      return wall(DateTime.fromMillisecondsSinceEpoch(epoch, isUtc: true));
     }
-    final zoned = RegExp(r'(Z|[+-]\d{2}(:?\d{2})?)$', caseSensitive: false);
+    if (value is! String || value.trim().isEmpty) return null;
     final text = value.trim();
-    final hasTime = text.contains(RegExp('[T ]'));
-    return DateTime.tryParse(
-      hasTime && !zoned.hasMatch(text) ? '${text}Z' : text,
-    )?.toLocal();
+    // An explicit offset other than Z is a real instant: honour it.
+    if (RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(text)) {
+      return DateTime.tryParse(text)?.toLocal();
+    }
+    final parsed = DateTime.tryParse(text.replaceFirst(RegExp('[Zz]\$'), ''));
+    return parsed == null ? null : wall(parsed);
   }
 }
 
@@ -98,7 +111,6 @@ SembleOutcome sembleOutcomeFor(
   AgendaEntry entry,
   Iterable<SembleBooking> bookings, {
   String? surname,
-  Duration Function(DateTime) offsetOf = deviceOffset,
 }) {
   List<SembleBooking> at(int minute) => [
     for (final booking in bookings)
@@ -107,11 +119,6 @@ SembleOutcome sembleOutcomeFor(
         booking,
   ];
   var candidates = at(_minute(entry.start));
-  // The iCal copy may show UTC digits as local time (seen in BST, build 292).
-  final offset = offsetOf(entry.start);
-  if (candidates.isEmpty && offset != Duration.zero) {
-    candidates = at(_minute(entry.start.add(offset)));
-  }
   if (candidates.length > 1) {
     final title = foldForSearch(entry.title);
     final typed = [
@@ -147,29 +154,58 @@ extension SembleBookingEntry on AgendaEntry {
   bool get isSembleBooking => instanceId.startsWith(sembleBookingPrefix);
 }
 
-/// The device's UTC offset at [moment]. Semble's iCal export writes UTC
-/// wall-clock digits as local time, so in British Summer Time every copy is
-/// an hour early (seen on 22 October 2026): adding this offset gives the
-/// instant it meant. Tests pass another zone.
-Duration deviceOffset(DateTime moment) => moment.toLocal().timeZoneOffset;
+/// Clinical minutes written in a Semble visit title: "Follow-up
+/// Consultation (15 min)", "Prima visita (adulto) 60'". Semble's slot adds
+/// 15 minutes of rest after each visit (checked on 23 October 2026: every
+/// `appointment.duration` is the title plus 15). Null when the title has no
+/// single duration.
+int? sembleTitleMinutes(String title) {
+  final found = RegExp(
+    r"(\d{1,3})\s*(?:min(?:uti|utes|s)?\b|['’′])",
+    caseSensitive: false,
+  ).allMatches(title).map((m) => int.parse(m.group(1)!)).toSet();
+  return found.length == 1 && found.single > 0 ? found.single : null;
+}
 
-/// The Calendar entries with Semble's bookings applied (builds 289–292):
-///
-/// On a day where the Semble calendar's events meet live bookings one UTC
-/// offset later more often than at their own time, the calendar is the iCal
-/// copy written in UTC digits: all its timed events of that day are drawn
-/// one offset later, keeping title and id. Bookings still missing
-/// from the phone calendar are added, coloured like the Semble calendar and
-/// titled with the appointment type only; any timed event starting in the
+/// [entry] ending when its clinical time ends (build 295), so the rest
+/// after it shows as such; unchanged when the title gives no shorter time.
+AgendaEntry sembleClinicalEntry(AgendaEntry entry) {
+  final minutes = sembleTitleMinutes(entry.title);
+  if (minutes == null || entry.allDay) return entry;
+  final end = entry.start.add(Duration(minutes: minutes));
+  if (!end.isBefore(entry.end)) return entry;
+  return AgendaEntry(
+    instanceId: entry.instanceId,
+    calendarIds: entry.calendarIds,
+    title: entry.title,
+    start: entry.start,
+    end: end,
+    allDay: entry.allDay,
+    location: entry.location,
+    meeting: entry.meeting,
+    timeZone: entry.timeZone,
+    eventZoneTimes: entry.eventZoneTimes,
+    isOrganizer: entry.isOrganizer,
+    changedOccurrence: entry.changedOccurrence,
+    taskId: entry.taskId,
+    completed: entry.completed,
+    unanswered: entry.unanswered,
+    key: entry.key,
+  );
+}
+
+/// The Calendar entries with Semble's bookings added (build 289): bookings
+/// still missing from the phone calendar are added, coloured like the
+/// Semble calendar and titled with the appointment type only; any timed event starting in the
 /// same minute hides them, and a missing booking is better than a doubled
-/// one. Cancelled bookings are never added. Nothing happens without a
-/// visible Semble calendar.
+/// one. Cancelled bookings are never added. Timed events of the Semble
+/// calendar and the added bookings end with their clinical time from the
+/// title (build 295). Nothing happens without a visible Semble calendar.
 List<AgendaEntry> sembleAdjustEntries({
   required Iterable<SembleBooking> bookings,
   required List<AgendaEntry> merged,
   required List<AgendaCalendar> calendars,
   required Set<String> hiddenCalendarIds,
-  Duration Function(DateTime) offsetOf = deviceOffset,
 }) {
   final semble = [
     for (final calendar in calendars)
@@ -185,75 +221,40 @@ List<AgendaEntry> sembleAdjustEntries({
           booking.end!.isAfter(booking.start))
         _minute(booking.start): booking,
   };
-  // Decided per civil day, never per visit: with visits half an hour or an
-  // hour apart an early copy often lands on another booking's minute
-  // (build 294). The day's Semble copies move together when more of them
-  // meet a booking one UTC offset later than at their own time.
-  bool movable(AgendaEntry entry) =>
-      !entry.allDay &&
-      !entry.isTask &&
-      entry.calendarIds.any(semble.contains) &&
-      offsetOf(entry.start) != Duration.zero;
-  final score = <CivilDate, int>{};
-  for (final entry in merged) {
-    if (!movable(entry)) continue;
-    final day = CivilDate.fromDateTime(entry.start);
-    final meant = _minute(entry.start.add(offsetOf(entry.start)));
-    final vote =
-        (live.containsKey(meant) ? 1 : 0) -
-        (live.containsKey(_minute(entry.start)) ? 1 : 0);
-    score.update(day, (value) => value + vote, ifAbsent: () => vote);
-  }
-  var moved = false;
-  final entries = <AgendaEntry>[];
-  for (final entry in merged) {
-    final early =
-        movable(entry) && (score[CivilDate.fromDateTime(entry.start)] ?? 0) > 0;
-    if (early) moved = true;
-    entries.add(early ? _shifted(entry, offsetOf(entry.start)) : entry);
-  }
   final taken = {
-    for (final entry in entries)
+    for (final entry in merged)
       if (!entry.allDay && !entry.isTask) _minute(entry.start),
   };
   final added = [
     for (final MapEntry(key: minute, value: booking) in live.entries)
       if (!taken.contains(minute))
-        AgendaEntry(
-          instanceId:
-              '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}',
-          calendarIds: [semble.first],
-          title: switch (booking.appointmentTitle?.trim()) {
-            final type? when type.isNotEmpty => type,
-            _ => 'Prenotazione Semble',
-          },
-          start: booking.start,
-          end: booking.end!,
-          allDay: false,
-          isOrganizer: false,
+        sembleClinicalEntry(
+          AgendaEntry(
+            instanceId:
+                '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}',
+            calendarIds: [semble.first],
+            title: switch (booking.appointmentTitle?.trim()) {
+              final type? when type.isNotEmpty => type,
+              _ => 'Prenotazione Semble',
+            },
+            start: booking.start,
+            end: booking.end!,
+            allDay: false,
+            isOrganizer: false,
+          ),
         ),
   ];
-  if (!moved && added.isEmpty) return merged;
+  var trimmed = false;
+  final entries = <AgendaEntry>[];
+  for (final entry in merged) {
+    final clinical = !entry.isTask && entry.calendarIds.any(semble.contains)
+        ? sembleClinicalEntry(entry)
+        : entry;
+    if (!identical(clinical, entry)) trimmed = true;
+    entries.add(clinical);
+  }
+  if (added.isEmpty && !trimmed) return merged;
   return [...entries, ...added]..sort(compareAgendaEntries);
 }
-
-AgendaEntry _shifted(AgendaEntry entry, Duration by) => AgendaEntry(
-  instanceId: entry.instanceId,
-  calendarIds: entry.calendarIds,
-  title: entry.title,
-  start: entry.start.add(by),
-  end: entry.end.add(by),
-  allDay: entry.allDay,
-  location: entry.location,
-  meeting: entry.meeting,
-  timeZone: entry.timeZone,
-  eventZoneTimes: entry.eventZoneTimes,
-  isOrganizer: entry.isOrganizer,
-  changedOccurrence: entry.changedOccurrence,
-  taskId: entry.taskId,
-  completed: entry.completed,
-  unanswered: entry.unanswered,
-  key: entry.key,
-);
 
 int _minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;
