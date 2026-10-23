@@ -1,6 +1,14 @@
 # Stato corrente
 
-Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 293.
+Aggiornato il 22 ottobre 2026. Stabile: build 283; modifica in collaudo: build 294.
+
+## Build 294 — spostamento per giornata
+
+Il 23 ottobre 2026 l'utente ha segnalato visite non coincidenti con Semble:
+con prenotazioni alle 11:00, 11:30 e 12:00 le copie iCal (10:00, 10:30, 11:00)
+cadevano su un'altra prenotazione e il controllo per singola visita le
+lasciava ferme. Ora si decide per giornata (test con la giornata reale, solo
+orari). Da provare sul Galaxy.
 
 ## Build 293 — stima dalle prenotazioni Semble
 

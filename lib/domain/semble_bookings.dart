@@ -1,4 +1,5 @@
 import 'agenda.dart';
+import 'task.dart';
 import 'text_fold.dart';
 
 /// What Semble recorded for a booking (build 288). Read from
@@ -154,9 +155,10 @@ Duration deviceOffset(DateTime moment) => moment.toLocal().timeZoneOffset;
 
 /// The Calendar entries with Semble's bookings applied (builds 289–292):
 ///
-/// An event of a visible Semble calendar that starts exactly one UTC offset
-/// before a live booking is the iCal copy written in UTC digits: it is drawn
-/// at the booking's time, keeping its title and id. Bookings still missing
+/// On a day where the Semble calendar's events meet live bookings one UTC
+/// offset later more often than at their own time, the calendar is the iCal
+/// copy written in UTC digits: all its timed events of that day are drawn
+/// one offset later, keeping title and id. Bookings still missing
 /// from the phone calendar are added, coloured like the Semble calendar and
 /// titled with the appointment type only; any timed event starting in the
 /// same minute hides them, and a missing booking is better than a doubled
@@ -183,25 +185,32 @@ List<AgendaEntry> sembleAdjustEntries({
           booking.end!.isAfter(booking.start))
         _minute(booking.start): booking,
   };
-  final exact = {
-    for (final entry in merged)
-      if (!entry.allDay && entry.calendarIds.any(semble.contains))
-        _minute(entry.start),
-  };
+  // Decided per civil day, never per visit: with visits half an hour or an
+  // hour apart an early copy often lands on another booking's minute
+  // (build 294). The day's Semble copies move together when more of them
+  // meet a booking one UTC offset later than at their own time.
+  bool movable(AgendaEntry entry) =>
+      !entry.allDay &&
+      !entry.isTask &&
+      entry.calendarIds.any(semble.contains) &&
+      offsetOf(entry.start) != Duration.zero;
+  final score = <CivilDate, int>{};
+  for (final entry in merged) {
+    if (!movable(entry)) continue;
+    final day = CivilDate.fromDateTime(entry.start);
+    final meant = _minute(entry.start.add(offsetOf(entry.start)));
+    final vote =
+        (live.containsKey(meant) ? 1 : 0) -
+        (live.containsKey(_minute(entry.start)) ? 1 : 0);
+    score.update(day, (value) => value + vote, ifAbsent: () => vote);
+  }
   var moved = false;
   final entries = <AgendaEntry>[];
   for (final entry in merged) {
-    final offset = offsetOf(entry.start);
-    final meant = _minute(entry.start.add(offset));
     final early =
-        !entry.allDay &&
-        offset != Duration.zero &&
-        entry.calendarIds.any(semble.contains) &&
-        !live.containsKey(_minute(entry.start)) &&
-        live.containsKey(meant) &&
-        !exact.contains(meant);
+        movable(entry) && (score[CivilDate.fromDateTime(entry.start)] ?? 0) > 0;
     if (early) moved = true;
-    entries.add(early ? _shifted(entry, offset) : entry);
+    entries.add(early ? _shifted(entry, offsetOf(entry.start)) : entry);
   }
   final taken = {
     for (final entry in entries)

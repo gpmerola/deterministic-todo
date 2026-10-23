@@ -442,6 +442,47 @@ void main() {
       );
     });
 
+    test('visite vicine: la giornata si sposta tutta insieme', () {
+      // 23 October 2026 as read from Semble (local BST) and the iCal copies
+      // in UTC digits: several early copies land on another booking.
+      final day = DateTime(2026, 10, 23);
+      DateTime h(int hour, [int minute = 0]) =>
+          day.add(Duration(hours: hour, minutes: minute));
+      final bookings = [
+        for (final (start, minutes) in [
+          (h(11), 30),
+          (h(11, 30), 30),
+          (h(12), 45),
+          (h(13, 15), 45),
+          (h(17), 30),
+          (h(17, 30), 75),
+        ])
+          parsed(booking(start, minutes: minutes)),
+      ];
+      final ical = [
+        for (final (index, start) in [
+          h(10),
+          h(10, 30),
+          h(11),
+          h(12, 15),
+          h(16),
+          h(16, 30),
+        ].indexed)
+          visit('Visita $index', start, id: 'ical$index'),
+      ];
+      final entries = adjust(bookings, ical, offsetOf: bst);
+      expect(entries.map((e) => e.instanceId), [
+        for (var index = 0; index < 6; index++) 'ical$index',
+      ]);
+      expect(entries.map((e) => e.start), bookings.map((b) => b.start));
+      // A day whose copies are at the right time is left alone.
+      final right = [
+        for (final (index, booking) in bookings.indexed)
+          visit('Visita $index', booking.start, id: 'ok$index'),
+      ];
+      expect(adjust(bookings, right, offsetOf: bst), right);
+    });
+
     test('l esito si abbina anche alla copia un ora prima', () {
       expect(
         sembleOutcomeFor(visit('Follow-up', at10), [

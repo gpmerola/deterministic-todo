@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.107.1 (build 294) — Correzione dell'ora per giornata intera
+
+- Le visite Semble a mezz'ora o un'ora di distanza non coincidevano con
+  Semble: la copia del calendario un'ora prima cadeva spesso sull'orario di
+  un'altra prenotazione e la build 292 la lasciava dov'era. Ora la decisione
+  è presa per giornata: se le visite del calendario Semble coincidono con le
+  prenotazioni più spesso spostate di un'ora che al loro orario, si spostano
+  tutte insieme.
+
 ## 2.107.0 (build 293) — Stima dalle prenotazioni Semble
 
 - Con chiave e cognome in Impostazioni → Semble, la **Stima lavoro privato**

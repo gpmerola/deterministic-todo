@@ -181,10 +181,12 @@ rete o con errore la stima resta quella per titolo e la scheda lo dice.
 cifre UTC come ora locale: in BST ogni visita è un'ora prima. `buildAgenda`
 accetta `adjust` (lista completa, ordinata con `compareAgendaEntries`);
 `SembleLayer.adjustEntries` vi passa `sembleAdjustEntries`, che sposta di
-`deviceOffset` (scarto UTC del telefono) una voce con orario di un calendario
-Semble visibile quando nessuna prenotazione inizia al suo minuto, una
-prenotazione viva inizia al minuto spostato e nessun'altra voce Semble lo
-occupa già. Titolo, id e calendario restano; il provider non viene toccato.
+`deviceOffset` (scarto UTC del telefono) le voci con orario di un calendario
+Semble visibile. Dalla build 294 la decisione è per giornata civile: ogni voce
+vota +1 se una prenotazione viva inizia al suo minuto spostato e −1 se ne
+inizia una al suo minuto; con saldo positivo tutte le voci Semble del giorno
+si spostano, perché con visite vicine una copia anticipata cade spesso su
+un'altra prenotazione. Titolo, id e calendario restano; il provider non viene toccato.
 `sembleOutcomeFor` usa lo stesso scarto se l'abbinamento esatto fallisce.
 
 **Prenotazioni dirette (build 289).** `SembleLayer`, insieme alle regole e
