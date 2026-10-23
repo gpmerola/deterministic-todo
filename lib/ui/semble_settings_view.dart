@@ -29,6 +29,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
   final keyInput = TextEditingController();
   final userInput = TextEditingController();
   final nameInput = TextEditingController();
+  final roomInput = TextEditingController();
   late final SembleClient client = widget.client ?? SembleClient();
   SembleConfig? config;
   bool busy = false;
@@ -48,6 +49,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     keyInput.dispose();
     userInput.dispose();
     nameInput.dispose();
+    roomInput.dispose();
     super.dispose();
   }
 
@@ -58,6 +60,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
       config = next;
       if (userInput.text.isEmpty) userInput.text = next.userId ?? '';
       if (nameInput.text.isEmpty) nameInput.text = next.doctorName ?? '';
+      if (roomInput.text.isEmpty) roomInput.text = next.roomId ?? '';
     });
   }
 
@@ -71,6 +74,11 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     }
     if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(user)) {
       setState(() => status = 'Inserisci il tuo User ID Semble.');
+      return;
+    }
+    final room = roomInput.text.trim();
+    if (room.isNotEmpty && !RegExp(r'^[A-Za-z0-9]+$').hasMatch(room)) {
+      setState(() => status = 'ID stanza non valido: solo lettere e numeri.');
       return;
     }
     setState(() {
@@ -94,6 +102,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
       key: typed.isEmpty ? null : typed,
       userId: user,
       doctorName: nameInput.text,
+      roomId: roomInput.text,
     );
     keyInput.clear();
     await widget.layer.reset(today: _today);
@@ -259,6 +268,19 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                       helperText:
                           'Riconosce le tue prenotazioni: DNA nella stima e '
                           'visite nuove nel Calendario',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const ValueKey('semble-room-input'),
+                    controller: roomInput,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    decoration: const InputDecoration(
+                      labelText: 'ID stanza Semble (facoltativo)',
+                      helperText:
+                          'Serve per bloccare orari in Semble dal nuovo '
+                          'evento del Calendario',
                     ),
                   ),
                   const SizedBox(height: 12),

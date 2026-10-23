@@ -18,9 +18,10 @@ const sembleEndpoint = 'https://open.semble.io/graphql';
 const sembleZone = 'Europe/London';
 
 /// The only operations this app ever sends to Semble (build 285): a token
-/// check and a read of the clinician's availability rules. No mutation and
-/// no `room` selection (forbidden for this key, `settingsGeneral`). Comments
-/// are not read: they may name patients.
+/// check and a read of the clinician's availability rules. No `room`
+/// selection (forbidden for this key, `settingsGeneral`). Comments are not
+/// read: they may name patients. The only mutations are the confirmed
+/// unavailability block and its undo (build 297, below).
 const sembleCheckQuery = 'query { __typename }';
 
 String sembleRulesQuery({required bool exclusions}) =>
@@ -57,6 +58,31 @@ query {
   }
 }''';
 
+/// The only writes this app sends (build 297), each after a confirmation.
+const sembleCreateBlockMutation =
+    r'''mutation($data: CreateResourceAvailabilityInput!) { createAvailability(data: $data) { data { id } } }''';
+const sembleDeleteBlockMutation =
+    r'''mutation($id: ID!) { deleteAvailability(id: $id) { data { id } } }''';
+
+/// Comment on every block created from Todo, so it is recognisable in
+/// Semble.
+const sembleBlockComment = 'Da Todo';
+
+/// Semble's `UnavailabilityType` values offered in the sheet.
+enum SembleBlockType {
+  other('Altro'),
+  clinicalAdmin('Admin clinico'),
+  generalAdmin('Admin'),
+  teamMeeting('Riunione'),
+  annualLeave('Ferie'),
+  sickness('Malattia'),
+  cpd('CPD'),
+  studyLeave('Studio');
+
+  const SembleBlockType(this.label);
+  final String label;
+}
+
 enum SembleFailure { noKey, rejected, forbidden, unreachable, badResponse }
 
 class SembleException implements Exception {
@@ -68,7 +94,7 @@ class SembleException implements Exception {
       'Configura chiave e User ID in Impostazioni → Semble.',
     SembleFailure.rejected => 'Semble ha rifiutato la chiave API.',
     SembleFailure.forbidden =>
-      'La chiave non ha il permesso di leggere le disponibilità.',
+      'La chiave non ha il permesso per questa operazione su Semble.',
     SembleFailure.unreachable =>
       'Semble non raggiungibile: controlla la rete e riprova.',
     SembleFailure.badResponse => 'Risposta di Semble non comprensibile.',
@@ -81,7 +107,12 @@ final class SembleConfig {
     required this.userId,
     required this.enabled,
     this.doctorName,
+    this.roomId,
   });
+
+  /// Semble room of the user's availability (build 297): required by
+  /// `createAvailability`; the key cannot read rooms, so it is typed in.
+  final String? roomId;
 
   /// Surname as Semble writes it in `doctorName` (build 288): picks the
   /// user's bookings, since the key cannot read the clinician's id.
@@ -107,6 +138,7 @@ class SembleSettings {
   static const _userId = 'semble_user_id';
   static const _enabled = 'semble_layer_enabled';
   static const _doctorName = 'semble_doctor_name';
+  static const _roomId = 'semble_room_id';
 
   final FlutterSecureStorage _storage;
 
@@ -124,6 +156,10 @@ class SembleSettings {
         final name? when name.trim().isNotEmpty => name.trim(),
         _ => null,
       },
+      roomId: switch (await _storage.read(key: _roomId)) {
+        final room? when room.trim().isNotEmpty => room.trim(),
+        _ => null,
+      },
     );
   }
 
@@ -133,6 +169,7 @@ class SembleSettings {
     String? key,
     required String userId,
     String? doctorName,
+    String? roomId,
   }) async {
     final trimmedUser = userId.trim();
     if (!RegExp(r'^[A-Za-z0-9]+$').hasMatch(trimmedUser)) {
@@ -147,6 +184,13 @@ class SembleSettings {
     if (doctorName != null) {
       await _storage.write(key: _doctorName, value: doctorName.trim());
     }
+    if (roomId != null) {
+      final room = roomId.trim();
+      if (room.isNotEmpty && !RegExp(r'^[A-Za-z0-9]+$').hasMatch(room)) {
+        throw const FormatException('ID stanza non valido');
+      }
+      await _storage.write(key: _roomId, value: room);
+    }
   }
 
   Future<void> setEnabled(bool enabled) =>
@@ -157,11 +201,13 @@ class SembleSettings {
     await _storage.delete(key: _userId);
     await _storage.delete(key: _enabled);
     await _storage.delete(key: _doctorName);
+    await _storage.delete(key: _roomId);
   }
 }
 
-/// Read-only Semble client. Errors are classified, never logged: the key
-/// travels in the headers.
+/// Semble client. Reads, plus one explicit write the user confirms: an
+/// unavailability block and its undo (build 297). Errors are classified,
+/// never logged: the key travels in the headers.
 class SembleClient {
   SembleClient({http.Client? client})
     : _client = client; // ignore: prefer_initializing_formals
@@ -261,6 +307,49 @@ class SembleClient {
       if (list.length < pageSize) break;
     }
     return rules;
+  }
+
+  /// Creates a one-day unavailability from [start] to [end] (phone time,
+  /// converted to London wall clock as Semble wants) and returns its id.
+  /// For one day Semble wants no `endDate`: it rejects one without a
+  /// recurrence (tested on 23 October 2026).
+  Future<String> createUnavailability({
+    required String key,
+    required String userId,
+    required String roomId,
+    required DateTime start,
+    required DateTime end,
+    required SembleBlockType type,
+    String comment = sembleBlockComment,
+  }) async {
+    final block = sembleBlockFor(start, end);
+    if (block == null) throw const FormatException('Orario non valido');
+    final data = await _post(key, sembleCreateBlockMutation, {
+      'data': {
+        'unavailability': true,
+        'room': roomId,
+        'user': userId,
+        'startDate': '${block.date}',
+        'startTime': block.startTime,
+        'endTime': block.endTime,
+        'unavailabilityType': type.name,
+        'comment': comment,
+      },
+    });
+    final id = switch (data['createAvailability']) {
+      {'data': {'id': final String id}} => id,
+      _ => null,
+    };
+    if (id == null) throw const SembleException(SembleFailure.badResponse);
+    return id;
+  }
+
+  /// Removes the block [id] this app has just created (the undo).
+  Future<void> deleteUnavailability({
+    required String key,
+    required String id,
+  }) async {
+    await _post(key, sembleDeleteBlockMutation, {'id': id});
   }
 
   Future<Map<String, Object?>> _post(
@@ -378,6 +467,12 @@ class SembleLayer extends ChangeNotifier {
   /// Last failure, for the Settings page; cleared by a successful read.
   SembleFailure? failure;
 
+  bool _canBlock = false;
+
+  /// Key, user and room are saved, so the new event offers "Blocca in
+  /// Semble" (build 297). Known after the first read; never a network call.
+  bool get canBlock => _canBlock;
+
   /// Shown in any zone: London times are converted (build 296).
   bool get active => _enabled && _first != null;
   bool get zoneMatches => _zoneMatches;
@@ -451,6 +546,7 @@ class SembleLayer extends ChangeNotifier {
     DateTime Function() now,
   ) async {
     final config = await _settings.read();
+    _canBlock = config.ready && config.roomId != null;
     final key = config.ready && config.enabled
         ? await _settings.apiKey()
         : null;
@@ -539,6 +635,7 @@ class SembleLayer extends ChangeNotifier {
     _last = last;
     _enabled = true;
     _zoneMatches = true;
+    _canBlock = false;
     notifyListeners();
   }
 }

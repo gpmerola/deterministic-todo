@@ -8,6 +8,8 @@ import '../../domain/semble_bookings.dart';
 import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
 import '../../services/agenda_web_service.dart' show AgendaQueueBusy;
+import '../../services/semble_service.dart';
+import '../semble_block_sheet.dart';
 import 'agenda_event_editor.dart';
 import 'agenda_event_sheet.dart';
 
@@ -301,6 +303,7 @@ class AgendaEventFlows {
       await service.lastEventCalendar(),
       hidden: hidden,
     );
+    final sembleBlock = !service.writesViaPhone && SembleLayer.shared.canBlock;
     if (!context.mounted) return;
     final now = DateTime.now();
     final draft = await Navigator.of(context).push<AgendaEventDraft>(
@@ -328,6 +331,10 @@ class AgendaEventFlows {
           initialEnd: end,
           initialCalendarId: initialCalendar,
           zoneLabel: zone,
+          onSembleBlock: sembleBlock
+              ? (start, end) =>
+                    showSembleBlockSheet(context, start: start, end: end)
+              : null,
         ),
       ),
     );

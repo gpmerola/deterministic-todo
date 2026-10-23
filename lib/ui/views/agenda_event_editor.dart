@@ -30,8 +30,14 @@ class AgendaEventEditor extends StatefulWidget {
     this.writesViaPhone = false,
     this.loadTimeZones,
     this.resolveTimeZone,
+    this.onSembleBlock,
     super.key,
   });
+
+  /// Offered on a new timed event when Semble is set up (build 297): blocks
+  /// the chosen times in Semble instead of saving an event. True when the
+  /// block was created, and the form closes.
+  final Future<bool> Function(DateTime start, DateTime end)? onSembleBlock;
 
   /// Title of the page when neither "Nuovo evento" nor "Modifica evento"
   /// fits, e.g. a copy edited in Todo only.
@@ -336,6 +342,29 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
     if (picked != null) setState(() => repeatUntil = picked);
   }
 
+  /// The form's times blocked in Semble; the event draft is dropped once
+  /// the block exists, since nothing is saved to the calendar.
+  Future<void> _sembleBlock() async {
+    // No title or calendar needed: only the times go to Semble.
+    final draft = _draft();
+    if (!draft.end.isAfter(draft.start)) {
+      setState(() => error = 'La fine deve essere dopo l\'inizio.');
+      return;
+    }
+    final done = await widget.onSembleBlock!(draft.start, draft.end);
+    if (!done || !mounted) return;
+    _timer?.cancel();
+    await _work;
+    try {
+      if (widget.draftId != null) await widget.drafts?.remove(widget.draftId!);
+    } on Object {
+      // The draft stays recoverable; the block already exists.
+    }
+    if (!mounted) return;
+    setState(() => leaving = true);
+    Navigator.of(context).pop();
+  }
+
   Future<void> _save() async {
     if (saving || !ready || missingCalendar) return;
     final draft = _draft();
@@ -489,6 +518,16 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
                 (widget.existing == null ? 'Nuovo evento' : 'Modifica evento'),
           ),
           actions: [
+            if (widget.onSembleBlock != null &&
+                widget.existing == null &&
+                !allDay &&
+                selectedZone == null)
+              IconButton(
+                key: const ValueKey('agenda-event-semble-block'),
+                tooltip: 'Blocca in Semble',
+                icon: const Icon(Icons.event_busy),
+                onPressed: !ready || saving ? null : _sembleBlock,
+              ),
             TextButton(
               key: const ValueKey('agenda-event-save'),
               onPressed:

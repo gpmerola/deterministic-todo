@@ -25,9 +25,8 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   confrontare i DNA della Stima lavoro privato con Semble e verificare che
   una prenotazione nuova compaia subito e non si duplichi all'arrivo della
   copia iCal. Successivi possibili, solo su richiesta: `availabilitySlots`
-  (slot davvero prenotabili); scrittura di indisponibilità verso Semble,
-  provata con esito positivo il 23 ottobre 2026 (STATUS), da implementare
-  solo su richiesta esplicita.
+  (slot davvero prenotabili); blocchi di indisponibilità dalla build 297
+  (provare sul Galaxy con l'ID stanza in Impostazioni).
 
 ## Osservazioni passive
 

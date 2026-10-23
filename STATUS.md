@@ -3,6 +3,15 @@
 Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
+
+## Build 297 — blocchi Semble dal Calendario (in collaudo)
+
+Richiesta dell'utente del 23 ottobre 2026 («un metodo veloce e comodo per
+aggiungere indisponibilità su Semble»). `SembleClient.createUnavailability`
+e `deleteUnavailability` (solo l'id appena creato, per «Annulla»); scheda
+`showSembleBlockSheet` aperta dall'icona del nuovo evento quando
+`SembleLayer.canBlock`; ID stanza in Impostazioni. Test con fusi UTC, Londra
+e Roma; da provare sul Galaxy.
 ## Prova di scrittura Semble — 23 ottobre 2026
 
 Su richiesta esplicita dell'utente, dal Mac: una sola indisponibilità di

@@ -1,4 +1,5 @@
 import 'agenda.dart';
+import 'task.dart';
 import 'text_fold.dart';
 
 /// What Semble recorded for a booking (build 288). Read from
@@ -106,6 +107,41 @@ DateTime londonWallClock(DateTime digits) {
   );
   final asBst = asGmt.subtract(const Duration(hours: 1));
   return londonSummerTime(asBst) ? asBst : asGmt;
+}
+
+/// London wall-clock digits of [instant], as a UTC DateTime: the inverse
+/// of [londonWallClock].
+DateTime londonDigitsOf(DateTime instant) {
+  final utc = instant.toUtc();
+  return londonSummerTime(utc) ? utc.add(const Duration(hours: 1)) : utc;
+}
+
+/// A one-day Semble block in London wall clock: date and "HH:mm" times.
+typedef SembleBlock = ({CivilDate date, String startTime, String endTime});
+
+/// [start]–[end] (phone time) as a Semble block, or null when the end is
+/// not after the start or the block crosses London midnight (Semble's
+/// rules are one day long; 24:00 is allowed as the end).
+SembleBlock? sembleBlockFor(DateTime start, DateTime end) {
+  if (!end.isAfter(start)) return null;
+  final from = londonDigitsOf(start);
+  final to = londonDigitsOf(end);
+  String hm(DateTime value) =>
+      '${value.hour.toString().padLeft(2, '0')}:'
+      '${value.minute.toString().padLeft(2, '0')}';
+  final date = CivilDate(from.year, from.month, from.day);
+  final sameDay =
+      to.year == from.year && to.month == from.month && to.day == from.day;
+  final midnight =
+      to.hour == 0 &&
+      to.minute == 0 &&
+      CivilDate(to.year, to.month, to.day) == date.addDays(1);
+  if (!sameDay && !midnight) return null;
+  return (
+    date: date,
+    startTime: hm(from),
+    endTime: midnight ? '24:00' : hm(to),
+  );
 }
 
 /// Whether [instant] falls in British Summer Time.

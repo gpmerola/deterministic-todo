@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.110.0 (build 297) — Blocca orari in Semble dal Calendario
+
+- Nel modulo **Nuovo evento** (anche aperto trascinando su uno spazio vuoto
+  del Calendario) c'è l'icona **Blocca in Semble**: con gli orari del modulo
+  apre una scheda che mostra giorno, orario (e l'ora di Londra se diversa) e
+  il tipo (Altro, Admin clinico, Admin, Riunione, Ferie, Malattia, CPD,
+  Studio). «Blocca in Semble» crea un'indisponibilità di un giorno con
+  commento «Da Todo»; non viene salvato nessun evento nel telefono. Per
+  8 secondi «Annulla» cancella esattamente quel blocco.
+- Serve l'**ID stanza Semble** nel nuovo campo di Impostazioni → Semble: la
+  chiave non può leggere le stanze. Senza, l'icona non compare.
+- È la prima scrittura verso Semble e parte solo dopo la conferma. Blocchi
+  oltre la mezzanotte di Londra sono rifiutati.
+
 ## 2.109.0 (build 296) — Semble anche fuori dal Regno Unito
 
 - Gli orari di Semble sono ora di Londra: ora vengono convertiti nell'ora

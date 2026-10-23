@@ -147,7 +147,10 @@ arrivano dal calendario Google collegato a Semble; con il cognome impostato
 quando arriva quella del calendario. Le visite Semble finiscono quando
 finisce il tempo clinico scritto nel titolo, senza i 15 minuti di pausa
 (build 295). Gli orari Semble sono in ora di Londra e vengono convertiti
-nell'ora del telefono, anche in Italia (build 296). Con lo stesso cognome la Stima lavoro
+nell'ora del telefono, anche in Italia (build 296). Con l'ID stanza in
+Impostazioni → Semble, il nuovo evento offre «Blocca in Semble»: crea
+un'indisponibilità in Semble dopo una conferma, annullabile subito (build
+297). Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

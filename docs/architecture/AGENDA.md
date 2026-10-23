@@ -199,6 +199,20 @@ minuti, così la pausa non diventa verde. `buildAgenda` accetta `adjust`
 (lista completa, ordinata con `compareAgendaEntries`), a cui
 `SembleLayer.adjustEntries` passa `sembleAdjustEntries`.
 
+**Blocchi verso Semble (build 297).** È l'unica scrittura verso Semble. Nel
+nuovo evento, quando `SembleLayer.canBlock` (chiave, User ID e ID stanza
+salvati, noto dall'ultima lettura, senza rete), l'icona «Blocca in Semble»
+passa inizio e fine del modulo (senza titolo né calendario) a
+`showSembleBlockSheet`. `sembleBlockFor` converte gli orari del telefono in
+ora di Londra (`londonDigitsOf`) e rifiuta un blocco che attraversa la
+mezzanotte di Londra (24:00 ammesso come fine). Dopo la conferma
+`createUnavailability` invia `createAvailability` con `unavailability`,
+`room`, `user`, `startDate`, `startTime`, `endTime`, tipo e commento «Da
+Todo», **senza `endDate`** (Semble lo rifiuta senza ricorrenza). Lo
+snackbar «Annulla» chiama `deleteAvailability` solo sull'id restituito. Il
+modulo si chiude e la bozza viene rimossa; il calendario del telefono non
+cambia. Il layer viene riletto subito.
+
 **Prenotazioni dirette (build 289).** `SembleLayer`, insieme alle regole e
 con lo stesso limite di 15 minuti, legge con `SembleClient.bookings` le
 prenotazioni con il cognome da ieri a +28 giorni e le tiene solo in memoria
