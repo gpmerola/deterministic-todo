@@ -21,6 +21,25 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   **Svuota cestino** con dati esclusivamente di prova e autorizzazione
   specifica per la cancellazione permanente.
 
+- [ ] Build 288–289: scrivere il cognome in Impostazioni → Semble,
+  confrontare i DNA della Stima lavoro privato con Semble e verificare che
+  una prenotazione nuova compaia subito e non si duplichi all'arrivo della
+  copia iCal. Successivi possibili, solo su richiesta: `availabilitySlots`
+  (slot davvero prenotabili); blocchi di indisponibilità dalla build 297,
+  semplificati nella 298 (provare sul Galaxy con l'ID stanza in
+  Impostazioni). Semplificazione del Calendario fatta nella build 299:
+  provarla sul Galaxy. Build 300: verificare che il primo blocco reale
+  (Other, senza commento) sia accettato da Semble, il bordo ambra e la
+  palette verde in tema chiaro e scuro. Idee non ancora approvate: blocco
+  Semble da pressione lunga su una fascia libera, interruttore per le
+  fasce Semble. I gruppi «N visite» restano (scelta dell'utente).
+  Build 303–304: provare la proposta di blocco dopo «Salva», una visita
+  annullata come sagoma e la notifica creando, ad app chiusa, un evento in
+  una fascia prenotabile da Google Calendar. Build 306: toccare la notifica
+  (deve aprire la scheda con «Blocca in Semble»), controllare intestazione e
+  Impostazioni riordinate. Build 307: bordo ambra sull'invito Teams del
+  4 novembre e «Togli il bordo ambra» su un evento.
+
 ## Osservazioni passive
 
 Nessuna azione finché non emerge un problema.

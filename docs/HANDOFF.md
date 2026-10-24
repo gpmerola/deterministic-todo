@@ -92,6 +92,7 @@ Avvio locale/remoto e cache Calendario: [confini e verifiche](architecture/START
 Non inserire mai in chat, Git, log, diagnostica o fixture: credenziali
 Supabase, GitHub o Play Console, chiavi di firma, chiavi API dell'assistente,
 titoli/note delle attività o dettagli di eventi reali, dati di attività fisica.
+La chiave API Semble (build 285) sta solo nel Keystore del telefono.
 La publishable key Supabase è configurazione client; service role, chiavi di
 firma e token restano segreti.
 

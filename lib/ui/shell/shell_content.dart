@@ -14,7 +14,7 @@ extension _ShellContent on _TaskShellState {
           syncService: widget.syncService,
           autoBackup: autoBackup,
           earnings: isAndroidPlatform
-              ? PrivateEarningsService(agendaService)
+              ? PrivateEarningsService(agendaService, semble: SembleSettings())
               : null,
           checkForUpdates: _checkForUpdates,
           showCompleted: () => _navigateTo(AppSection.completed),
@@ -29,6 +29,7 @@ extension _ShellContent on _TaskShellState {
         child: AgendaPalette(
           child: AgendaView(
             service: agendaService,
+            launch: calendarLaunch,
             onPinCalendar: isAndroidPlatform ? _pinCalendarShortcut : null,
             today: dayClock.today,
             onOpenTask: _openTaskById,

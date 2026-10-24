@@ -4,6 +4,221 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Inviti e bordo ambra per singolo evento — build 307
+
+- **Inviti senza risposta.** `sembleOverlaps` conta anche gli eventi
+  `unanswered` (`agendaBusyMinutes(unanswered: true)`): un invito Teams in
+  orario prenotabile ha bordo e notifica. `bandsFor` continua a escluderli,
+  quindi la fascia verde libera non cambia.
+- **Bordo tolto a mano.** «⋯ → Togli il bordo ambra» salva
+  `sembleOverlapKey` (`instanceId|inizio ms`) con scadenza alla fine
+  dell'evento in `SembleSettings.ignoredOverlaps` (Keystore, mai in backup
+  o Supabase). `SembleLayer.overlapsFor` le esclude salvo `includeIgnored`,
+  `SembleConflicts.check` non le notifica, «Rimetti il bordo ambra» le
+  toglie. Un cambio d'orario cambia la chiave e il bordo torna. Nessuna
+  scrittura in Semble.
+
+## Dalla notifica alla scheda, codice Semble riordinato — build 306
+
+- **Tocco sulla notifica.** `AgendaSembleConflicts.java` aggiunge all'intent
+  `OPEN_CALENDAR` solo l'istante d'inizio del primo evento e se è l'unico.
+  `CalendarLaunchRequest` lo conserva fino a `consumeLaunch`, che risponde
+  false, true o `{start, single}`. In Dart `CalendarLaunch` arriva ad
+  `AgendaView.launch` (un `ValueNotifier` della shell, consumato una volta):
+  dopo il primo caricamento e `SembleLayer.refresh`, la vista legge il
+  giorno e apre la scheda dell'evento non visita che inizia in quell'istante,
+  altrimenti il giorno.
+- **Intestazione.** Restano vista, + e menu «Altro»; il selettore calendari
+  è la prima voce del menu (icona filtro accesa se qualcosa è nascosto).
+  Nessun pulsante Oggi: nelle griglie si torna con uno scorrimento, nel
+  giorno il pulsante resta quando non si è su oggi.
+- **Viste.** `AgendaViewMode` ha solo 3 giorni, settimana, 2 e 4 settimane;
+  `AgendaViewMode.parse` porta a 4 settimane i nomi tolti o sconosciuti
+  (preferenza v4, v3, v2 e backup). Il loader non legge più giorni: lo fanno
+  le viste. Le parti comuni delle griglie sono in `agenda_chip.dart`.
+- **Semble.** `semble_service.dart` riesporta `semble_client.dart` (tutte le
+  operazioni ammesse elencate in un punto), `semble_settings.dart` e
+  `semble_layer.dart`. Le conversioni ora di Londra ↔ istante
+  (`londonWallClock`, `londonDigitsOf`, `sembleBlockFor`, `sembleZoneShift`)
+  sono in `domain/semble_time.dart`, con test sui due cambi d'ora.
+
+## Avviso in background per eventi in orario Semble — build 304
+
+Richiesta dell'utente: sapere degli eventi importati da soli (Teams, KCL)
+che cadono in un orario prenotabile mentre l'app non è aperta.
+
+- **Quando.** Nessun nuovo job né polling: `runAgendaBackground('reminders')`
+  e `AgendaPhoneSync.background('reminders')` chiamano
+  `SembleConflicts.check()` dopo `AgendaReminders.refresh()`. Il job parte
+  quando il provider calendario cambia (fingerprint dei prossimi 8 giorni)
+  e una volta al giorno; serve quindi che i promemoria siano attivi.
+  Nell'engine dell'app il controllo salta se l'app è in primo piano: il
+  bordo ambra si vede già e il registro non viene consumato. Dalla build
+  305 parte anche quando l'app passa in background (una volta per uscita),
+  così un evento creato o visto in Todo viene notificato senza attendere un
+  altro cambiamento del calendario.
+- **Dati.** Nessuna chiamata a Semble: ogni lettura riuscita salva in
+  `SembleSettings` (Keystore) regole e finestra (`SembleRule.toJson`, solo
+  date e orari). `sembleConflicts` cerca nei prossimi 14 giorni, entro la
+  finestra, gli eventi non finiti, non visite (calendario Semble o
+  prenotazione), bloccabili in un giorno di Londra e sovrapposti a una
+  fascia disponibile. Calendari nascosti esclusi.
+- **Notifica.** `notifySembleConflicts` passa solo hash
+  (`semble|instanceId|start`), inizio e fine. `AgendaSembleConflicts.java`
+  tiene il registro con scadenza alla fine dell'evento, una notifica
+  riassuntiva (giorno e ora per un evento, il numero per più eventi),
+  visibilità privata, tocco su `OPEN_CALENDAR`. Interruttore
+  `semble_conflict_alerts` in Impostazioni → Semble; «Elimina chiave» toglie
+  anche cache e preferenza.
+
+## Proposta alla creazione e visite annullate — build 303
+
+- **Alla creazione.** Dopo il salvataggio dal modulo, se l'evento (non in
+  un calendario nascosto) supera `_canSembleBlock`, al posto del semplice
+  «Evento salvato» compare uno snackbar di 10 secondi (`persist: false`)
+  con «Blocca in Semble»: è lo stesso `perform(sembleBlock)` della scheda.
+- **Annullate.** `sembleAdjustEntries` aggiunge ogni prenotazione con
+  `deleted` la cui fine è dopo `now`, senza una prenotazione viva né un
+  evento allo stesso minuto, con id `semble-booking:cancelled:<ms>` e titolo
+  «Annullata · tipo». `isSembleCancelled` la esclude da
+  `agendaBusyMinutes` (lo slot torna verde), dai gruppi di visite e dai
+  conflitti rossi; è una visita per `sembleOverlaps`. Giornata, settimane e
+  griglie la disegnano vuota, sbiadita e barrata; la scheda Semble dice che
+  l'orario è di nuovo libero. Nessun dato del paziente.
+
+## Bordo ambra solo sul futuro — build 302
+
+Su richiesta dell'utente `SembleLayer.overlapsFor` passa `now` a
+`sembleOverlaps`, che salta gli eventi con fine non successiva: un evento
+passato non ha più bordo ambra né pulsante «Blocca in Semble». Il calcolo
+avviene a ogni disegno, senza timer: un evento che finisce mentre la vista è
+aperta perde il bordo al ridisegno successivo.
+
+## Blocco dagli eventi ambra e niente barretta — build 301
+
+- **Un tocco.** `AgendaEventFlows._canSembleBlock`: evento a orario, non
+  attività, in un solo giorno di Londra (`sembleBlockFor`), con
+  `SembleLayer.canBlock` e almeno una sovrapposizione da `overlapsFor`. La
+  scheda mostra allora il pulsante pieno «Blocca in Semble»
+  (`agenda-sheet-semble-block`, `AgendaEventAction.sembleBlock`), che è la
+  conferma esplicita e chiama `createSembleBlock` sull'intero orario
+  dell'evento (Other, senza commento, Annulla per 8 secondi). Dopo la
+  rilettura la fascia è indisponibile: bordo e pulsante spariscono, quindi
+  un secondo tocco non crea un doppione.
+- **Griglie.** Su richiesta dell'utente («clutter») `AgendaSembleStrip` è
+  stata tolta: le celle di 2 e 4 settimane non hanno più la barretta né i
+  5 dp in meno; restano il bordo ambra e le fasce nelle viste orarie. La
+  legenda delle Impostazioni usa `SemblePalette.legend*`.
+
+## Ritocchi Semble — build 300
+
+- **Gruppi nelle griglie.** In 2 e 4 settimane `AgendaDayCell` passa
+  `onTap: onDay` a `CalendarVisitGroup`: il tocco apre la giornata, dove il
+  gruppo si espande nelle visite. Giorno, Settimana e 3 giorni invariati.
+- **Blocco.** `createUnavailability` usa per default `other` e invia
+  `comment` solo se passato; Todo non lo passa. Il modulo non mostra tipi.
+  Lo snackbar «Bloccato in Semble» ha `persist: false` (con un'azione
+  Flutter lo terrebbe fino alla chiusura).
+- **Eventi in orario prenotabile.** `sembleOverlaps` restituisce gli id
+  degli eventi a orario, non attività né inviti senza risposta, che non sono
+  visite (prenotazione Semble o calendario Semble, ricordati da
+  `adjustEntries`) e toccano una fascia disponibile prima del taglio degli
+  occupati. Giornata e settimane li bordano d'ambra
+  (`SemblePalette.overlap`), le griglie con una riga ambra a sinistra; il
+  conflitto fra eventi resta rosso e prevale.
+- **Palette.** `SemblePalette` riunisce i colori: visite (il calendario
+  Semble prende `visit` al posto del colore di sistema), disponibilità,
+  bordo, indisponibilità, legenda delle Impostazioni e ambra, con varianti per
+  il tema scuro.
+
+## Calendario più semplice — build 299
+
+Richiesta dell'utente (23 ottobre 2026: «il calendario è inondato di
+funzioni»). Scelte confermate da lui: la vista 4 settimane resta; via
+3 settimane, Mese ed Elenco; il resto della proposta approvato.
+
+- **Viste.** `AgendaViewMode.offered` esclude `threeWeeks`, `month` e
+  `list`: il menu le mostra solo se sono la vista corrente. La preferenza
+  passa alla chiave v4: alla prima lettura la v3 (o la v2) viene copiata con
+  `orOffered`, quindi una vista tolta diventa 4 settimane una sola volta; il
+  ripristino di un backup fa lo stesso. I renderer restano nel codice (test e
+  griglia condivisa con 4 settimane).
+- **Barra.** L'Assistente ✨ (`agenda-ai-capture`) è una voce del menu
+  «Altro»; restano Vista, Oggi, +, Calendari e Altro.
+- **Scheda evento.** In vista Partecipa, Modifica ed Elimina; Modifica solo
+  in Todo, Nascondi, Preparare, Follow-up e Apri nel calendario sono nel menu
+  `agenda-sheet-more`, con le stesse azioni di prima.
+- **Nuovo evento.** Titolo, «Tutto il giorno», giorno e ore in vista;
+  calendario, ripetizione, fuso, luogo e note dietro «Altre opzioni»
+  (`agenda-event-more`). Restano aperti modificando un evento, con una
+  proposta che ha luogo o note, con una bozza ripristinata che li usa e
+  quando il calendario predefinito manca.
+
+## Disponibilità Semble — build 285
+
+Richiesta dell'utente (22 ottobre 2026): vedere nel Calendario le fasce di
+disponibilità impostate in Semble, il gestionale della clinica privata. Primo
+passo in **sola lettura**, Semble → Todo.
+
+- **Cosa si vede.** Nelle viste Giorno, 3 giorni e Settimana
+  `AgendaSembleBands` disegna dietro agli eventi una tinta verde con bordo a
+  sinistra dove la regola rende prenotabili, e righe grigie dove una
+  indisponibilità blocca l'orario. Le indisponibilità fuori dalle fasce
+  disponibili restano visibili (per esempio una sera bloccata). Le fasce
+  ignorano i tocchi: toccare uno spazio libero crea ancora un evento.
+- **Spazi liberi (build 287).** Su richiesta dell'utente il verde mostra
+  solo il tempo prenotabile e libero: `sembleFreeBands` sottrae alle fasce
+  disponibili i minuti di `agendaBusyMinutes`, cioè gli eventi già filtrati
+  e uniti della giornata con orario, esclusi giornata intera, attività Todo
+  e inviti senza risposta (contorno tratteggiato). Gli eventi a cavallo
+  della mezzanotte sono tagliati al giorno. Vale per fasce e barretta; le
+  indisponibilità non cambiano. Calcolo solo in memoria a ogni disegno.
+- **4 settimane e Mese (build 286, tolta nella 301).** Su richiesta dell'utente, che usa
+  soprattutto le 4 settimane: `AgendaSembleStrip` disegna sotto la data di
+  ogni `AgendaDayCell` una barretta di 4 dp che va dalle 07:00 (bordo
+  sinistro) a mezzanotte (bordo destro), verde per le fasce prenotabili e
+  grigia per quelle bloccate; la descrizione testuale degli orari è nella
+  semantica. Solo i giorni con fasce perdono 5 dp per gli eventi; gli altri
+  restano identici. Elenco, ricerca, ✨ e copia per il Web non mostrano
+  Semble.
+- **Appuntamenti.** Le prenotazioni arrivano già dal calendario Google
+  alimentato dal feed iCal di Semble (script Apps Script esterno all'app) e
+  sono eventi normali: il livello Semble non legge né duplica appuntamenti.
+  Sono regole configurate, non la prova che uno slot sia libero.
+- **Dati.** `lib/domain/semble_availability.dart`, puro: `SembleRule`
+  (ricorrenza `daily`/`weekly` con `interval` e `daysOfTheWeek` 0 = domenica,
+  date di inizio e fine, `exclusions`) e `sembleBandsFor`, che unisce le
+  disponibilità e vi sottrae le indisponibilità. Forme sconosciute (altre
+  frequenze, orari non validi) sono scartate, mai indovinate.
+- **Rete.** `lib/services/semble_service.dart`: `POST
+  https://open.semble.io/graphql` con header `x-token`. Le sole operazioni
+  inviate sono `query { __typename }` (verifica della chiave) e
+  `availabilityRules(userIds, dateRange, pagination)` con i campi `id`,
+  `unavailability`, date, orari, `exclusions` e `recurrence`. Mai mutazioni
+  (`createAvailability`, `updateAvailability`, `deleteAvailability`), mai
+  `room { … }` (vietato alla chiave, permesso `settingsGeneral`), mai
+  `comment`, che può contenere nomi. Se lo schema rifiuta `exclusions`
+  come scalare la lettura è ripetuta senza. Errori GraphQL con HTTP 200
+  sono classificati (`UNAUTHENTICATED`, `FORBIDDEN`) e non registrati.
+- **Quando legge.** `SembleLayer.shared` legge da 7 giorni prima a 92 giorni
+  dopo oggi al caricamento del Calendario (avvio, ritorno in primo piano),
+  al massimo ogni 15 minuti; pull-to-refresh e cambi di calendari forzano
+  la lettura. Pagine da 50, al massimo 10. Nessun polling, job o cache su
+  disco: le regole restano in memoria per la sessione. Fuori dalla finestra
+  letta non si disegna nulla, per non mostrare un quadro incompleto.
+- **Fuso.** Le regole sono orari civili della clinica (`Europe/London`). Se
+  il telefono è in un altro fuso il livello è nascosto e Impostazioni lo
+  dice, invece di mostrare fasce spostate.
+- **Chiave.** Impostazioni → Semble: chiave e User ID nel Keystore Android
+  (`flutter_secure_storage`), come la chiave dell'assistente. Mai in SQLite,
+  backup, log, Supabase o repository. «Verifica e salva» non salva una chiave
+  rifiutata; si può spegnere il livello o eliminare la chiave. La chiave è
+  stata creata da un Manager della clinica: revocarla si fa in Semble.
+- **Test.** `test/semble_availability_test.dart`: espansione delle regole,
+  sottrazione, esclusioni, intervallo, query senza mutazioni/stanza/commenti,
+  paginazione, classificazione degli errori, finestra e fuso, schermata
+  Impostazioni.
+
 ## Promemoria locali — build 245
 
 **Calendario → ⋮ → Promemoria** controlla un avviso a 30 minuti per tutti gli
@@ -83,6 +298,84 @@ esatta del calendario (titolo, inizio, fine, all-day); copie con titoli diversi
 restano distinte e il limite è dichiarato nella scheda. Nessun dato personale
 viene usato come fixture. Permessi mancanti, calendari assenti o errore provider
 producono un messaggio, mai un falso importo zero.
+
+**Stima dalle prenotazioni (build 293).** Quando le prenotazioni del mese
+sono state lette, `estimateWithSembleBookings` le trasforma in voci con il
+tipo di visita come titolo e l'esito della prenotazione, scarta le voci dei
+calendari Semble e ogni altra voce privata che inizia al minuto di una
+prenotazione o un `deviceOffset` prima, e passa tutto a
+`estimatePrivateEarnings`. Le prenotazioni cancellate con una prenotazione
+viva nello stesso minuto sono ignorate. La scheda mostra quante visite
+vengono da Semble; senza prenotazioni resta il calcolo per titolo descritto
+sotto.
+
+**DNA da Semble (build 288).** Con chiave e cognome in Impostazioni →
+Semble, `PrivateEarningsService` legge con `SembleClient.bookings` le
+prenotazioni del mese (query `bookings` per intervallo di date, pagine da
+100, al massimo 20, timeout 12 s) selezionando solo `start`, `end`,
+`deleted`, `doctorName`, `appointment { title }` e `bookingJourney { arrived
+consultation departed dna }`. La chiave non può leggere il medico come
+utente (`settingsSeeUsers`), quindi le prenotazioni dell'utente si
+riconoscono dal cognome contenuto in `doctorName`; la query restituisce
+quelle di tutta la clinica, scartate in memoria. Semble non ha uno stato di
+presenza: l'esito viene dal percorso (`dna` valorizzato = DNA; arrivo, visita
+o uscita = svolta; `deleted` = cancellata). `sembleOutcomeFor` abbina ogni
+evento del calendario Semble (`isSembleCalendar`) alla prenotazione che
+inizia nello stesso minuto, restringendo per tipo di visita contenuto nel
+titolo se più medici iniziano insieme; esiti discordi o assenti restano
+sconosciuti e non cambiano nulla. DNA e cancellate escono da maturato e
+previsto e compaiono a parte. Nessun dato viene salvato; senza cognome, senza
+rete o con errore la stima resta quella per titolo e la scheda lo dice.
+
+**Orari dell'API Semble (build 295).** L'API etichetta come UTC l'ora di
+Londra della clinica: una visita alle 10:00 in BST arriva come
+`10:00:00.000Z`, e la schermata di Semble e la copia iCal mostrano 10:00
+(verificato il 23 ottobre 2026). `SembleBooking.fromJson` legge quindi le
+cifre come ora di Londra (`londonWallClock`: BST dall'ultima domenica di marzo
+all'ultima di ottobre, alle 01:00 UTC) e le converte nel fuso del telefono
+(build 296); un offset esplicito diverso da `Z` resta un istante. Anche le
+fasce di disponibilità, scritte in ora di Londra, sono spostate di
+`sembleZoneShift` (differenza a mezzogiorno di Londra) e tagliate alla
+mezzanotte locale: il layer non è più nascosto fuori da Europe/London. Le build 291–294 interpretavano la `Z` come UTC, mostravano le
+prenotazioni un'ora dopo e spostavano di conseguenza il calendario Semble:
+quello spostamento è stato tolto e il calendario non viene mai spostato.
+
+**Durata dal titolo (build 295).** Ogni slot Semble aggiunge 15 minuti di
+pausa (`appointment.duration` = titolo + 15). `sembleTitleMinutes` legge i
+minuti dal titolo («15 min», «60'»); `sembleClinicalEntry` fa finire lì le
+voci del calendario Semble e le prenotazioni aggiunte, solo in
+visualizzazione. `sembleFreeBands` scarta i pezzi liberi più corti di 30
+minuti, così la pausa non diventa verde. `buildAgenda` accetta `adjust`
+(lista completa, ordinata con `compareAgendaEntries`), a cui
+`SembleLayer.adjustEntries` passa `sembleAdjustEntries`.
+
+**Blocchi verso Semble (build 297).** È l'unica scrittura verso Semble. Nel
+nuovo evento, quando `SembleLayer.canBlock` (chiave, User ID e ID stanza
+salvati, noto dall'ultima lettura, senza rete), la scelta in cima «Evento |
+Blocco Semble» (build 298) riduce il modulo a giorno, orari del telefono e
+tipo (Admin, Ferie, Malattia, Altro, gli altri sotto «Altri tipi»; l'ultimo
+usato resta in memoria). Il pulsante «Blocca» è la conferma e chiama
+`createSembleBlock`; se Semble rifiuta, il modulo resta aperto col motivo. `sembleBlockFor` converte gli orari del telefono in
+ora di Londra (`londonDigitsOf`) e rifiuta un blocco che attraversa la
+mezzanotte di Londra (24:00 ammesso come fine). Al tocco su «Blocca»
+`createUnavailability` invia `createAvailability` con `unavailability`,
+`room`, `user`, `startDate`, `startTime`, `endTime`, tipo e commento «Da
+Todo», **senza `endDate`** (Semble lo rifiuta senza ricorrenza). Lo
+snackbar «Annulla» chiama `deleteAvailability` solo sull'id restituito. Il
+modulo si chiude e la bozza viene rimossa; il calendario del telefono non
+cambia. Il layer viene riletto subito.
+
+**Prenotazioni dirette (build 289).** `SembleLayer`, insieme alle regole e
+con lo stesso limite di 15 minuti, legge con `SembleClient.bookings` le
+prenotazioni con il cognome da ieri a +28 giorni e le tiene solo in memoria
+(`bookingsRevision`). La stessa `sembleAdjustEntries` aggiunge le
+prenotazioni non cancellate solo se un calendario Semble è visibile e nessuna
+voce con orario, di qualsiasi calendario, inizia nello stesso minuto
+(build 290). Le voci
+aggiunte hanno `instanceId` con prefisso `semble-booking:`, il primo
+calendario Semble, titolo uguale al tipo di visita, `isOrganizer` falso; il
+tocco apre una scheda di sola lettura e non esistono modifica, eliminazione
+o scrittura verso Semble.
 
 Tariffario OPUK di settembre 2026 verificato nel Second Brain il 12 ottobre;
 regole e importi in pence in `lib/domain/private_earnings.dart`. La stima è
@@ -174,8 +467,8 @@ della settimana corrente alla domenica della terza successiva, esattamente
 28 giorni anche a cavallo di mese e anno. Scorrimento laterale di 28 giorni;
 «Oggi» riporta alla settimana corrente. Riusa la griglia parametrica delle due
 settimane, senza query a mesi interi né nuove dipendenze. La preferenza v3
-migra una volta il vecchio «Mese» a «4 settimane» e conserva le altre viste;
-una successiva scelta esplicita di «Mese» resta memorizzata.
+migrava una volta il vecchio «Mese» a «4 settimane»; dalla build 299 Mese
+non è più offerto e la v4 sposta anche un «Mese» esplicito (vedi sopra).
 
 Dalla build 232 il «+» per creare un evento è nella barra superiore, accanto
 a «Oggi», con gli stessi permessi e flusso di salvataggio. Il pulsante flottante
@@ -908,7 +1201,7 @@ reali su un telefono vuoto.
 - `lib/domain/agenda.dart`: unione, duplicati, link e giorni, puro.
 - `lib/services/agenda_service.dart`: permessi, provider, calendari nascosti.
 - `lib/ui/views/agenda_view.dart`: vista, Elenco, selettore calendari, etichette.
-- `lib/ui/views/agenda_month_view.dart`: griglie mensili e celle.
+- `lib/ui/views/agenda_chip.dart`: voce di cella e iniziali dei giorni comuni alle griglie (la vista Mese è stata eliminata nella build 306).
 - `lib/ui/views/agenda_day_view.dart`: vista giorno in scala.
 - `lib/ui/views/agenda_weeks_view.dart`: vista a 2 settimane.
 - `lib/ui/views/agenda_week_view.dart`: vista settimana a colonne.

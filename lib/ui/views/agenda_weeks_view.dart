@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
 import '../../domain/task.dart';
+import '../../services/semble_service.dart';
+import 'agenda_chip.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
-import 'agenda_month_view.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
 import 'calendar_visit_group.dart';
@@ -224,8 +225,13 @@ class AgendaDayCell extends StatelessWidget {
     this.outside = false,
     this.groupVisits = false,
     this.onOpenEntry,
+    this.semble,
     super.key,
   });
+
+  /// Semble layer for the availability strip; defaults to
+  /// [SembleLayer.shared].
+  final SembleLayer? semble;
 
   /// Height of one single-line entry (10 px text plus spacing).
   static const chipHeight = 15.0;
@@ -284,88 +290,99 @@ class AgendaDayCell extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(0, 2, 0, 0),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final items = groupVisits
-                  ? calendarVisitItems(entries, date)
-                  : entries.map((e) => CalendarVisitItem([e])).toList();
-              final shown = _shownHeights([
-                for (final item in items)
-                  item.grouped
-                      ? CalendarVisitGroup.height
-                      : item.first.allDay || item.first.isTask
-                      ? chipHeight
-                      : AgendaChip.twoLineHeight,
-              ], constraints.maxHeight - 19);
-              final hiddenCount = items
-                  .skip(shown)
-                  .fold<int>(0, (sum, item) => sum + item.entries.length);
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ColoredBox(
-                    color: agendaDateHeaderFill(theme.colorScheme),
-                    child: Center(
-                      child: Container(
-                        height: 17,
-                        constraints: const BoxConstraints(minWidth: 17),
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        alignment: Alignment.center,
-                        decoration: isToday
-                            ? BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(9),
-                              )
-                            : null,
-                        child: Text(
-                          label,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10.5,
-                            fontWeight: isToday ? FontWeight.w800 : null,
-                            color: isToday
-                                ? theme.colorScheme.onPrimary
-                                : outside
-                                ? theme.colorScheme.onSurfaceVariant
-                                : theme.colorScheme.onSurface,
+          child: ListenableBuilder(
+            listenable: semble ?? SembleLayer.shared,
+            builder: (context, _) => LayoutBuilder(
+              builder: (context, constraints) {
+                // No availability bar in the grids: clutter for the user
+                // (build 301); only the amber mark on events in it.
+                final layer = semble ?? SembleLayer.shared;
+                final inSemble = layer.overlapsFor(date, entries);
+                final items = groupVisits
+                    ? calendarVisitItems(entries, date)
+                    : entries.map((e) => CalendarVisitItem([e])).toList();
+                final shown = _shownHeights([
+                  for (final item in items)
+                    item.grouped
+                        ? CalendarVisitGroup.height
+                        : item.first.allDay || item.first.isTask
+                        ? chipHeight
+                        : AgendaChip.twoLineHeight,
+                ], constraints.maxHeight - 19);
+                final hiddenCount = items
+                    .skip(shown)
+                    .fold<int>(0, (sum, item) => sum + item.entries.length);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ColoredBox(
+                      color: agendaDateHeaderFill(theme.colorScheme),
+                      child: Center(
+                        child: Container(
+                          height: 17,
+                          constraints: const BoxConstraints(minWidth: 17),
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          alignment: Alignment.center,
+                          decoration: isToday
+                              ? BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(9),
+                                )
+                              : null,
+                          child: Text(
+                            label,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontSize: 10.5,
+                              fontWeight: isToday ? FontWeight.w800 : null,
+                              color: isToday
+                                  ? theme.colorScheme.onPrimary
+                                  : outside
+                                  ? theme.colorScheme.onSurfaceVariant
+                                  : theme.colorScheme.onSurface,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 1),
-                  for (final item in items.take(shown))
-                    if (item.grouped)
-                      CalendarVisitGroup(
-                        item: item,
-                        color:
-                            colors[item.first.calendarIds.first] ??
-                            theme.colorScheme.primary,
-                        onOpen:
-                            onOpenEntry ??
-                            (_) async {
-                              onDay(date);
-                            },
-                      )
-                    else
-                      AgendaChip(
-                        entry: item.first,
-                        twoLines: true,
-                        day: date,
-                        color:
-                            colors[item.first.calendarIds.first] ??
-                            theme.colorScheme.primary,
+                    const SizedBox(height: 1),
+                    for (final item in items.take(shown))
+                      if (item.grouped)
+                        CalendarVisitGroup(
+                          item: item,
+                          color:
+                              colors[item.first.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                          onOpen:
+                              onOpenEntry ??
+                              (_) async {
+                                onDay(date);
+                              },
+                          // In the grids a group opens the day; the day
+                          // view expands it (user request, build 300).
+                          onTap: () => onDay(date),
+                        )
+                      else
+                        AgendaChip(
+                          entry: item.first,
+                          twoLines: true,
+                          day: date,
+                          inSemble: inSemble.contains(item.first.instanceId),
+                          color:
+                              colors[item.first.calendarIds.first] ??
+                              theme.colorScheme.primary,
+                        ),
+                    if (hiddenCount > 0)
+                      Text(
+                        '+$hiddenCount',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontSize: 9.5,
+                        ),
                       ),
-                  if (hiddenCount > 0)
-                    Text(
-                      '+$hiddenCount',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 9.5,
-                      ),
-                    ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

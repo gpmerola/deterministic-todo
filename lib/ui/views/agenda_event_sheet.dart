@@ -18,6 +18,15 @@ enum AgendaEventAction {
 
   /// Copy edited in Todo's own calendar that replaces the original here.
   editInTodo,
+
+  /// Blocks the event's time in Semble (build 301): offered when the event
+  /// is not a visit but falls in bookable Semble time.
+  sembleBlock,
+
+  /// Removes, or puts back, the amber edge of this occurrence only (build
+  /// 307); Semble and its availability are untouched.
+  sembleIgnore,
+  sembleUnignore,
 }
 
 /// Google Calendar-like detail of one occurrence. Returns the chosen action.
@@ -33,6 +42,8 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   bool localOnly = false,
   bool canCopyInTodo = false,
   List<AgendaEntry> overlaps = const [],
+  bool canSembleBlock = false,
+  bool? sembleIgnored,
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
   showDragHandle: true,
@@ -48,6 +59,8 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     localOnly: localOnly,
     canCopyInTodo: canCopyInTodo,
     overlaps: overlaps,
+    canSembleBlock: canSembleBlock,
+    sembleIgnored: sembleIgnored,
   ),
 );
 
@@ -63,8 +76,14 @@ class AgendaEventSheet extends StatelessWidget {
     this.localOnly = false,
     this.canCopyInTodo = false,
     this.overlaps = const [],
+    this.canSembleBlock = false,
+    this.sembleIgnored,
     super.key,
   });
+
+  /// In bookable Semble time: false while the amber edge shows, true once
+  /// the user removed it; null otherwise.
+  final bool? sembleIgnored;
 
   /// In Todo's own calendar: Modifica and Elimina change only Todo.
   final bool localOnly;
@@ -74,6 +93,10 @@ class AgendaEventSheet extends StatelessWidget {
 
   /// Other timed events at the same time (see [agendaOverlaps]).
   final List<AgendaEntry> overlaps;
+
+  /// The event is in bookable Semble time (amber edge): one button blocks
+  /// it there (build 301).
+  final bool canSembleBlock;
 
   /// False on the web: there is no phone calendar app to open.
   final bool canOpenInCalendar;
@@ -238,6 +261,14 @@ class AgendaEventSheet extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                if (canSembleBlock)
+                  FilledButton.icon(
+                    key: const ValueKey('agenda-sheet-semble-block'),
+                    onPressed: () =>
+                        Navigator.pop(context, AgendaEventAction.sembleBlock),
+                    icon: const Icon(Icons.event_busy),
+                    label: const Text('Blocca in Semble'),
+                  ),
                 if (meeting != null)
                   FilledButton.icon(
                     onPressed: () => unawaited(
@@ -273,45 +304,95 @@ class AgendaEventSheet extends StatelessWidget {
                       localOnly ? 'Elimina' : 'Elimina dal calendario',
                     ),
                   ),
-                if (!localOnly && canCopyInTodo)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-edit-in-todo'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.editInTodo),
-                    icon: const Icon(Icons.edit_note),
-                    label: const Text('Modifica solo in Todo'),
-                  ),
-                if (!localOnly)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-hide'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.hide),
-                    icon: const Icon(Icons.visibility_off_outlined),
-                    label: const Text('Nascondi in Todo'),
-                  ),
-                if (canCreateTasks)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-prepare'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.prepareTask),
-                    icon: const Icon(Icons.playlist_add),
-                    label: const Text('Preparare (giorno prima)'),
-                  ),
-                if (canCreateTasks)
-                  OutlinedButton.icon(
-                    key: const ValueKey('agenda-sheet-follow-up'),
-                    onPressed: () =>
-                        Navigator.pop(context, AgendaEventAction.followUpTask),
-                    icon: const Icon(Icons.playlist_add_check),
-                    label: const Text('Follow-up (giorno dopo)'),
-                  ),
-                if (canOpenInCalendar)
-                  TextButton(
-                    onPressed: () => Navigator.pop(
-                      context,
-                      AgendaEventAction.openInCalendar,
+                // Rarer actions behind one button (build 299).
+                if (!localOnly ||
+                    canCreateTasks ||
+                    canOpenInCalendar ||
+                    sembleIgnored != null)
+                  PopupMenuButton<AgendaEventAction>(
+                    key: const ValueKey('agenda-sheet-more'),
+                    tooltip: 'Altro',
+                    onSelected: (action) => Navigator.pop(context, action),
+                    itemBuilder: (_) => [
+                      if (sembleIgnored == false)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-semble-ignore'),
+                          value: AgendaEventAction.sembleIgnore,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.format_color_reset_outlined),
+                            title: Text('Togli il bordo ambra'),
+                            subtitle: Text('Solo per questo evento'),
+                          ),
+                        ),
+                      if (sembleIgnored == true)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-semble-unignore'),
+                          value: AgendaEventAction.sembleUnignore,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.border_left),
+                            title: Text('Rimetti il bordo ambra'),
+                          ),
+                        ),
+                      if (!localOnly && canCopyInTodo)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-edit-in-todo'),
+                          value: AgendaEventAction.editInTodo,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.edit_note),
+                            title: Text('Modifica solo in Todo'),
+                          ),
+                        ),
+                      if (!localOnly)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-hide'),
+                          value: AgendaEventAction.hide,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.visibility_off_outlined),
+                            title: Text('Nascondi in Todo'),
+                          ),
+                        ),
+                      if (canCreateTasks)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-prepare'),
+                          value: AgendaEventAction.prepareTask,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.playlist_add),
+                            title: Text('Preparare (giorno prima)'),
+                          ),
+                        ),
+                      if (canCreateTasks)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-follow-up'),
+                          value: AgendaEventAction.followUpTask,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.playlist_add_check),
+                            title: Text('Follow-up (giorno dopo)'),
+                          ),
+                        ),
+                      if (canOpenInCalendar)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-open'),
+                          value: AgendaEventAction.openInCalendar,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.open_in_new),
+                            title: Text('Apri nel calendario'),
+                          ),
+                        ),
+                    ],
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Icon(Icons.more_horiz),
                     ),
-                    child: const Text('Apri nel calendario'),
                   ),
               ],
             ),

@@ -24,7 +24,7 @@ class _Service extends AgendaService {
   @override
   Future<String?> deviceZoneLabel() async => 'Europe/London';
   @override
-  Future<AgendaViewMode> viewMode() async => AgendaViewMode.list;
+  Future<AgendaViewMode> viewMode() async => AgendaViewMode.fourWeeks;
   @override
   Future<AgendaFilter> filter() async => AgendaFilter.none;
   @override
@@ -59,19 +59,18 @@ void main() {
     () async {
       final service = _Service(db)..gate = Completer<void>();
       final controller = AgendaLoadController(service);
-      final day = CivilDate(2026, 10, 12);
-      final first = controller.load(day, 14);
-      final duplicate = controller.load(day, 14);
+      final first = controller.load();
+      final duplicate = controller.load();
       expect(identical(first, duplicate), isTrue);
       expect(service.calls, 1);
-      final edited = controller.load(day, 14, changed: true);
+      final edited = controller.load(changed: true);
       service.gate!.complete();
       final result = await edited;
       expect(service.calls, 2);
-      expect(result.days, hasLength(14));
+      expect(result.mode, AgendaViewMode.fourWeeks);
       expect(identical(await first, result), isTrue);
       service.permission = AgendaAccess.denied;
-      expect((await controller.load(day, 14)).access, AgendaAccess.denied);
+      expect((await controller.load()).access, AgendaAccess.denied);
       controller.dispose();
     },
   );

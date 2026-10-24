@@ -79,6 +79,18 @@ public final class AgendaChannel {
                     });
                     return;
                 }
+                if (call.method.equals("notifySembleConflicts")) {
+                    Handler main = new Handler(Looper.getMainLooper());
+                    IO.execute(() -> {
+                        try {
+                            int count = AgendaSembleConflicts.deliver(app, call.argument("events"));
+                            main.post(() -> result.success(count));
+                        } catch (Exception error) {
+                            main.post(() -> result.error("semble_conflicts_failed", "Avviso Semble non disponibile.", null));
+                        }
+                    });
+                    return;
+                }
                 if (call.method.equals("beginReminders")) {
                     result.success(AgendaReminders.begin(app));
                     return;

@@ -503,10 +503,10 @@ class AgendaBackup {
     await _saveUnmatched(
       await _applyByKey(settings, await service.calendars(), fromRestore: true),
     );
-    final mode = AgendaViewMode.values
-        .where((mode) => mode.name == settings['view_mode'])
-        .firstOrNull;
-    if (mode != null) await service.saveViewMode(mode);
+    final mode = settings['view_mode'];
+    if (mode is String) {
+      await service.saveViewMode(AgendaViewMode.parse(mode));
+    }
     final links = settings['task_links'];
     if (links is List) {
       await service.taskLinks.addKeys(links.whereType<String>());

@@ -181,6 +181,8 @@ void main() {
 
     expect(find.text('Privacy'), findsNothing);
     expect(find.text('Attività completate'), findsOneWidget);
+    // Sections since build 306: maintenance is last, folded.
+    await tester.scrollUntilVisible(find.text('Dati e manutenzione'), 300);
     expect(find.text('Dati e manutenzione'), findsOneWidget);
     expect(find.text('Importa da Todoist'), findsNothing);
     expect(find.byTooltip('Indietro'), findsOneWidget);

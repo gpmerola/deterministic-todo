@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/agenda.dart';
 import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
+import '../../services/semble_service.dart';
 
 class AgendaLoadResult {
   const AgendaLoadResult({
@@ -13,7 +14,6 @@ class AgendaLoadResult {
     this.filter,
     this.calendars,
     this.hidden,
-    this.days,
   });
   final AgendaAccess access;
   final int revision;
@@ -22,7 +22,6 @@ class AgendaLoadResult {
   final AgendaFilter? filter;
   final List<AgendaCalendar>? calendars;
   final Set<String>? hidden;
-  final List<AgendaDay>? days;
 }
 
 /// Owns calendar reads independently of widgets. Equivalent overlapping reads
@@ -31,23 +30,17 @@ class AgendaLoadController {
   AgendaLoadController(this.service);
   final AgendaService service;
   Future<AgendaLoadResult>? _active;
-  (CivilDate, int)? _requested;
   bool _again = false;
   bool _disposed = false;
   int _revision = 0;
 
-  Future<AgendaLoadResult> load(
-    CivilDate first,
-    int count, {
-    bool changed = false,
-  }) {
-    final request = (first, count);
+  /// Calendars, choices and settings; the views read their own days with
+  /// [readDays].
+  Future<AgendaLoadResult> load({bool changed = false}) {
     if (_active != null) {
-      _again |= changed || _requested != request;
-      _requested = request;
+      _again |= changed;
       return _active!;
     }
-    _requested = request;
     return _active = _drain().whenComplete(() => _active = null);
   }
 
@@ -55,9 +48,8 @@ class AgendaLoadController {
     late AgendaLoadResult result;
     do {
       _again = false;
-      final (first, count) = _requested!;
       try {
-        result = await _read(first, count);
+        result = await _read();
       } catch (_) {
         if (!_again || _disposed) rethrow;
       }
@@ -65,7 +57,7 @@ class AgendaLoadController {
     return result;
   }
 
-  Future<AgendaLoadResult> _read(CivilDate first, int count) async {
+  Future<AgendaLoadResult> _read() async {
     final access = await service.access();
     if (access != AgendaAccess.granted) {
       return AgendaLoadResult(access: access, revision: ++_revision);
@@ -82,9 +74,6 @@ class AgendaLoadController {
       choices,
       hideHolidays: filter.hideHolidays,
     );
-    final days = mode == AgendaViewMode.list
-        ? await readDays(calendars, hidden, filter, first, count)
-        : null;
     return AgendaLoadResult(
       access: access,
       revision: ++_revision,
@@ -93,7 +82,6 @@ class AgendaLoadController {
       filter: filter,
       calendars: calendars,
       hidden: hidden,
-      days: days,
     );
   }
 
@@ -119,6 +107,7 @@ class AgendaLoadController {
       filter: filter,
       first: first,
       days: count,
+      adjust: SembleLayer.shared.adjustEntries(calendars, hidden),
     );
   }
 

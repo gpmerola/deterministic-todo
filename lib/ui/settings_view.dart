@@ -527,6 +527,7 @@ class SettingsView extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
     children: [
+      // Build 306: grouped by subject, maintenance last and folded.
       SyncAccountCard(client: syncClient, syncService: syncService),
       FutureBuilder<PackageInfo>(
         future: appPackageInfo(),
@@ -549,47 +550,7 @@ class SettingsView extends StatelessWidget {
           onTap: checkForUpdates,
         ),
       ),
-      // Android only: the key lives in the Android Keystore.
-      if (isAndroidPlatform)
-        ListTile(
-          key: const ValueKey('settings-ai'),
-          leading: const Icon(Icons.auto_awesome_outlined),
-          title: const Text('Assistente AI'),
-          subtitle: const Text('Chiave API (DeepSeek o Claude)'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => AiSettingsView(settings: AiSettings()),
-            ),
-          ),
-        ),
-      ListTile(
-        leading: const Icon(Icons.health_and_safety_outlined),
-        title: const Text('Salute dati'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          useSafeArea: true,
-          showDragHandle: true,
-          builder: (_) => SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.72,
-            child: DataHealthView(
-              repository: repository,
-              syncService: syncService,
-            ),
-          ),
-        ),
-      ),
-      ListTile(
-        leading: const Icon(Icons.track_changes_outlined),
-        title: const Text('Obiettivo passi'),
-        subtitle: Text(
-          '${NumberFormat.decimalPattern('it').format(dailyStepGoal)} passi al giorno',
-        ),
-        trailing: const Icon(Icons.edit_outlined),
-        onTap: () => _editDailyStepGoal(context),
-      ),
+      const SettingsHeading('Attività'),
       ListTile(
         leading: const Icon(Icons.check_circle_outline),
         title: const Text('Attività completate'),
@@ -629,21 +590,85 @@ class SettingsView extends StatelessWidget {
               TrashView(repository: repository, syncService: syncService),
         ),
       ),
-      if (earnings != null)
-        ListTile(
-          dense: true,
-          key: const ValueKey('settings-private-earnings'),
-          leading: const Icon(Icons.calculate_outlined, size: 20),
-          title: const Text('Stima lavoro privato'),
-          trailing: const Icon(Icons.chevron_right, size: 20),
-          onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            showDragHandle: true,
-            builder: (_) => PrivateEarningsSheet(service: earnings!),
+      ListTile(
+        leading: const Icon(Icons.health_and_safety_outlined),
+        title: const Text('Salute dati'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          showDragHandle: true,
+          builder: (_) => SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.72,
+            child: DataHealthView(
+              repository: repository,
+              syncService: syncService,
+            ),
           ),
         ),
+      ),
+      if (isAndroidPlatform) ...[
+        const SettingsHeading('Calendario e lavoro'),
+        // Android only, like the Calendar layer it feeds (build 285).
+        if (isAndroidPlatform)
+          ListTile(
+            key: const ValueKey('settings-semble'),
+            leading: const Icon(Icons.event_available_outlined),
+            title: const Text('Semble'),
+            subtitle: const Text(
+              'Disponibilità, visite e blocchi nel Calendario',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SembleSettingsView(
+                  settings: SembleSettings(),
+                  layer: SembleLayer.shared,
+                ),
+              ),
+            ),
+          ),
+        if (earnings != null)
+          ListTile(
+            key: const ValueKey('settings-private-earnings'),
+            leading: const Icon(Icons.calculate_outlined),
+            title: const Text('Stima lavoro privato'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
+              builder: (_) => PrivateEarningsSheet(service: earnings!),
+            ),
+          ),
+        // Android only: the key lives in the Android Keystore.
+        if (isAndroidPlatform)
+          ListTile(
+            key: const ValueKey('settings-ai'),
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: const Text('Assistente AI'),
+            subtitle: const Text('Chiave API (DeepSeek o Claude)'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => AiSettingsView(settings: AiSettings()),
+              ),
+            ),
+          ),
+      ],
+      const SettingsHeading('Movimento'),
+      ListTile(
+        leading: const Icon(Icons.track_changes_outlined),
+        title: const Text('Obiettivo passi'),
+        subtitle: Text(
+          '${NumberFormat.decimalPattern('it').format(dailyStepGoal)} passi al giorno',
+        ),
+        trailing: const Icon(Icons.edit_outlined),
+        onTap: () => _editDailyStepGoal(context),
+      ),
+      const SettingsHeading('Dati'),
       ExpansionTile(
         leading: const Icon(Icons.storage_outlined),
         title: const Text('Dati e manutenzione'),
@@ -708,4 +733,25 @@ class SettingsView extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// Section title in Settings (build 306).
+class SettingsHeading extends StatelessWidget {
+  const SettingsHeading(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Text(
+        text,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
 }

@@ -6,13 +6,16 @@ import 'package:intl/intl.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
+import '../../domain/semble_bookings.dart' show SembleBookingEntry;
 import '../../domain/task.dart';
+import '../../services/semble_service.dart' show SembleLayer;
+import 'agenda_chip.dart';
 import 'agenda_colors.dart';
 import 'agenda_day_view.dart';
-import 'agenda_month_view.dart';
 import 'agenda_now_tick.dart';
 import 'agenda_page_cache.dart';
 import 'agenda_page_frame.dart';
+import 'agenda_semble_layer.dart';
 import 'agenda_weeks_view.dart' show mondayOf;
 import 'agenda_word_wrap.dart';
 import 'calendar_visit_group.dart';
@@ -222,7 +225,19 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Amber edges follow the layer, e.g. one removed by hand (build 307).
+    SembleLayer.shared.addListener(_sembleChanged);
+  }
+
+  void _sembleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    SembleLayer.shared.removeListener(_sembleChanged);
     _scroll?.dispose();
     super.dispose();
   }
@@ -427,7 +442,10 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     Map<String, CalendarVisitItem> groups,
   ) {
     final theme = Theme.of(context);
-    final clashing = agendaOverlaps(entries).keys.toSet();
+    final clashing = agendaOverlaps(
+      entries.where((entry) => !entry.isSembleCancelled).toList(),
+    ).keys.toSet();
+    final inSemble = SembleLayer.shared.overlapsFor(date, entries);
     final line = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -496,6 +514,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                     }),
                   ),
                 ),
+              AgendaSembleBands(day: date, scale: scale, entries: entries),
               for (var hour = 0; hour < 24; hour++)
                 if (scale.isFolded(hour))
                   Positioned(
@@ -542,6 +561,7 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
                           widget.colors[block.entry.calendarIds.first] ??
                               theme.colorScheme.primary,
                           clash: clashing.contains(block.entry.instanceId),
+                          inSemble: inSemble.contains(block.entry.instanceId),
                         ),
                 ),
               if (_dragDate == date && _drag != null)
@@ -581,12 +601,19 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
     AgendaEntry entry,
     Color color, {
     bool clash = false,
+    bool inSemble = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
     final fill = agendaEventFill(color, scheme);
-    // Unanswered invitations: outlined, not filled, like Google Calendar.
-    final outlined = entry.unanswered;
-    final onColor = outlined ? scheme.onSurface : agendaOnFill(fill);
+    // Unanswered invitations: outlined, not filled, like Google Calendar;
+    // cancelled Semble bookings too, faded (build 303).
+    final cancelled = entry.isSembleCancelled;
+    final outlined = entry.unanswered || cancelled;
+    final onColor = cancelled
+        ? scheme.onSurfaceVariant
+        : outlined
+        ? scheme.onSurface
+        : agendaOnFill(fill);
     return Material(
       color: outlined ? scheme.surface : fill,
       // Overlapping another timed event: outlined in the error colour.
@@ -594,6 +621,9 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
         borderRadius: BorderRadius.circular(3),
         side: clash
             ? BorderSide(color: scheme.error, width: 1.5)
+            // Not a visit, inside bookable Semble time (build 300).
+            : inSemble
+            ? BorderSide(color: SemblePalette.overlap(scheme), width: 1.5)
             : outlined
             ? BorderSide(color: fill, width: 1.5)
             : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),
@@ -616,7 +646,10 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
               );
               final title = AgendaWordWrap(
                 entry.title.isEmpty ? '(senza titolo)' : entry.title,
-                style: style.copyWith(fontWeight: FontWeight.w600),
+                style: style.copyWith(
+                  fontWeight: FontWeight.w600,
+                  decoration: cancelled ? TextDecoration.lineThrough : null,
+                ),
               );
               // The start time, when the block has room for it: times
               // must read at a glance (user request, build 220).

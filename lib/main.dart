@@ -47,6 +47,8 @@ import 'services/platform_runtime_native.dart'
 import 'services/private_earnings_service.dart';
 import 'services/quick_add_service.dart';
 import 'services/run_tracker_service.dart';
+import 'services/semble_conflicts.dart';
+import 'services/semble_service.dart';
 import 'services/todoist_import_service.dart';
 import 'services/todoist_import_verification.dart';
 import 'ui/activity_history_view.dart';
@@ -63,6 +65,7 @@ import 'ui/priority_color.dart';
 import 'ui/private_earnings_sheet.dart';
 import 'ui/quick_add_sheet.dart';
 import 'ui/search.dart';
+import 'ui/semble_settings_view.dart';
 import 'ui/shell/app_update_flow.dart';
 import 'ui/shell/civil_day_clock.dart';
 import 'ui/shell/daily_steps_controller.dart';
@@ -153,6 +156,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     ),
   );
   final calendarShortcut = CalendarShortcutService();
+
+  /// Event or day a conflict notification asked the Calendar to open.
+  final calendarLaunch = ValueNotifier<CalendarLaunch?>(null);
   late final dayClock = CivilDayClock(now: widget.clock);
 
   /// Agenda on Android (phone calendars) and on the web (the phone's mirror,
@@ -228,8 +234,10 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           unawaited(
-            calendarShortcut.attach(() async {
-              if (mounted) await _navigateTo(AppSection.agenda);
+            calendarShortcut.attach((target) async {
+              if (!mounted) return;
+              await _navigateTo(AppSection.agenda);
+              calendarLaunch.value = target;
             }),
           );
         }
@@ -438,6 +446,12 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       appIsForeground = false;
       if (!backgroundSnapshotTaken) {
         backgroundSnapshotTaken = true;
+        // Events created or seen in the app with an amber edge were left
+        // to a background run; notify them now that the app is away
+        // (build 305). Cached rules only, no Semble call.
+        if (isAndroidPlatform) {
+          unawaited(SembleConflicts(agendaService).check());
+        }
         unawaited(PerformanceMonitor.instance.flushFrames());
         final imageCache = PaintingBinding.instance.imageCache;
         imageCache
@@ -488,6 +502,7 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     if (widget.enablePlatformServices && isAndroidPlatform) {
       calendarShortcut.detach();
     }
+    calendarLaunch.dispose();
     HardwareKeyboard.instance.removeHandler(_handleDesktopEscape);
     updateTimer?.cancel();
     foregroundJobs.dispose();

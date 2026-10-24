@@ -264,6 +264,8 @@ void main() {
         find.byKey(const ValueKey('agenda-event-title')),
         'Zoned',
       );
+      await tester.tap(find.byKey(const ValueKey('agenda-event-more')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Scegli fuso orario'));
       await tester.tap(find.text('Scegli fuso orario'));
       await tester.pumpAndSettle();
@@ -281,7 +283,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final service = _Service(db);
     addTearDown(db.close);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -305,34 +307,40 @@ void main() {
   });
 
   test(
-    'old month migrates once; explicit month and other views survive',
+    'removed views move to four weeks once; offered views survive',
     () async {
       final db = AppDatabase.forTesting(NativeDatabase.memory());
       addTearDown(db.close);
-      await db
-          .into(db.appSettings)
-          .insert(
-            AppSettingsCompanion.insert(
-              key: 'agenda_view_mode_v2',
-              value: 'month',
-            ),
-          );
-      final service = _Service(db);
-      expect(await service.viewMode(), AgendaViewMode.fourWeeks);
-      await service.saveViewMode(AgendaViewMode.month);
-      expect(await _Service(db).viewMode(), AgendaViewMode.month);
-      await (db.delete(
-        db.appSettings,
-      )..where((s) => s.key.equals(AgendaService.viewModeKey))).go();
-      await db
+      Future<void> legacy(String key, String value) => db
           .into(db.appSettings)
           .insertOnConflictUpdate(
-            AppSettingsCompanion.insert(
-              key: 'agenda_view_mode_v2',
-              value: 'list',
-            ),
+            AppSettingsCompanion.insert(key: key, value: value),
           );
-      expect(await _Service(db).viewMode(), AgendaViewMode.list);
+      Future<void> forget() => (db.delete(
+        db.appSettings,
+      )..where((s) => s.key.equals(AgendaService.viewModeKey))).go();
+      await legacy('agenda_view_mode_v2', 'month');
+      expect(await _Service(db).viewMode(), AgendaViewMode.fourWeeks);
+      await forget();
+      await legacy('agenda_view_mode_v2', 'list');
+      expect(await _Service(db).viewMode(), AgendaViewMode.fourWeeks);
+      for (final removed in ['threeWeeks', 'month', 'list']) {
+        await forget();
+        await legacy(AgendaService.legacyViewModeKey, removed);
+        expect(await _Service(db).viewMode(), AgendaViewMode.fourWeeks);
+      }
+      await forget();
+      await legacy(AgendaService.legacyViewModeKey, 'week');
+      expect(await _Service(db).viewMode(), AgendaViewMode.week);
+      // Migrated once: v4 now wins over v3.
+      await legacy(AgendaService.legacyViewModeKey, 'twoWeeks');
+      expect(await _Service(db).viewMode(), AgendaViewMode.week);
+      expect(AgendaViewMode.values, [
+        AgendaViewMode.threeDays,
+        AgendaViewMode.week,
+        AgendaViewMode.twoWeeks,
+        AgendaViewMode.fourWeeks,
+      ]);
     },
   );
 
@@ -373,11 +381,13 @@ void main() {
       final modeMenu = find.byType(PopupMenuButton<AgendaViewMode>);
       await tester.tap(modeMenu);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Elenco').last);
+      await tester.tap(find.text('2 settimane').last);
       await tester.pumpAndSettle();
       expect(find.textContaining('nov'), findsWidgets);
       expect(find.text('Azzera filtri'), findsNothing);
       expect(find.textContaining('festività nascoste'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('agenda-more')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('agenda-choose-calendars')));
       await tester.pumpAndSettle();
       expect(find.textContaining('festività nascoste'), findsOneWidget);

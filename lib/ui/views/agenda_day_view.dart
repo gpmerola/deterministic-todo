@@ -6,11 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/agenda.dart';
 import '../../domain/calendar_visit_groups.dart';
+import '../../domain/semble_bookings.dart' show SembleBookingEntry;
 import '../../domain/task.dart';
+import '../../services/semble_service.dart' show SembleLayer;
 import 'agenda_colors.dart';
-import 'agenda_header.dart' show AgendaTodayIcon;
 import 'agenda_now_tick.dart';
 import 'agenda_page_frame.dart';
+import 'agenda_semble_layer.dart';
 import 'calendar_visit_group.dart';
 
 typedef AgendaDaysLoader =
@@ -132,7 +134,7 @@ class _AgendaDayPageState extends State<AgendaDayPage> {
               tooltip: 'Oggi',
               visualDensity: VisualDensity.compact,
               onPressed: _goToToday,
-              icon: AgendaTodayIcon(day: widget.today.day),
+              icon: const Icon(Icons.today_outlined),
             ),
           // Swiping already moves between days; the arrows make it visible.
           IconButton(
@@ -248,11 +250,18 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   void initState() {
     super.initState();
     data = widget.peekDays(widget.day, 1)?.firstOrNull;
+    // Amber edges follow the layer, e.g. one removed by hand (build 307).
+    SembleLayer.shared.addListener(_sembleChanged);
     unawaited(_load());
+  }
+
+  void _sembleChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    SembleLayer.shared.removeListener(_sembleChanged);
     scroll?.dispose();
     super.dispose();
   }
@@ -360,7 +369,10 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
       blocks,
       hourHeight: AgendaDayPage.hourHeight,
     );
-    final clashing = agendaOverlaps(entries).keys.toSet();
+    final clashing = agendaOverlaps(
+      entries.where((entry) => !entry.isSembleCancelled).toList(),
+    ).keys.toSet();
+    final inSemble = SembleLayer.shared.overlapsFor(widget.day, entries);
     // The first layout fixes the initial position; reloads keep the scroll.
     scroll ??= data == null
         ? null
@@ -461,6 +473,12 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                             }),
                           ),
                         ),
+                      AgendaSembleBands(
+                        day: widget.day,
+                        scale: scale,
+                        left: _gutter,
+                        entries: entries,
+                      ),
                       for (var hour = 0; hour < 24; hour++)
                         ..._hourRow(context, hour, constraints.maxWidth),
                       for (final block in blocks)
@@ -469,6 +487,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                           block,
                           constraints.maxWidth,
                           clashing,
+                          inSemble,
                           groups[block.entry.instanceId],
                         ),
                       if (widget.day == widget.today)
@@ -544,6 +563,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
     TimelineBlock block,
     double width,
     Set<String> clashing,
+    Set<String> inSemble,
     CalendarVisitItem? group,
   ) {
     final slot = timelineSlot(block, width - _gutter - 4);
@@ -571,6 +591,7 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
                       await _load();
                     },
               clash: clashing.contains(block.entry.instanceId),
+              inSemble: inSemble.contains(block.entry.instanceId),
             ),
     );
   }
@@ -606,9 +627,13 @@ class _Block extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.clash = false,
+    this.inSemble = false,
   });
 
   final Future<void> Function(AgendaEntry entry)? onLongPress;
+
+  /// Not a visit, but inside bookable Semble time: amber edge (build 300).
+  final bool inSemble;
 
   /// Overlaps another timed event: outlined and marked with ⚠.
   final bool clash;
@@ -619,9 +644,15 @@ class _Block extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // Unanswered invitations: outlined, not filled, like Google Calendar.
-    final outlined = entry.unanswered;
-    final onColor = outlined ? scheme.onSurface : agendaOnFill(color);
+    // Unanswered invitations: outlined, not filled, like Google Calendar;
+    // cancelled Semble bookings too, faded and struck through (build 303).
+    final cancelled = entry.isSembleCancelled;
+    final outlined = entry.unanswered || cancelled;
+    final onColor = cancelled
+        ? scheme.onSurfaceVariant
+        : outlined
+        ? scheme.onSurface
+        : agendaOnFill(color);
     final format = DateFormat.Hm('it');
     final meeting = entry.meeting;
     return Material(
@@ -630,6 +661,8 @@ class _Block extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         side: clash
             ? BorderSide(color: scheme.error, width: 2)
+            : inSemble
+            ? BorderSide(color: SemblePalette.overlap(scheme), width: 2)
             : outlined
             ? BorderSide(color: color, width: 1.5)
             : BorderSide(color: agendaAccentText(color, scheme), width: 0.8),
@@ -659,6 +692,7 @@ class _Block extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       height: 1.2,
+                      decoration: cancelled ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   if (tall)

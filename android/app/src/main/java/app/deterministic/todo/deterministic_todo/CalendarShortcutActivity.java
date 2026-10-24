@@ -49,13 +49,15 @@ public class CalendarShortcutActivity extends FlutterActivity {
                 }
                 result.success(null);
             });
-        if (getIntent() != null) launch.accept(getIntent().getAction(), getPackageName());
+        launch.acceptIntent(getIntent(), getPackageName());
         channel = new MethodChannel(engine.getDartExecutor().getBinaryMessenger(),
                 "app.deterministic.todo/calendar_shortcut");
         channel.setMethodCallHandler((call, result) -> {
             if (call.method.equals("consumeLaunch")) {
-                boolean requested = launch.consume();
-                if (requested && getIntent() != null) getIntent().setAction(Intent.ACTION_MAIN);
+                Object requested = launch.consume();
+                if (!Boolean.FALSE.equals(requested) && getIntent() != null) {
+                    getIntent().setAction(Intent.ACTION_MAIN);
+                }
                 result.success(requested);
             } else if (call.method.equals("pin")) {
                 try {
@@ -70,7 +72,7 @@ public class CalendarShortcutActivity extends FlutterActivity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (launch.accept(intent.getAction(), getPackageName()) && channel != null) {
+        if (launch.acceptIntent(intent, getPackageName()) && channel != null) {
             // Keep it pending until Dart consumes it, including during startup.
             channel.invokeMethod("calendarRequested", null);
         }

@@ -38,7 +38,7 @@ Map<String, Object?> _backup({
   colors: const {'7': '#039BE5', 'gone': '#000000'},
   mainCalendarId: '12',
   aiCalendarId: null,
-  viewMode: AgendaViewMode.month,
+  viewMode: AgendaViewMode.twoWeeks,
   taskLinks: const {'task:b', 'task:a'},
 );
 
@@ -148,7 +148,7 @@ void orderTests() {
               colors: await service.calendarColors(),
               mainCalendarId: await service.lastEventCalendar(),
               aiCalendarId: null,
-              viewMode: AgendaViewMode.month,
+              viewMode: AgendaViewMode.twoWeeks,
               taskLinks: const {},
               unmatched: waiting,
             )['settings']!

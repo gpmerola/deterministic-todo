@@ -1,23 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/task.dart';
 import '../../services/agenda_service.dart';
 
-/// One compact row: view mode, today, recognised zone, calendars and the
-/// shell's search/settings (the app bar is hidden in Agenda to give the days
-/// more room).
+/// One compact row: view mode, new event, notices and the Altro menu with
+/// calendars, assistant, search and settings (the app bar is hidden in
+/// Agenda to give the days more room). The Today icon and the "16/32"
+/// calendar count were removed as clutter (build 306).
 class AgendaHeader extends StatelessWidget {
   const AgendaHeader({
-    required this.visible,
-    required this.total,
     required this.loading,
     required this.mode,
     this.filtered = false,
     required this.onMode,
-    required this.onToday,
-    required this.today,
     required this.onChoose,
-    this.zone,
     this.onSearch,
     this.onSettings,
     this.onCapture,
@@ -44,18 +39,13 @@ class AgendaHeader extends StatelessWidget {
   final VoidCallback? onCapture;
   final VoidCallback? onCreate;
   final VoidCallback? onPinCalendar;
-  final String? zone;
-  final int visible;
-  final int total;
   final bool loading;
   final AgendaViewMode mode;
   final bool filtered;
   final ValueChanged<AgendaViewMode> onMode;
-  final VoidCallback? onToday;
 
-  /// Shown inside the Today button, as calendar apps do.
-  final CivilDate today;
-  final VoidCallback onChoose;
+  /// Calendars and filters; null while no calendar is known.
+  final VoidCallback? onChoose;
   final VoidCallback? onSearch;
   final VoidCallback? onSettings;
 
@@ -68,24 +58,16 @@ class AgendaHeader extends StatelessWidget {
       '2 settimane',
       '2 sett.',
     ),
-    AgendaViewMode.threeWeeks: (
-      Icons.calendar_view_month,
-      '3 settimane',
-      '3 sett.',
-    ),
     AgendaViewMode.fourWeeks: (
       Icons.calendar_view_month,
       '4 settimane',
       '4 sett.',
     ),
-    AgendaViewMode.month: (Icons.calendar_view_month, 'Mese', 'Mese'),
-    AgendaViewMode.list: (Icons.view_agenda_outlined, 'Elenco', 'Elenco'),
   };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
     return SizedBox(
       height: 36,
       child: Row(
@@ -121,13 +103,6 @@ class AgendaHeader extends StatelessWidget {
                 ),
             ],
           ),
-          if (onToday != null)
-            IconButton(
-              key: const ValueKey('agenda-today'),
-              tooltip: 'Oggi',
-              onPressed: onToday,
-              icon: AgendaTodayIcon(day: today.day),
-            ),
           if (onCreate != null)
             IconButton(
               key: const ValueKey('agenda-new-event'),
@@ -136,20 +111,17 @@ class AgendaHeader extends StatelessWidget {
               onPressed: onCreate,
               icon: Icon(Icons.add, color: theme.colorScheme.primary),
             ),
-          // The list has no period title: the zone stays here. Grids show
-          // it beside their title (see AgendaView).
+          // The zone sits beside the grid's period title (see AgendaView).
           Expanded(
-            child: zone == null
-                ? Align(
-                    alignment: Alignment.centerLeft,
-                    child: loading
-                        ? const SizedBox.square(
-                            dimension: 12,
-                            child: CircularProgressIndicator(strokeWidth: 1.5),
-                          )
-                        : const SizedBox.shrink(),
-                  )
-                : AgendaZoneLabel(text: zone!, loading: loading),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: loading
+                  ? const SizedBox.square(
+                      dimension: 12,
+                      child: CircularProgressIndicator(strokeWidth: 1.5),
+                    )
+                  : const SizedBox.shrink(),
+            ),
           ),
           if (failures > 0)
             IconButton(
@@ -175,31 +147,11 @@ class AgendaHeader extends StatelessWidget {
                 ),
               ),
             ),
-          if (onCapture != null)
-            IconButton(
-              key: const ValueKey('agenda-ai-capture'),
-              tooltip: 'Assistente: scrivi o detta',
-              visualDensity: VisualDensity.compact,
-              onPressed: onCapture,
-              icon: const Icon(Icons.auto_awesome),
-            ),
-          TextButton.icon(
-            key: const ValueKey('agenda-choose-calendars'),
-            style: TextButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              // Accent only when filters hide something; a plain count is
-              // not an alert.
-              foregroundColor: filtered ? theme.colorScheme.primary : muted,
-            ),
-            onPressed: total == 0 ? null : onChoose,
-            icon: Icon(filtered ? Icons.filter_alt : Icons.tune, size: 18),
-            label: Text(
-              total == 0 ? '0' : '$visible/$total',
-              semanticsLabel: 'Calendari: $visible di $total',
-            ),
-          ),
-          if (onSearch != null ||
+          // The assistant (build 299) and the calendars (build 306) live
+          // here, to keep the row short.
+          if (onChoose != null ||
+              onCapture != null ||
+              onSearch != null ||
               onSettings != null ||
               onBackup != null ||
               onReminders != null ||
@@ -208,6 +160,8 @@ class AgendaHeader extends StatelessWidget {
               key: const ValueKey('agenda-more'),
               tooltip: 'Altro',
               onSelected: (value) {
+                if (value == 'calendars') onChoose?.call();
+                if (value == 'capture') onCapture?.call();
                 if (value == 'search') onSearch?.call();
                 if (value == 'settings') onSettings?.call();
                 if (value == 'backup') onBackup?.call();
@@ -215,6 +169,29 @@ class AgendaHeader extends StatelessWidget {
                 if (value == 'pinCalendar') onPinCalendar?.call();
               },
               itemBuilder: (_) => [
+                if (onChoose != null)
+                  PopupMenuItem(
+                    key: const ValueKey('agenda-choose-calendars'),
+                    value: 'calendars',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        filtered ? Icons.filter_alt : Icons.tune,
+                        color: filtered ? theme.colorScheme.primary : null,
+                      ),
+                      title: const Text('Calendari e filtri'),
+                    ),
+                  ),
+                if (onCapture != null)
+                  const PopupMenuItem(
+                    key: ValueKey('agenda-ai-capture'),
+                    value: 'capture',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.auto_awesome),
+                      title: Text('Assistente: scrivi o detta'),
+                    ),
+                  ),
                 if (onReminders != null)
                   const PopupMenuItem(
                     value: 'reminders',
@@ -301,39 +278,6 @@ class AgendaZoneLabel extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// Calendar outline with today's day number.
-class AgendaTodayIcon extends StatelessWidget {
-  const AgendaTodayIcon({required this.day, super.key});
-
-  final int day;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = IconTheme.of(context).color;
-    return SizedBox.square(
-      dimension: 24,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Icon(Icons.calendar_today_outlined),
-          Padding(
-            padding: const EdgeInsets.only(top: 5),
-            child: Text(
-              '$day',
-              style: TextStyle(
-                fontSize: 9,
-                height: 1,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -97,9 +97,43 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                 result.scheduledCounts,
                 result.scheduledUnpriced,
               ),
+              if (result.dnaVisits > 0 || result.sembleCancelled > 0)
+                Padding(
+                  key: const ValueKey('earnings-semble-dna'),
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    [
+                      if (result.dnaVisits > 0)
+                        'DNA da Semble: ${result.dnaVisits}'
+                            '${result.dnaPence > 0 ? ', ${money(result.dnaPence)} non maturati' : ''}',
+                      if (result.sembleCancelled > 0)
+                        'Cancellate in Semble: ${result.sembleCancelled}',
+                    ].join(' · '),
+                  ),
+                ),
+              if (result.sembleVisits case final visits?)
+                Text(
+                  'Visite Semble lette direttamente da Semble: $visits '
+                  '(tipo, orario ed esito dalle prenotazioni).',
+                  key: const ValueKey('earnings-semble-visits'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                )
+              else if (result.sembleMatched case final semble?)
+                Text(
+                  'Esiti Semble trovati per ${semble.matched} di '
+                  '${semble.checked} visite del calendario Semble.',
+                  key: const ValueKey('earnings-semble-matched'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              if (result.sembleProblem case final problem?)
+                Text(
+                  problem,
+                  key: const ValueKey('earnings-semble-problem'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               const SizedBox(height: 12),
               Text(
-                'Solo il mese corrente, secondo la data di inizio degli appuntamenti. Aggiornato al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Annullati e assenze esclusi. Il previsto assume che gli appuntamenti programmati si svolgano.',
+                'Solo il mese corrente, secondo la data di inizio degli appuntamenti. Aggiornato al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Annullati e assenze esclusi; con chiave e cognome Semble le visite Semble vengono dalle prenotazioni, con DNA e cancellazioni. Il previsto assume che gli appuntamenti programmati si svolgano.',
               ),
               const SizedBox(height: 8),
               const Text(

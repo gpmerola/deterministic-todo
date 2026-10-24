@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'agenda_backup.dart';
@@ -6,6 +7,7 @@ import 'agenda_mirror.dart';
 import 'agenda_reminders.dart';
 import 'agenda_requests.dart';
 import 'agenda_service.dart';
+import 'semble_conflicts.dart';
 
 /// What the phone does for the web Agenda: apply queued web edits, then
 /// refresh the mirror. Driven by app start/resume and by the Android
@@ -69,6 +71,11 @@ class AgendaPhoneSync {
   Future<String> background(String reason) async {
     if (reason == 'reminders') {
       await AgendaReminders(service).refresh();
+      // On screen the amber edge already shows it; a later background run
+      // notifies what is still pending (build 304).
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+        await SembleConflicts(service).check();
+      }
       return 'done';
     }
     if (client.auth.currentSession == null) return 'stop';

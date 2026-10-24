@@ -1,4 +1,5 @@
 import 'agenda.dart';
+import 'semble_bookings.dart';
 import 'text_fold.dart';
 
 /// OPUK schedule, September 2026. Pounds are represented as integer pence.
@@ -88,6 +89,12 @@ class PrivateEarnings {
     required this.unpriced,
     required this.scheduledCounts,
     required this.scheduledUnpriced,
+    this.dnaCounts = const {},
+    this.dnaUnpriced = 0,
+    this.sembleCancelled = 0,
+    this.sembleMatched,
+    this.sembleProblem,
+    this.sembleVisits,
   });
   final DateTime asOf;
   final Map<PrivateFee, int> counts;
@@ -96,6 +103,50 @@ class PrivateEarnings {
   /// Appointments not yet ended, including those currently in progress.
   final Map<PrivateFee, int> scheduledCounts;
   final int scheduledUnpriced;
+
+  /// Visits Semble marked "did not attend" (build 288): left out of both
+  /// totals and shown apart.
+  final Map<PrivateFee, int> dnaCounts;
+  final int dnaUnpriced;
+
+  /// Visits whose Semble booking was deleted while the calendar kept them.
+  final int sembleCancelled;
+
+  /// Calendar visits for which Semble gave an outcome; null when Semble was
+  /// not read (no key, offline, other zone).
+  final ({int matched, int checked})? sembleMatched;
+
+  /// Why Semble outcomes are missing, for the sheet; null when read or not
+  /// configured.
+  final String? sembleProblem;
+
+  /// Semble visits of the month taken from the bookings themselves (build
+  /// 293), not from the calendar; null when the calendar was used.
+  final int? sembleVisits;
+
+  PrivateEarnings withSembleProblem(String problem) =>
+      _copy(sembleProblem: problem);
+
+  PrivateEarnings withSembleVisits(int visits) => _copy(sembleVisits: visits);
+
+  PrivateEarnings _copy({String? sembleProblem, int? sembleVisits}) =>
+      PrivateEarnings(
+        asOf: asOf,
+        counts: counts,
+        unpriced: unpriced,
+        scheduledCounts: scheduledCounts,
+        scheduledUnpriced: scheduledUnpriced,
+        dnaCounts: dnaCounts,
+        dnaUnpriced: dnaUnpriced,
+        sembleCancelled: sembleCancelled,
+        sembleMatched: sembleMatched,
+        sembleProblem: sembleProblem ?? this.sembleProblem,
+        sembleVisits: sembleVisits ?? this.sembleVisits,
+      );
+  int get dnaPence =>
+      dnaCounts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
+  int get dnaVisits =>
+      dnaCounts.values.fold(0, (sum, n) => sum + n) + dnaUnpriced;
   int get pence =>
       counts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
   int get visits => counts.values.fold(0, (sum, n) => sum + n);
@@ -106,17 +157,26 @@ class PrivateEarnings {
   int get monthPence => pence + scheduledPence;
 }
 
+/// [outcome] gives Semble's record for an entry when bookings were read;
+/// [sembleEntry] says which entries come from the Semble calendar.
 PrivateEarnings estimatePrivateEarnings(
   Iterable<AgendaEntry> entries,
-  DateTime now,
-) {
+  DateTime now, {
+  SembleOutcome Function(AgendaEntry entry)? outcome,
+  bool Function(AgendaEntry entry)? sembleEntry,
+}) {
   final start = DateTime(now.year, now.month);
   final until = DateTime(now.year, now.month + 1);
   final seen = <String>{};
   final counts = <PrivateFee, int>{};
   final scheduledCounts = <PrivateFee, int>{};
+  final dnaCounts = <PrivateFee, int>{};
   var unpriced = 0;
   var scheduledUnpriced = 0;
+  var dnaUnpriced = 0;
+  var sembleCancelled = 0;
+  var checked = 0;
+  var matched = 0;
   for (final entry in entries) {
     if (entry.isTask ||
         entry.allDay ||
@@ -136,6 +196,23 @@ PrivateEarnings estimatePrivateEarnings(
     final key = '${entry.instanceId}|${entry.start.millisecondsSinceEpoch}';
     if (!seen.add(key)) continue;
     final fee = privateFeeFor(entry);
+    if (outcome != null && (sembleEntry?.call(entry) ?? true)) {
+      checked++;
+      final recorded = outcome(entry);
+      if (recorded != SembleOutcome.unknown) matched++;
+      if (recorded == SembleOutcome.cancelled) {
+        sembleCancelled++;
+        continue;
+      }
+      if (recorded == SembleOutcome.dna) {
+        if (fee == null) {
+          dnaUnpriced++;
+        } else {
+          dnaCounts.update(fee, (n) => n + 1, ifAbsent: () => 1);
+        }
+        continue;
+      }
+    }
     final scheduled = entry.end.isAfter(now);
     if (fee == null) {
       if (scheduled) {
@@ -157,5 +234,72 @@ PrivateEarnings estimatePrivateEarnings(
     unpriced: unpriced,
     scheduledCounts: Map.unmodifiable(scheduledCounts),
     scheduledUnpriced: scheduledUnpriced,
+    dnaCounts: Map.unmodifiable(dnaCounts),
+    dnaUnpriced: dnaUnpriced,
+    sembleCancelled: sembleCancelled,
+    sembleMatched: outcome == null
+        ? null
+        : (matched: matched, checked: checked),
   );
+}
+
+/// The month's private work with Semble's bookings as the source of its
+/// visits (build 293): type, times and outcome come from each booking, so
+/// the estimate no longer depends on the iCal copy, its titles or its wrong
+/// times. Calendar entries of a Semble calendar are dropped, and so is any
+/// other private calendar entry starting with a booking. heydoc and other
+/// visits stay. A
+/// deleted booking counts as cancelled only when no live booking of the user
+/// starts in the same minute (moved in place).
+PrivateEarnings estimateWithSembleBookings({
+  required Iterable<AgendaEntry> calendarEntries,
+  required Iterable<SembleBooking> bookings,
+  required Set<String> sembleCalendarIds,
+  required DateTime now,
+}) {
+  int minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;
+  final all = bookings.toList();
+  final booked = {for (final booking in all) minute(booking.start)};
+  final live = {
+    for (final booking in all)
+      if (!booking.deleted) minute(booking.start),
+  };
+  final outcomes = <String, SembleOutcome>{};
+  final visits = <AgendaEntry>[];
+  for (final (index, booking) in all.indexed) {
+    if (booking.deleted && live.contains(minute(booking.start))) continue;
+    final id =
+        '$sembleBookingPrefix${booking.start.millisecondsSinceEpoch}#$index';
+    outcomes[id] = booking.outcome;
+    visits.add(
+      AgendaEntry(
+        instanceId: id,
+        calendarIds: const ['semble'],
+        title: booking.appointmentTitle ?? '',
+        start: booking.start,
+        end: booking.end ?? booking.start,
+        allDay: false,
+      ),
+    );
+  }
+  final others = [
+    for (final entry in calendarEntries)
+      if (!entry.calendarIds.any(sembleCalendarIds.contains) &&
+          !booked.contains(minute(entry.start)))
+        entry,
+  ];
+  final result = estimatePrivateEarnings(
+    [...others, ...visits],
+    now,
+    outcome: (entry) => outcomes[entry.instanceId] ?? SembleOutcome.unknown,
+    sembleEntry: (entry) => outcomes.containsKey(entry.instanceId),
+  );
+  final month = visits
+      .where(
+        (visit) =>
+            !visit.start.isBefore(DateTime(now.year, now.month)) &&
+            visit.start.isBefore(DateTime(now.year, now.month + 1)),
+      )
+      .length;
+  return result.withSembleVisits(month);
 }

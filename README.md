@@ -121,9 +121,16 @@ gli eventi nascosti restano ripristinabili da «Calendari e filtri».
 
 La sezione **Calendario** riunisce i calendari già sincronizzati dal telefono:
 Google e gli account Microsoft 365 configurati nelle app di sistema. Offre
-4 settimane (predefinito iniziale: corrente più le tre successive), mese,
-3 settimane (corrente più due), 2 settimane,
-settimana, 3 giorni ed elenco. Il cambio
+4 settimane (predefinito iniziale: corrente più le tre successive),
+2 settimane, settimana e 3 giorni; toccando un giorno si apre la sua
+giornata. Mese, 3 settimane ed Elenco sono stati tolti nella build 299 su
+richiesta dell'utente: una vista salvata fra queste passa una volta a
+4 settimane. L'Assistente ✨ e «Calendari e filtri» sono nel menu «Altro»
+(dalla build 306 l'intestazione non ha più l'icona Oggi né il contatore dei
+calendari); nella scheda di un evento
+restano in vista Partecipa, Modifica ed Elimina, il resto è sotto «⋯»; nel
+nuovo evento calendario, ripetizione, fuso, luogo e note sono sotto «Altre
+opzioni». Il cambio
 vista conserva la data selezionata. L’ultima vista scelta viene salvata sul
 dispositivo e ripristinata alla riapertura; i filtri sono espliciti e azzerabili.
 
@@ -134,6 +141,36 @@ si vedono tutti gli orari e si apre il singolo evento. Pause oltre 15 minuti, so
 e altri tipi di appuntamento restano separati; nessun evento viene modificato.
 Su Android, **Calendario → ⋮ → Aggiungi alla schermata Home** propone un'icona
 che apre direttamente questa sezione, previa conferma del launcher.
+
+Con **Impostazioni → Semble** (Android, build 285) le viste Giorno, 3 giorni
+e Settimana mostrano dietro agli eventi le disponibilità impostate in Semble:
+verde dove si è prenotabili, righe grigie dove l'orario è bloccato. La
+barretta sotto la data nelle griglie (build 286) è stata tolta nella 301 su
+richiesta dell'utente. Dalla build 287 il verde resta solo dove si è anche
+liberi da eventi. È sola
+lettura e la chiave API resta nel Keystore del telefono. Gli appuntamenti
+arrivano dal calendario Google collegato a Semble; con il cognome impostato
+(build 289) quelli nuovi compaiono subito dall'API e la copia diretta sparisce
+quando arriva quella del calendario. Le visite Semble finiscono quando
+finisce il tempo clinico scritto nel titolo, senza i 15 minuti di pausa
+(build 295). Gli orari Semble sono in ora di Londra e vengono convertiti
+nell'ora del telefono, anche in Italia (build 296). Con l'ID stanza in
+Impostazioni → Semble, il nuovo evento offre in cima «Blocco Semble»:
+giorno, orari, tipo e «Blocca» creano un'indisponibilità in Semble,
+annullabile subito (build 297, semplificato nella 298; dalla 300 sempre
+Other e senza commento). Le visite Semble sono verdi come la disponibilità,
+e un evento che non è una visita ma cade in orario prenotabile ha un bordo
+ambra (build 300); la sua scheda offre «Blocca in Semble», che blocca
+quell'orario con un tocco (build 301). Solo sugli eventi non ancora finiti
+(build 302). Creando un evento in orario prenotabile, la conferma offre
+subito il blocco; le visite annullate restano come sagoma barrata finché il
+loro orario non passa (build 303). Se un evento arriva da solo in orario
+prenotabile mentre l'app è chiusa, una notifica con giorno e ora lo segnala
+(build 304, disattivabile in Impostazioni → Semble); toccandola si apre la
+scheda dell'evento con «Blocca in Semble» (build 306). Dalla build 307 il
+bordo vale anche per gli inviti senza risposta e si può togliere da un
+singolo evento con «⋯ → Togli il bordo ambra», senza toccare Semble. Con lo stesso cognome la Stima lavoro
+privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il
 salvataggio fallisce. Mostra calendario di destinazione, data finale e durata;

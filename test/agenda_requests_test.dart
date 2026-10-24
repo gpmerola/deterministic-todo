@@ -362,7 +362,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final service = _QueueService(db);
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -410,7 +410,7 @@ void main() {
           payload: const {'title': 'Altro'},
         ),
       ];
-    await service.saveViewMode(AgendaViewMode.list);
+    await service.saveViewMode(AgendaViewMode.twoWeeks);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/editor_drafts.dart';
 import '../../domain/agenda.dart';
+import '../../domain/semble_bookings.dart';
 import '../../domain/task.dart' show CivilDate;
 import '../../services/agenda_service.dart';
 import '../../services/agenda_web_service.dart' show AgendaQueueBusy;
+import '../../services/semble_service.dart';
+import '../semble_block.dart';
 import 'agenda_event_editor.dart';
 import 'agenda_event_sheet.dart';
 
@@ -89,6 +94,10 @@ class AgendaEventFlows {
       await onOpenTask?.call(entry.taskId!);
       return true;
     }
+    if (entry.isSembleBooking) {
+      await showSembleBookingSheet(context, entry);
+      return false;
+    }
     final calendar = calendarOf(entry);
     final overlaps = await _overlapsOf(entry);
     if (!context.mounted) return false;
@@ -109,6 +118,8 @@ class AgendaEventFlows {
       localOnly: localOnly(entry),
       canCopyInTodo: service.canCopyInTodo,
       overlaps: overlaps,
+      canSembleBlock: _canSembleBlock(entry),
+      sembleIgnored: _sembleIgnored(entry),
     );
     if (!context.mounted || action == null) return false;
     return perform(context, entry, action);
@@ -117,7 +128,7 @@ class AgendaEventFlows {
   /// Long press: the frequent actions in a short menu, without the detail
   /// sheet (build 221). True when something may have changed.
   Future<bool> quickActions(BuildContext context, AgendaEntry entry) async {
-    if (entry.isTask) return show(context, entry);
+    if (entry.isTask || entry.isSembleBooking) return show(context, entry);
     final meeting = entry.meeting;
     final maps = agendaMapsUri(entry.location);
     final canEdit = editable(entry);
@@ -212,12 +223,56 @@ class AgendaEventFlows {
   }
 
   /// Runs one action of the detail sheet or of the quick menu.
+  /// Not a visit, one day, timed and inside bookable Semble time: the
+  /// amber-edged events (build 301). The whole event is blocked; once it
+  /// is, the time is no longer bookable and the button goes away.
+  bool _canSembleBlock(AgendaEntry entry) {
+    final layer = SembleLayer.shared;
+    if (service.writesViaPhone || !layer.canBlock) return false;
+    if (entry.allDay || entry.isTask) return false;
+    if (sembleBlockFor(entry.start, entry.end) == null) return false;
+    return layer.overlapsFor(CivilDate.fromDateTime(entry.start), [
+      entry,
+    ]).isNotEmpty;
+  }
+
+  /// Whether the user removed the amber edge of [entry] (build 307); null
+  /// when it is not in bookable Semble time at all.
+  bool? _sembleIgnored(AgendaEntry entry) {
+    final layer = SembleLayer.shared;
+    if (entry.allDay || entry.isTask) return null;
+    final inSemble = layer.overlapsFor(CivilDate.fromDateTime(entry.start), [
+      entry,
+    ], includeIgnored: true).isNotEmpty;
+    return inSemble ? layer.isIgnored(entry) : null;
+  }
+
   Future<bool> perform(
     BuildContext context,
     AgendaEntry entry,
     AgendaEventAction action,
   ) async {
     switch (action) {
+      case AgendaEventAction.sembleBlock:
+        try {
+          await createSembleBlock(context, start: entry.start, end: entry.end);
+        } on Object catch (error) {
+          if (context.mounted) {
+            _say(
+              context,
+              error is SembleException
+                  ? 'Blocco non creato: ${error.message}'
+                  : 'Blocco non creato: riprova.',
+            );
+          }
+          return false;
+        }
+      case AgendaEventAction.sembleIgnore:
+      case AgendaEventAction.sembleUnignore:
+        await SembleLayer.shared.setIgnored(
+          entry,
+          action == AgendaEventAction.sembleIgnore,
+        );
       case AgendaEventAction.edit:
         await edit(context, entry);
       case AgendaEventAction.delete:
@@ -296,6 +351,7 @@ class AgendaEventFlows {
       await service.lastEventCalendar(),
       hidden: hidden,
     );
+    final sembleBlock = !service.writesViaPhone && SembleLayer.shared.canBlock;
     if (!context.mounted) return;
     final now = DateTime.now();
     final draft = await Navigator.of(context).push<AgendaEventDraft>(
@@ -323,11 +379,46 @@ class AgendaEventFlows {
           initialEnd: end,
           initialCalendarId: initialCalendar,
           zoneLabel: zone,
+          onSembleBlock: sembleBlock
+              ? (start, end) =>
+                    createSembleBlock(context, start: start, end: end)
+              : null,
         ),
       ),
     );
     if (draft == null || !context.mounted) return;
     final target = calendars.where((c) => c.id == draft.calendarId).firstOrNull;
+    if (sembleBlock && !hidden.contains(draft.calendarId)) {
+      final saved = AgendaEntry(
+        instanceId: 'semble-offer',
+        calendarIds: [draft.calendarId],
+        title: '',
+        start: draft.start,
+        end: draft.end,
+        allDay: draft.allDay,
+      );
+      if (_canSembleBlock(saved)) {
+        // In bookable Semble time: offer the block at once (build 303).
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            key: const ValueKey('agenda-offer-semble-block'),
+            content: Text(
+              'Evento salvato in ${target?.name ?? 'calendario'}. Cade in '
+              'una disponibilità Semble.',
+            ),
+            duration: const Duration(seconds: 10),
+            persist: false,
+            action: SnackBarAction(
+              label: 'Blocca in Semble',
+              onPressed: () => unawaited(
+                perform(context, saved, AgendaEventAction.sembleBlock),
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+    }
     try {
       if (!context.mounted) return;
       _say(
@@ -544,4 +635,54 @@ class AgendaEventFlows {
       if (context.mounted) _say(context, 'Impossibile salvare la copia.');
     }
   }
+}
+
+/// A booking read straight from Semble (build 289): read-only, with the
+/// way to open Semble itself.
+Future<void> showSembleBookingSheet(BuildContext context, AgendaEntry entry) {
+  final time = DateFormat.Hm('it');
+  final day = DateFormat('EEEE d MMMM', 'it');
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) => Padding(
+      key: const ValueKey('semble-booking-sheet'),
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(entry.title, style: Theme.of(sheetContext).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            '${day.format(entry.start)} · '
+            '${time.format(entry.start)}–${time.format(entry.end)}',
+          ),
+          const SizedBox(height: 12),
+          Text(
+            entry.isSembleCancelled
+                ? 'Prenotazione annullata in Semble: l\'orario è di nuovo '
+                      'libero. Resta visibile fino alla sua fine.'
+                : 'Prenotazione letta direttamente da Semble, non ancora '
+                      'arrivata nel calendario Google. Quando arriva, resta '
+                      'solo quella. Il paziente si vede in Semble.',
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonal(
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                launchUrl(
+                  Uri.parse('https://app.semble.io'),
+                  mode: LaunchMode.externalApplication,
+                ).ignore();
+              },
+              child: const Text('Apri Semble'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

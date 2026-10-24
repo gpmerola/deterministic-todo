@@ -232,6 +232,10 @@ void main() {
   testWidgets('an invitation of someone else can still be hidden or edited '
       'in Todo', (tester) async {
     await pumpSheet(tester, editable: false, localOnly: false);
+    // Secondary actions sit behind "Altro" since build 299.
+    expect(find.byKey(const ValueKey('agenda-sheet-hide')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-more')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('agenda-sheet-hide')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('agenda-sheet-edit-in-todo')),
@@ -251,6 +255,8 @@ void main() {
   testWidgets('Todo events are edited and deleted directly', (tester) async {
     await pumpSheet(tester, editable: true, localOnly: true);
     expect(find.text('Elimina'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('agenda-sheet-more')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('agenda-sheet-hide')), findsNothing);
     expect(
       find.byKey(const ValueKey('agenda-sheet-edit-in-todo')),

@@ -6,11 +6,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
-import org.json.JSONObject;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -31,22 +27,8 @@ final class AgendaUrgentVisits {
             || manager.getNotificationChannel(CHANNEL).getImportance() == NotificationManager.IMPORTANCE_NONE) return 0;
         Intent open = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         if (open == null) return 0;
-        long now = System.currentTimeMillis();
-        SharedPreferences prefs = context.getSharedPreferences("agenda_urgent_visits", Context.MODE_PRIVATE);
-        JSONObject stored = new JSONObject(prefs.getString("sent", "{}"));
-        JSONObject sent = new JSONObject();
-        for (Iterator<String> keys = stored.keys(); keys.hasNext();) {
-            String id = keys.next();
-            if (stored.getLong(id) > now) sent.put(id, stored.getLong(id));
-        }
-        List<Map<String, Object>> fresh = new ArrayList<>();
-        for (Map<String, Object> event : events) {
-            String id = (String) event.get("id");
-            long end = ((Number) event.get("end")).longValue();
-            if (end <= now || sent.has(id)) continue;
-            fresh.add(event);
-            sent.put(id, end);
-        }
+        NotificationLedger ledger = new NotificationLedger(context, "agenda_urgent_visits");
+        List<Map<String, Object>> fresh = ledger.fresh(events);
         if (!fresh.isEmpty()) {
             open.setAction(context.getPackageName() + ".OPEN_CALENDAR");
             PendingIntent tap = PendingIntent.getActivity(context, 7305, open,
@@ -66,9 +48,7 @@ final class AgendaUrgentVisits {
             // not consume the ledger; opening again can retry after permission.
             manager.notify("calendar-urgent", 7305, notification);
         }
-        if (!prefs.edit().putString("sent", sent.toString()).commit()) {
-            throw new IllegalStateException("Urgent visit ledger unavailable");
-        }
+        ledger.commit();
         return fresh.size();
     }
 }

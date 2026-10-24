@@ -454,6 +454,28 @@ final class AgendaEntry {
   final bool allDay;
   final String? location;
   final MeetingLink? meeting;
+
+  /// This entry with other times or title, every other field kept (build
+  /// 306: hand-written copies dropped fields as new ones were added).
+  AgendaEntry copyWith({String? title, DateTime? start, DateTime? end}) =>
+      AgendaEntry(
+        instanceId: instanceId,
+        calendarIds: calendarIds,
+        title: title ?? this.title,
+        start: start ?? this.start,
+        end: end ?? this.end,
+        allDay: allDay,
+        location: location,
+        meeting: meeting,
+        timeZone: timeZone,
+        eventZoneTimes: eventZoneTimes,
+        isOrganizer: isOrganizer,
+        changedOccurrence: changedOccurrence,
+        taskId: taskId,
+        completed: completed,
+        unanswered: unanswered,
+        key: key,
+      );
 }
 
 final class AgendaDay {
@@ -474,14 +496,18 @@ List<AgendaDay> buildAgenda({
   required int days,
   AgendaFilter filter = AgendaFilter.none,
   List<AgendaTaskItem> tasks = const [],
+  List<AgendaEntry> Function(List<AgendaEntry> merged)? adjust,
 }) {
-  final entries = mergeAgendaEntries(
+  final merged = mergeAgendaEntries(
     events: events,
     calendars: calendars,
     hiddenCalendarIds: hiddenCalendarIds,
     filter: filter,
     tasks: tasks,
   );
+  // Semble bookings applied to the phone calendars (builds 289–292); the
+  // result must stay sorted with [compareAgendaEntries].
+  final entries = adjust?.call(merged) ?? merged;
   return [
     for (var index = 0; index < days; index++)
       _day(first.addDays(index), entries),
@@ -589,7 +615,7 @@ List<AgendaEntry> mergeAgendaEntries({
         taskId: task.id,
         completed: task.completed,
       ),
-  ]..sort(_compareEntries);
+  ]..sort(compareAgendaEntries);
   return entries;
 }
 
@@ -628,7 +654,7 @@ bool _overlaps(AgendaEntry entry, DateTime dayStart, DateTime dayEnd) {
   return entry.start.isBefore(dayEnd) && end.isAfter(dayStart);
 }
 
-int _compareEntries(AgendaEntry a, AgendaEntry b) {
+int compareAgendaEntries(AgendaEntry a, AgendaEntry b) {
   if (a.allDay != b.allDay) return a.allDay ? -1 : 1;
   // Calendar events first, then Todo tasks of the same day.
   if (a.isTask != b.isTask) return a.isTask ? 1 : -1;
