@@ -55,6 +55,55 @@ void main() {
     expect(overlaps, {'in corso'});
   });
 
+  test('un invito senza risposta (Teams) ha comunque il bordo (build 307)', () {
+    final start = DateTime(2026, 10, 23, 11);
+    final invite = AgendaEntry(
+      instanceId: 'invito',
+      calendarIds: const ['g'],
+      title: 'invito',
+      start: start,
+      end: start.add(const Duration(hours: 1)),
+      allDay: false,
+      unanswered: true,
+    );
+    expect(sembleOverlaps([invite], day, bands, isVisit), {'invito'});
+    // The free bands drawn still ignore it, as before.
+    expect(agendaBusyMinutes([invite], day), isEmpty);
+  });
+
+  test(
+    'il bordo tolto a mano vale per una sola occorrenza (build 307)',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final settings = SembleSettings();
+      final layer = SembleLayer(settings: settings);
+      final first = _event('serie@1', 11, 30);
+      final next = _event('serie@2', 12, 30);
+      expect(layer.isIgnored(first), isFalse);
+      await layer.setIgnored(first, true);
+      expect(layer.isIgnored(first), isTrue);
+      expect(layer.isIgnored(next), isFalse);
+      // Moved to another time: the edge comes back.
+      final moved = AgendaEntry(
+        instanceId: 'serie@1',
+        calendarIds: const ['g'],
+        title: 'x',
+        start: first.start.add(const Duration(hours: 1)),
+        end: first.end.add(const Duration(hours: 1)),
+        allDay: false,
+      );
+      expect(layer.isIgnored(moved), isFalse);
+      expect(
+        (await settings.ignoredOverlaps(now: DateTime(2026, 10, 23, 8))).keys,
+        [sembleOverlapKey(first)],
+      );
+      // Finished occurrences drop out of the list.
+      expect(await settings.ignoredOverlaps(now: DateTime(2026, 10, 24)), {});
+      await layer.setIgnored(first, false);
+      expect(layer.isIgnored(first), isFalse);
+    },
+  );
+
   test('giornate intere e attività non contano', () {
     final allDay = AgendaEntry(
       instanceId: 'ferie',

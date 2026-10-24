@@ -119,6 +119,7 @@ class AgendaEventFlows {
       canCopyInTodo: service.canCopyInTodo,
       overlaps: overlaps,
       canSembleBlock: _canSembleBlock(entry),
+      sembleIgnored: _sembleIgnored(entry),
     );
     if (!context.mounted || action == null) return false;
     return perform(context, entry, action);
@@ -235,6 +236,17 @@ class AgendaEventFlows {
     ]).isNotEmpty;
   }
 
+  /// Whether the user removed the amber edge of [entry] (build 307); null
+  /// when it is not in bookable Semble time at all.
+  bool? _sembleIgnored(AgendaEntry entry) {
+    final layer = SembleLayer.shared;
+    if (entry.allDay || entry.isTask) return null;
+    final inSemble = layer.overlapsFor(CivilDate.fromDateTime(entry.start), [
+      entry,
+    ], includeIgnored: true).isNotEmpty;
+    return inSemble ? layer.isIgnored(entry) : null;
+  }
+
   Future<bool> perform(
     BuildContext context,
     AgendaEntry entry,
@@ -255,6 +267,12 @@ class AgendaEventFlows {
           }
           return false;
         }
+      case AgendaEventAction.sembleIgnore:
+      case AgendaEventAction.sembleUnignore:
+        await SembleLayer.shared.setIgnored(
+          entry,
+          action == AgendaEventAction.sembleIgnore,
+        );
       case AgendaEventAction.edit:
         await edit(context, entry);
       case AgendaEventAction.delete:

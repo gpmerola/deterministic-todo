@@ -4,6 +4,17 @@ Aggiornato il 23 ottobre 2026. Stabile: 2.109.0 / build 296.
 
 
 
+## Build 307 — inviti senza risposta e bordo ambra per singolo evento (in collaudo)
+
+Il 4 novembre un invito Teams non accettato in una disponibilità
+straordinaria 10:00–16:45 non aveva bordo: `sembleOverlaps` usava
+`agendaBusyMinutes`, che esclude `unanswered`. Ora
+`agendaBusyMinutes(unanswered: true)` per bordo e notifica; le fasce libere
+restano come prima. Eccezioni a mano: `sembleOverlapKey` (instanceId|inizio)
+→ fine, in `SembleSettings.ignoredOverlaps` (Keystore, scadono a fine
+evento), lette da `SembleLayer` e da `SembleConflicts`. Voci nel menu ⋯
+della scheda. ADB dal Mac ancora irraggiungibile (porta 5555 rifiutata).
+
 ## Build 306 — notifica verso il blocco, intestazione e Impostazioni (in collaudo)
 
 La notifica dei conflitti mette nell'intent solo l'inizio del primo evento e

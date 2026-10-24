@@ -83,6 +83,49 @@ void main() {
     expect(find.byKey(const ValueKey('agenda-sheet-overlaps')), findsOneWidget);
     expect(find.textContaining('09:30–10:30 Supervisione'), findsOneWidget);
   });
+
+  testWidgets('the amber edge is removed or restored from the menu', (
+    tester,
+  ) async {
+    Future<AgendaEventAction?> choose(bool ignored, String key) async {
+      AgendaEventAction? chosen;
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async => chosen = await showAgendaEventSheet(
+                context,
+                entry: _event('Teams', 9, 0, 10, 0),
+                calendarName: 'KCL',
+                editable: false,
+                zoneLabel: null,
+                canOpenInCalendar: false,
+                sembleIgnored: ignored,
+              ),
+              child: const Text('apri'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('apri'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('agenda-sheet-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+      return chosen;
+    }
+
+    expect(
+      await choose(false, 'agenda-sheet-semble-ignore'),
+      AgendaEventAction.sembleIgnore,
+    );
+    expect(
+      await choose(true, 'agenda-sheet-semble-unignore'),
+      AgendaEventAction.sembleUnignore,
+    );
+  });
 }
 
 extension on AgendaEntry {

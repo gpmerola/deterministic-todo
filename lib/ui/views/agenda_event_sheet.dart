@@ -22,6 +22,11 @@ enum AgendaEventAction {
   /// Blocks the event's time in Semble (build 301): offered when the event
   /// is not a visit but falls in bookable Semble time.
   sembleBlock,
+
+  /// Removes, or puts back, the amber edge of this occurrence only (build
+  /// 307); Semble and its availability are untouched.
+  sembleIgnore,
+  sembleUnignore,
 }
 
 /// Google Calendar-like detail of one occurrence. Returns the chosen action.
@@ -38,6 +43,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
   bool canCopyInTodo = false,
   List<AgendaEntry> overlaps = const [],
   bool canSembleBlock = false,
+  bool? sembleIgnored,
 }) => showModalBottomSheet<AgendaEventAction>(
   context: context,
   showDragHandle: true,
@@ -54,6 +60,7 @@ Future<AgendaEventAction?> showAgendaEventSheet(
     canCopyInTodo: canCopyInTodo,
     overlaps: overlaps,
     canSembleBlock: canSembleBlock,
+    sembleIgnored: sembleIgnored,
   ),
 );
 
@@ -70,8 +77,13 @@ class AgendaEventSheet extends StatelessWidget {
     this.canCopyInTodo = false,
     this.overlaps = const [],
     this.canSembleBlock = false,
+    this.sembleIgnored,
     super.key,
   });
+
+  /// In bookable Semble time: false while the amber edge shows, true once
+  /// the user removed it; null otherwise.
+  final bool? sembleIgnored;
 
   /// In Todo's own calendar: Modifica and Elimina change only Todo.
   final bool localOnly;
@@ -293,12 +305,36 @@ class AgendaEventSheet extends StatelessWidget {
                     ),
                   ),
                 // Rarer actions behind one button (build 299).
-                if (!localOnly || canCreateTasks || canOpenInCalendar)
+                if (!localOnly ||
+                    canCreateTasks ||
+                    canOpenInCalendar ||
+                    sembleIgnored != null)
                   PopupMenuButton<AgendaEventAction>(
                     key: const ValueKey('agenda-sheet-more'),
                     tooltip: 'Altro',
                     onSelected: (action) => Navigator.pop(context, action),
                     itemBuilder: (_) => [
+                      if (sembleIgnored == false)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-semble-ignore'),
+                          value: AgendaEventAction.sembleIgnore,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.format_color_reset_outlined),
+                            title: Text('Togli il bordo ambra'),
+                            subtitle: Text('Solo per questo evento'),
+                          ),
+                        ),
+                      if (sembleIgnored == true)
+                        const PopupMenuItem(
+                          key: ValueKey('agenda-sheet-semble-unignore'),
+                          value: AgendaEventAction.sembleUnignore,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.border_left),
+                            title: Text('Rimetti il bordo ambra'),
+                          ),
+                        ),
                       if (!localOnly && canCopyInTodo)
                         const PopupMenuItem(
                           key: ValueKey('agenda-sheet-edit-in-todo'),

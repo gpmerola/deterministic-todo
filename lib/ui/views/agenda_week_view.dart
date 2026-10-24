@@ -225,7 +225,19 @@ class _AgendaWeekPageState extends State<AgendaWeekPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Amber edges follow the layer, e.g. one removed by hand (build 307).
+    SembleLayer.shared.addListener(_sembleChanged);
+  }
+
+  void _sembleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    SembleLayer.shared.removeListener(_sembleChanged);
     _scroll?.dispose();
     super.dispose();
   }

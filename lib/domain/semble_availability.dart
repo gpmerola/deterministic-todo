@@ -264,11 +264,13 @@ List<SembleBand> sembleShiftBands(List<SembleBand> bands, int minutes) {
 }
 
 /// Minutes of [day] taken by events (build 287): timed, not tasks, not
-/// invitations still unanswered. Clipped to the day, end exclusive.
+/// invitations still unanswered unless [unanswered]. Clipped to the day,
+/// end exclusive.
 List<(int, int)> agendaBusyMinutes(
   Iterable<AgendaEntry> entries,
-  CivilDate day,
-) {
+  CivilDate day, {
+  bool unanswered = false,
+}) {
   final dayStart = day.asLocalDate;
   final dayEnd = day.addDays(1).asLocalDate;
   int minuteOf(DateTime value) {
@@ -281,7 +283,7 @@ List<(int, int)> agendaBusyMinutes(
     for (final entry in entries)
       if (!entry.allDay &&
           !entry.isTask &&
-          !entry.unanswered &&
+          (unanswered || !entry.unanswered) &&
           !entry.isSembleCancelled &&
           entry.end.isAfter(dayStart) &&
           entry.start.isBefore(dayEnd))
@@ -309,11 +311,22 @@ Set<String> sembleOverlaps(
   return {
     for (final entry in entries)
       if (!isVisit(entry) && (now == null || entry.end.isAfter(now)))
-        for (final (start, end) in agendaBusyMinutes([entry], day))
+        // An invitation not answered yet (Teams) still takes the time
+        // (build 307).
+        for (final (start, end) in agendaBusyMinutes(
+          [entry],
+          day,
+          unanswered: true,
+        ))
           if (open.any((band) => start < band.$2 && end > band.$1))
             entry.instanceId,
   };
 }
+
+/// One occurrence, for the amber edges the user removed by hand (build
+/// 307): its id and start, nothing else.
+String sembleOverlapKey(AgendaEntry entry) =>
+    '${entry.instanceId}|${entry.start.millisecondsSinceEpoch}';
 
 /// Events not yet over, from [now] to [until] and inside the rules'
 /// window [first]–[last], that are not visits and fall in bookable Semble

@@ -167,7 +167,9 @@ subito il blocco; le visite annullate restano come sagoma barrata finché il
 loro orario non passa (build 303). Se un evento arriva da solo in orario
 prenotabile mentre l'app è chiusa, una notifica con giorno e ora lo segnala
 (build 304, disattivabile in Impostazioni → Semble); toccandola si apre la
-scheda dell'evento con «Blocca in Semble» (build 306). Con lo stesso cognome la Stima lavoro
+scheda dell'evento con «Blocca in Semble» (build 306). Dalla build 307 il
+bordo vale anche per gli inviti senza risposta e si può togliere da un
+singolo evento con «⋯ → Togli il bordo ambra», senza toccare Semble. Con lo stesso cognome la Stima lavoro
 privato esclude DNA e cancellate (build 288).
 
 L'editor conserva una bozza locale recuperabile e rimane aperto se il

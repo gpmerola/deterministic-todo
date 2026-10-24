@@ -56,6 +56,7 @@ class SembleSettings {
   static const _roomId = 'semble_room_id';
   static const _rulesCache = 'semble_rules_cache';
   static const _conflictAlerts = 'semble_conflict_alerts';
+  static const _ignoredOverlaps = 'semble_ignored_overlaps';
 
   final FlutterSecureStorage _storage;
 
@@ -121,6 +122,26 @@ class SembleSettings {
   Future<void> setConflictAlerts(bool enabled) =>
       _storage.write(key: _conflictAlerts, value: '$enabled');
 
+  /// Occurrences whose amber edge the user removed (build 307):
+  /// [sembleOverlapKey] to the end instant; finished ones drop out.
+  Future<Map<String, int>> ignoredOverlaps({DateTime? now}) async {
+    try {
+      final raw = await _storage.read(key: _ignoredOverlaps);
+      if (raw == null) return {};
+      final at = (now ?? DateTime.now()).millisecondsSinceEpoch;
+      return {
+        for (final MapEntry(:key, :value)
+            in (jsonDecode(raw) as Map<String, Object?>).entries)
+          if (value is int && value > at) key: value,
+      };
+    } on Object {
+      return {};
+    }
+  }
+
+  Future<void> saveIgnoredOverlaps(Map<String, int> ignored) =>
+      _storage.write(key: _ignoredOverlaps, value: jsonEncode(ignored));
+
   /// Rules last read and their window, for the background conflict check:
   /// it never calls Semble (build 304). Dates and times only.
   Future<void> saveRules(
@@ -166,5 +187,6 @@ class SembleSettings {
     await _storage.delete(key: _roomId);
     await _storage.delete(key: _rulesCache);
     await _storage.delete(key: _conflictAlerts);
+    await _storage.delete(key: _ignoredOverlaps);
   }
 }

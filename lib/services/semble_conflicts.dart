@@ -69,8 +69,12 @@ class SembleConflicts {
         isVisit: (entry) =>
             entry.isSembleBooking || entry.calendarIds.any(semble.contains),
       );
+      final ignored = await settings.ignoredOverlaps(now: at);
       await AgendaReminders.channel.invokeMethod<int>('notifySembleConflicts', {
-        'events': sembleConflictPlan(found),
+        'events': sembleConflictPlan([
+          for (final entry in found)
+            if (!ignored.containsKey(sembleOverlapKey(entry))) entry,
+        ]),
       });
     } catch (_) {
       // Never logged: provider errors can carry calendar details.

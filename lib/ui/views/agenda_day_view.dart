@@ -250,11 +250,18 @@ class _AgendaDayTimelineState extends State<AgendaDayTimeline> {
   void initState() {
     super.initState();
     data = widget.peekDays(widget.day, 1)?.firstOrNull;
+    // Amber edges follow the layer, e.g. one removed by hand (build 307).
+    SembleLayer.shared.addListener(_sembleChanged);
     unawaited(_load());
+  }
+
+  void _sembleChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    SembleLayer.shared.removeListener(_sembleChanged);
     scroll?.dispose();
     super.dispose();
   }

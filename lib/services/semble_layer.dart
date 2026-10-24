@@ -108,14 +108,38 @@ class SembleLayer extends ChangeNotifier {
   /// Ids of [entries] on [day] that are not Semble visits but fall in
   /// bookable Semble time (build 300): the Calendar highlights them.
   /// Only events not yet over (build 302).
+  /// Without [includeIgnored], not those whose edge the user removed.
   Set<String> overlapsFor(
     CivilDate day,
     Iterable<AgendaEntry> entries, {
     DateTime Function() now = DateTime.now,
+    bool includeIgnored = false,
   }) {
     final bands = _bandsOf(day);
     if (bands.isEmpty) return const {};
-    return sembleOverlaps(entries, day, bands, isVisit, now: now());
+    final shown = includeIgnored || _ignored.isEmpty
+        ? entries
+        : entries.where((entry) => !isIgnored(entry));
+    return sembleOverlaps(shown, day, bands, isVisit, now: now());
+  }
+
+  /// Amber edges removed by hand, one occurrence each (build 307): the
+  /// rules and Semble are untouched.
+  Map<String, int> _ignored = const {};
+
+  bool isIgnored(AgendaEntry entry) =>
+      _ignored.containsKey(sembleOverlapKey(entry));
+
+  Future<void> setIgnored(AgendaEntry entry, bool ignored) async {
+    final next = await _settings.ignoredOverlaps();
+    if (ignored) {
+      next[sembleOverlapKey(entry)] = entry.end.millisecondsSinceEpoch;
+    } else {
+      next.remove(sembleOverlapKey(entry));
+    }
+    await _settings.saveIgnoredOverlaps(next);
+    _ignored = next;
+    notifyListeners();
   }
 
   /// A booking read from Semble or an event of a Semble calendar.
@@ -155,6 +179,7 @@ class SembleLayer extends ChangeNotifier {
   ) async {
     final config = await _settings.read();
     _canBlock = config.ready && config.roomId != null;
+    _ignored = await _settings.ignoredOverlaps();
     final key = config.ready && config.enabled
         ? await _settings.apiKey()
         : null;

@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.120.0 (build 307) — Bordo ambra anche sugli inviti, e toglibile a mano
+
+- Gli inviti a cui non hai ancora risposto (per esempio Teams) che cadono in
+  un orario Semble prenotabile ora hanno il bordo ambra e la notifica come
+  gli altri eventi. Le fasce verdi libere non cambiano.
+- Nella scheda di un evento con il bordo ambra, «⋯ → Togli il bordo ambra»
+  lo toglie solo da quell'evento, senza toccare Semble né le disponibilità;
+  da lì stesso «Rimetti il bordo ambra». Vale anche per la notifica. Se
+  l'evento cambia orario il bordo torna.
+
 ## 2.119.0 (build 306) — Notifica che porta al blocco, Calendario e Impostazioni più ordinati
 
 - Toccando la notifica di un evento in orario Semble si apre direttamente la

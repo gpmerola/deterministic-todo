@@ -4,6 +4,20 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Inviti e bordo ambra per singolo evento — build 307
+
+- **Inviti senza risposta.** `sembleOverlaps` conta anche gli eventi
+  `unanswered` (`agendaBusyMinutes(unanswered: true)`): un invito Teams in
+  orario prenotabile ha bordo e notifica. `bandsFor` continua a escluderli,
+  quindi la fascia verde libera non cambia.
+- **Bordo tolto a mano.** «⋯ → Togli il bordo ambra» salva
+  `sembleOverlapKey` (`instanceId|inizio ms`) con scadenza alla fine
+  dell'evento in `SembleSettings.ignoredOverlaps` (Keystore, mai in backup
+  o Supabase). `SembleLayer.overlapsFor` le esclude salvo `includeIgnored`,
+  `SembleConflicts.check` non le notifica, «Rimetti il bordo ambra» le
+  toglie. Un cambio d'orario cambia la chiave e il bordo torna. Nessuna
+  scrittura in Semble.
+
 ## Dalla notifica alla scheda, codice Semble riordinato — build 306
 
 - **Tocco sulla notifica.** `AgendaSembleConflicts.java` aggiunge all'intent

@@ -37,7 +37,8 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   annullata come sagoma e la notifica creando, ad app chiusa, un evento in
   una fascia prenotabile da Google Calendar. Build 306: toccare la notifica
   (deve aprire la scheda con «Blocca in Semble»), controllare intestazione e
-  Impostazioni riordinate.
+  Impostazioni riordinate. Build 307: bordo ambra sull'invito Teams del
+  4 novembre e «Togli il bordo ambra» su un evento.
 
 ## Osservazioni passive
 
