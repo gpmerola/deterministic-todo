@@ -18,6 +18,11 @@ sintetici): completa → Annulla → completa di nuovo lasciava la prossima
 occorrenza come tombstone, perché `_insertOccurrence` usa `insertOrIgnore`
 sull'ID deterministico. Ora un tombstone con quella chiave viene ripristinato
 con patch Lamport; test in `test/database_test.dart`.
+Verificata anche sul Galaxy nel pacchetto di validazione ricompilato.
+`make check-generated` e `make check` verdi (614 test, 3 saltati). `make
+todo-test`: Todo Test 2.120.1 / 2308 installata via ADB USB, dati
+conservati, primo ciclo sync riuscito con build 2308, Realtime `subscribed`,
+coda vuota. Nessuna release stabile.
 
 Collaudo dello stesso giorno: suite `integration_test/todo_validation_test.dart`
 sul Galaxy 40 passati, 1 saltato (prima della correzione del test falliva per
