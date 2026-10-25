@@ -305,7 +305,9 @@ API per package: tenerlo attivo in un solo client. Runbook:
    `DownloadedApkCleanup` cancella all'avvio e dopo `MY_PACKAGE_REPLACED` gli
    APK di build già installate o precedenti (numerazione logica, senza
    l'offset 2000 di Todo Test) e conserva quelli più recenti, che potrebbero
-   attendere l'installer. Nient'altro nella memoria dell'app viene toccato.
+   attendere l'installer. Dalla 310 cancella anche i file con il nome usato
+   fino a settembre 2026 (`deterministic-todo-VERSIONE.apk`, senza build).
+   Nient'altro nella memoria dell'app viene toccato.
 5. Il client mostra la percentuale e passa lo SHA-256 dichiarato nel manifest.
 6. Se l’hash non coincide, l’installazione viene interrotta.
 7. Android mostra la conferma di sistema. Un’app normale sideloaded non può installarsi silenziosamente; servirebbero Play Store, MDM o privilegi da app di sistema.

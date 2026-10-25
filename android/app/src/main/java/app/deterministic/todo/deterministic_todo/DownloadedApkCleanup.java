@@ -15,14 +15,19 @@ import java.util.regex.Pattern;
  * The in-app updater saves each APK as deterministic-todo-VERSION-BUILD.apk
  * in files/ota_update and only replaces a file with the same name, so every
  * past update stayed on the device. Only APKs for a build already installed
- * (or older) are removed: a newer one may still be waiting for the system
- * installer. Nothing else in the app's storage is touched.
+ * (or older), and those with the version-only name of August 2026, are
+ * removed: a newer one may still be waiting for the system installer. Nothing else in the app's storage is touched.
  */
 final class DownloadedApkCleanup {
     static final String PREFS = "downloaded_apk_cleanup";
     /** Mirrors DEV_BUILD_OFFSET in tools/todo_test_fast.py and update_service.dart. */
     static final long DEV_BUILD_OFFSET = 2000;
     private static final Pattern NAME = Pattern.compile("deterministic-todo-[^/]+-(\\d+)\\.apk");
+    /**
+     * Name used until September 2026 (version only, no build): never written
+     * by a build that runs this cleanup, so never a pending update.
+     */
+    private static final Pattern LEGACY_NAME = Pattern.compile("deterministic-todo-\\d+\\.\\d+\\.\\d+\\.apk");
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();
 
     private DownloadedApkCleanup() {}
@@ -74,7 +79,8 @@ final class DownloadedApkCleanup {
             if (!child.isFile()) continue;
             long size = child.length();
             Long build = build(child.getName());
-            if (build != null && build <= installedBuild && child.delete()) {
+            boolean stale = build != null ? build <= installedBuild : isLegacy(child.getName());
+            if (stale && child.delete()) {
                 deletedFiles++;
                 deletedBytes += size;
             } else if (child.getName().endsWith(".apk")) {
@@ -98,6 +104,10 @@ final class DownloadedApkCleanup {
             }
         }
         return new long[] {files, bytes};
+    }
+
+    static boolean isLegacy(String name) {
+        return LEGACY_NAME.matcher(name).matches();
     }
 
     static Long build(String name) {

@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.121.1 (build 310) — Anche gli APK di agosto
+
+- La pulizia cancella anche gli APK scaricati con il vecchio nome di agosto
+  2026 (solo versione, senza build), che la 309 lasciava: sul Galaxy erano
+  tre file per 68 MB.
+
 ## 2.121.0 (build 309) — Spazio liberato e Calendario in background più affidabile
 
 - Gli aggiornamenti interni lasciavano sul telefono ogni APK scaricato (circa

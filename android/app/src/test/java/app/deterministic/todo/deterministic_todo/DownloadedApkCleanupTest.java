@@ -28,6 +28,7 @@ public final class DownloadedApkCleanupTest {
         File pending = file(dir, "deterministic-todo-2.121.0-309.apk", 40);
         File unknown = file(dir, "ota_update.apk", 80);
         File other = file(dir, "notes.txt", 5);
+        File legacy = file(dir, "deterministic-todo-2.13.2.apk", 7);
 
         DownloadedApkCleanup.Result result = DownloadedApkCleanup.clean(dir, 308);
 
@@ -36,8 +37,9 @@ public final class DownloadedApkCleanupTest {
         assertTrue(pending.exists());
         assertTrue(unknown.exists());
         assertTrue(other.exists());
-        assertEquals(2, result.deletedFiles);
-        assertEquals(30, result.deletedBytes);
+        assertFalse(legacy.exists());
+        assertEquals(3, result.deletedFiles);
+        assertEquals(37, result.deletedBytes);
         assertEquals(2, result.remainingFiles);
         assertEquals(120, result.remainingBytes);
         assertArrayEquals(new long[] {2, 120}, DownloadedApkCleanup.usage(dir));
@@ -62,5 +64,8 @@ public final class DownloadedApkCleanupTest {
         assertEquals(Long.valueOf(308), DownloadedApkCleanup.build("deterministic-todo-2.120.1-308.apk"));
         assertNull(DownloadedApkCleanup.build("deterministic-todo-2.120.1-308.apk.part"));
         assertNull(DownloadedApkCleanup.build("other-2.120.1-308.apk"));
+        assertNull(DownloadedApkCleanup.build("deterministic-todo-2.13.2.apk"));
+        assertTrue(DownloadedApkCleanup.isLegacy("deterministic-todo-2.13.2.apk"));
+        assertFalse(DownloadedApkCleanup.isLegacy("deterministic-todo-2.120.1-308.apk"));
     }
 }
