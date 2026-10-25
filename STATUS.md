@@ -5,11 +5,27 @@ versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
 - Stabile: 2.120.1 / 308 (Web, APK diretti, Play interno), comprende la
-  linea Semble 297–307 e la correzione delle ricorrenti. Todo Test: 2310
+  linea Semble 297–307 e la correzione delle ricorrenti. Todo Test: 2311
   (branch `agent/storage-calendar-hardening`).
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Build 311 — nessun doppione dal Cestino dopo Annulla (25 ottobre 2026)
+
+`watchTrash` esclude un'occorrenza aperta cancellata quando la serie ha
+un'altra occorrenza aperta (la copia lasciata dall'Annulla); `restore`
+rifiuta lo stesso caso con un messaggio. Test in `test/database_test.dart`,
+che fallisce senza la correzione. `make check-generated` e `make check`
+verdi (618 test, 3 saltati). `make todo-test`: Todo Test 2.121.2 / 2311 via
+ADB USB, dati conservati, sync con build 2311, Realtime `subscribed`, coda
+vuota, nessun nuovo tentativo del Calendario. Suite
+`integration_test/todo_validation_test.dart` sul Galaxy: 40 passati, 1
+saltato, nessun overflow (un primo avvio si era interrotto per una
+connessione del tool di test persa, senza crash dell'app). Indietro
+predittivo verificato in sola lettura su Todo Test: dettaglio evento e foglio
+Backup del Calendario si chiudono restando nel Calendario. Nessuna release
+stabile.
 
 ## Build 309–310 — spazio, Calendario in background, manifest (25 ottobre 2026)
 
