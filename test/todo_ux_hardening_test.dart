@@ -57,8 +57,12 @@ void main({bool includeDesktop = true}) {
       (tester) async {
         tester.view.physicalSize = Size(width, 800);
         tester.view.devicePixelRatio = 1;
+        // On the Galaxy the real keyboard inset (physical pixels) would
+        // otherwise fill this 800 px fake view when the editor opens.
+        tester.view.viewInsets = FakeViewPadding.zero;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetViewInsets);
         final db = AppDatabase.forTesting(NativeDatabase.memory());
         final repo = TaskRepository(db, deviceId: 'fixture');
         await repo.create(

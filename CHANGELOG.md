@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.120.1 (build 308) — Ricorrenti che non spariscono dopo Annulla
+
+- Completare una ricorrente, premere Annulla e poi completarla di nuovo
+  interrompeva la serie: il messaggio annunciava la prossima occorrenza, che
+  però restava nel Cestino. Ora il nuovo completamento la ripristina. Se una
+  ricorrente è sparita così in passato, si recupera dal Cestino.
+- Il test sul Galaxy della vista Prossime a 400 px non risente più della
+  tastiera reale (solo test, nessun cambiamento nell'app).
+
 ## 2.120.0 (build 307) — Bordo ambra anche sugli inviti, e toglibile a mano
 
 - Gli inviti a cui non hai ancora risposto (per esempio Teams) che cadono in

@@ -5,10 +5,28 @@ versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
 - Stabile: 2.109.0 / 296 (Web, APK diretti, Play interno). Linea in collaudo
-  su Todo Test: build 297–307 (Semble), branch `agent/semble-availability`.
+  su Todo Test: build 297–308, branch `agent/lighter-docs-device-test`
+  (Semble 297–307 da `agent/semble-availability`).
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Build 308 — ricorrenti dopo Annulla e collaudo del 25 ottobre
+
+Difetto trovato nel collaudo sul Galaxy (pacchetto `.dev.validation`, dati
+sintetici): completa → Annulla → completa di nuovo lasciava la prossima
+occorrenza come tombstone, perché `_insertOccurrence` usa `insertOrIgnore`
+sull'ID deterministico. Ora un tombstone con quella chiave viene ripristinato
+con patch Lamport; test in `test/database_test.dart`.
+
+Collaudo dello stesso giorno: suite `integration_test/todo_validation_test.dart`
+sul Galaxy 40 passati, 1 saltato (prima della correzione del test falliva per
+la tastiera reale su vista finta 400×800). Todo Test 2307 in sola lettura:
+avvio a freddo 199–408 ms e a caldo 69–73 ms (`am start -W`), Oggi, Prossime,
+Progetti, Calendario 3 giorni/Settimana/2 e 4 settimane, ricerca,
+Impostazioni e ritorno da background senza eccezioni né overflow in logcat;
+sync `healthy`, Realtime `subscribed`, coda vuota. Non provati per non
+modificare impostazioni di sistema: rotazione, testo grande, modalità aereo.
 
 ## Build 307 — inviti senza risposta e bordo ambra per singolo evento (in collaudo)
 

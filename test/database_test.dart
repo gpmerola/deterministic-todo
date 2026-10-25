@@ -242,6 +242,36 @@ void main() {
     expect(active.single.status, TaskStatus.available.name);
   });
 
+  test('completare di nuovo dopo Undo ricrea la prossima occorrenza', () async {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final id = await repository.create(
+      'Vitamine',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    Future<Task> row(String id) =>
+        (db.select(db.tasks)..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(await row(id), true);
+    await repository.undoCompletion(await row(id));
+    final next = await repository.setCompleted(await row(id), true);
+
+    expect(next, today.addDays(1));
+    final active = await repository.watchActive().first;
+    expect(active, hasLength(1));
+    expect(active.single.showDate, today.addDays(1).toString());
+    expect(active.single.status, isNot(TaskStatus.completed.name));
+    expect(await repository.watchTrash().first, isEmpty);
+    final intents = await (db.select(
+      db.outboxEntries,
+    )..where((row) => row.entityId.equals(active.single.id))).get();
+    expect(intents.last.operation, 'upsert');
+  });
+
   test('le viste attive e completate non caricano record inutili', () async {
     final activeId = await repository.create('Attiva');
     final completedId = await repository.create('Completata');

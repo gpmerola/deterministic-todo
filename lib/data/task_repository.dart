@@ -756,8 +756,29 @@ class TaskRepository {
           .insertReturningOrNull(companion, mode: InsertMode.insertOrIgnore);
       if (inserted != null) {
         await _enqueue(id, 'upsert', await _creationPayload(id));
+        return 1;
       }
-      return inserted == null ? 0 : 1;
+      // Undo soft-deletes the generated occurrence; its deterministic ID
+      // must not block the next explicit completion from recreating it.
+      final existing = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals(id))).getSingle();
+      if (existing.deletedAt == null) return 0;
+      await _update(
+        existing,
+        TasksCompanion(
+          deletedAt: const Value(null),
+          completedAt: const Value(null),
+          status: companion.status,
+          title: companion.title,
+          notes: companion.notes,
+          priority: companion.priority,
+          projectId: companion.projectId,
+          sectionId: companion.sectionId,
+          recurrence: companion.recurrence,
+        ),
+      );
+      return 1;
     });
   }
 
