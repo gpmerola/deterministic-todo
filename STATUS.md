@@ -5,10 +5,43 @@ versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
 - Stabile: 2.120.1 / 308 (Web, APK diretti, Play interno), comprende la
-  linea Semble 297–307 e la correzione delle ricorrenti. Todo Test: 2308.
+  linea Semble 297–307 e la correzione delle ricorrenti. Todo Test: 2310
+  (branch `agent/storage-calendar-hardening`).
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Build 309–310 — spazio, Calendario in background, manifest (25 ottobre 2026)
+
+Analisi ADB in sola lettura: Todo Test occupava 1,46 GB di dati con un APK da
+24 MB. Causa confermata sul Galaxy: l'updater conservava ogni APK scaricato.
+La pulizia (`DownloadedApkCleanup`) ha cancellato 1.416.241.004 byte al primo
+avvio della 309 e altri 68.149.090 byte di APK con il nome di agosto nella
+310: totale 1.484.390.094 byte, nessun APK rimasto. Spazio libero del
+telefono da 141.111.176 KB a 142.828.440 KB (`dumpsys diskstats`; il valore
+per app è in cache e si aggiorna una volta al giorno).
+
+Calendario in background: il 25 ottobre il contatore dei fallimenti era a 2
+con nuovo tentativo a 8 minuti e tre job avviati nello stesso istante.
+Ipotesi corretta nella 309: `AgendaMirror.upload()` rispondeva `false` se un
+altro invio era in corso. Ora aspetta e ripete; i job con la stessa impronta
+del calendario si uniscono (`agenda_bg_joined_runs` già a 1 dopo
+l'installazione) e i motivi dei nuovi tentativi sono registrati senza
+contenuti. Primo controllo dopo la 310: nessun nuovo tentativo, contatore a 0.
+Voce di osservazione in [TODO_NEXT](TODO_NEXT.md).
+
+Manifest: tolti `INSTALL_PACKAGES`, `WRITE_EXTERNAL_STORAGE`,
+`ACCESS_WIFI_STATE`. Indietro predittivo attivo: sequenza a freddo (composer,
+editor, Esc, schede, Impostazioni, uscita dalla radice) identica con e senza,
+due giri ciascuna, sul pacchetto di validazione. Non provati con questo
+confronto: editor eventi e foglio backup del Calendario (assenti nel
+pacchetto di validazione).
+
+`make check-generated` e `make check` verdi (617 test, 3 saltati); test JVM
+`DownloadedApkCleanupTest` e `AgendaBackgroundTest` verdi. `make todo-test`:
+Todo Test 2.121.1 / 2310 installata via ADB USB, dati conservati, sync con
+build 2310, Realtime `subscribed`, coda vuota, logcat senza errori. Nessuna
+release stabile.
 
 ## Release stabile 2.120.1 / 308 — 25 ottobre 2026
 
