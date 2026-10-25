@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.121.2 (build 311) — Nessun doppione dal Cestino dopo Annulla
+## 2.121.2 (build 311) — Release stabile e Todo Test: nessun doppione dal Cestino dopo Annulla
 
 - Dopo l'Annulla di un completamento, la copia dell'occorrenza annullata non
   compare più nel Cestino: ripristinarla avrebbe duplicato la ricorrente. Se

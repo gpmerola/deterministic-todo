@@ -4,12 +4,32 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.120.1 / 308 (Web, APK diretti, Play interno), comprende la
-  linea Semble 297–307 e la correzione delle ricorrenti. Todo Test: 2311
+- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2311
   (branch `agent/storage-calendar-hardening`).
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Release stabile 2.121.2 / 311 — 25 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 17:08
+UTC). `main` avanzato in fast-forward, senza riscritture, al commit
+`29c580c33ff3f789b6d61a845d63b304badd060b` di
+`agent/storage-calendar-hardening` (build 309–311). Run coordinato
+[40215087202](https://github.com/gpmerola/deterministic-todo/actions/runs/40215087202)
+verde in tutti gli otto job.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  2.121.2 / 311 con lo stesso commit. Profilo Chrome usa e getta, rete
+  limitata al sito e a CanvasKit: completa → Annulla → completa di nuovo
+  lascia una sola occorrenza il giorno dopo.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.121.2):
+  `v2.121.2` `latest`, non prerelease; manifest con quattro APK e SHA-256
+  identici ai digest degli asset.
+- Google Play: `publish-google-play` riuscito (track `internal`);
+  propagazione non verificata.
+- Galaxy: Todo Test 2311 già installata; nessun APK dell'updater presente,
+  nessun nuovo tentativo del Calendario, spazio libero 142.795.240 KB.
 
 ## Build 311 — nessun doppione dal Cestino dopo Annulla (25 ottobre 2026)
 
