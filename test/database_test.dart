@@ -272,6 +272,39 @@ void main() {
     expect(intents.last.operation, 'upsert');
   });
 
+  test('dopo Undo il Cestino non offre un doppione della ricorrenza', () async {
+    final today = CivilDate.fromDateTime(DateTime.now());
+    final id = await repository.create(
+      'Vitamine',
+      status: TaskStatus.available,
+      showDate: today.toString(),
+      recurrence: const RecurrenceRule(
+        type: RecurrenceType.calendar,
+        unit: RecurrenceUnit.day,
+      ).encode(),
+    );
+    Future<Task> row(String id) =>
+        (db.select(db.tasks)..where((row) => row.id.equals(id))).getSingle();
+
+    await repository.setCompleted(await row(id), true);
+    final generated = (await repository.watchActive().first).single;
+    await repository.undoCompletion(await row(id));
+
+    expect(await repository.watchTrash().first, isEmpty);
+    await expectLater(
+      repository.restore(await row(generated.id)),
+      throwsA(isA<FormatException>()),
+    );
+    expect(await repository.watchActive().first, hasLength(1));
+
+    // Trashing the only open occurrence is still restorable.
+    await repository.softDelete(await row(id));
+    final trash = await repository.watchTrash().first;
+    expect(trash.map((task) => task.id), contains(id));
+    await repository.restore(await row(id));
+    expect((await repository.watchActive().first).single.id, id);
+  });
+
   test('le viste attive e completate non caricano record inutili', () async {
     final activeId = await repository.create('Attiva');
     final completedId = await repository.create('Completata');

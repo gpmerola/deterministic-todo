@@ -124,7 +124,18 @@ class TrashView extends StatelessWidget {
                               trailing: IconButton(
                                 tooltip: 'Ripristina',
                                 onPressed: () async {
-                                  await repository.restore(task);
+                                  try {
+                                    await repository.restore(task);
+                                  } on FormatException catch (error) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(error.message),
+                                        showCloseIcon: true,
+                                      ),
+                                    );
+                                    return;
+                                  }
                                   await syncService?.sync();
                                 },
                                 icon: const Icon(Icons.restore),

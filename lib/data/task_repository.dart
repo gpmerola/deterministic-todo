@@ -237,18 +237,40 @@ class TaskRepository {
             ..limit(limit))
           .watch();
 
-  Stream<List<Task>> watchTrash({int limit = 200}) =>
-      (db.select(db.tasks)
-            ..where((task) => task.deletedAt.isNotNull())
-            ..orderBy([
-              (task) => OrderingTerm(
-                expression: task.deletedAt,
-                mode: OrderingMode.desc,
-              ),
-              (task) => OrderingTerm(expression: task.id),
-            ])
-            ..limit(limit))
-          .watch();
+  /// Trashed tasks the user can restore. An open occurrence whose series
+  /// still has another live open occurrence is left out: it is the copy an
+  /// Undo of a completion removed, and restoring it would duplicate the
+  /// series (build 311). Its tombstone stays for sync and for the next
+  /// completion, which revives it.
+  Stream<List<Task>> watchTrash({int limit = 200}) {
+    final live = db.alias(db.tasks, 'live');
+    return (db.select(db.tasks)
+          ..where(
+            (task) =>
+                task.deletedAt.isNotNull() &
+                (task.status.equals(TaskStatus.completed.name) |
+                    notExistsQuery(
+                      db.select(live)..where(
+                        (other) =>
+                            other.seriesId.equalsExp(task.seriesId) &
+                            other.id.equalsExp(task.id).not() &
+                            other.deletedAt.isNull() &
+                            other.status
+                                .equals(TaskStatus.completed.name)
+                                .not(),
+                      ),
+                    )),
+          )
+          ..orderBy([
+            (task) => OrderingTerm(
+              expression: task.deletedAt,
+              mode: OrderingMode.desc,
+            ),
+            (task) => OrderingTerm(expression: task.id),
+          ])
+          ..limit(limit))
+        .watch();
+  }
 
   Future<int> archiveCompletedOlderThan(DateTime cutoff) async {
     final cutoffMicros = cutoff.toUtc().microsecondsSinceEpoch;
@@ -651,6 +673,25 @@ class TaskRepository {
     final deleted = await (db.select(
       db.tasks,
     )..where((row) => row.id.equals(task.id))).getSingle();
+    final seriesId = deleted.seriesId;
+    if (seriesId != null && deleted.status != TaskStatus.completed.name) {
+      final openSibling =
+          await (db.select(db.tasks)
+                ..where(
+                  (row) =>
+                      row.seriesId.equals(seriesId) &
+                      row.id.equals(deleted.id).not() &
+                      row.deletedAt.isNull() &
+                      row.status.equals(TaskStatus.completed.name).not(),
+                )
+                ..limit(1))
+              .getSingleOrNull();
+      if (openSibling != null) {
+        throw const FormatException(
+          'La ricorrenza ha già un\'occorrenza aperta: ripristinarla creerebbe un doppione.',
+        );
+      }
+    }
     await _update(
       deleted,
       const TasksCompanion(deletedAt: Value(null)),
