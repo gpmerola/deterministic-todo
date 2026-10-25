@@ -4,12 +4,31 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.109.0 / 296 (Web, APK diretti, Play interno). Linea in collaudo
-  su Todo Test: build 297–308, branch `agent/lighter-docs-device-test`
-  (Semble 297–307 da `agent/semble-availability`).
+- Stabile: 2.120.1 / 308 (Web, APK diretti, Play interno), comprende la
+  linea Semble 297–307 e la correzione delle ricorrenti. Todo Test: 2308.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Release stabile 2.120.1 / 308 — 25 ottobre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 15:36
+UTC). `main` avanzato in fast-forward, senza riscritture, al commit
+`2d495ad8c4f075f60317809496d6c8d908bf4af7` di `agent/lighter-docs-device-test`
+(contiene tutta `agent/semble-availability`, PR #6). Run coordinato
+[40207768802](https://github.com/gpmerola/deterministic-todo/actions/runs/40207768802)
+verde in tutti gli otto job.
+
+- [Web](https://gpmerola.github.io/deterministic-todo/): `release-info.json`
+  2.120.1 / 308 con lo stesso commit. Profilo Chrome usa e getta, rete
+  limitata al sito e a CanvasKit, attività sintetica: completa → Annulla →
+  completa di nuovo lascia una sola occorrenza il giorno dopo in Prossime.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.120.1):
+  `v2.120.1` `latest`, non prerelease; manifest con quattro APK e SHA-256
+  identici ai digest degli asset.
+- Google Play: `publish-google-play` riuscito (track `internal`);
+  propagazione non verificata.
+- Galaxy: Todo Test 2308 già installata via ADB USB.
 
 ## Build 308 — ricorrenti dopo Annulla e collaudo del 25 ottobre
 
