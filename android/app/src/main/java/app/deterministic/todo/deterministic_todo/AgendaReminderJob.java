@@ -50,7 +50,7 @@ public final class AgendaReminderJob extends JobService {
                 if (params.getJobId() == CHANGED && unchanged) {
                     finish(params, AgendaBackground.Outcome.DONE, fingerprint);
                 } else {
-                    AgendaBackground.run(getApplicationContext(), "reminders",
+                    AgendaBackground.run(getApplicationContext(), "reminders", fingerprint,
                         outcome -> finish(params, outcome, fingerprint));
                 }
             });

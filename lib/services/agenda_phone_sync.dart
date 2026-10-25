@@ -65,7 +65,8 @@ class AgendaPhoneSync {
   }
 
   /// One background run; the result tells the Android job what to do next:
-  /// `done` (remember this calendar state), `retry`, or `stop` (not signed
+  /// `done` (remember this calendar state), `retry:<cause>` (content-free,
+  /// recorded by the native job), or `stop` (not signed
   /// in or no calendar access: the jobs are cancelled until the app
   /// schedules them again).
   Future<String> background(String reason) async {
@@ -80,13 +81,19 @@ class AgendaPhoneSync {
     }
     if (client.auth.currentSession == null) return 'stop';
     if (await service.access() != AgendaAccess.granted) return 'stop';
-    final handled = await processor.process();
-    var uploaded = true;
-    if (reason == 'calendar' || handled > 0) uploaded = await mirror.upload();
-    // A failed backup does not ask for retries: the next run or the next
-    // app start tries again, and an unchanged backup costs no network.
-    await backup.save();
-    return uploaded ? 'done' : 'retry';
+    try {
+      final handled = await processor.process();
+      var uploaded = true;
+      if (reason == 'calendar' || handled > 0) uploaded = await mirror.upload();
+      // A failed backup does not ask for retries: the next run or the next
+      // app start tries again, and an unchanged backup costs no network.
+      await backup.save();
+      return uploaded
+          ? 'done'
+          : 'retry:mirror_${mirror.lastFailure ?? 'unknown'}';
+    } catch (error) {
+      return 'retry:${agendaFailureCode(error)}';
+    }
   }
 
   /// Lets the background job reach this engine while the app is alive, and

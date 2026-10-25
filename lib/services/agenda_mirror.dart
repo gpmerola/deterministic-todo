@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/sync/sync_policy.dart';
 import '../domain/agenda.dart';
 import '../domain/task.dart';
 import 'agenda_service.dart';
@@ -93,7 +94,11 @@ class AgendaMirror {
   final String deviceId;
   final DateTime Function() _now;
   DateTime? _last;
-  bool _busy = false;
+  Future<bool>? _running;
+
+  /// Why the last [upload] returned false, content-free: `no_session`,
+  /// `no_access` or `error_<class>[_<code>]` (see [safeSyncErrorClass]).
+  String? lastFailure;
 
   Future<void> uploadIfStale() async {
     final last = _last;
@@ -102,13 +107,34 @@ class AgendaMirror {
   }
 
   /// One atomic replacement of the mirror; false when skipped (not signed
-  /// in, no calendar access, already running) or failed. Failures are
-  /// silent: the next start or change retries, the web shows the old copy.
+  /// in, no calendar access) or failed. A call made while another upload
+  /// runs waits for it and then uploads again, so a calendar change is never
+  /// reported as a failure or covered by an older snapshot (build 309).
+  /// Failures are silent: the next start or change retries, the web shows
+  /// the old copy.
   Future<bool> upload() async {
-    if (_busy || client.auth.currentSession == null) return false;
-    _busy = true;
+    while (_running != null) {
+      await _running;
+    }
+    final run = _upload();
+    _running = run;
     try {
-      if (await service.access() != AgendaAccess.granted) return false;
+      return await run;
+    } finally {
+      if (identical(_running, run)) _running = null;
+    }
+  }
+
+  Future<bool> _upload() async {
+    if (client.auth.currentSession == null) {
+      lastFailure = 'no_session';
+      return false;
+    }
+    try {
+      if (await service.access() != AgendaAccess.granted) {
+        lastFailure = 'no_access';
+        return false;
+      }
       final now = _now();
       final first = CivilDate.fromDateTime(now).addDays(-daysBack);
       const count = daysBack + daysAhead + 1;
@@ -129,12 +155,22 @@ class AgendaMirror {
         params: {'snapshot': payload},
       );
       _last = now;
+      lastFailure = null;
       return true;
-    } catch (_) {
-      // Not logged: the payload carries event titles.
+    } catch (error) {
+      // Only the error class is kept: the payload carries event titles.
+      lastFailure = agendaFailureCode(error);
       return false;
-    } finally {
-      _busy = false;
     }
   }
+}
+
+/// Content-free cause for background diagnostics: the sync error class and,
+/// for Supabase, its SQLSTATE/PostgREST code (never messages or details).
+String agendaFailureCode(Object error) {
+  final code = error is PostgrestException ? error.code : null;
+  final safeCode = code != null && RegExp(r'^[A-Za-z0-9]{1,12}$').hasMatch(code)
+      ? '_$code'
+      : '';
+  return 'error_${safeSyncErrorClass(error)}$safeCode';
 }

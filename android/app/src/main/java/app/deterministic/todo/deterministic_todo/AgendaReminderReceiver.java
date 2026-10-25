@@ -10,6 +10,9 @@ import java.util.concurrent.ExecutorService;
 public final class AgendaReminderReceiver extends BroadcastReceiver {
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();
     @Override public void onReceive(Context context, Intent intent) {
+        if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
+            DownloadedApkCleanup.runAsync(context);
+        }
         PendingResult pending = goAsync();
         IO.execute(() -> {
             try {

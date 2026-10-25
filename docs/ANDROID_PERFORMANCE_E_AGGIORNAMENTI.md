@@ -300,6 +300,12 @@ API per package: tenerlo attivo in un solo client. Runbook:
 2. Confronta semanticamente la versione installata e quella remota.
 3. Su Android individua l’ABI e sceglie l’asset specifico; `android` è soltanto fallback per versioni precedenti.
 4. `ota_update` scarica l’APK nella directory interna dell’app senza aprire GitHub.
+   Il file si chiama `deterministic-todo-VERSIONE-BUILD.apk` e il plugin
+   sostituisce solo un file con lo stesso nome: dalla build 309
+   `DownloadedApkCleanup` cancella all'avvio e dopo `MY_PACKAGE_REPLACED` gli
+   APK di build già installate o precedenti (numerazione logica, senza
+   l'offset 2000 di Todo Test) e conserva quelli più recenti, che potrebbero
+   attendere l'installer. Nient'altro nella memoria dell'app viene toccato.
 5. Il client mostra la percentuale e passa lo SHA-256 dichiarato nel manifest.
 6. Se l’hash non coincide, l’installazione viene interrotta.
 7. Android mostra la conferma di sistema. Un’app normale sideloaded non può installarsi silenziosamente; servirebbero Play Store, MDM o privilegi da app di sistema.

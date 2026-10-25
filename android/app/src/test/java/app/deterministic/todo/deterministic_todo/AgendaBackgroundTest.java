@@ -13,6 +13,25 @@ public final class AgendaBackgroundTest {
         assertEquals(AgendaBackground.Outcome.RETRY, AgendaBackground.parse(true));
     }
 
+    @Test public void retryCausesAreContentFree() {
+        assertEquals(AgendaBackground.Outcome.RETRY, AgendaBackground.parse("retry:mirror_no_access"));
+        assertEquals("mirror_no_access", AgendaBackground.cause("retry:mirror_no_access"));
+        assertEquals("error_supabase_42501", AgendaBackground.cause("retry:error_supabase_42501"));
+        assertEquals("unspecified", AgendaBackground.cause("retry"));
+        assertEquals("null_result", AgendaBackground.cause(null));
+        assertEquals("unexpected_result", AgendaBackground.cause(true));
+        assertEquals("unexpected_result", AgendaBackground.cause("retry:Riunione con Mario"));
+        assertEquals("unexpected_result", AgendaBackground.cause("other"));
+    }
+
+    @Test public void onlyIdenticalCalendarStatesJoinARun() {
+        assertEquals(AgendaBackground.joinKey("calendar", "ab"), AgendaBackground.joinKey("calendar", "ab"));
+        org.junit.Assert.assertNotEquals(
+            AgendaBackground.joinKey("calendar", "ab"), AgendaBackground.joinKey("calendar", "cd"));
+        org.junit.Assert.assertNotEquals(
+            AgendaBackground.joinKey("calendar", "ab"), AgendaBackground.joinKey("periodic", "ab"));
+    }
+
     @Test public void retriesBackOffUpToAnHour() {
         assertEquals(120_000L, AgendaBackground.retryDelayMs(0));
         assertEquals(240_000L, AgendaBackground.retryDelayMs(1));

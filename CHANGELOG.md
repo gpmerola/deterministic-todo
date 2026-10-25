@@ -2,6 +2,21 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.121.0 (build 309) — Spazio liberato e Calendario in background più affidabile
+
+- Gli aggiornamenti interni lasciavano sul telefono ogni APK scaricato (circa
+  24 MB l'uno). Ora all'avvio e dopo ogni aggiornamento vengono cancellati
+  quelli di versioni già installate; un APK più recente in attesa di
+  installazione resta.
+- L'invio del Calendario in background non segna più come fallito un invio
+  che trova un altro invio in corso: aspetta e lo ripete. I job svegliati
+  insieme per lo stesso stato del calendario fanno il lavoro una volta sola.
+- Il motivo di ogni nuovo tentativo è registrato senza contenuti (solo classe
+  di errore e conteggi) e leggibile con il provider di diagnostica ADB.
+- Tolti i permessi non usati aggiunti dal plugin degli aggiornamenti e
+  attivato il gesto «indietro» predittivo di Android, con la stessa
+  navigazione di prima.
+
 ## 2.120.1 (build 308) — Release stabile e Todo Test: ricorrenti che non spariscono dopo Annulla
 
 - Completare una ricorrente, premere Annulla e poi completarla di nuovo

@@ -129,6 +129,27 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "last_recovered_failures", lastRecovered, "recovered_failures");
         put(values, "last_realtime_problem_at", lastRealtimeProblem, "timestamp");
         put(values, "last_realtime_status", lastRealtimeProblem, "status");
+        long[] apks = DownloadedApkCleanup.usage(DownloadedApkCleanup.directory(getContext()));
+        android.content.SharedPreferences cleanup = DownloadedApkCleanup.prefs(getContext());
+        values.put("downloaded_apk_files", apks[0]);
+        values.put("downloaded_apk_bytes", apks[1]);
+        values.put("apk_cleanup_last_at", cleanup.contains("last_at") ? cleanup.getLong("last_at", 0) : null);
+        values.put("apk_cleanup_last_deleted_files", cleanup.contains("last_at") ? cleanup.getInt("last_deleted_files", 0) : null);
+        values.put("apk_cleanup_last_deleted_bytes", cleanup.contains("last_at") ? cleanup.getLong("last_deleted_bytes", 0) : null);
+        values.put("apk_cleanup_total_deleted_bytes", cleanup.getLong("total_deleted_bytes", 0));
+        android.content.SharedPreferences agenda = AgendaBackground.debugPrefs(getContext());
+        values.put("agenda_bg_last_retry_cause", agenda.getString("last_retry_cause", null));
+        values.put("agenda_bg_last_retry_reason", agenda.getString("last_retry_reason", null));
+        values.put("agenda_bg_last_retry_at", agenda.contains("last_retry_at") ? agenda.getLong("last_retry_at", 0) : null);
+        values.put("agenda_bg_retries", agenda.getInt("retries", 0));
+        values.put("agenda_bg_joined_runs", agenda.getInt("joined_runs", 0));
+        StringBuilder causes = new StringBuilder();
+        for (Map.Entry<String, ?> entry : new java.util.TreeMap<>(agenda.getAll()).entrySet()) {
+            if (!entry.getKey().startsWith("cause_count:")) continue;
+            if (causes.length() > 0) causes.append(' ');
+            causes.append(entry.getKey().substring("cause_count:".length())).append('=').append(entry.getValue());
+        }
+        values.put("agenda_bg_retry_causes", causes.length() == 0 ? null : causes.toString());
         return values;
     }
 

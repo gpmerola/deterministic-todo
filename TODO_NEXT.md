@@ -45,6 +45,12 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
 
 Nessuna azione finché non emerge un problema.
 
+- Capire perché l'invio del Calendario in background fallisce (contatore
+  fallimenti a 2 il 25 ottobre 2026): leggere i nuovi motivi registrati dalla
+  build 309 con il provider ADB `todo_sync_debug`, campi
+  `agenda_bg_retry_causes`, `agenda_bg_last_retry_cause` e `agenda_bg_retries`
+  ([ADB_WIFI](docs/operations/ADB_WIFI.md)). Ipotesi principale, già corretta
+  nella 309: invii concorrenti all'avvio scambiati per fallimento.
 - Second Brain: prima esecuzione automatica oraria e frase da una nuova chat
   con Drive collegato (STATUS).
 - Un giorno di batteria: il job Calendario a trigger deve fermarsi
@@ -71,6 +77,9 @@ aggregazione dei calendari KCL/SLaM (anche via ICS), pulizia del Markdown nei
 titoli degli eventi creati, azioni dirette in Problemi di sincronizzazione,
 ricerca indipendente dagli accenti, misure di prestazioni sul Galaxy, note,
 ripetizione e cambio calendario degli eventi modificati dal Web.
+Escluse il 25 ottobre 2026: etichetta TalkBack e area di tocco di 27 dp dei
+link nelle righe delle attività; pulsanti piccoli nella barra del Calendario
+(«Nuovo evento», «Altro») e anello dei passi in Oggi.
 
 Prima di ottimizzare, misurare: baseline in
 `docs/diagnostics/2026-08-08-web-android.md`; ultimi esiti

@@ -16,6 +16,7 @@ public class CalendarShortcutActivity extends FlutterActivity {
 
     @Override public void configureFlutterEngine(FlutterEngine engine) {
         super.configureFlutterEngine(engine);
+        DownloadedApkCleanup.runAsync(this);
         new MethodChannel(engine.getDartExecutor().getBinaryMessenger(),
             "app.deterministic.todo/agenda_reminder_permissions").setMethodCallHandler((call, result) -> {
                 if (!call.method.equals("request") && !call.method.equals("requestOnce")) {

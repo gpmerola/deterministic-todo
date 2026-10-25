@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/local/database.dart';
 import '../data/sync/secure_supabase_storage.dart';
+import '../services/agenda_mirror.dart';
 import '../services/agenda_phone_sync.dart';
 import '../services/agenda_reminders.dart';
 import '../services/agenda_service.dart';
@@ -37,8 +38,8 @@ Future<String> runAgendaBackground(String reason) async {
       // Same trigger: events that arrived in bookable Semble time.
       await SembleConflicts(service).check();
       return 'done';
-    } catch (_) {
-      return 'retry';
+    } catch (error) {
+      return 'retry:reminders_${agendaFailureCode(error)}';
     } finally {
       await database.close();
     }
@@ -68,7 +69,7 @@ Future<String> runAgendaBackground(String reason) async {
     final session = await _recoveredSession(client);
     // Expired and not refreshable now (offline): try again later; the
     // stored session is left untouched for the app.
-    if (session == null) return 'retry';
+    if (session == null) return 'retry:session_unavailable';
     final sync = AgendaPhoneSync(
       service: AgendaService(database),
       client: client,
@@ -82,9 +83,9 @@ Future<String> runAgendaBackground(String reason) async {
       await stored.persistSession(jsonEncode(current.toJson()));
     }
     return result;
-  } catch (_) {
-    // Not logged: errors may carry event details.
-    return 'retry';
+  } catch (error) {
+    // Only the error class: messages may carry event details.
+    return 'retry:${agendaFailureCode(error)}';
   } finally {
     await database.close();
   }

@@ -34,7 +34,7 @@ public final class AgendaBackgroundJob extends JobService {
             // The hourly run also uploads a changed calendar: a failed
             // upload is never left waiting for the next calendar change.
             main.post(() -> AgendaBackground.run(getApplicationContext(),
-                changed ? "calendar" : "periodic", outcome -> {
+                changed ? "calendar" : "periodic", fingerprint, outcome -> {
                     if (outcome == AgendaBackground.Outcome.STOP) {
                         jobFinished(params, false);
                         AgendaBackground.cancel(getApplicationContext());

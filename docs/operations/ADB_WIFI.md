@@ -251,6 +251,15 @@ rete/sessione, quantità in attesa e retry. Il provider legge esclusivamente il
 giornale diagnostico minimizzato: non apre SQLite e non espone attività,
 progetti, titoli, note, email, URL, token o messaggi restituiti dal server.
 
+Dalla build 309 lo stesso provider riporta anche, senza contenuti:
+`downloaded_apk_files`/`downloaded_apk_bytes` (APK dell'updater ancora in
+`files/ota_update`), `apk_cleanup_last_*` e `apk_cleanup_total_deleted_bytes`
+(ultima pulizia all'avvio o dopo un aggiornamento), e per il job Calendario in
+background `agenda_bg_last_retry_cause`/`_reason`/`_at`, `agenda_bg_retries`
+(fallimenti consecutivi), `agenda_bg_retry_causes` (conteggio per causa, per
+esempio `mirror_error_network=2`) e `agenda_bg_joined_runs` (job uniti a un
+lavoro identico già in corso).
+
 ## Aggiornamenti e firma del dispositivo di test
 
 Il canale operativo del Galaxy è **Todo Test**, package `.dev`, con firma

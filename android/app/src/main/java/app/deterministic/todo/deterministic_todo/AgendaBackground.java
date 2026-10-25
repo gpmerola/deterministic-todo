@@ -210,13 +210,43 @@ public final class AgendaBackground {
 
     /** Runs the Dart side with [reason] ("calendar" or "periodic"). Main thread. */
     static void run(Context context, String reason, Callback callback) {
-        MethodChannel channel = appChannel;
-        if (channel != null) {
-            channel.invokeMethod("run", reason, resultTo(callback));
+        run(context, reason, null, callback);
+    }
+
+    /**
+     * Jobs woken together (calendar change and retry) join a run with the
+     * same reason and calendar [fingerprint] instead of doing the same work
+     * twice; a different fingerprint runs on its own, after it in Dart.
+     */
+    static void run(Context context, String reason, String fingerprint, Callback callback) {
+        String key = joinKey(reason, fingerprint);
+        java.util.List<Callback> waiting = RUNNING.get(key);
+        if (waiting != null) {
+            waiting.add(callback);
+            recordJoined(context);
             return;
         }
-        runHeadless(context.getApplicationContext(), reason, callback);
+        java.util.List<Callback> joined = new java.util.ArrayList<>();
+        joined.add(callback);
+        RUNNING.put(key, joined);
+        Callback all = outcome -> {
+            RUNNING.remove(key);
+            for (Callback each : joined) each.finished(outcome);
+        };
+        MethodChannel channel = appChannel;
+        if (channel != null) {
+            channel.invokeMethod("run", reason, resultTo(context.getApplicationContext(), reason, all));
+            return;
+        }
+        runHeadless(context.getApplicationContext(), reason, all);
     }
+
+    static String joinKey(String reason, String fingerprint) {
+        return reason + "|" + (fingerprint == null ? "" : fingerprint);
+    }
+
+    /** Main thread only, like [run]. */
+    private static final java.util.Map<String, java.util.List<Callback>> RUNNING = new java.util.HashMap<>();
 
     private static void runHeadless(Context app, String reason, Callback callback) {
         Handler main = new Handler(Looper.getMainLooper());
@@ -233,7 +263,10 @@ public final class AgendaBackground {
                 engine.destroy();
                 callback.finished(outcome);
             };
-            main.postAtTime(() -> once.finished(Outcome.RETRY), engine,
+            main.postAtTime(() -> {
+                    if (!finished[0]) recordRetry(app, reason, "headless_timeout");
+                    once.finished(Outcome.RETRY);
+                }, engine,
                 android.os.SystemClock.uptimeMillis() + HEADLESS_TIMEOUT_MS);
             MethodChannel channel = new MethodChannel(engine.getDartExecutor().getBinaryMessenger(), CHANNEL);
             channel.setMethodCallHandler((call, result) -> {
@@ -242,25 +275,29 @@ public final class AgendaBackground {
                     return;
                 }
                 result.success(null);
-                channel.invokeMethod("run", reason, resultTo(once));
+                channel.invokeMethod("run", reason, resultTo(app, reason, once));
             });
             engine.getDartExecutor().executeDartEntrypoint(
                 new DartExecutor.DartEntrypoint(loader.findAppBundlePath(), "agendaBackgroundMain"));
         });
     }
 
-    private static MethodChannel.Result resultTo(Callback callback) {
+    private static MethodChannel.Result resultTo(Context context, String reason, Callback callback) {
         return new MethodChannel.Result() {
             @Override public void success(Object value) {
-                callback.finished(parse(value));
+                Outcome outcome = parse(value);
+                if (outcome == Outcome.RETRY) recordRetry(context, reason, cause(value));
+                callback.finished(outcome);
             }
 
             @Override public void error(String code, String message, Object details) {
+                recordRetry(context, reason, "channel_error");
                 callback.finished(Outcome.RETRY);
             }
 
             @Override public void notImplemented() {
                 // The app is up but not signed in to sync yet.
+                recordRetry(context, reason, "app_not_attached");
                 callback.finished(Outcome.RETRY);
             }
         };
@@ -270,5 +307,38 @@ public final class AgendaBackground {
         if ("done".equals(value)) return Outcome.DONE;
         if ("stop".equals(value)) return Outcome.STOP;
         return Outcome.RETRY;
+    }
+
+    /**
+     * Content-free cause of a retry, as sent by Dart ("retry:mirror_no_access")
+     * or added here; anything unexpected is reduced to a fixed word.
+     */
+    static String cause(Object value) {
+        if (!(value instanceof String)) return value == null ? "null_result" : "unexpected_result";
+        String text = (String) value;
+        if (!text.startsWith("retry:")) return "retry".equals(text) ? "unspecified" : "unexpected_result";
+        String detail = text.substring("retry:".length());
+        return detail.matches("[A-Za-z0-9_]{1,64}") ? detail : "unexpected_result";
+    }
+
+    /** Last retry causes for the debug provider: counts per cause, no content. */
+    static void recordRetry(Context context, String reason, String cause) {
+        SharedPreferences prefs = prefs(context);
+        String key = "cause_count:" + cause;
+        prefs.edit()
+            .putString("last_retry_cause", cause)
+            .putString("last_retry_reason", reason)
+            .putLong("last_retry_at", System.currentTimeMillis())
+            .putInt(key, prefs.getInt(key, 0) + 1)
+            .apply();
+    }
+
+    static void recordJoined(Context context) {
+        SharedPreferences prefs = prefs(context);
+        prefs.edit().putInt("joined_runs", prefs.getInt("joined_runs", 0) + 1).apply();
+    }
+
+    static SharedPreferences debugPrefs(Context context) {
+        return prefs(context);
     }
 }
