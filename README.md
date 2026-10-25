@@ -6,30 +6,16 @@ usano la stessa interfaccia dal browser.
 
 Distribuito con licenza [MIT](LICENSE).
 
-Passi: dalla build 190 Android conserva solo il conteggio quotidiano dei passi
-del telefono; GPS, Amazfit, Health Connect e diagnostica Movimento sono
+Passi: Android conserva solo il conteggio quotidiano dei passi del telefono;
+GPS, Amazfit, Health Connect e diagnostica Movimento sono
 [archiviati](docs/archive/MOVIMENTO.md) per ridurre peso e consumo di batteria.
 
-Dalla build 172 la sincronizzazione applica solo i campi modificati e impedisce
-che il cambio di giorno ripubblichi copie vecchie. **Impostazioni → Dati e
-manutenzione → Storico attività** conserva 90 giorni di revisioni locali,
-consultabili, esportabili e ripristinabili per singola attività. Architettura,
-privacy e limiti: [sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md).
-
-La build 179 corregge una scansione remota incompleta causata dall'ordinamento
-delle pagine e rende osservabili pagine, righe e conflitti. Diagnosi, test e
-limiti: [paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md).
-Disponibilità effettiva Android/Web: [STATUS](STATUS.md).
-
-La build 189 fa dipendere la pianificazione dalla sola data, definisce le viste
-una sola volta in SQLite, rimuove `due_date` e il riconoscimento dell'Inbox per
-nome: un vecchio progetto "Inbox" si converte con **Azioni progetto → Sposta in
-Inbox**. Dettagli: [pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md).
-
-La build 180 corregge il ripristino di attività dopo un invio incerto: la scelta
-fatta nello storico supera gli intenti precedenti e conserva le modifiche
-successive. Cronologia e ricevute restano protette; dettagli nel
-[contratto di sincronizzazione](docs/architecture/TODO_SYNC_AND_HISTORY.md).
+Contratti del comportamento corrente:
+[sincronizzazione e storico](docs/architecture/TODO_SYNC_AND_HISTORY.md),
+[paginazione sync](docs/architecture/TODO_SYNC_PAGINATION.md),
+[pianificazione e viste](docs/architecture/TODO_PLANNING_MODEL.md). Le tappe
+per build sono in [tappe di comportamento](docs/architecture/BUILD_MILESTONES.md);
+la disponibilità effettiva Android/Web è in [STATUS](STATUS.md).
 
 ## Piattaforme
 
@@ -396,23 +382,13 @@ Contratto, migrazione server e collaudo sintetico: [Todo UX hardening](docs/arch
 
 Backup e gestione delle richieste: [contratto Todo](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md).
 
-La sincronizzazione dalla build 177 confronta impronte delle versioni prima di
-scaricare le attività; protocollo, compatibilità e recovery sono descritti in
-[sincronizzazione compatta](docs/architecture/TODO_SYNC_PERFORMANCE.md).
-
-Dalla build 178 un controllo unificato evita le richieste delle tabelle invariate;
-SQLite 10 conserva le impronte con invalidazione transazionale. Stato e collaudi
-sono in [STATUS](STATUS.md).
+Sincronizzazione compatta con impronte e controllo unificato:
+[protocollo, compatibilità e recovery](docs/architecture/TODO_SYNC_PERFORMANCE.md).
 
 ### Avvio e caricamento
 
-Dalla build 260 le attività locali sono disponibili prima dell’inizializzazione
-della sincronizzazione; un errore remoto permette di riprovare senza chiudere
-l’app. La ricerca eventi accorpa la digitazione e il calendario riusa gli
-intervalli non modificati tramite notifiche del provider Android. Dettagli e
-limiti in [avvio e caricamento](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md).
-
-Dalla build 261 anche le viste Calendario limitano le pagine conservate in
-memoria; le operazioni dopo l'avvio procedono indipendentemente. Il comando
-`make benchmark-backup` misura la preparazione su sole fixture sintetiche:
-[metodo e limiti](docs/diagnostics/2026-10-13-backup-preparation.md).
+Le attività locali sono disponibili prima della sincronizzazione e le viste
+Calendario limitano le pagine in memoria:
+[avvio e caricamento](docs/architecture/STARTUP_AND_CALENDAR_LOADING.md).
+`make benchmark-backup` misura la preparazione su sole fixture sintetiche
+([metodo e limiti](docs/diagnostics/2026-10-13-backup-preparation.md)).

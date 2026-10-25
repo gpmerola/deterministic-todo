@@ -9,6 +9,9 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
 - [Prossime attività](../TODO_NEXT.md): checklist operativa ordinata per priorità.
 - [Handoff tecnico](HANDOFF.md): contesto necessario per riprendere il lavoro.
 - [Changelog](../CHANGELOG.md): comportamento distribuito per versione.
+- Archivi mensili di [stato](archive/status/2026-10.md) e
+  [changelog](archive/changelog/2026-10.md): esiti e versioni precedenti,
+  storici e non fonte dello stato corrente.
 
 ## Architettura
 
@@ -16,6 +19,8 @@ Questo indice instrada verso la fonte autorevole senza duplicarne lo stato.
   sincronizzazione, confini e invarianti.
 - [Assistente AI](architecture/AI_ASSISTANT.md): chiave API nel Keystore,
   verifica senza contenuti, regole per le funzioni future.
+- [Tappe di comportamento per build](architecture/BUILD_MILESTONES.md):
+  paragrafi storici spostati dal README.
 - [Agenda unificata](architecture/AGENDA.md): calendari di sistema Android
   in sola lettura, duplicati, link riunioni, privacy.
 - [Movimento archiviato](archive/MOVIMENTO.md): cosa resta del modulo Android

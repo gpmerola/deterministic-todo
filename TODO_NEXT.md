@@ -2,7 +2,8 @@
 
 Solo voci **aperte**; riordinato il 17 ottobre 2026. Esiti in
 [STATUS](STATUS.md), storia in
-[CHANGELOG](CHANGELOG.md) e nella cronologia git di questo file. Leggere insieme
+[CHANGELOG](CHANGELOG.md) (versioni vecchie negli archivi mensili in
+`docs/archive/`) e nella cronologia git di questo file. Leggere insieme
 ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
 ## Da fare con l'utente
@@ -81,9 +82,8 @@ polling, timer o dipendenze senza una misura che li giustifichi.
 ## Stato corrente
 
 - Repository sorgente `gpmerola/deterministic-todo`; release Android
-  `gpmerola/deterministic-todo-releases`. Ultima stabile 2.99.1 / 279 (17 ottobre 2026);
-  branch operativo `agent/maintenance-perf` (build 279 su Todo Test,
-  [PR #4](https://github.com/gpmerola/deterministic-todo/pull/4)).
+  `gpmerola/deterministic-todo-releases`. Versioni e ultima stabile:
+  [STATUS](STATUS.md) (non duplicarle qui).
 - Galaxy S21 (`arm64-v8a`): **Todo Test** (`.dev`) è il solo client operativo;
   la build Play 121 resta installata ma `disabled-user`. Runbook:
   [ANDROID_DEV_CHANNEL](docs/operations/ANDROID_DEV_CHANNEL.md).
