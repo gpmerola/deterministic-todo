@@ -4,11 +4,13 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2312
+- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2313
   (branch `agent/semble-fallback`): Semble senza chiave.
 - 30 ottobre 2026: Semble rifiuta la chiave API in uso (verificato da
-  Impostazioni → Semble su Todo Test). In attesa di una chiave nuova; la
-  build 312 tiene ultime letture e link iCal come riserva.
+  Impostazioni → Semble su Todo Test). In attesa di una chiave nuova; dalla
+  build 313 senza API le visite vengono dal calendario Google «Semble»
+  (script Apps Script, ogni 30 minuti) o dal link iCal, le disponibilità
+  dall'ultima lettura.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).

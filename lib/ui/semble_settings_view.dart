@@ -411,8 +411,9 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         'Se la chiave manca o Semble la rifiuta, le visite '
                         'arrivano dal link iCal del tuo calendario Semble '
                         '(lo stesso che alimenta il calendario Google), '
-                        'senza aspettare Google. Disponibilità e visite '
-                        'già lette restano comunque nel Calendario, con '
+                        'senza aspettare Google. Senza link le visite '
+                        'restano quelle del calendario Google «Semble»; le '
+                        'disponibilità già lette restano nel Calendario, con '
                         'la data dell\'ultima lettura.',
                         style: theme.textTheme.bodySmall,
                       ),
@@ -472,7 +473,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         'nel Calendario prima che arrivino dal calendario '
                         'Google alimentato da Semble. Con il link iCal legge '
                         'del feed solo orario, titolo e annullamento. Chiave, '
-                        'link e ultime letture restano cifrati su questo '
+                        'link e ultime disponibilità lette restano cifrati su questo '
                         'telefono: non vanno nei backup, nei log né su '
                         'Supabase.',
                         style: theme.textTheme.bodySmall,
@@ -524,8 +525,14 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
         parts.add(
           '$count visite dal link iCal, lette alle ${time.format(bookingsAt)}',
         );
-      case SembleBookingsSource.saved when bookingsAt != null:
-        parts.add('$count visite salvate il ${when(bookingsAt)}');
+      case SembleBookingsSource.google:
+        parts.add(
+          layer.googleCalendarVisible == false
+              ? 'Calendario Google «Semble» assente o nascosto: le visite '
+                    'non compaiono'
+              : 'visite dal calendario Google «Semble» (aggiornato ogni 30 '
+                    'minuti)',
+        );
       default:
     }
     if (layer.icalFailure case final failure?) {

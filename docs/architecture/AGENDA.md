@@ -4,20 +4,27 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
-## Semble senza chiave — build 312
+## Semble senza chiave — build 312, 313
 
 - **Fonti.** `SembleLayer.refresh` prova nell'ordine: API con la chiave
   (regole e, con il cognome, prenotazioni); per le prenotazioni il link
   iCal (`SembleIcalClient`, una GET senza `x-token`, `parseSembleIcal` in
-  `domain/semble_ical.dart`); infine le ultime letture salvate.
-  `bookingsSource` (`api`, `ical`, `saved`, `none`), `rulesFromCache`,
+  `domain/semble_ical.dart`); altrimenti nessuna prenotazione diretta
+  (`google`, build 313): restano gli eventi del calendario Google «Semble»,
+  che uno script Apps Script dell'utente riempie dal feed iCal ogni 30
+  minuti (verificato il 30 ottobre 2026: calendario di proprietà, eventi
+  senza UID del feed). Le regole invece vengono dall'ultima lettura salvata.
+  `bookingsSource` (`api`, `ical`, `google`, `none`),
+  `googleCalendarVisible` (dall'ultimo `adjustEntries`), `rulesFromCache`,
   `rulesSavedAt`, `bookingsSavedAt` e `icalFailure` alimentano Impostazioni
   → Semble.
 - **Dati salvati.** `SembleSettings` (Keystore, mai in backup, log o
   Supabase): `semble_rules_cache` ora con `savedAt` (facoltativo: le cache
-  precedenti restano leggibili), `semble_bookings_cache` (istanti di inizio
-  e fine, tipo, annullata) e `semble_ical_link`. `clear()` elimina chiave e
-  cache ma non il link, che è la riserva senza chiave.
+  precedenti restano leggibili) e `semble_ical_link`. `clear()` elimina
+  chiave e cache ma non il link, che è la riserva senza chiave.
+  `semble_bookings_cache`, scritto solo dalla build 312, viene eliminato al
+  primo `refresh` della 313: una prenotazione vecchia poteva mostrare una
+  visita annullata.
 - **iCal.** Solo `https` (`webcal` convertito). Tempi con `Z` sono istanti;
   con `TZID` o senza fuso sono ora di Londra (`londonWallClock`). Giornate
   intere ignorate, `STATUS:CANCELLED` diventa visita annullata, fine

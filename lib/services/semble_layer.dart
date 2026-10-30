@@ -18,17 +18,20 @@ enum SembleBookingsSource {
   /// Read now from the iCal link, without the key.
   ical,
 
-  /// The last ones read, kept on the phone: neither source answered.
-  saved,
+  /// Neither answered: the visits are only the Semble calendar in Google
+  /// (build 313).
+  google,
 
+  /// Not read: Semble is off, or the surname is missing.
   none,
 }
 
 /// The Calendar's Semble layer: rules for a window around today, kept in
 /// memory for the app session and reread on Calendar loads at most every
-/// [minAge] (pull-to-refresh forces it). From build 312 the last rules and
-/// bookings read are also kept in the Keystore and drawn when Semble cannot
-/// be read, and an iCal link brings bookings without the key.
+/// [minAge] (pull-to-refresh forces it). From build 312 the last rules read
+/// are drawn when Semble cannot be read, and an iCal link brings bookings
+/// without the key; otherwise the visits are those of the Semble calendar
+/// in Google (build 313).
 class SembleLayer extends ChangeNotifier {
   SembleLayer({
     SembleSettings? settings,
@@ -85,6 +88,13 @@ class SembleLayer extends ChangeNotifier {
 
   /// When the bookings drawn were read.
   DateTime? get bookingsSavedAt => _bookingsSavedAt;
+
+  /// Whether the last Calendar load found a visible Semble calendar
+  /// (build 313): without the API it is where the visits come from. Null
+  /// until a Calendar load.
+  bool? googleCalendarVisible;
+
+  bool _droppedSavedBookings = false;
   bool _enabled = false;
   bool _zoneMatches = true;
   Future<void>? _running;
@@ -114,6 +124,9 @@ class SembleLayer extends ChangeNotifier {
       for (final calendar in calendars)
         if (isSembleCalendar(calendar)) calendar.id,
     };
+    googleCalendarVisible = _sembleCalendarIds.any(
+      (id) => !hiddenCalendarIds.contains(id),
+    );
     final bookings = _bookings;
     if (!_enabled || bookings.isEmpty) return null;
     return (merged) => sembleAdjustEntries(
@@ -218,6 +231,14 @@ class SembleLayer extends ChangeNotifier {
     DateTime Function() now,
   ) async {
     final config = await _settings.read();
+    if (!_droppedSavedBookings) {
+      _droppedSavedBookings = true;
+      try {
+        await _settings.deleteSavedBookings();
+      } on Object {
+        // Retried by the next app session.
+      }
+    }
     _ignored = await _settings.ignoredOverlaps();
     final key = config.ready && config.enabled
         ? await _settings.apiKey()
@@ -300,9 +321,9 @@ class SembleLayer extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Bookings from the API, else from the iCal link, else the last ones
-  /// saved on the phone (build 312). A visit shown twice is avoided by
-  /// [sembleAdjustEntries]; a visit missing is what this avoids.
+  /// Bookings from the API, else from the iCal link (build 312), else none:
+  /// the Semble calendar in Google still shows the visits (build 313). A
+  /// visit shown twice is avoided by [sembleAdjustEntries].
   Future<void> _refreshBookings(
     SembleConfig config,
     String? key,
@@ -323,7 +344,6 @@ class SembleLayer extends ChangeNotifier {
         );
         source = SembleBookingsSource.api;
       } on SembleException catch (error) {
-        // Old bookings stay until the next read; iCal still brings them.
         failure ??= error.failure;
       }
     }
@@ -343,36 +363,16 @@ class SembleLayer extends ChangeNotifier {
       _setBookings(read);
       bookingsSource = source;
       _bookingsSavedAt = now();
-      try {
-        await _settings.saveBookings(read, now());
-      } on Object {
-        // The next outage shows older bookings, or none.
-      }
       return;
     }
-    if (key != null && doctor == null && link == null) {
-      // As before build 312: without the surname no bookings are read.
-      _setBookings(const []);
-      bookingsSource = SembleBookingsSource.none;
-      return;
-    }
-    if (bookingsSource == SembleBookingsSource.none ||
-        bookingsSource == SembleBookingsSource.saved) {
-      final cache = await _settings.cachedBookings();
-      if (cache != null) {
-        final from = today.addDays(-1).asLocalDate;
-        _setBookings([
-          for (final booking in cache.bookings)
-            if (booking.end!.isAfter(from)) booking,
-        ]);
-        _bookingsSavedAt = cache.savedAt;
-        bookingsSource = SembleBookingsSource.saved;
-        return;
-      }
-    } else {
-      // Read earlier in this session: kept, now as saved bookings.
-      bookingsSource = SembleBookingsSource.saved;
-    }
+    // Build 313: without the API or the link the Semble calendar in Google
+    // (filled by the user's script every 30 minutes) is the only source of
+    // visits; older bookings would show visits cancelled since then.
+    _setBookings(const []);
+    _bookingsSavedAt = null;
+    bookingsSource = key != null && doctor == null && link == null
+        ? SembleBookingsSource.none
+        : SembleBookingsSource.google;
   }
 
   void _setBookings(List<SembleBooking> bookings) {

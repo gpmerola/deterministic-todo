@@ -2,12 +2,24 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.122.1 (build 313) — Senza API, le visite dal calendario Google Semble
+
+- Se l'API Semble non risponde e non c'è il link iCal, le visite sono solo
+  quelle del calendario Google «Semble», che lo script aggiorna dal feed
+  iCal ogni 30 minuti. Le visite salvate sul telefono dalla build 312 non
+  vengono più mostrate, perché potevano essere state annullate nel
+  frattempo, e sono eliminate al primo avvio.
+- Impostazioni → Semble indica da dove arrivano le visite e avvisa se il
+  calendario Google «Semble» manca o è nascosto.
+- Le disponibilità restano quelle dell'ultima lettura: il calendario Google
+  non le contiene.
+
 ## 2.122.0 (build 312) — Semble anche senza chiave
 
 - Se la chiave API Semble manca o viene rifiutata, il Calendario continua a
   mostrare le ultime disponibilità lette (fasce verdi, bordo ambra e avvisi)
-  e le ultime visite lette, ora salvate cifrate sul telefono. Impostazioni →
-  Semble indica da quando sono vecchie.
+  e le ultime visite lette, ora salvate cifrate sul telefono (visite tolte
+  nella build 313). Impostazioni → Semble indica da quando sono vecchie.
 - Nuova sezione **Riserva senza chiave** in Impostazioni → Semble: si incolla
   il link iCal del proprio calendario Semble (https:// o webcal://). Quando
   la chiave non funziona le visite delle prossime 4 settimane arrivano da

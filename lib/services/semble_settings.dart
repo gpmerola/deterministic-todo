@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../domain/semble_availability.dart';
-import '../domain/semble_bookings.dart';
 import '../domain/semble_ical.dart';
 import '../domain/task.dart';
 
@@ -216,55 +215,9 @@ class SembleSettings {
 
   Future<void> deleteIcalLink() => _storage.delete(key: _icalLink);
 
-  /// The last bookings read (build 312), shown when neither Semble nor the
-  /// iCal link answer: start, end, type and cancellation only, as instants.
-  Future<void> saveBookings(List<SembleBooking> bookings, DateTime savedAt) =>
-      _storage.write(
-        key: _bookingsCache,
-        value: jsonEncode({
-          'savedAt': savedAt.toUtc().toIso8601String(),
-          'bookings': [
-            for (final booking in bookings)
-              if (booking.end case final end?)
-                {
-                  'start': booking.start.millisecondsSinceEpoch,
-                  'end': end.millisecondsSinceEpoch,
-                  'deleted': booking.deleted,
-                  'type': ?booking.appointmentTitle,
-                },
-          ],
-        }),
-      );
-
-  Future<({List<SembleBooking> bookings, DateTime savedAt})?>
-  cachedBookings() async {
-    try {
-      final raw = await _storage.read(key: _bookingsCache);
-      if (raw == null) return null;
-      final json = jsonDecode(raw) as Map<String, Object?>;
-      final savedAt = DateTime.tryParse('${json['savedAt']}')?.toLocal();
-      if (savedAt == null) return null;
-      return (
-        bookings: [
-          for (final item in (json['bookings'] as List<Object?>? ?? const []))
-            if (item case {
-              'start': final int start,
-              'end': final int end,
-              'deleted': final bool deleted,
-            })
-              SembleBooking(
-                start: DateTime.fromMillisecondsSinceEpoch(start),
-                end: DateTime.fromMillisecondsSinceEpoch(end),
-                deleted: deleted,
-                appointmentTitle: item['type'] as String?,
-              ),
-        ],
-        savedAt: savedAt,
-      );
-    } on Object {
-      return null;
-    }
-  }
+  /// Build 312 saved the last bookings; build 313 shows the Google copy
+  /// instead and drops them.
+  Future<void> deleteSavedBookings() => _storage.delete(key: _bookingsCache);
 
   Future<void> clear() async {
     await _storage.delete(key: _apiKey);
@@ -276,6 +229,6 @@ class SembleSettings {
     await _storage.delete(key: _conflictAlerts);
     await _storage.delete(key: _ignoredOverlaps);
     // The iCal link stays: it is the fallback without a key (build 312).
-    await _storage.delete(key: _bookingsCache);
+    await deleteSavedBookings();
   }
 }

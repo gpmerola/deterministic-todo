@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:deterministic_todo/domain/agenda.dart';
 import 'package:deterministic_todo/domain/semble_availability.dart';
 import 'package:deterministic_todo/domain/semble_bookings.dart';
 import 'package:deterministic_todo/domain/semble_ical.dart';
@@ -263,10 +264,11 @@ void main() {
       expect(cold.rulesSavedAt, readAt);
       expect(cold.bandsFor(thu29), hasLength(1));
       expect(cold.canBlock, isFalse);
-      // Without a link: the bookings saved by the good read.
-      expect(cold.bookingsSource, SembleBookingsSource.saved);
-      expect(cold.bookingCount, 1);
-      expect(cold.bookingsSavedAt, readAt);
+      // Without a link the visits are the Google copy only: no old
+      // booking that may have been cancelled since.
+      expect(cold.bookingsSource, SembleBookingsSource.google);
+      expect(cold.bookingCount, 0);
+      expect(cold.bookingsSavedAt, isNull);
       expect(api, 1, reason: 'una sola richiesta: niente prenotazioni');
 
       // A refused key is not asked again on every Calendar load.
@@ -280,18 +282,31 @@ void main() {
       expect(cold.bookingCount, 2);
       expect(cold.bandsFor(thu29), hasLength(1));
 
-      // Link down too: the iCal bookings stay, marked as saved.
+      // Link down too: back to the Google copy.
       linkWorks = false;
       await cold.refresh(today: thu29, force: true, now: () => now);
       expect(cold.icalFailure, SembleIcalFailure.unreachable);
-      expect(cold.bookingsSource, SembleBookingsSource.saved);
-      expect(cold.bookingCount, 2);
+      expect(cold.bookingsSource, SembleBookingsSource.google);
+      expect(cold.bookingCount, 0);
+    });
 
-      // A new app session reads them back from the phone.
-      final again = layer();
-      await again.refresh(today: thu29, now: () => now);
-      expect(again.bookingsSource, SembleBookingsSource.saved);
-      expect(again.bookingCount, 2);
+    test('le visite salvate dalla build 312 vengono eliminate', () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'semble_bookings_cache': '{"savedAt":"2026-10-29T08:00:00Z"}',
+      });
+      const storage = FlutterSecureStorage();
+      final settings = SembleSettings();
+      await settings.save(key: 'k', userId: 'user1');
+      final layer = SembleLayer(
+        zoneShift: (_) => 0,
+        settings: settings,
+        client: SembleClient(
+          client: MockClient((_) async => http.Response('', 401)),
+        ),
+      );
+      await layer.refresh(today: thu29);
+      expect(await storage.read(key: 'semble_bookings_cache'), isNull);
+      expect(layer.bookingsSource, SembleBookingsSource.google);
     });
 
     test('solo link, senza chiave: visite e nessuna chiamata API', () async {
@@ -343,7 +358,6 @@ void main() {
       await settings.clear();
       expect(await settings.icalLink(), link);
       expect(await settings.cachedRules(), isNull);
-      expect(await settings.cachedBookings(), isNull);
       expect(
         () => settings.saveIcalLink('http://example.test/a.ics'),
         throwsFormatException,
@@ -416,6 +430,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('rifiutato la chiave'), findsOne);
+    expect(find.textContaining('dal calendario Google «Semble»'), findsOne);
+    const calendars = [
+      AgendaCalendar(id: 'semble', name: 'Semble', accountName: ''),
+    ];
+    layer.adjustEntries(calendars, const {'semble'});
+    expect(layer.googleCalendarVisible, isFalse);
+    layer.adjustEntries(calendars, const {});
+    expect(layer.googleCalendarVisible, isTrue);
     // Opened by itself, since the key is refused and no link is saved.
     await tester.enterText(
       find.byKey(const ValueKey('semble-ical-input')),
