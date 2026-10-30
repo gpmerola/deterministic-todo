@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../domain/semble_availability.dart';
+import '../domain/semble_bookings.dart';
+import '../domain/semble_ical.dart';
 import '../domain/task.dart';
 
 final class SembleConfig {
@@ -57,6 +59,8 @@ class SembleSettings {
   static const _rulesCache = 'semble_rules_cache';
   static const _conflictAlerts = 'semble_conflict_alerts';
   static const _ignoredOverlaps = 'semble_ignored_overlaps';
+  static const _icalLink = 'semble_ical_link';
+  static const _bookingsCache = 'semble_bookings_cache';
 
   final FlutterSecureStorage _storage;
 
@@ -143,21 +147,32 @@ class SembleSettings {
       _storage.write(key: _ignoredOverlaps, value: jsonEncode(ignored));
 
   /// Rules last read and their window, for the background conflict check:
-  /// it never calls Semble (build 304). Dates and times only.
+  /// it never calls Semble (build 304). Dates and times only. From build
+  /// 312 also the Calendar's fallback when Semble cannot be read, with the
+  /// moment of the read ([savedAt]).
   Future<void> saveRules(
     List<SembleRule> rules,
     CivilDate first,
-    CivilDate last,
-  ) => _storage.write(
+    CivilDate last, {
+    DateTime? savedAt,
+  }) => _storage.write(
     key: _rulesCache,
     value: jsonEncode({
       'first': '$first',
       'last': '$last',
+      'savedAt': ?savedAt?.toUtc().toIso8601String(),
       'rules': [for (final rule in rules) rule.toJson()],
     }),
   );
 
-  Future<({List<SembleRule> rules, CivilDate first, CivilDate last})?>
+  Future<
+    ({
+      List<SembleRule> rules,
+      CivilDate first,
+      CivilDate last,
+      DateTime? savedAt,
+    })?
+  >
   cachedRules() async {
     try {
       final raw = await _storage.read(key: _rulesCache);
@@ -173,6 +188,78 @@ class SembleSettings {
         ],
         first: first,
         last: last,
+        savedAt: switch (json['savedAt']) {
+          final String at => DateTime.tryParse(at)?.toLocal(),
+          _ => null,
+        },
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  /// The user's Semble iCal link (build 312): read without the API key
+  /// when the key is missing or refused. Kept in the Keystore like the key,
+  /// since anyone with it can read the visits.
+  Future<String?> icalLink() async {
+    final link = await _storage.read(key: _icalLink);
+    return link == null || link.trim().isEmpty ? null : link.trim();
+  }
+
+  Future<void> saveIcalLink(String link) {
+    final trimmed = link.trim();
+    if (sembleIcalUri(trimmed) == null) {
+      throw const FormatException('Link iCal non valido');
+    }
+    return _storage.write(key: _icalLink, value: trimmed);
+  }
+
+  Future<void> deleteIcalLink() => _storage.delete(key: _icalLink);
+
+  /// The last bookings read (build 312), shown when neither Semble nor the
+  /// iCal link answer: start, end, type and cancellation only, as instants.
+  Future<void> saveBookings(List<SembleBooking> bookings, DateTime savedAt) =>
+      _storage.write(
+        key: _bookingsCache,
+        value: jsonEncode({
+          'savedAt': savedAt.toUtc().toIso8601String(),
+          'bookings': [
+            for (final booking in bookings)
+              if (booking.end case final end?)
+                {
+                  'start': booking.start.millisecondsSinceEpoch,
+                  'end': end.millisecondsSinceEpoch,
+                  'deleted': booking.deleted,
+                  'type': ?booking.appointmentTitle,
+                },
+          ],
+        }),
+      );
+
+  Future<({List<SembleBooking> bookings, DateTime savedAt})?>
+  cachedBookings() async {
+    try {
+      final raw = await _storage.read(key: _bookingsCache);
+      if (raw == null) return null;
+      final json = jsonDecode(raw) as Map<String, Object?>;
+      final savedAt = DateTime.tryParse('${json['savedAt']}')?.toLocal();
+      if (savedAt == null) return null;
+      return (
+        bookings: [
+          for (final item in (json['bookings'] as List<Object?>? ?? const []))
+            if (item case {
+              'start': final int start,
+              'end': final int end,
+              'deleted': final bool deleted,
+            })
+              SembleBooking(
+                start: DateTime.fromMillisecondsSinceEpoch(start),
+                end: DateTime.fromMillisecondsSinceEpoch(end),
+                deleted: deleted,
+                appointmentTitle: item['type'] as String?,
+              ),
+        ],
+        savedAt: savedAt,
       );
     } on Object {
       return null;
@@ -188,5 +275,7 @@ class SembleSettings {
     await _storage.delete(key: _rulesCache);
     await _storage.delete(key: _conflictAlerts);
     await _storage.delete(key: _ignoredOverlaps);
+    // The iCal link stays: it is the fallback without a key (build 312).
+    await _storage.delete(key: _bookingsCache);
   }
 }

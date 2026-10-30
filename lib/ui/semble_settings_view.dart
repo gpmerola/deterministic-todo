@@ -30,12 +30,16 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
   final userInput = TextEditingController();
   final nameInput = TextEditingController();
   final roomInput = TextEditingController();
+  final icalInput = TextEditingController();
   late final SembleClient client = widget.client ?? SembleClient();
   SembleConfig? config;
   bool busy = false;
   bool obscured = true;
   bool alerts = true;
   String? status;
+
+  /// The iCal link is saved (build 312); the link itself is not shown.
+  bool hasLink = false;
 
   CivilDate get _today => CivilDate.fromDateTime(widget.now());
 
@@ -51,16 +55,19 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     userInput.dispose();
     nameInput.dispose();
     roomInput.dispose();
+    icalInput.dispose();
     super.dispose();
   }
 
   Future<void> _reload() async {
     final next = await widget.settings.read();
     final notify = await widget.settings.conflictAlerts();
+    final link = await widget.settings.icalLink();
     if (!mounted) return;
     setState(() {
       config = next;
       alerts = notify;
+      hasLink = link != null;
       if (userInput.text.isEmpty) userInput.text = next.userId ?? '';
       if (nameInput.text.isEmpty) nameInput.text = next.doctorName ?? '';
       if (roomInput.text.isEmpty) roomInput.text = next.roomId ?? '';
@@ -138,6 +145,49 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     });
   }
 
+  /// Saves the iCal link and reads it at once (build 312).
+  Future<void> _saveLink() async {
+    final typed = icalInput.text.trim();
+    if (sembleIcalUri(typed) == null) {
+      setState(
+        () => status = const SembleIcalException(
+          SembleIcalFailure.invalid,
+        ).message,
+      );
+      return;
+    }
+    setState(() {
+      busy = true;
+      status = null;
+    });
+    await widget.settings.saveIcalLink(typed);
+    icalInput.clear();
+    await _reload();
+    await widget.layer.reset(today: _today);
+    if (!mounted) return;
+    final failure = widget.layer.icalFailure;
+    setState(() {
+      busy = false;
+      status = switch (failure) {
+        final failure? =>
+          'Link salvato, ma la lettura non è riuscita: '
+              '${SembleIcalException(failure).message}',
+        null when widget.layer.bookingsSource == SembleBookingsSource.ical =>
+          'Link salvato. Lette ${widget.layer.bookingCount} visite delle '
+              'prossime 4 settimane.',
+        // The key works: the link stays ready for when it stops.
+        null => 'Link salvato: sarà usato se la chiave smette di funzionare.',
+      };
+    });
+  }
+
+  Future<void> _deleteLink() async {
+    await widget.settings.deleteIcalLink();
+    await _reload();
+    await widget.layer.reset(today: _today);
+    if (mounted) setState(() => status = 'Link iCal eliminato.');
+  }
+
   Future<void> _setEnabled(bool enabled) async {
     await widget.settings.setEnabled(enabled);
     await widget.layer.reset(today: _today);
@@ -192,31 +242,38 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                 children: [
                   // Build 306: state first, then what it does in the
                   // Calendar, then the connection, folded once it works.
-                  if (current.maskedKey != null)
+                  if (current.maskedKey != null || hasLink)
                     ListTile(
                       key: const ValueKey('semble-current-key'),
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.key),
-                      title: Text('Chiave ${current.maskedKey}'),
+                      title: Text(
+                        current.maskedKey != null
+                            ? 'Chiave ${current.maskedKey}'
+                            : 'Senza chiave: solo link iCal',
+                      ),
                       subtitle: Text(_summary()),
                       trailing: Wrap(
                         children: [
                           IconButton(
                             key: const ValueKey('semble-refresh'),
                             tooltip: 'Rileggi da Semble',
-                            onPressed: busy || !current.ready ? null : _refresh,
+                            onPressed: busy || !(current.ready || hasLink)
+                                ? null
+                                : _refresh,
                             icon: const Icon(Icons.refresh),
                           ),
-                          IconButton(
-                            key: const ValueKey('semble-clear'),
-                            tooltip: 'Elimina chiave',
-                            onPressed: busy ? null : _clear,
-                            icon: const Icon(Icons.delete_outline),
-                          ),
+                          if (current.maskedKey != null)
+                            IconButton(
+                              key: const ValueKey('semble-clear'),
+                              tooltip: 'Elimina chiave',
+                              onPressed: busy ? null : _clear,
+                              icon: const Icon(Icons.delete_outline),
+                            ),
                         ],
                       ),
                     ),
-                  if (current.ready) ...[
+                  if (current.ready || hasLink) ...[
                     _heading(theme, 'Nel Calendario'),
                     SwitchListTile(
                       key: const ValueKey('semble-enabled'),
@@ -336,6 +393,62 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                       ),
                     ],
                   ),
+                  ExpansionTile(
+                    key: const ValueKey('semble-ical'),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    initiallyExpanded:
+                        !hasLink &&
+                        widget.layer.failure == SembleFailure.rejected,
+                    title: const Text('Riserva senza chiave'),
+                    subtitle: Text(
+                      hasLink
+                          ? 'Link iCal salvato'
+                          : 'Link iCal di Semble, per le visite',
+                    ),
+                    children: [
+                      Text(
+                        'Se la chiave manca o Semble la rifiuta, le visite '
+                        'arrivano dal link iCal del tuo calendario Semble '
+                        '(lo stesso che alimenta il calendario Google), '
+                        'senza aspettare Google. Disponibilità e visite '
+                        'già lette restano comunque nel Calendario, con '
+                        'la data dell\'ultima lettura.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const ValueKey('semble-ical-input'),
+                        controller: icalInput,
+                        obscureText: true,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        keyboardType: TextInputType.url,
+                        decoration: InputDecoration(
+                          labelText: hasLink
+                              ? 'Nuovo link iCal (facoltativo)'
+                              : 'Link iCal (https:// o webcal://)',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilledButton(
+                            key: const ValueKey('semble-ical-save'),
+                            onPressed: busy ? null : _saveLink,
+                            child: const Text('Salva link'),
+                          ),
+                          if (hasLink)
+                            TextButton(
+                              key: const ValueKey('semble-ical-delete'),
+                              onPressed: busy ? null : _deleteLink,
+                              child: const Text('Elimina link'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                   if (status != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
@@ -357,8 +470,10 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         'disponibile, tipo Other) o il suo «Annulla». Con il '
                         'cognome impostato le tue prenotazioni nuove compaiono '
                         'nel Calendario prima che arrivino dal calendario '
-                        'Google alimentato da Semble. La chiave resta cifrata '
-                        'su questo telefono: non va nei backup, nei log né su '
+                        'Google alimentato da Semble. Con il link iCal legge '
+                        'del feed solo orario, titolo e annullamento. Chiave, '
+                        'link e ultime letture restano cifrati su questo '
+                        'telefono: non vanno nei backup, nei log né su '
                         'Supabase.',
                         style: theme.textTheme.bodySmall,
                       ),
@@ -382,22 +497,41 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
 
   String _summary() {
     final layer = widget.layer;
-    final fetched = layer.fetchedAt;
-    if (layer.failure case final failure?) {
-      return SembleException(failure).message;
-    }
-    if (fetched == null || layer.first == null || layer.last == null) {
-      return 'Non ancora letta';
-    }
     final day = DateFormat('d MMM', 'it');
-    final bookings = layer.bookingCount > 0
-        ? ' · ${layer.bookingCount} prenotazioni tue nelle prossime 4 '
-              'settimane'
-        : '';
-    return '${layer.ruleCount} regole, dal '
-        '${day.format(layer.first!.asLocalDate)} al '
-        '${day.format(layer.last!.asLocalDate)} · lette alle '
-        '${DateFormat.Hm('it').format(fetched)}$bookings';
+    final time = DateFormat.Hm('it');
+    String when(DateTime at) => '${day.format(at)} alle ${time.format(at)}';
+    final parts = <String>[
+      if (layer.failure case final failure? when failure != SembleFailure.noKey)
+        SembleException(failure).message,
+    ];
+    if (layer.first case final first? when layer.last != null) {
+      final rules =
+          '${layer.ruleCount} regole, dal ${day.format(first.asLocalDate)} '
+          'al ${day.format(layer.last!.asLocalDate)}';
+      final saved = layer.rulesSavedAt;
+      parts.add(switch ((layer.rulesFromCache, saved)) {
+        (false, final at?) => '$rules · lette alle ${time.format(at)}',
+        (true, final at?) => '$rules · ultima lettura il ${when(at)}',
+        _ => '$rules · da una lettura precedente',
+      });
+    }
+    final count = layer.bookingCount;
+    final bookingsAt = layer.bookingsSavedAt;
+    switch (layer.bookingsSource) {
+      case SembleBookingsSource.api when count > 0:
+        parts.add('$count prenotazioni tue nelle prossime 4 settimane');
+      case SembleBookingsSource.ical when bookingsAt != null:
+        parts.add(
+          '$count visite dal link iCal, lette alle ${time.format(bookingsAt)}',
+        );
+      case SembleBookingsSource.saved when bookingsAt != null:
+        parts.add('$count visite salvate il ${when(bookingsAt)}');
+      default:
+    }
+    if (layer.icalFailure case final failure?) {
+      parts.add(SembleIcalException(failure).message);
+    }
+    return parts.isEmpty ? 'Non ancora letta' : parts.join(' · ');
   }
 
   Widget _legend(ThemeData theme) {

@@ -41,6 +41,11 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   Impostazioni riordinate. Build 307: bordo ambra sull'invito Teams del
   4 novembre e «Togli il bordo ambra» su un evento.
 
+- [ ] Build 312: incollare il link iCal di Semble in Impostazioni → Semble →
+  «Riserva senza chiave» e confrontare le visite delle prossime settimane
+  con Semble; all'arrivo della chiave nuova incollarla in Collegamento e
+  verificare che la sorgente torni l'API.
+
 ## Osservazioni passive
 
 Nessuna azione finché non emerge un problema.

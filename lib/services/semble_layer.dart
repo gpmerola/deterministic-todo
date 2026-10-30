@@ -7,18 +7,37 @@ import '../domain/semble_availability.dart';
 import '../domain/semble_bookings.dart';
 import '../domain/task.dart';
 import 'semble_client.dart';
+import 'semble_ical_client.dart';
 import 'semble_settings.dart';
+
+/// Where the Calendar's Semble bookings come from (build 312).
+enum SembleBookingsSource {
+  /// Read now with the API key.
+  api,
+
+  /// Read now from the iCal link, without the key.
+  ical,
+
+  /// The last ones read, kept on the phone: neither source answered.
+  saved,
+
+  none,
+}
 
 /// The Calendar's Semble layer: rules for a window around today, kept in
 /// memory for the app session and reread on Calendar loads at most every
-/// [minAge] (pull-to-refresh forces it). Nothing is stored on disk.
+/// [minAge] (pull-to-refresh forces it). From build 312 the last rules and
+/// bookings read are also kept in the Keystore and drawn when Semble cannot
+/// be read, and an iCal link brings bookings without the key.
 class SembleLayer extends ChangeNotifier {
   SembleLayer({
     SembleSettings? settings,
     SembleClient? client,
+    SembleIcalClient? ical,
     this.zoneShift = sembleZoneShift,
   }) : _settings = settings ?? SembleSettings(),
-       _client = client ?? SembleClient();
+       _client = client ?? SembleClient(),
+       _ical = ical ?? SembleIcalClient();
 
   /// Minutes from London to the phone's zone on a day; tests pin it.
   final int Function(CivilDate day) zoneShift;
@@ -36,6 +55,7 @@ class SembleLayer extends ChangeNotifier {
 
   final SembleSettings _settings;
   final SembleClient _client;
+  final SembleIcalClient _ical;
 
   List<SembleRule> _rules = const [];
   List<SembleBooking> _bookings = const [];
@@ -45,6 +65,26 @@ class SembleLayer extends ChangeNotifier {
   CivilDate? _first;
   CivilDate? _last;
   DateTime? _fetchedAt;
+  CivilDate? _readFor;
+  DateTime? _attemptedAt;
+  DateTime? _rulesSavedAt;
+  DateTime? _bookingsSavedAt;
+
+  /// The rules drawn are the last ones read, not today's (build 312).
+  bool rulesFromCache = false;
+
+  /// Where the bookings drawn come from (build 312).
+  SembleBookingsSource bookingsSource = SembleBookingsSource.none;
+
+  /// Last failure of the iCal link, for the Settings page.
+  SembleIcalFailure? icalFailure;
+
+  /// When the rules drawn were read from Semble; null if unknown (rules
+  /// saved before build 312).
+  DateTime? get rulesSavedAt => _rulesSavedAt;
+
+  /// When the bookings drawn were read.
+  DateTime? get bookingsSavedAt => _bookingsSavedAt;
   bool _enabled = false;
   bool _zoneMatches = true;
   Future<void>? _running;
@@ -178,69 +218,161 @@ class SembleLayer extends ChangeNotifier {
     DateTime Function() now,
   ) async {
     final config = await _settings.read();
-    _canBlock = config.ready && config.roomId != null;
     _ignored = await _settings.ignoredOverlaps();
     final key = config.ready && config.enabled
         ? await _settings.apiKey()
         : null;
-    if (key == null || config.userId == null) {
+    // Build 312: the iCal link alone keeps visits in the Calendar.
+    final link = config.enabled ? await _settings.icalLink() : null;
+    if ((key == null || config.userId == null) && link == null) {
       final changed = _enabled || _first != null || _bookings.isNotEmpty;
       _enabled = false;
+      _canBlock = false;
       _rules = const [];
       _setBookings(const []);
-      _first = _last = _fetchedAt = null;
+      _first = _last = _fetchedAt = _readFor = _attemptedAt = null;
+      _rulesSavedAt = _bookingsSavedAt = null;
+      rulesFromCache = false;
+      bookingsSource = SembleBookingsSource.none;
+      failure = icalFailure = null;
       if (changed) notifyListeners();
       return;
     }
     _enabled = true;
-    final first = today.addDays(-daysBack);
-    final last = today.addDays(daysAhead);
-    final fetched = _fetchedAt;
+    final attempted = _attemptedAt;
+    // Throttled per attempt, so a refused key or link is not asked again
+    // on every Calendar load (build 312); pull-to-refresh forces it.
     if (!force &&
-        _first == first &&
-        fetched != null &&
-        now().difference(fetched) < minAge) {
+        _readFor == today &&
+        attempted != null &&
+        now().difference(attempted) < minAge) {
       return;
     }
-    try {
-      _rules = await _client.rules(
-        key: key,
-        userId: config.userId!,
-        first: first,
-        last: last,
-      );
-      _first = first;
-      _last = last;
-      _fetchedAt = now();
-      failure = null;
+    _readFor = today;
+    _attemptedAt = now();
+    final first = today.addDays(-daysBack);
+    final last = today.addDays(daysAhead);
+    failure = icalFailure = null;
+    var rulesRead = false;
+    if (key != null && config.userId != null) {
       try {
-        await _settings.saveRules(_rules, first, last);
-      } on Object {
-        // Only the background conflict check misses the newest rules.
-      }
-    } on SembleException catch (error) {
-      // The previous rules stay drawn; Settings shows the failure.
-      failure = error.failure;
-    }
-    final doctor = config.doctorName;
-    if (doctor == null) {
-      _setBookings(const []);
-    } else {
-      try {
-        _setBookings(
-          await _client.bookings(
-            key: key,
-            first: today.addDays(-1),
-            last: today.addDays(bookingDaysAhead),
-            doctorName: doctor,
-          ),
+        _rules = await _client.rules(
+          key: key,
+          userId: config.userId!,
+          first: first,
+          last: last,
         );
+        _first = first;
+        _last = last;
+        _fetchedAt = _rulesSavedAt = now();
+        rulesFromCache = false;
+        rulesRead = true;
+        try {
+          await _settings.saveRules(_rules, first, last, savedAt: now());
+        } on Object {
+          // Only the background check and the fallback miss the newest.
+        }
+      } on SembleException catch (error) {
+        failure = error.failure;
+      }
+    } else {
+      failure = SembleFailure.noKey;
+    }
+    if (!rulesRead && _first == null) {
+      // Build 312: the last rules read stay drawn, marked as such.
+      final cache = await _settings.cachedRules();
+      if (cache != null) {
+        _rules = cache.rules;
+        _first = cache.first;
+        _last = cache.last;
+        _rulesSavedAt = cache.savedAt;
+        rulesFromCache = true;
+      }
+    } else if (!rulesRead) {
+      rulesFromCache = true;
+    }
+    // Writes need a working key: no «Blocca» offer with a refused one.
+    _canBlock =
+        config.ready &&
+        config.roomId != null &&
+        failure != SembleFailure.rejected;
+    await _refreshBookings(config, rulesRead ? key : null, link, today, now);
+    notifyListeners();
+  }
+
+  /// Bookings from the API, else from the iCal link, else the last ones
+  /// saved on the phone (build 312). A visit shown twice is avoided by
+  /// [sembleAdjustEntries]; a visit missing is what this avoids.
+  Future<void> _refreshBookings(
+    SembleConfig config,
+    String? key,
+    String? link,
+    CivilDate today,
+    DateTime Function() now,
+  ) async {
+    final doctor = config.doctorName;
+    List<SembleBooking>? read;
+    var source = SembleBookingsSource.none;
+    if (key != null && doctor != null) {
+      try {
+        read = await _client.bookings(
+          key: key,
+          first: today.addDays(-1),
+          last: today.addDays(bookingDaysAhead),
+          doctorName: doctor,
+        );
+        source = SembleBookingsSource.api;
       } on SembleException catch (error) {
         // Old bookings stay until the next read; iCal still brings them.
         failure ??= error.failure;
       }
     }
-    notifyListeners();
+    if (read == null && link != null) {
+      try {
+        read = await _ical.bookings(
+          link: link,
+          from: today.addDays(-1).asLocalDate,
+          to: today.addDays(bookingDaysAhead + 1).asLocalDate,
+        );
+        source = SembleBookingsSource.ical;
+      } on SembleIcalException catch (error) {
+        icalFailure = error.failure;
+      }
+    }
+    if (read != null) {
+      _setBookings(read);
+      bookingsSource = source;
+      _bookingsSavedAt = now();
+      try {
+        await _settings.saveBookings(read, now());
+      } on Object {
+        // The next outage shows older bookings, or none.
+      }
+      return;
+    }
+    if (key != null && doctor == null && link == null) {
+      // As before build 312: without the surname no bookings are read.
+      _setBookings(const []);
+      bookingsSource = SembleBookingsSource.none;
+      return;
+    }
+    if (bookingsSource == SembleBookingsSource.none ||
+        bookingsSource == SembleBookingsSource.saved) {
+      final cache = await _settings.cachedBookings();
+      if (cache != null) {
+        final from = today.addDays(-1).asLocalDate;
+        _setBookings([
+          for (final booking in cache.bookings)
+            if (booking.end!.isAfter(from)) booking,
+        ]);
+        _bookingsSavedAt = cache.savedAt;
+        bookingsSource = SembleBookingsSource.saved;
+        return;
+      }
+    } else {
+      // Read earlier in this session: kept, now as saved bookings.
+      bookingsSource = SembleBookingsSource.saved;
+    }
   }
 
   void _setBookings(List<SembleBooking> bookings) {
@@ -253,8 +385,11 @@ class SembleLayer extends ChangeNotifier {
   Future<void> reset({required CivilDate today, String? zoneLabel}) async {
     _rules = const [];
     _setBookings(const []);
-    _first = _last = _fetchedAt = null;
-    failure = null;
+    _first = _last = _fetchedAt = _readFor = _attemptedAt = null;
+    _rulesSavedAt = _bookingsSavedAt = null;
+    rulesFromCache = false;
+    bookingsSource = SembleBookingsSource.none;
+    failure = icalFailure = null;
     notifyListeners();
     await refresh(today: today, zoneLabel: zoneLabel, force: true);
   }

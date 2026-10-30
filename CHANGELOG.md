@@ -2,6 +2,24 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.122.0 (build 312) — Semble anche senza chiave
+
+- Se la chiave API Semble manca o viene rifiutata, il Calendario continua a
+  mostrare le ultime disponibilità lette (fasce verdi, bordo ambra e avvisi)
+  e le ultime visite lette, ora salvate cifrate sul telefono. Impostazioni →
+  Semble indica da quando sono vecchie.
+- Nuova sezione **Riserva senza chiave** in Impostazioni → Semble: si incolla
+  il link iCal del proprio calendario Semble (https:// o webcal://). Quando
+  la chiave non funziona le visite delle prossime 4 settimane arrivano da
+  quel link, senza aspettare l'aggiornamento del calendario Google. Del feed
+  si leggono solo orario, titolo e annullamento; il link resta nel Keystore
+  e non viene mostrato. Eliminare la chiave non elimina il link.
+- Con la chiave rifiutata il nuovo evento non propone più «Blocco Semble» e
+  Semble non viene interrogato a ogni apertura del Calendario: al massimo
+  ogni 15 minuti, o subito trascinando per aggiornare.
+- La chiave, il client API e il blocco restano invariati: una chiave nuova
+  incollata in Collegamento riattiva tutto.
+
 ## 2.121.2 (build 311) — Release stabile e Todo Test: nessun doppione dal Cestino dopo Annulla
 
 - Dopo l'Annulla di un completamento, la copia dell'occorrenza annullata non

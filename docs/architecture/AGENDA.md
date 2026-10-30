@@ -4,6 +4,33 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Semble senza chiave — build 312
+
+- **Fonti.** `SembleLayer.refresh` prova nell'ordine: API con la chiave
+  (regole e, con il cognome, prenotazioni); per le prenotazioni il link
+  iCal (`SembleIcalClient`, una GET senza `x-token`, `parseSembleIcal` in
+  `domain/semble_ical.dart`); infine le ultime letture salvate.
+  `bookingsSource` (`api`, `ical`, `saved`, `none`), `rulesFromCache`,
+  `rulesSavedAt`, `bookingsSavedAt` e `icalFailure` alimentano Impostazioni
+  → Semble.
+- **Dati salvati.** `SembleSettings` (Keystore, mai in backup, log o
+  Supabase): `semble_rules_cache` ora con `savedAt` (facoltativo: le cache
+  precedenti restano leggibili), `semble_bookings_cache` (istanti di inizio
+  e fine, tipo, annullata) e `semble_ical_link`. `clear()` elimina chiave e
+  cache ma non il link, che è la riserva senza chiave.
+- **iCal.** Solo `https` (`webcal` convertito). Tempi con `Z` sono istanti;
+  con `TZID` o senza fuso sono ora di Londra (`londonWallClock`). Giornate
+  intere ignorate, `STATUS:CANCELLED` diventa visita annullata, fine
+  mancante da `DURATION`, dai minuti del titolo o 15 minuti. Le RRULE non
+  sono espanse: le prenotazioni Semble sono singole. Le visite passano da
+  `sembleAdjustEntries`, quindi la copia del calendario Google le nasconde
+  allo stesso minuto.
+- **Ritmo.** La lettura è limitata per tentativo (15 minuti, stessa
+  giornata), non più solo per successo: una chiave rifiutata non genera una
+  richiesta a ogni apertura del Calendario. Il trascinamento forza.
+- **Scritture.** `canBlock` è falso con la chiave rifiutata; nessuna
+  scrittura passa dal link iCal.
+
 ## Inviti e bordo ambra per singolo evento — build 307
 
 - **Inviti senza risposta.** `sembleOverlaps` conta anche gli eventi
