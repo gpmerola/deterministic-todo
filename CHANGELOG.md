@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.122.3 (build 315) — Barra Calendario di Oggi più compatta
+
+- In cima a Oggi la barra degli impegni occupa molto meno spazio: al massimo
+  due appuntamenti, ciascuno su una sola riga, senza l'icona iniziale.
+- Gli altri impegni sono indicati con «+N» a destra e quelli di tutto il
+  giorno con una piccola icona calendario e il numero.
+- Il conto alla rovescia è abbreviato: «tra 25m», «tra 1h», «ora».
+- Toccando la barra si apre sempre il giorno nel Calendario.
+
 ## 2.122.2 (build 314) — Link iCal Semble allineato allo script
 
 - Le visite lette dal link iCal hanno gli stessi titoli brevi del calendario

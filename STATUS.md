@@ -4,8 +4,9 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2314
-  (branch `agent/semble-fallback`): Semble senza chiave.
+- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2315
+  (branch `agent/semble-fallback`): Semble senza chiave; dalla 315 barra
+  Calendario di Oggi compatta (due righe al massimo).
 - 30 ottobre 2026: Semble rifiuta la chiave API in uso (verificato da
   Impostazioni → Semble su Todo Test). In attesa di una chiave nuova; dalla
   build 313 senza API le visite vengono dal link iCal (salvato e verificato

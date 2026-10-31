@@ -1210,6 +1210,10 @@ void main() {
       isNull,
     );
     expect(relativeStartLabel(start, end, DateTime(2026, 10, 5, 12)), isNull);
+    // Abbreviated in the Today strip (build 315).
+    expect(compactRelativeLabel('tra 25 min'), 'tra 25m');
+    expect(compactRelativeLabel('tra 1 ora'), 'tra 1h');
+    expect(compactRelativeLabel('ora'), 'ora');
   });
 
   testWidgets('in corso e prossima riunione su righe separate senza link', (
@@ -1250,10 +1254,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('ora · Visita', findRichText: true), findsOneWidget);
-    expect(
-      find.text('tra 18 min · Stand-up', findRichText: true),
-      findsOneWidget,
-    );
+    expect(find.text('tra 18m · Stand-up', findRichText: true), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('11:30')).dx,
       tester.getTopLeft(find.text('12:00')).dx,
@@ -1326,7 +1327,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('11:00'), findsOneWidget);
-      expect(find.text('tra 20 min · TNG', findRichText: true), findsOneWidget);
+      expect(find.text('tra 20m · TNG', findRichText: true), findsOneWidget);
       expect(find.byKey(const ValueKey('today-agenda-join')), findsNothing);
       expect(find.text('Teams'), findsNothing);
       // The minute timer stops with the widget.
@@ -1389,14 +1390,28 @@ void main() {
     await pump(entries);
     await tester.pumpAndSettle();
     // Within the hour: how soon, on the next appointment (build 221).
-    expect(find.text('tra 1 ora · TNG', findRichText: true), findsOneWidget);
+    expect(find.text('tra 1h · TNG', findRichText: true), findsOneWidget);
     expect(find.byKey(const ValueKey('today-agenda-join')), findsNothing);
-    expect(find.text('1 tutto il giorno'), findsOneWidget);
+    // All-day count as a compact icon on the right while rows are shown.
+    expect(find.byKey(const ValueKey('today-agenda-allday')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('today-agenda-allday')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('today-agenda-strip')));
     expect(opened, 1);
     await pump(const []);
     await tester.pumpAndSettle();
     expect(find.text('Nessun altro impegno oggi'), findsOneWidget);
+    await pump([entries[2]]);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('1 tutto il giorno · nessun altro impegno'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('barra Oggi su schermo stretto, testo grande e molti impegni', (
@@ -1439,12 +1454,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.text('+2 altri'), findsOneWidget);
-    expect(find.byKey(const ValueKey('today-agenda-event-2')), findsOneWidget);
-    expect(find.byKey(const ValueKey('today-agenda-event-3')), findsNothing);
+    expect(find.text('+3'), findsOneWidget);
+    expect(find.byKey(const ValueKey('today-agenda-event-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('today-agenda-event-2')), findsNothing);
+    // Two one-line rows even at text scale 1.5 (build 315).
     expect(
       tester.getSize(find.byKey(const ValueKey('today-agenda-strip'))).height,
-      lessThan(400),
+      lessThan(90),
     );
   });
 

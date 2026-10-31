@@ -1325,6 +1325,18 @@ Resta il conto alla rovescia; il pulsante Teams/Zoom/Meet è rimosso soltanto
 da questa barra. Tutta la superficie apre il giorno del Calendario, dove
 restano i collegamenti alle riunioni. Nessuna modifica ai dati degli eventi.
 
+## Barra Calendario compatta (build 315)
+
+La barra occupava troppo spazio in cima a Oggi. Ora mostra al massimo due
+appuntamenti (`TodayAgendaStrip.maxRows`), una riga ciascuno con titolo
+troncato, senza icona iniziale; padding verticale 6 dp, altezza minima
+36 dp. Gli altri impegni diventano «+N» a destra e quelli di giornata intera
+un'icona calendario con il numero (etichetta accessibile «N tutto il
+giorno»). Il conto alla rovescia è abbreviato da `compactRelativeLabel`
+(«tra 25m», «tra 1h», «ora»). Senza appuntamenti a orario resta una sola
+riga di testo per esteso. A scala testo 1,5 la barra resta sotto 90 dp
+(test). Comportamento al tocco, ricarica e timer invariati.
+
 ## Luogo su Google Maps (build 277)
 
 `agendaMapsUri` (dominio, puro) trasforma il luogo di un evento in una
