@@ -8,8 +8,9 @@ fondo.
   (branch `agent/semble-fallback`): Semble senza chiave.
 - 30 ottobre 2026: Semble rifiuta la chiave API in uso (verificato da
   Impostazioni → Semble su Todo Test). In attesa di una chiave nuova; dalla
-  build 313 senza API le visite vengono dal calendario Google «Semble»
-  (script Apps Script, ogni 30 minuti) o dal link iCal, le disponibilità
+  build 313 senza API le visite vengono dal link iCal (salvato e verificato
+  sul Galaxy il 31 ottobre: 20 visite, nessun doppione) o dal calendario
+  Google «Semble» (script Apps Script, ogni 30 minuti), le disponibilità
   dall'ultima lettura.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
