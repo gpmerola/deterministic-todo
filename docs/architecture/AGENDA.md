@@ -4,7 +4,7 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
-## Semble senza chiave — build 312, 313
+## Semble senza chiave — build 312–314
 
 - **Fonti.** `SembleLayer.refresh` prova nell'ordine: API con la chiave
   (regole e, con il cognome, prenotazioni); per le prenotazioni il link
@@ -32,6 +32,15 @@ legata alla rinomina.
   sono espanse: le prenotazioni Semble sono singole. Le visite passano da
   `sembleAdjustEntries`, quindi la copia del calendario Google le nasconde
   allo stesso minuto.
+- **Come lo script (build 314).** Lo script Apps Script dell'utente
+  (`syncSemble`, ogni 30 minuti, scrive nel calendario «Semble» dedicato)
+  scarta `IGNORA` e rinomina con `RINOMINA`/`pulisciTitolo`;
+  `sembleIcalIgnored` e `sembleIcalTitle` ne sono la copia in Dart, con
+  test. Con `bookingsSource == ical` l'adattatore riceve `feedUntil`: le
+  copie future del calendario Semble prima di quella data senza prenotazione
+  viva allo stesso minuto sono nascoste solo nella vista, al massimo
+  `sembleMaxStaleCopies` (5, come `MAX_CANCELLAZIONI`); oltre, nessuna.
+  Presuppone che il calendario «Semble» contenga solo eventi dello script.
 - **Ritmo.** La lettura è limitata per tentativo (15 minuti, stessa
   giornata), non più solo per successo: una chiave rifiutata non genera una
   richiesta a ogni apertura del Calendario. Il trascinamento forza.

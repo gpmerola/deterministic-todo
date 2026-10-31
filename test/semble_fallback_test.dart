@@ -337,6 +337,22 @@ void main() {
       expect(layer.bookingCount, 1);
       expect(layer.bandsFor(thu29), isEmpty, reason: 'nessuna regola letta');
       expect(layer.canBlock, isFalse);
+      // A fresh feed hides a Google copy it no longer has (build 314).
+      const calendars = [
+        AgendaCalendar(id: 'semble', name: 'Semble', accountName: ''),
+      ];
+      final gone = DateTime.now().add(const Duration(days: 3));
+      final adjusted = layer.adjustEntries(calendars, const {})!([
+        AgendaEntry(
+          instanceId: 'gone',
+          calendarIds: const ['semble'],
+          title: "Follow-up 30'",
+          start: gone,
+          end: gone.add(const Duration(minutes: 30)),
+          allDay: false,
+        ),
+      ]);
+      expect(adjusted.map((e) => e.instanceId), isNot(contains('gone')));
 
       await settings.deleteIcalLink();
       await layer.reset(today: thu29);
@@ -458,5 +474,159 @@ void main() {
     expect(find.textContaining('Lette 1 visite'), findsOne);
     expect(find.textContaining('visite dal link iCal'), findsOne);
     expect(find.text(link), findsNothing, reason: 'il link non si mostra');
+  });
+
+  group('allineato allo script (build 314)', () {
+    test('titoli come nel calendario Google', () {
+      expect(
+        sembleIcalTitle('Follow-up Consultation (30 minutes) - Vitality'),
+        "Follow-up 30' · Vitality",
+      );
+      expect(
+        sembleIcalTitle(
+          'Room - Initial Consultation (Child & Adolescent) (60 minutes) - AVIVA',
+        ),
+        "Prima visita (minore) 60' · AVIVA",
+      );
+      expect(
+        sembleIcalTitle(
+          'Online Psychiatry - Urgent Follow-up Consultation 15 min',
+        ),
+        "Follow-up urgente 15'",
+      );
+      expect(
+        sembleIcalTitle('ADHD Assessment (Adult) (75 minutes) - (PLE)'),
+        "ADHD Assessment (Adult) 75' · (PLE)",
+      );
+      expect(sembleIcalTitle('Visita'), 'Visita');
+    });
+
+    test('ricette e lettere non sono visite', () {
+      final bookings = parseSembleIcal(
+        feed([
+          event(
+            ':20261030T090000Z',
+            end: ':20261030T091500Z',
+            summary: 'Repeat Prescription',
+          ),
+          event(
+            ':20261030T100000Z',
+            end: ':20261030T101500Z',
+            summary: 'Reports & Letters',
+          ),
+          event(
+            ':20261030T110000Z',
+            end: ':20261030T114500Z',
+            summary: 'Follow-up Consultation (30 minutes)',
+          ),
+        ]),
+        from: from,
+        to: to,
+      );
+      expect(bookings.map((b) => b.appointmentTitle), ["Follow-up 30'"]);
+    });
+
+    group('copie Google spostate o annullate', () {
+      const calendars = [
+        AgendaCalendar(id: 'semble', name: 'Semble', accountName: ''),
+        AgendaCalendar(id: 'kcl', name: 'KCL', accountName: ''),
+      ];
+      final now = DateTime(2026, 10, 31, 9);
+      final until = DateTime(2026, 11, 29);
+      AgendaEntry copy(
+        String id,
+        DateTime start, {
+        String calendar = 'semble',
+      }) => AgendaEntry(
+        instanceId: id,
+        calendarIds: [calendar],
+        title: "Follow-up 30'",
+        start: start,
+        end: start.add(const Duration(minutes: 30)),
+        allDay: false,
+      );
+      SembleBooking booking(DateTime start) => SembleBooking(
+        start: start,
+        end: start.add(const Duration(minutes: 45)),
+        deleted: false,
+        appointmentTitle: "Follow-up 30'",
+      );
+      List<String> ids(List<AgendaEntry> entries) => [
+        for (final e in entries) e.instanceId,
+      ];
+
+      test(
+        'nascoste solo le future del calendario Semble assenti dal feed',
+        () {
+          final kept = DateTime(2026, 11, 2, 11);
+          final moved = DateTime(2026, 11, 3, 11);
+          final merged = [
+            copy('past', DateTime(2026, 10, 30, 11)),
+            copy('kept', kept),
+            copy('moved', moved),
+            copy('kcl', moved.add(const Duration(hours: 2)), calendar: 'kcl'),
+            copy('far', DateTime(2026, 12, 10, 11)),
+          ];
+          final newTime = moved.add(const Duration(hours: 1));
+          final result = sembleAdjustEntries(
+            bookings: [booking(kept), booking(newTime)],
+            merged: merged,
+            calendars: calendars,
+            hiddenCalendarIds: const {},
+            now: now,
+            feedUntil: until,
+          );
+          expect(ids(result), containsAll(['past', 'kept', 'kcl', 'far']));
+          expect(ids(result), isNot(contains('moved')));
+          // The new time comes from the feed until the script moves the copy.
+          expect(
+            result.where((e) => e.start == newTime && e.isSembleBooking),
+            hasLength(1),
+          );
+          // Without the feed (API or Google only) nothing is hidden.
+          expect(
+            ids(
+              sembleAdjustEntries(
+                bookings: [booking(kept), booking(newTime)],
+                merged: merged,
+                calendars: calendars,
+                hiddenCalendarIds: const {},
+                now: now,
+              ),
+            ),
+            contains('moved'),
+          );
+        },
+      );
+
+      test('più di 5 copie da nascondere: feed sospetto, nessuna', () {
+        final merged = [
+          for (var day = 1; day <= 6; day++)
+            copy('c$day', DateTime(2026, 11, day, 11)),
+        ];
+        final result = sembleAdjustEntries(
+          bookings: [booking(DateTime(2026, 11, 20, 9))],
+          merged: merged,
+          calendars: calendars,
+          hiddenCalendarIds: const {},
+          now: now,
+          feedUntil: until,
+        );
+        expect(ids(result), containsAll([for (var d = 1; d <= 6; d++) 'c$d']));
+        expect(
+          ids(
+            sembleAdjustEntries(
+              bookings: [booking(DateTime(2026, 11, 20, 9))],
+              merged: merged.take(5).toList(),
+              calendars: calendars,
+              hiddenCalendarIds: const {},
+              now: now,
+              feedUntil: until,
+            ),
+          ).where((id) => id.startsWith('c')),
+          isEmpty,
+        );
+      });
+    });
   });
 }

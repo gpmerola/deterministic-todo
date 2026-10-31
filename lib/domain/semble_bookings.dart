@@ -191,12 +191,19 @@ AgendaEntry sembleClinicalEntry(AgendaEntry entry) {
 /// title (build 295). Nothing happens without a visible Semble calendar.
 /// A cancelled booking whose time is not over, with no live booking or
 /// event at its minute, is added as «Annullata · type» (build 303).
+/// With [feedUntil] the bookings are the whole iCal feed up to then (build
+/// 314): future timed events of the Semble calendar before it with no live
+/// booking at their minute were moved or cancelled in Semble and the
+/// import script has not run yet, so they are hidden; more than
+/// [sembleMaxStaleCopies] is treated as a faulty feed and nothing is
+/// hidden, like the script's own limit on deletions.
 List<AgendaEntry> sembleAdjustEntries({
   required Iterable<SembleBooking> bookings,
   required List<AgendaEntry> merged,
   required List<AgendaCalendar> calendars,
   required Set<String> hiddenCalendarIds,
   DateTime? now,
+  DateTime? feedUntil,
 }) {
   final at = now ?? DateTime.now();
   final semble = [
@@ -213,6 +220,27 @@ List<AgendaEntry> sembleAdjustEntries({
           booking.end!.isAfter(booking.start))
         _minute(booking.start): booking,
   };
+  bool isCopy(AgendaEntry entry) =>
+      !entry.allDay && !entry.isTask && entry.calendarIds.any(semble.contains);
+  final stale = feedUntil == null
+      ? const <AgendaEntry>{}
+      : {
+          for (final entry in merged)
+            if (isCopy(entry) &&
+                entry.start.isAfter(at) &&
+                entry.start.isBefore(feedUntil) &&
+                !live.containsKey(_minute(entry.start)))
+              entry,
+        };
+  final hidden = stale.length > sembleMaxStaleCopies
+      ? const <AgendaEntry>{}
+      : stale;
+  if (hidden.isNotEmpty) {
+    merged = [
+      for (final entry in merged)
+        if (!hidden.contains(entry)) entry,
+    ];
+  }
   final taken = {
     for (final entry in merged)
       if (!entry.allDay && !entry.isTask) _minute(entry.start),
@@ -270,8 +298,12 @@ List<AgendaEntry> sembleAdjustEntries({
     if (!identical(clinical, entry)) trimmed = true;
     entries.add(clinical);
   }
-  if (added.isEmpty && !trimmed) return merged;
+  if (added.isEmpty && !trimmed && hidden.isEmpty) return merged;
   return [...entries, ...added]..sort(compareAgendaEntries);
 }
+
+/// The most Semble calendar copies an iCal read may hide (build 314), as
+/// the import script's `MAX_CANCELLAZIONI`.
+const sembleMaxStaleCopies = 5;
 
 int _minute(DateTime value) => value.millisecondsSinceEpoch ~/ 60000;

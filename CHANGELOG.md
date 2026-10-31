@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.122.2 (build 314) — Link iCal Semble allineato allo script
+
+- Le visite lette dal link iCal hanno gli stessi titoli brevi del calendario
+  Google («Follow-up 30' · Vitality») e, come fa lo script di importazione,
+  «Repeat prescription» e «Reports & letters» non compaiono come visite.
+- Con il link appena letto, le visite future del calendario Google
+  «Semble» che nel feed non ci sono più (spostate o annullate) vengono
+  nascoste subito, senza aspettare il giro dello script. Se fossero più di
+  5 non ne viene nascosta nessuna, come il limite dello script. Il
+  calendario del telefono non viene modificato.
+
 ## 2.122.1 (build 313) — Senza API, le visite dal calendario Google Semble
 
 - Se l'API Semble non risponde e non c'è il link iCal, le visite sono solo

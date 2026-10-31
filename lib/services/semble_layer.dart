@@ -95,6 +95,9 @@ class SembleLayer extends ChangeNotifier {
   bool? googleCalendarVisible;
 
   bool _droppedSavedBookings = false;
+
+  /// End of the window the iCal feed was read for (build 314).
+  DateTime? _feedUntil;
   bool _enabled = false;
   bool _zoneMatches = true;
   Future<void>? _running;
@@ -129,11 +132,15 @@ class SembleLayer extends ChangeNotifier {
     );
     final bookings = _bookings;
     if (!_enabled || bookings.isEmpty) return null;
+    final feedUntil = bookingsSource == SembleBookingsSource.ical
+        ? _feedUntil
+        : null;
     return (merged) => sembleAdjustEntries(
       bookings: bookings,
       merged: merged,
       calendars: calendars,
       hiddenCalendarIds: hiddenCalendarIds,
+      feedUntil: feedUntil,
     );
   }
 
@@ -349,12 +356,14 @@ class SembleLayer extends ChangeNotifier {
     }
     if (read == null && link != null) {
       try {
+        final until = today.addDays(bookingDaysAhead + 1).asLocalDate;
         read = await _ical.bookings(
           link: link,
           from: today.addDays(-1).asLocalDate,
-          to: today.addDays(bookingDaysAhead + 1).asLocalDate,
+          to: until,
         );
         source = SembleBookingsSource.ical;
+        _feedUntil = until;
       } on SembleIcalException catch (error) {
         icalFailure = error.failure;
       }
