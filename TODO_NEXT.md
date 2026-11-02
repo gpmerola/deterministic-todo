@@ -41,10 +41,9 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   Impostazioni riordinate. Build 307: bordo ambra sull'invito Teams del
   4 novembre e «Togli il bordo ambra» su un evento.
 
-- [ ] Chiave Semble nuova (2 novembre 2026): lettura, Stima e Calendario
-  verificati; un blocco reale (26 novembre 08:00–09:00 Londra) è stato
-  accettato e poi rimosso a mano dall'utente. Resta da provare «Annulla»
-  (`deleteAvailability`) con questa chiave, solo su richiesta dell'utente.
+- [ ] Avviso Semble ad app chiusa con la chiave del 2 novembre 2026: da
+  osservare al prossimo evento che arriva in una fascia prenotabile. Lettura,
+  Stima, Calendario, blocco e «Annulla» verificati sul Galaxy il 2 novembre.
 
 ## Osservazioni passive
 
