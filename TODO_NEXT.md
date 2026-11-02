@@ -41,10 +41,9 @@ Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
   Impostazioni riordinate. Build 307: bordo ambra sull'invito Teams del
   4 novembre e «Togli il bordo ambra» su un evento.
 
-- [ ] All'arrivo della chiave Semble nuova incollarla in Impostazioni →
-  Semble → Collegamento e verificare che la sorgente delle visite torni
-  l'API. Link iCal salvato e verificato il 31 ottobre 2026 (20 visite, nessun
-  doppione con il calendario Google).
+- [ ] Chiave Semble nuova (2 novembre 2026): lettura verificata; provare un
+  blocco reale con «Blocca in Semble» e il suo Annulla solo su richiesta
+  dell'utente.
 
 ## Osservazioni passive
 
