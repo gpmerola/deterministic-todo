@@ -380,6 +380,7 @@ List<AgendaEntry> sembleConflicts({
   required DateTime until,
   required bool Function(AgendaEntry entry) isVisit,
   int Function(CivilDate day) zoneShift = sembleZoneShift,
+  ({List<SembleSlot> slots, CivilDate first, CivilDate last})? slots,
 }) {
   final timed = [
     for (final entry in entries)
@@ -395,7 +396,13 @@ List<AgendaEntry> sembleConflicts({
   if (day.compareTo(first) < 0) day = first;
   final end = CivilDate.fromDateTime(until);
   while (day.compareTo(end) <= 0 && day.compareTo(last) <= 0) {
-    final bands = sembleShiftBands(sembleBandsFor(rules, day), zoneShift(day));
+    var bands = sembleShiftBands(sembleBandsFor(rules, day), zoneShift(day));
+    // Build 321: where free slots were read, only they are bookable.
+    if (slots != null &&
+        day.compareTo(slots.first) >= 0 &&
+        day.compareTo(slots.last) <= 0) {
+      bands = sembleSlotBands(bands, slots.slots, day);
+    }
     final ids = sembleOverlaps(timed, day, bands, isVisit, now: now);
     for (final entry in timed) {
       if (ids.contains(entry.instanceId)) found[entry.instanceId] = entry;

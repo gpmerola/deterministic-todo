@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.124.3 (build 321) — Avvisi Semble con gli orari davvero liberi
+
+- L'avviso ad app chiusa per un evento in orario Semble usa gli ultimi slot
+  liberi letti (salvati cifrati sul telefono), non più solo le regole: un
+  evento in un orario già occupato da una visita non viene segnalato. Dove
+  gli slot non sono stati letti restano le regole. Nessuna chiamata a Semble
+  in background.
+
 ## 2.124.2 (build 320) — ADHD minori come adulti nella Stima
 
 - Le valutazioni e i feedback ADHD per minori (Child & Adolescent) sono

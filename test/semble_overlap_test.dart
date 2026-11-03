@@ -164,6 +164,40 @@ void main() {
       expect('$plan', isNot(contains('dentro')));
     });
 
+    test(
+      'con gli slot salvati conta solo l orario davvero libero (build 321)',
+      () async {
+        FlutterSecureStorage.setMockInitialValues({});
+        final settings = SembleSettings();
+        // Free only 11:00-12:00 on 23 October: 'dentro' at 11:30 stays,
+        // 'occupato' at 13:30 is in the rules but no longer bookable.
+        await settings.saveSlots(
+          [
+            (
+              start: DateTime(2026, 10, 23, 11),
+              end: DateTime(2026, 10, 23, 12),
+            ),
+          ],
+          const CivilDate(2026, 10, 23),
+          const CivilDate(2026, 10, 30),
+        );
+        final found = sembleConflicts(
+          entries: [_event('dentro', 11, 30), _event('occupato', 13, 30)],
+          rules: [rule],
+          first: const CivilDate(2026, 10, 20),
+          last: const CivilDate(2026, 11, 20),
+          now: DateTime(2026, 10, 23, 10, 30),
+          until: DateTime(2026, 11, 6),
+          isVisit: isVisit,
+          zoneShift: (_) => 0,
+          slots: await settings.cachedSlots(),
+        );
+        expect(found.map((e) => e.instanceId), ['dentro']);
+        await settings.clear();
+        expect(await settings.cachedSlots(), isNull);
+      },
+    );
+
     test('fuori dalla finestra letta non segnala nulla', () {
       final found = sembleConflicts(
         entries: [_event('dentro', 11, 30)],

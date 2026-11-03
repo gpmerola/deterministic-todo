@@ -360,6 +360,11 @@ class SembleLayer extends ChangeNotifier {
         );
         _slotsFirst = today;
         _slotsLast = today.addDays(bookingDaysAhead);
+        try {
+          await _settings.saveSlots(_slots!, today, _slotsLast!);
+        } on Object {
+          // The background check then uses the rules.
+        }
       } on SembleException {
         // The rules stay the green: wider, never missing.
         _slots = _slotsFirst = _slotsLast = null;

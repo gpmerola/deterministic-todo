@@ -12,8 +12,10 @@ legata alla rinomina.
   coperti, le fasce verdi delle regole con gli slot uniti
   (`sembleSlotBands`); le indisponibilità restano dalle regole. Senza slot
   (errore, giorni oltre la finestra, chiave rifiutata) il verde resta quello
-  delle regole. Bordo ambra e avvisi seguono lo stesso verde in app; il
-  controllo in background usa ancora le regole salvate.
+  delle regole. Bordo ambra e avvisi seguono lo stesso verde in app. Dalla
+  build 321 gli slot letti sono salvati (`semble_slots_cache`, solo istanti)
+  e `SembleConflicts.check` li passa a `sembleConflicts`, che nei giorni
+  coperti usa `sembleSlotBands`.
 - Verifica con lo script Apps Script del 3 novembre 2026: 12 slot in 7
   giorni, campi `startLocal`, `endLocal`, `user`, `room`.
 

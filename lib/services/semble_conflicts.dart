@@ -12,7 +12,8 @@ import 'semble_service.dart';
 /// Background check for events that arrived in bookable Semble time while
 /// the app was closed (build 304): run with the reminder refresh, which the
 /// calendar provider's change trigger and the daily job start. No polling and
-/// no Semble call: the rules come from the last read cached on the phone.
+/// no Semble call: the rules, and from build 321 the free slots, come from
+/// the last read cached on the phone.
 /// The notification carries day and time only, never the title.
 class SembleConflicts {
   SembleConflicts(this.service, {SembleSettings? settings})
@@ -68,6 +69,7 @@ class SembleConflicts {
         until: until,
         isVisit: (entry) =>
             entry.isSembleBooking || entry.calendarIds.any(semble.contains),
+        slots: await settings.cachedSlots(),
       );
       final ignored = await settings.ignoredOverlaps(now: at);
       await AgendaReminders.channel.invokeMethod<int>('notifySembleConflicts', {

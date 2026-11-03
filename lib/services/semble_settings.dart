@@ -62,6 +62,7 @@ class SembleSettings {
   static const _icalLink = 'semble_ical_link';
   static const _bookingsCache = 'semble_bookings_cache';
   static const _todoBlocks = 'semble_todo_blocks';
+  static const _slotsCache = 'semble_slots_cache';
 
   final FlutterSecureStorage _storage;
 
@@ -231,8 +232,53 @@ class SembleSettings {
     await _storage.delete(key: _conflictAlerts);
     await _storage.delete(key: _ignoredOverlaps);
     await _storage.delete(key: _todoBlocks);
+    await _storage.delete(key: _slotsCache);
     // The iCal link stays: it is the fallback without a key (build 312).
     await deleteSavedBookings();
+  }
+
+  /// Free slots last read and the days they cover (build 321), for the
+  /// background check: it never calls Semble. Instants only.
+  Future<void> saveSlots(
+    List<SembleSlot> slots,
+    CivilDate first,
+    CivilDate last,
+  ) => _storage.write(
+    key: _slotsCache,
+    value: jsonEncode({
+      'first': '$first',
+      'last': '$last',
+      'slots': [
+        for (final slot in slots)
+          [slot.start.millisecondsSinceEpoch, slot.end.millisecondsSinceEpoch],
+      ],
+    }),
+  );
+
+  Future<({List<SembleSlot> slots, CivilDate first, CivilDate last})?>
+  cachedSlots() async {
+    try {
+      final raw = await _storage.read(key: _slotsCache);
+      if (raw == null) return null;
+      final json = jsonDecode(raw) as Map<String, Object?>;
+      final first = _civil(json['first']);
+      final last = _civil(json['last']);
+      if (first == null || last == null) return null;
+      return (
+        slots: <SembleSlot>[
+          for (final item in (json['slots'] as List<Object?>? ?? const []))
+            if (item case [final int start, final int end])
+              (
+                start: DateTime.fromMillisecondsSinceEpoch(start),
+                end: DateTime.fromMillisecondsSinceEpoch(end),
+              ),
+        ],
+        first: first,
+        last: last,
+      );
+    } on Object {
+      return null;
+    }
   }
 
   /// Blocks created from Todo (build 317), so they can be removed later and
