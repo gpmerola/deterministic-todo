@@ -44,6 +44,9 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
   /// The iCal link is saved (build 312); the link itself is not shown.
   bool hasLink = false;
 
+  /// Blocks created from Todo and not yet over (build 317).
+  List<SembleTodoBlock> blocks = const [];
+
   CivilDate get _today => CivilDate.fromDateTime(widget.now());
 
   @override
@@ -66,11 +69,17 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     final next = await widget.settings.read();
     final notify = await widget.settings.conflictAlerts();
     final link = await widget.settings.icalLink();
+    final now = widget.now();
+    final saved = [
+      for (final block in await widget.settings.todoBlocks())
+        if (block.end.isAfter(now)) block,
+    ];
     if (!mounted) return;
     setState(() {
       config = next;
       alerts = notify;
       hasLink = link != null;
+      blocks = saved;
       if (userInput.text.isEmpty) userInput.text = next.userId ?? '';
       if (nameInput.text.isEmpty) nameInput.text = next.doctorName ?? '';
       if (roomInput.text.isEmpty) roomInput.text = next.roomId ?? '';
@@ -195,6 +204,64 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     await widget.settings.setEnabled(enabled);
     await widget.layer.reset(today: _today);
     await _reload();
+  }
+
+  String _blockLabel(SembleTodoBlock block) {
+    final day = DateFormat('EEE d MMM', 'it').format(block.start);
+    final time = DateFormat.Hm('it');
+    return '$day · ${time.format(block.start)}–${time.format(block.end)}';
+  }
+
+  /// Removes a block created from Todo, after a confirmation (build 317).
+  Future<void> _removeBlock(SembleTodoBlock block) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Rimuovere il blocco da Semble?'),
+            content: Text(
+              '${_blockLabel(block)}: in Semble tornerai disponibile in '
+              'questo orario.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annulla'),
+              ),
+              FilledButton(
+                key: const ValueKey('semble-confirm-remove'),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Rimuovi'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    final key = await widget.settings.apiKey();
+    if (key == null) return;
+    setState(() {
+      busy = true;
+      status = null;
+    });
+    String message;
+    try {
+      await client.deleteUnavailability(key: key, id: block.id);
+      await widget.settings.removeTodoBlock(block.id);
+      message = 'Blocco rimosso da Semble.';
+      await widget.layer.reset(today: _today);
+    } on SembleException catch (error) {
+      message =
+          'Blocco non rimosso: ${error.message} Se l\'hai già tolto in '
+          'Semble, sparisce dall\'elenco alla prossima lettura.';
+    }
+    await _reload();
+    if (mounted) {
+      setState(() {
+        busy = false;
+        status = message;
+      });
+    }
   }
 
   /// How long a copied key stays in the clipboard (build 316).
@@ -370,6 +437,25 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                           'nell’ora del telefono.',
                           key: const ValueKey('semble-zone'),
                           style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                  ],
+                  if (blocks.isNotEmpty) ...[
+                    _heading(theme, 'Blocchi creati da Todo'),
+                    for (final block in blocks)
+                      ListTile(
+                        key: ValueKey('semble-block-${block.id}'),
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.event_busy),
+                        title: Text(_blockLabel(block)),
+                        subtitle: Text(
+                          'In Semble: ${block.startTime}–${block.endTime}, '
+                          'ora di Londra',
+                        ),
+                        trailing: TextButton(
+                          key: ValueKey('semble-remove-${block.id}'),
+                          onPressed: busy ? null : () => _removeBlock(block),
+                          child: const Text('Rimuovi'),
                         ),
                       ),
                   ],

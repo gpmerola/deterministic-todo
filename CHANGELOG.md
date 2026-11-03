@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.123.0 (build 317) — Blocchi Semble rimovibili in ogni momento
+
+- I blocchi creati con «Blocca in Semble» compaiono in Impostazioni →
+  Semble, sezione **Blocchi creati da Todo**, con giorno e orario del
+  telefono e di Londra. **Rimuovi**, dopo una conferma, li cancella da
+  Semble anche dopo gli 8 secondi dell'Annulla.
+- L'elenco si pulisce da solo: escono i blocchi finiti e quelli tolti
+  direttamente in Semble. Todo ricorda solo id, giorno e orari.
+
 ## 2.122.4 (build 316) — Copia della chiave Semble
 
 - In Impostazioni → Semble l'icona **Copia chiave** copia negli appunti la

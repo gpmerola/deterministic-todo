@@ -4,6 +4,19 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Blocchi Semble rimovibili — build 317
+
+- `createSembleBlock` salva in `SembleSettings.todoBlocks` (Keystore,
+  `semble_todo_blocks`) id, giorno e orari di Londra del blocco creato;
+  l'Annulla lo toglie. Impostazioni → Semble li elenca con «Rimuovi»
+  (`deleteUnavailability` dopo conferma, poi `SembleLayer.reset`).
+- Dopo ogni lettura riuscita delle regole `pruneTodoBlocks` elimina i
+  blocchi finiti e quelli della finestra letta il cui id non è più tra le
+  regole (tolti in Semble). `clear()` svuota l'elenco.
+- Permessi della chiave del 2 novembre 2026 verificati con uno script Apps
+  Script: `createAvailability` e `deleteAvailability` ammessi; prenotazioni,
+  task, pazienti e fatture solo letti dove permesso o negati.
+
 ## Semble senza chiave — build 312–314
 
 - **Fonti.** `SembleLayer.refresh` prova nell'ordine: API con la chiave

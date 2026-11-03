@@ -300,6 +300,16 @@ class SembleLayer extends ChangeNotifier {
         } on Object {
           // Only the background check and the fallback miss the newest.
         }
+        try {
+          await _settings.pruneTodoBlocks(
+            ruleIds: {for (final rule in _rules) rule.id},
+            first: first,
+            last: last,
+            now: now(),
+          );
+        } on Object {
+          // Settings may list a block already gone; removing it says so.
+        }
       } on SembleException catch (error) {
         failure = error.failure;
       }

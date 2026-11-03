@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/semble_time.dart';
 import '../domain/task.dart';
 import '../services/semble_service.dart';
 
@@ -42,6 +43,21 @@ Future<void> createSembleBlock(
     start: start,
     end: end,
   );
+  // Kept so Settings can remove it later (build 317).
+  if (sembleBlockFor(start, end) case final block?) {
+    try {
+      await store.addTodoBlock(
+        SembleTodoBlock(
+          id: created,
+          date: block.date,
+          startTime: block.startTime,
+          endTime: block.endTime,
+        ),
+      );
+    } on Object {
+      // Only the later removal from Settings is missing.
+    }
+  }
   final shared = layer ?? SembleLayer.shared;
   Future<void> refresh() => shared.refresh(
     today: CivilDate.fromDateTime(DateTime.now()),
@@ -61,6 +77,7 @@ Future<void> createSembleBlock(
         onPressed: () async {
           try {
             await semble.deleteUnavailability(key: key, id: created);
+            await store.removeTodoBlock(created).catchError((Object _) {});
             await refresh();
             messenger.showSnackBar(
               const SnackBar(content: Text('Blocco Semble annullato.')),

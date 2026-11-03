@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../domain/semble_availability.dart';
 import '../domain/semble_ical.dart';
+import '../domain/semble_time.dart';
 import '../domain/task.dart';
 
 final class SembleConfig {
@@ -60,6 +61,7 @@ class SembleSettings {
   static const _ignoredOverlaps = 'semble_ignored_overlaps';
   static const _icalLink = 'semble_ical_link';
   static const _bookingsCache = 'semble_bookings_cache';
+  static const _todoBlocks = 'semble_todo_blocks';
 
   final FlutterSecureStorage _storage;
 
@@ -228,7 +230,112 @@ class SembleSettings {
     await _storage.delete(key: _rulesCache);
     await _storage.delete(key: _conflictAlerts);
     await _storage.delete(key: _ignoredOverlaps);
+    await _storage.delete(key: _todoBlocks);
     // The iCal link stays: it is the fallback without a key (build 312).
     await deleteSavedBookings();
+  }
+
+  /// Blocks created from Todo (build 317), so they can be removed later and
+  /// not only by the snackbar's «Annulla». Id, day and London times only.
+  Future<List<SembleTodoBlock>> todoBlocks() async {
+    try {
+      final raw = await _storage.read(key: _todoBlocks);
+      if (raw == null) return [];
+      return [
+        for (final item in jsonDecode(raw) as List<Object?>)
+          if (item is Map<String, Object?>) ?SembleTodoBlock.fromJson(item),
+      ]..sort((a, b) => a.start.compareTo(b.start));
+    } on Object {
+      return [];
+    }
+  }
+
+  Future<void> _saveTodoBlocks(List<SembleTodoBlock> blocks) => _storage.write(
+    key: _todoBlocks,
+    value: jsonEncode([for (final block in blocks) block.toJson()]),
+  );
+
+  Future<void> addTodoBlock(SembleTodoBlock block) async =>
+      _saveTodoBlocks([...await todoBlocks(), block]);
+
+  Future<void> removeTodoBlock(String id) async => _saveTodoBlocks([
+    for (final block in await todoBlocks())
+      if (block.id != id) block,
+  ]);
+
+  /// Drops blocks that are over at [now], and those Semble no longer has: a day
+  /// inside [first]–[last], the window just read, without its id among
+  /// [ruleIds] (removed in Semble itself).
+  Future<void> pruneTodoBlocks({
+    required Set<String> ruleIds,
+    required CivilDate first,
+    required CivilDate last,
+    required DateTime now,
+  }) async {
+    final blocks = await todoBlocks();
+    final kept = [
+      for (final block in blocks)
+        if (block.end.isAfter(now) &&
+            (ruleIds.contains(block.id) ||
+                block.date.compareTo(first) < 0 ||
+                block.date.compareTo(last) > 0))
+          block,
+    ];
+    if (kept.length != blocks.length) await _saveTodoBlocks(kept);
+  }
+}
+
+/// A Semble unavailability created from Todo (build 317): its id, its
+/// London day and wall-clock times as sent to Semble.
+final class SembleTodoBlock {
+  const SembleTodoBlock({
+    required this.id,
+    required this.date,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  final String id;
+  final CivilDate date;
+  final String startTime;
+  final String endTime;
+
+  DateTime _at(String time) {
+    final parts = time.split(':');
+    return londonWallClock(
+      DateTime.utc(
+        date.year,
+        date.month,
+        date.day,
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+      ),
+    ).toLocal();
+  }
+
+  /// Start and end in the phone's time.
+  DateTime get start => _at(startTime);
+  DateTime get end => _at(endTime);
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'date': '$date',
+    'start': startTime,
+    'end': endTime,
+  };
+
+  static SembleTodoBlock? fromJson(Map<String, Object?> json) {
+    final date = _civil(json['date']);
+    final time = RegExp(r'^\d{2}:\d{2}$');
+    return switch (json) {
+      {
+        'id': final String id,
+        'start': final String start,
+        'end': final String end,
+      }
+          when date != null && time.hasMatch(start) && time.hasMatch(end) =>
+        SembleTodoBlock(id: id, date: date, startTime: start, endTime: end),
+      _ => null,
+    };
   }
 }

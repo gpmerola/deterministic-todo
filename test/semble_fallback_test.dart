@@ -691,4 +691,124 @@ void main() {
     await tester.pumpAndSettle();
     expect(clipboard, '');
   });
+
+  group('blocchi creati da Todo (build 317)', () {
+    setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+    const block = SembleTodoBlock(
+      id: 'b1',
+      date: CivilDate(2026, 11, 26),
+      startTime: '08:00',
+      endTime: '09:00',
+    );
+
+    test('salvati, ora di Londra convertita, potati', () async {
+      final settings = SembleSettings();
+      await settings.addTodoBlock(block);
+      await settings.addTodoBlock(
+        const SembleTodoBlock(
+          id: 'b2',
+          date: CivilDate(2026, 11, 27),
+          startTime: '10:00',
+          endTime: '24:00',
+        ),
+      );
+      final saved = await settings.todoBlocks();
+      expect(saved.map((b) => b.id), ['b1', 'b2']);
+      // GMT in November: 08:00 London is 08:00 UTC.
+      expect(saved.first.start.toUtc(), DateTime.utc(2026, 11, 26, 8));
+      expect(saved.last.end.toUtc(), DateTime.utc(2026, 11, 28));
+
+      // Read window covers b1 only and Semble still has it.
+      await settings.pruneTodoBlocks(
+        ruleIds: {'b1'},
+        first: const CivilDate(2026, 11, 1),
+        last: const CivilDate(2026, 11, 26),
+        now: DateTime.utc(2026, 11, 3),
+      );
+      expect((await settings.todoBlocks()).map((b) => b.id), ['b1', 'b2']);
+      // Removed in Semble itself: gone from the list.
+      await settings.pruneTodoBlocks(
+        ruleIds: const {},
+        first: const CivilDate(2026, 11, 1),
+        last: const CivilDate(2026, 11, 26),
+        now: DateTime.utc(2026, 11, 3),
+      );
+      expect((await settings.todoBlocks()).map((b) => b.id), ['b2']);
+      // Over: gone too.
+      await settings.pruneTodoBlocks(
+        ruleIds: {'b2'},
+        first: const CivilDate(2026, 11, 1),
+        last: const CivilDate(2026, 12, 31),
+        now: DateTime.utc(2026, 11, 29),
+      );
+      expect(await settings.todoBlocks(), isEmpty);
+      await settings.addTodoBlock(block);
+      await settings.removeTodoBlock('b1');
+      expect(await settings.todoBlocks(), isEmpty);
+    });
+
+    testWidgets('Rimuovi chiede conferma e cancella proprio quel blocco', (
+      tester,
+    ) async {
+      final settings = SembleSettings();
+      await settings.save(key: 'k', userId: 'user1', roomId: 'room1');
+      await settings.addTodoBlock(block);
+      final deleted = <Object?>[];
+      final client = SembleClient(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, Object?>;
+          if (body['query'] == sembleDeleteBlockMutation) {
+            deleted.add((body['variables'] as Map)['id']);
+            return http.Response(
+              jsonEncode({
+                'data': {
+                  'deleteAvailability': {
+                    'data': {'id': 'b1'},
+                  },
+                },
+              }),
+              200,
+            );
+          }
+          return rulesResponse();
+        }),
+      );
+      final layer = SembleLayer(
+        zoneShift: (_) => 0,
+        settings: settings,
+        client: client,
+      );
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SembleSettingsView(
+            settings: settings,
+            layer: layer,
+            client: client,
+            now: () => DateTime(2026, 11, 3, 10),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Blocchi creati da Todo'), findsOne);
+      expect(find.textContaining('08:00–09:00, ora di Londra'), findsOne);
+
+      await tester.tap(find.byKey(const ValueKey('semble-remove-b1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Annulla'));
+      await tester.pumpAndSettle();
+      expect(deleted, isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('semble-remove-b1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('semble-confirm-remove')));
+      await tester.pumpAndSettle();
+      expect(deleted, ['b1']);
+      expect(await settings.todoBlocks(), isEmpty);
+      expect(find.text('Blocco rimosso da Semble.'), findsOne);
+      expect(find.text('Blocchi creati da Todo'), findsNothing);
+    });
+  });
 }
