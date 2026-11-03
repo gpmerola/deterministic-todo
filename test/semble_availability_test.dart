@@ -290,7 +290,8 @@ void main() {
         settings: settings,
         client: SembleClient(
           client: MockClient((request) async {
-            calls++;
+            // Rules reads only; the free slots (build 318) follow each one.
+            if (request.body.contains('availabilityRules(')) calls++;
             return http.Response(
               jsonEncode({
                 'data': {

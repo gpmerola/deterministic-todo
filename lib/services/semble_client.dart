@@ -12,8 +12,8 @@ const sembleEndpoint = 'https://open.semble.io/graphql';
 
 /// Every operation this app may send to Semble, all defined in this file:
 /// reads: [sembleCheckQuery] (token check), [sembleRulesQuery]
-///   (availability rules) and [sembleBookingsQuery] (bookings, without
-///   patient data);
+///   (availability rules), [sembleBookingsQuery] (bookings, without
+///   patient data) and [sembleSlotsQuery] (free slots, build 318);
 /// writes, only on the user's tap: [sembleCreateBlockMutation] (an
 ///   unavailability of type Other, build 297/300) and
 ///   [sembleDeleteBlockMutation] (its Annulla).
@@ -54,6 +54,11 @@ query {
     pageInfo { hasMore }
   }
 }''';
+
+/// Free bookable slots of the user (build 318): what Semble would offer to
+/// book, already net of bookings and breaks. Times only.
+const sembleSlotsQuery =
+    r'''query($userIds: [String], $range: AvailabilitySlotsDateRange!, $page: Pagination) { availabilitySlots(userIds: $userIds, dateRange: $range, pagination: $page) { data { startLocal endLocal } pageInfo { hasMore } } }''';
 
 /// The only writes this app sends (build 297), each after a confirmation.
 const sembleCreateBlockMutation =
@@ -167,6 +172,45 @@ class SembleClient {
       if (!hasMore || list.isEmpty) break;
     }
     return bookings;
+  }
+
+  /// The user's free slots from [first] to [last] inclusive (build 318).
+  Future<List<SembleSlot>> slots({
+    required String key,
+    required String userId,
+    required CivilDate first,
+    required CivilDate last,
+  }) async {
+    final slots = <SembleSlot>[];
+    for (var page = 1; page <= maxPages; page++) {
+      final data = await _post(key, sembleSlotsQuery, {
+        'userIds': [userId],
+        'range': {'start': '$first', 'end': '${last.addDays(1)}'},
+        'page': {'page': page, 'pageSize': 100},
+      });
+      final (list, hasMore) = switch (data['availabilitySlots']) {
+        {'data': final List<Object?> list, 'pageInfo': final Object? info} => (
+          list,
+          info is Map<String, Object?> && info['hasMore'] == true,
+        ),
+        {'data': final List<Object?> list} => (list, false),
+        _ => throw const SembleException(SembleFailure.badResponse),
+      };
+      for (final item in list) {
+        if (item case {
+          'startLocal': final String start,
+          'endLocal': final String end,
+        }) {
+          final from = sembleLocalTime(start);
+          final to = sembleLocalTime(end);
+          if (from != null && to != null && to.isAfter(from)) {
+            slots.add((start: from, end: to));
+          }
+        }
+      }
+      if (!hasMore || list.isEmpty) break;
+    }
+    return slots;
   }
 
   Future<List<SembleRule>> _rules(

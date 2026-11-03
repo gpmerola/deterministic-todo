@@ -203,6 +203,45 @@ final class SembleRecurrence {
 
 enum SembleBandKind { available, unavailable }
 
+/// A free slot Semble would offer to book (build 318), as instants.
+typedef SembleSlot = ({DateTime start, DateTime end});
+
+/// The instant of a Semble `LocalDateTime` ("2026-11-03T10:00:00"): the
+/// clinic's Europe/London wall clock, shown in the phone's zone.
+DateTime? sembleLocalTime(String value) {
+  final digits = DateTime.tryParse(
+    '${value.trim().replaceFirst(RegExp('[Zz]\$'), '')}Z',
+  );
+  return digits == null ? null : londonWallClock(digits).toLocal();
+}
+
+/// [ruleBands] of [day] with the available ones replaced by Semble's free
+/// [slots] (build 318): green only where a visit can really be booked, net
+/// of bookings and breaks. Adjacent slots join; unavailable bands stay.
+List<SembleBand> sembleSlotBands(
+  List<SembleBand> ruleBands,
+  Iterable<SembleSlot> slots,
+  CivilDate day,
+) {
+  final midnight = day.asLocalDate;
+  final next = day.addDays(1).asLocalDate;
+  int minute(DateTime value) => value.difference(midnight).inMinutes;
+  final spans = <(int, int)>[
+    for (final slot in slots)
+      if (slot.end.isAfter(midnight) && slot.start.isBefore(next))
+        (
+          minute(slot.start.isBefore(midnight) ? midnight : slot.start),
+          minute(slot.end.isAfter(next) ? next : slot.end),
+        ),
+  ];
+  return [
+    for (final band in ruleBands)
+      if (band.kind == SembleBandKind.unavailable) band,
+    for (final (start, end) in _union(spans))
+      SembleBand(SembleBandKind.available, start, end),
+  ]..sort((a, b) => a.startMinute.compareTo(b.startMinute));
+}
+
 /// A stretch of one civil day drawn behind the events, in minutes from
 /// midnight (end exclusive).
 final class SembleBand {

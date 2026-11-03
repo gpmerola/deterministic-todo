@@ -811,4 +811,117 @@ void main() {
       expect(find.text('Blocchi creati da Todo'), findsNothing);
     });
   });
+
+  group('orari liberi da Semble (build 318)', () {
+    setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+
+    test('ora di Londra, slot vicini uniti, righe dalle regole', () {
+      // GMT in November: London wall clock equals UTC.
+      expect(
+        sembleLocalTime('2026-11-03T10:00:00')!.toUtc(),
+        DateTime.utc(2026, 11, 3, 10),
+      );
+      const day = CivilDate(2026, 11, 3);
+      SembleSlot slot(int h, int m, int minutes) {
+        final start = DateTime.utc(2026, 11, 3, h, m).toLocal();
+        return (start: start, end: start.add(Duration(minutes: minutes)));
+      }
+
+      final local = DateTime.utc(2026, 11, 3, 15, 15).toLocal();
+      final from = local.difference(day.asLocalDate).inMinutes;
+      final bands = sembleSlotBands(
+        const [
+          SembleBand(SembleBandKind.available, 0, 24 * 60),
+          SembleBand(SembleBandKind.unavailable, 60, 120),
+        ],
+        [slot(15, 15, 15), slot(15, 30, 60)],
+        day,
+      );
+      expect(bands, [
+        const SembleBand(SembleBandKind.unavailable, 60, 120),
+        SembleBand(SembleBandKind.available, from, from + 75),
+      ]);
+    });
+
+    test('il livello usa gli slot e torna alle regole se mancano', () async {
+      final settings = SembleSettings();
+      await settings.save(key: 'k', userId: 'user1');
+      var slotsWork = true;
+      final today = CivilDate.fromDateTime(DateTime.now());
+      final slotStart = DateTime(today.year, today.month, today.day, 9);
+      String london(DateTime local) =>
+          londonDigitsOf(local).toIso8601String().replaceFirst('.000Z', '');
+      final layer = SembleLayer(
+        zoneShift: (_) => 0,
+        settings: settings,
+        client: SembleClient(
+          client: MockClient((request) async {
+            if (request.body.contains('availabilitySlots(')) {
+              if (!slotsWork) return http.Response('', 500);
+              return http.Response(
+                jsonEncode({
+                  'data': {
+                    'availabilitySlots': {
+                      'data': [
+                        {
+                          'startLocal': london(slotStart),
+                          'endLocal': london(
+                            slotStart.add(const Duration(minutes: 30)),
+                          ),
+                        },
+                      ],
+                      'pageInfo': {'hasMore': false},
+                    },
+                  },
+                }),
+                200,
+              );
+            }
+            return http.Response(
+              jsonEncode({
+                'data': {
+                  'availabilityRules': {
+                    'data': [
+                      {
+                        ...rule(),
+                        'startTime': '00:00',
+                        'endTime': '23:45',
+                        'recurrence': {
+                          'frequency': 'daily',
+                          'interval': 1,
+                          'daysOfTheWeek': <int>[],
+                        },
+                      },
+                    ],
+                  },
+                },
+              }),
+              200,
+            );
+          }),
+        ),
+      );
+      await layer.refresh(today: today, force: true);
+      expect(layer.slotsActive, isTrue);
+      final green = layer
+          .bandsFor(today)
+          .where((b) => b.kind == SembleBandKind.available)
+          .toList();
+      expect(green.single.startMinute, 9 * 60);
+      expect(green.single.endMinute, 9 * 60 + 30);
+
+      slotsWork = false;
+      await layer.refresh(today: today, force: true);
+      expect(layer.slotsActive, isFalse);
+      expect(
+        layer
+            .bandsFor(today)
+            .where((b) => b.kind == SembleBandKind.available)
+            .single
+            .endMinute,
+        greaterThan(9 * 60 + 30),
+        reason: 'senza slot il verde viene dalle regole',
+      );
+    });
+  });
 }

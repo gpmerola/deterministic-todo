@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.124.0 (build 318) — Orari davvero liberi e Stima dei mesi passati
+
+- Il verde Semble nel Calendario mostra ora gli slot che Semble offrirebbe
+  davvero, già al netto di visite e pause, per le prossime 4 settimane. Più
+  avanti, o se Semble non li restituisce, resta il verde delle regole di
+  disponibilità come prima. Le righe dei blocchi non cambiano.
+- Stima lavoro privato: un menu accanto al titolo sceglie il mese corrente
+  o uno dei 3 precedenti. Per un mese passato la stima è chiusa: solo il
+  maturato, senza previsto né programmati.
+
 ## 2.123.0 (build 317) — Blocchi Semble rimovibili in ogni momento
 
 - I blocchi creati con «Blocca in Semble» compaiono in Impostazioni →

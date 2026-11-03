@@ -320,12 +320,16 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: PrivateEarningsSheet(service: _FixedService(agenda)),
+            body: PrivateEarningsSheet(
+              service: _FixedService(agenda),
+              now: () => DateTime(2026, 10, 12, 18),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Lavoro privato · ottobre'), findsOneWidget);
+      expect(find.text('Lavoro privato · '), findsOneWidget);
+      expect(find.text('ottobre'), findsOneWidget);
       expect(find.text('£65.00'), findsOneWidget);
       expect(find.text('Maturato finora'), findsOneWidget);
       expect(find.text('Totale previsto del mese'), findsOneWidget);
@@ -349,6 +353,51 @@ void main() {
       expect(find.textContaining('Synthetic provider failure'), findsNothing);
     },
   );
+
+  testWidgets('menu dei mesi: corrente e 3 precedenti, mese passato chiuso', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final service = _MonthService(_Agenda(db));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PrivateEarningsSheet(
+            service: service,
+            now: () => DateTime(2026, 11, 3, 10),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(service.asked.single, DateTime(2026, 11, 3, 10));
+    await tester.tap(find.byKey(const ValueKey('earnings-month')));
+    await tester.pumpAndSettle();
+    for (final month in ['ottobre 2026', 'settembre 2026', 'agosto 2026']) {
+      expect(find.text(month).last, findsOneWidget);
+    }
+    expect(find.text('luglio 2026'), findsNothing);
+    await tester.tap(find.text('settembre 2026').last);
+    await tester.pumpAndSettle();
+    expect(
+      service.asked.last,
+      DateTime(2026, 10).subtract(const Duration(milliseconds: 1)),
+    );
+    expect(find.text('Maturato nel mese'), findsOneWidget);
+    expect(find.text('Totale previsto del mese'), findsNothing);
+    expect(find.text('Ancora programmati'), findsNothing);
+  });
+}
+
+class _MonthService extends PrivateEarningsService {
+  _MonthService(super.agenda);
+  final asked = <DateTime?>[];
+  @override
+  Future<PrivateEarnings> load({DateTime? now}) {
+    asked.add(now);
+    return super.load(now: now);
+  }
 }
 
 class _FixedService extends PrivateEarningsService {

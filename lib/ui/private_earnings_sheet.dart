@@ -5,16 +5,41 @@ import '../domain/private_earnings.dart';
 import '../services/private_earnings_service.dart';
 
 class PrivateEarningsSheet extends StatefulWidget {
-  const PrivateEarningsSheet({required this.service, super.key});
+  const PrivateEarningsSheet({
+    required this.service,
+    DateTime Function()? now,
+    super.key,
+  }) : now = now ?? DateTime.now;
   final PrivateEarningsService service;
+  final DateTime Function() now;
+
+  /// Past months offered besides the current one (build 318).
+  static const pastMonths = 3;
   @override
   State<PrivateEarningsSheet> createState() => _PrivateEarningsSheetState();
 }
 
 class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
+  /// 0 is the current month, 1 the previous one and so on (build 318).
+  int _monthsBack = 0;
+
+  DateTime _month(int back) {
+    final now = widget.now();
+    return DateTime(now.year, now.month - back);
+  }
+
   late Future<PrivateEarnings> _result = _load();
   Future<PrivateEarnings> _load() {
-    final result = widget.service.load().timeout(const Duration(seconds: 15));
+    // A past month is estimated as at its last moment: everything is over.
+    final asOf = _monthsBack == 0
+        ? widget.now()
+        : DateTime(
+            _month(_monthsBack).year,
+            _month(_monthsBack).month + 1,
+          ).subtract(const Duration(milliseconds: 1));
+    final result = widget.service
+        .load(now: asOf)
+        .timeout(const Duration(seconds: 15));
     // A retry may fail before the next frame attaches FutureBuilder. Handle
     // that interval too; FutureBuilder still receives the original error.
     result.ignore();
@@ -60,9 +85,41 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Lavoro privato · ${DateFormat.MMMM('it').format(result?.asOf ?? DateTime.now())}',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              children: [
+                Text(
+                  'Lavoro privato · ',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                DropdownButton<int>(
+                  key: const ValueKey('earnings-month'),
+                  value: _monthsBack,
+                  underline: const SizedBox.shrink(),
+                  style: Theme.of(context).textTheme.titleLarge,
+                  items: [
+                    for (
+                      var back = 0;
+                      back <= PrivateEarningsSheet.pastMonths;
+                      back++
+                    )
+                      DropdownMenuItem(
+                        value: back,
+                        child: Text(
+                          DateFormat(
+                            back == 0 ? 'MMMM' : 'MMMM y',
+                            'it',
+                          ).format(_month(back)),
+                        ),
+                      ),
+                  ],
+                  onChanged: snapshot.connectionState == ConnectionState.done
+                      ? (back) => setState(() {
+                          _monthsBack = back ?? 0;
+                          _result = _load();
+                        })
+                      : null,
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             if (snapshot.connectionState != ConnectionState.done)
@@ -74,29 +131,32 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                     : 'Stima non disponibile. Riprova tra poco.',
               )
             else if (result != null) ...[
-              const Text('Maturato finora'),
+              Text(_monthsBack == 0 ? 'Maturato finora' : 'Maturato nel mese'),
               Text(
                 money(result.pence),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const Text('Solo appuntamenti già terminati'),
-              const SizedBox(height: 16),
-              const Text('Totale previsto del mese'),
-              Text(
-                money(result.monthPence),
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              Text(
-                'Finora + ${money(result.scheduledPence)} da appuntamenti già programmati, inclusi quelli in corso',
-              ),
+              if (_monthsBack == 0) ...[
+                const SizedBox(height: 16),
+                const Text('Totale previsto del mese'),
+                Text(
+                  money(result.monthPence),
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                Text(
+                  'Finora + ${money(result.scheduledPence)} da appuntamenti già programmati, inclusi quelli in corso',
+                ),
+              ],
               const SizedBox(height: 12),
               const Text('Importi lordi stimati · non incassi confermati'),
               breakdown('Dettaglio finora', result.counts, result.unpriced),
-              breakdown(
-                'Ancora programmati',
-                result.scheduledCounts,
-                result.scheduledUnpriced,
-              ),
+              if (_monthsBack == 0)
+                breakdown(
+                  'Ancora programmati',
+                  result.scheduledCounts,
+                  result.scheduledUnpriced,
+                ),
               if (result.dnaVisits > 0 || result.sembleCancelled > 0)
                 Padding(
                   key: const ValueKey('earnings-semble-dna'),
@@ -133,7 +193,7 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                 ),
               const SizedBox(height: 12),
               Text(
-                'Solo il mese corrente, secondo la data di inizio degli appuntamenti. Aggiornato al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Annullati e assenze esclusi; con chiave e cognome Semble le visite Semble vengono dalle prenotazioni, con DNA e cancellazioni. Il previsto assume che gli appuntamenti programmati si svolgano.',
+                'Solo il mese scelto (il corrente o uno dei 3 precedenti), secondo la data di inizio degli appuntamenti. Calcolato al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Annullati e assenze esclusi; con chiave e cognome Semble le visite Semble vengono dalle prenotazioni, con DNA e cancellazioni. Il previsto assume che gli appuntamenti programmati si svolgano.',
               ),
               const SizedBox(height: 8),
               const Text(

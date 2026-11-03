@@ -4,6 +4,19 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Slot liberi Semble — build 318
+
+- `SembleClient.slots` legge `availabilitySlots` (`startLocal`/`endLocal`,
+  ora di Londra, `sembleLocalTime`) per oggi + 28 giorni, dopo ogni lettura
+  riuscita delle regole. `SembleLayer._bandsOf` sostituisce, nei giorni
+  coperti, le fasce verdi delle regole con gli slot uniti
+  (`sembleSlotBands`); le indisponibilità restano dalle regole. Senza slot
+  (errore, giorni oltre la finestra, chiave rifiutata) il verde resta quello
+  delle regole. Bordo ambra e avvisi seguono lo stesso verde in app; il
+  controllo in background usa ancora le regole salvate.
+- Verifica con lo script Apps Script del 3 novembre 2026: 12 slot in 7
+  giorni, campi `startLocal`, `endLocal`, `user`, `room`.
+
 ## Blocchi Semble rimovibili — build 317
 
 - `createSembleBlock` salva in `SembleSettings.todoBlocks` (Keystore,

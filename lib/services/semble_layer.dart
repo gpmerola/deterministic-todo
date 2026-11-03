@@ -63,6 +63,15 @@ class SembleLayer extends ChangeNotifier {
   List<SembleRule> _rules = const [];
   List<SembleBooking> _bookings = const [];
 
+  /// Free slots from Semble (build 318) and the days they cover; null when
+  /// not read, and the green then comes from the rules.
+  List<SembleSlot>? _slots;
+  CivilDate? _slotsFirst;
+  CivilDate? _slotsLast;
+
+  /// Whether the green of the days read shows Semble's free slots.
+  bool get slotsActive => _slots != null;
+
   /// Bumped whenever the bookings change, so Calendar pages re-read.
   int bookingsRevision = 0;
   CivilDate? _first;
@@ -162,7 +171,18 @@ class SembleLayer extends ChangeNotifier {
     final last = _last;
     if (!active || first == null || last == null) return const [];
     if (day.compareTo(first) < 0 || day.compareTo(last) > 0) return const [];
-    return sembleShiftBands(sembleBandsFor(_rules, day), zoneShift(day));
+    final bands = sembleShiftBands(sembleBandsFor(_rules, day), zoneShift(day));
+    final slots = _slots;
+    final slotsFirst = _slotsFirst;
+    final slotsLast = _slotsLast;
+    if (slots == null ||
+        slotsFirst == null ||
+        slotsLast == null ||
+        day.compareTo(slotsFirst) < 0 ||
+        day.compareTo(slotsLast) > 0) {
+      return bands;
+    }
+    return sembleSlotBands(bands, slots, day);
   }
 
   /// Ids of [entries] on [day] that are not Semble visits but fall in
@@ -260,6 +280,7 @@ class SembleLayer extends ChangeNotifier {
       _setBookings(const []);
       _first = _last = _fetchedAt = _readFor = _attemptedAt = null;
       _rulesSavedAt = _bookingsSavedAt = null;
+      _slots = _slotsFirst = _slotsLast = null;
       rulesFromCache = false;
       bookingsSource = SembleBookingsSource.none;
       failure = icalFailure = null;
@@ -328,6 +349,23 @@ class SembleLayer extends ChangeNotifier {
       }
     } else if (!rulesRead) {
       rulesFromCache = true;
+    }
+    if (rulesRead) {
+      try {
+        _slots = await _client.slots(
+          key: key!,
+          userId: config.userId!,
+          first: today,
+          last: today.addDays(bookingDaysAhead),
+        );
+        _slotsFirst = today;
+        _slotsLast = today.addDays(bookingDaysAhead);
+      } on SembleException {
+        // The rules stay the green: wider, never missing.
+        _slots = _slotsFirst = _slotsLast = null;
+      }
+    } else {
+      _slots = _slotsFirst = _slotsLast = null;
     }
     // Writes need a working key: no «Blocca» offer with a refused one.
     _canBlock =
@@ -406,6 +444,7 @@ class SembleLayer extends ChangeNotifier {
     _setBookings(const []);
     _first = _last = _fetchedAt = _readFor = _attemptedAt = null;
     _rulesSavedAt = _bookingsSavedAt = null;
+    _slots = _slotsFirst = _slotsLast = null;
     rulesFromCache = false;
     bookingsSource = SembleBookingsSource.none;
     failure = icalFailure = null;
