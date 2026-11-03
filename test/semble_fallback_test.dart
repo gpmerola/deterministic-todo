@@ -8,6 +8,7 @@ import 'package:deterministic_todo/domain/task.dart';
 import 'package:deterministic_todo/services/semble_service.dart';
 import 'package:deterministic_todo/ui/semble_settings_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -628,5 +629,66 @@ void main() {
         );
       });
     });
+  });
+
+  testWidgets('Copia chiave: conferma, appunti, svuotati dopo un minuto', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final settings = SembleSettings();
+    await settings.save(key: 'secret-copy-1234', userId: 'user1');
+    String? clipboard;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          clipboard = (call.arguments as Map)['text'] as String?;
+        }
+        if (call.method == 'Clipboard.getData') {
+          return {'text': clipboard};
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final layer = SembleLayer(
+      zoneShift: (_) => 0,
+      settings: settings,
+      client: SembleClient(
+        client: MockClient((_) async => http.Response('', 401)),
+      ),
+    );
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SembleSettingsView(settings: settings, layer: layer),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('semble-copy-key')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annulla'));
+    await tester.pumpAndSettle();
+    expect(clipboard, isNull, reason: 'senza conferma non copia');
+
+    await tester.tap(find.byKey(const ValueKey('semble-copy-key')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('semble-confirm-copy')));
+    await tester.pumpAndSettle();
+    expect(clipboard, 'secret-copy-1234');
+    expect(find.textContaining('Chiave copiata'), findsOne);
+    expect(find.text('secret-copy-1234'), findsNothing);
+
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    expect(clipboard, '');
   });
 }

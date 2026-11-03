@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../domain/task.dart';
@@ -194,6 +197,57 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     await _reload();
   }
 
+  /// How long a copied key stays in the clipboard (build 316).
+  static const copiedKeyLifetime = Duration(minutes: 1);
+
+  /// Copies the saved key after a confirmation (build 316), for when the
+  /// user needs it elsewhere and has no other copy. The clipboard is
+  /// emptied after [copiedKeyLifetime] if it still holds the key.
+  Future<void> _copyKey() async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Copiare la chiave Semble?'),
+            content: const Text(
+              'Chi ha la chiave può leggere disponibilità e prenotazioni '
+              'della clinica. Incollala solo dove ti serve: gli appunti si '
+              'svuotano tra un minuto.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annulla'),
+              ),
+              FilledButton(
+                key: const ValueKey('semble-confirm-copy'),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Copia'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    final key = await widget.settings.apiKey();
+    if (key == null) return;
+    await Clipboard.setData(ClipboardData(text: key));
+    if (mounted) {
+      setState(
+        () =>
+            status = 'Chiave copiata negli appunti: si svuotano tra un minuto.',
+      );
+    }
+    unawaited(
+      Future<void>.delayed(copiedKeyLifetime, () async {
+        final now = await Clipboard.getData(Clipboard.kTextPlain);
+        if (now?.text == key) {
+          await Clipboard.setData(const ClipboardData(text: ''));
+        }
+      }),
+    );
+  }
+
   Future<void> _clear() async {
     final confirmed =
         await showDialog<bool>(
@@ -263,6 +317,13 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                                 : _refresh,
                             icon: const Icon(Icons.refresh),
                           ),
+                          if (current.maskedKey != null)
+                            IconButton(
+                              key: const ValueKey('semble-copy-key'),
+                              tooltip: 'Copia chiave',
+                              onPressed: busy ? null : _copyKey,
+                              icon: const Icon(Icons.copy),
+                            ),
                           if (current.maskedKey != null)
                             IconButton(
                               key: const ValueKey('semble-clear'),

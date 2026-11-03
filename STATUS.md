@@ -4,7 +4,7 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2315
+- Stabile: 2.121.2 / 311 (Web, APK diretti, Play interno). Todo Test: 2316
   (branch `agent/semble-fallback`): Semble con riserva senza chiave; dalla
   315 barra Calendario di Oggi compatta (due righe al massimo).
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata

@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.122.4 (build 316) — Copia della chiave Semble
+
+- In Impostazioni → Semble l'icona **Copia chiave** copia negli appunti la
+  chiave API salvata, dopo una conferma. Gli appunti si svuotano dopo un
+  minuto se contengono ancora la chiave. La chiave non viene mai mostrata.
+
 ## 2.122.3 (build 315) — Barra Calendario di Oggi più compatta
 
 - In cima a Oggi la barra degli impegni occupa molto meno spazio: al massimo
