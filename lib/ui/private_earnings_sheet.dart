@@ -49,6 +49,30 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
   String money(int pence) =>
       NumberFormat.currency(locale: 'en_GB', symbol: '£').format(pence / 100);
 
+  /// Which events got no price (build 319): date, time and title.
+  Widget unpricedList(PrivateEarnings result) => ExpansionTile(
+    key: const ValueKey('earnings-unpriced'),
+    tilePadding: EdgeInsets.zero,
+    title: const Text('Non valorizzati'),
+    subtitle: Text(
+      '${result.unpricedEntries.length} eventi senza prezzo: tipo non '
+      'riconosciuto, ASD o durata diversa dal tariffario',
+    ),
+    children: [
+      for (final entry in result.unpricedEntries)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${DateFormat('d MMM HH:mm', 'it').format(entry.start)} · '
+              '${entry.title.trim().isEmpty ? '(senza titolo)' : entry.title}',
+            ),
+          ),
+        ),
+    ],
+  );
+
   Widget breakdown(
     String label,
     Map<PrivateFee, int> counts,
@@ -157,6 +181,7 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                   result.scheduledCounts,
                   result.scheduledUnpriced,
                 ),
+              if (result.unpricedEntries.isNotEmpty) unpricedList(result),
               if (result.dnaVisits > 0 || result.sembleCancelled > 0)
                 Padding(
                   key: const ValueKey('earnings-semble-dna'),

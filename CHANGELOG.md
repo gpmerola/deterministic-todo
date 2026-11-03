@@ -2,6 +2,12 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.124.1 (build 319) — Quali eventi non hanno prezzo
+
+- Nella Stima lavoro privato la nuova voce **Non valorizzati** elenca data,
+  ora e titolo degli eventi rimasti senza prezzo (tipo non riconosciuto,
+  ASD o durata diversa dal tariffario), così si vede da dove arrivano.
+
 ## 2.124.0 (build 318) — Orari davvero liberi e Stima dei mesi passati
 
 - Il verde Semble nel Calendario mostra ora gli slot che Semble offrirebbe

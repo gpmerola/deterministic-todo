@@ -95,8 +95,13 @@ class PrivateEarnings {
     this.sembleMatched,
     this.sembleProblem,
     this.sembleVisits,
+    this.unpricedEntries = const [],
   });
   final DateTime asOf;
+
+  /// The events left without a price (build 319), done and scheduled, so
+  /// the sheet can say which ones: start and title only, kept in memory.
+  final List<({DateTime start, String title})> unpricedEntries;
   final Map<PrivateFee, int> counts;
   final int unpriced;
 
@@ -142,6 +147,7 @@ class PrivateEarnings {
         sembleMatched: sembleMatched,
         sembleProblem: sembleProblem ?? this.sembleProblem,
         sembleVisits: sembleVisits ?? this.sembleVisits,
+        unpricedEntries: unpricedEntries,
       );
   int get dnaPence =>
       dnaCounts.entries.fold(0, (sum, e) => sum + e.key.pence * e.value);
@@ -173,6 +179,7 @@ PrivateEarnings estimatePrivateEarnings(
   final dnaCounts = <PrivateFee, int>{};
   var unpriced = 0;
   var scheduledUnpriced = 0;
+  final unpricedEntries = <({DateTime start, String title})>[];
   var dnaUnpriced = 0;
   var sembleCancelled = 0;
   var checked = 0;
@@ -215,6 +222,7 @@ PrivateEarnings estimatePrivateEarnings(
     }
     final scheduled = entry.end.isAfter(now);
     if (fee == null) {
+      unpricedEntries.add((start: entry.start, title: entry.title));
       if (scheduled) {
         scheduledUnpriced++;
       } else {
@@ -240,6 +248,9 @@ PrivateEarnings estimatePrivateEarnings(
     sembleMatched: outcome == null
         ? null
         : (matched: matched, checked: checked),
+    unpricedEntries: List.unmodifiable(
+      unpricedEntries..sort((a, b) => a.start.compareTo(b.start)),
+    ),
   );
 }
 

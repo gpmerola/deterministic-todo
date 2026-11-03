@@ -126,6 +126,19 @@ void main() {
     }
   });
 
+  test('i non valorizzati sono elencati con data e titolo (build 319)', () {
+    final result = estimatePrivateEarnings([
+      entry('Follow-up', 15, id: 'priced'),
+      entry('ASD assessment', 90, id: 'asd', start: DateTime(2026, 10, 6, 9)),
+      entry('Follow-up', 45, id: 'odd', start: DateTime(2026, 10, 2, 9)),
+    ], now);
+    expect(result.unpriced, 2);
+    expect(result.unpricedEntries, [
+      (start: DateTime(2026, 10, 2, 9), title: 'Follow-up'),
+      (start: DateTime(2026, 10, 6, 9), title: 'ASD assessment'),
+    ]);
+  });
+
   test(
     'current civil month, completed appointments only, no tasks or absences',
     () {
