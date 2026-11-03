@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.124.2 (build 320) — ADHD minori come adulti nella Stima
+
+- Le valutazioni e i feedback ADHD per minori (Child & Adolescent) sono
+  contati come quelli degli adulti, £215 e £85: il tariffario OPUK di
+  settembre 2026 nomina solo gli adulti e l'utente ha scelto questa
+  ipotesi finché OPUK non conferma. La Stima lo scrive nelle note.
+
 ## 2.124.1 (build 319) — Quali eventi non hanno prezzo
 
 - Nella Stima lavoro privato la nuova voce **Non valorizzati** elenca data,

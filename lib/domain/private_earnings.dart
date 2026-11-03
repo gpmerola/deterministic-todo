@@ -51,8 +51,9 @@ PrivateFee? privateFeeFor(AgendaEntry entry) {
         _ => null,
       };
     }
-    // The available assessment package is explicitly for adults only.
-    if (child) return null;
+    // The schedule names adults only; child and adolescent assessments are
+    // paid the same until OPUK says otherwise (user's choice, 3 November
+    // 2026, build 320).
     if (has(r'\b(report|reports|letter|letters|admin)\b')) return null;
     if (has(r'\bfeedback\b')) return PrivateFee.adhdFeedback;
     if (has(r'\b(assessment|valutazione)\b')) {

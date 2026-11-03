@@ -222,7 +222,7 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Tariffario settembre 2026. ADHD: valutazione e feedback separati; report incluso. ASD e tipi non riconosciuti esclusi. Prestazioni fuori calendario non comprese. Copie con titoli diversi possono essere contate due volte.',
+                'Tariffario settembre 2026. ADHD: valutazione e feedback separati; report incluso; minori come adulti, da confermare con OPUK. ASD e tipi non riconosciuti esclusi. Prestazioni fuori calendario non comprese. Copie con titoli diversi possono essere contate due volte.',
               ),
             ],
             const SizedBox(height: 12),

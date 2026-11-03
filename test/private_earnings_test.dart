@@ -117,8 +117,13 @@ void main() {
       ('Urgent initial adult consultation 60 min', 75, PrivateFee.initial),
       ('Follow-up 15 min / 30 min', 45, null),
       ('Follow-up 30 min', 15, null),
-      ('ADHD assessment child and adolescent', 75, null),
-      ('ADHD feedback child', 30, null),
+      // Paid as adults until OPUK says otherwise (build 320).
+      (
+        'ADHD Assessment (Child & Adolescent) - Vitality (75 min)',
+        75,
+        PrivateFee.adhdAssessment,
+      ),
+      ('ADHD feedback child', 30, PrivateFee.adhdFeedback),
       ('Prima visita', 90, null),
     ];
     for (final (title, minutes, fee) in cases) {
