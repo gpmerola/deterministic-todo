@@ -2,6 +2,13 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.125.1 (build 324) — Release stabile della 323
+
+- Nessuna modifica funzionale rispetto alla 323. Il 6 novembre 2026 la
+  pubblicazione Web della 323 è scaduta su GitHub Pages (deploy bloccato in
+  `updating_pages`, poi annullato) dopo che Google Play aveva già accettato
+  la build 323: come da runbook la release riparte con una build nuova.
+
 ## 2.125.0 (build 323) — Disponibilità e blocchi Semble dall'app
 
 - Nel Calendario, **+ → Semble** (prima «Blocco Semble») sceglie fra
