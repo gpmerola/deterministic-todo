@@ -75,7 +75,9 @@ class SembleConflicts {
       await AgendaReminders.channel.invokeMethod<int>('notifySembleConflicts', {
         'events': sembleConflictPlan([
           for (final entry in found)
-            if (!ignored.containsKey(sembleOverlapKey(entry))) entry,
+            if (!ignored.containsKey(sembleOverlapKey(entry)) &&
+                !ignored.containsKey(sembleLegacyOverlapKey(entry)))
+              entry,
         ]),
       });
     } catch (_) {
@@ -85,16 +87,14 @@ class SembleConflicts {
 }
 
 /// Opaque id per occurrence, plus its times: nothing else crosses the
-/// notification channel.
+/// notification channel. From build 322 the id comes from
+/// [sembleOverlapKey], so an event whose phone id changes on a sync is not
+/// notified again.
 List<Map<String, Object>> sembleConflictPlan(Iterable<AgendaEntry> entries) => [
   for (final entry in entries)
     {
       'id': sha256
-          .convert(
-            utf8.encode(
-              'semble|${entry.instanceId}|${entry.start.millisecondsSinceEpoch}',
-            ),
-          )
+          .convert(utf8.encode('semble|${sembleOverlapKey(entry)}'))
           .toString(),
       'start': entry.start.millisecondsSinceEpoch,
       'end': entry.end.millisecondsSinceEpoch,

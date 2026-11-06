@@ -72,6 +72,48 @@ void main() {
   });
 
   test(
+    'il bordo tolto resta tolto se il telefono cambia id (build 322)',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final settings = SembleSettings();
+      final layer = SembleLayer(settings: settings);
+      AgendaEntry teams(String id) => AgendaEntry(
+        instanceId: id,
+        calendarIds: const ['outlook'],
+        title: 'Teams meeting',
+        // Far ahead: finished occurrences drop out against the real clock.
+        start: DateTime(2030, 11, 4, 12),
+        end: DateTime(2030, 11, 4, 13),
+        allDay: false,
+        key: 'teams meeting|1919671200000|1919674800000|false',
+      );
+      final before = teams('101');
+      final afterSync = teams('987');
+      await layer.setIgnored(before, true);
+      expect(layer.isIgnored(afterSync), isTrue);
+      final stored = (await settings.ignoredOverlaps(
+        now: DateTime(2030, 11, 4, 8),
+      )).keys.single;
+      expect(stored, startsWith('k:'));
+      expect(stored, isNot(contains('Teams')), reason: 'solo hash, mai titolo');
+      // Same notification id, so no second alert after the sync.
+      expect(
+        sembleConflictPlan([before]).single['id'],
+        sembleConflictPlan([afterSync]).single['id'],
+      );
+      // Edges removed before build 322 are still honoured.
+      await settings.saveIgnoredOverlaps({
+        sembleLegacyOverlapKey(afterSync): afterSync.end.millisecondsSinceEpoch,
+      });
+      final fresh = SembleLayer(settings: settings);
+      await fresh.refresh(today: const CivilDate(2030, 11, 4));
+      expect(fresh.isIgnored(afterSync), isTrue);
+      await fresh.setIgnored(afterSync, false);
+      expect(fresh.isIgnored(afterSync), isFalse);
+    },
+  );
+
+  test(
     'il bordo tolto a mano vale per una sola occorrenza (build 307)',
     () async {
       FlutterSecureStorage.setMockInitialValues({});

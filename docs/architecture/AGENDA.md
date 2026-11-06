@@ -4,6 +4,17 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Bordo ambra tolto stabile — build 322
+
+- `sembleOverlapKey` è ora `k:` + SHA-256 di `AgendaEntry.key` (titolo,
+  inizio, fine, giornata intera): l'`EVENT_ID` del provider cambia quando
+  alcuni adattatori (Outlook, Exchange) risincronizzano, e la chiave
+  `instanceId|inizio` delle build 307–321 non trovava più l'evento.
+  `sembleLegacyOverlapKey` resta accettata in lettura; togliere l'esclusione
+  rimuove entrambe. `sembleConflictPlan` usa la stessa chiave per l'id della
+  notifica, quindi niente secondo avviso dopo una risincronizzazione (un solo
+  avviso ripetuto può comparire al passaggio alla 322).
+
 ## Slot liberi Semble — build 318
 
 - `SembleClient.slots` legge `availabilitySlots` (`startLocal`/`endLocal`,

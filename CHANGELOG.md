@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.124.4 (build 322) — Il bordo ambra tolto resta tolto
+
+- «Togli il bordo ambra» ricordava l'evento con l'id del telefono, che per
+  alcuni calendari (Outlook, Exchange) cambia a ogni sincronizzazione: il
+  bordo tornava. Ora l'evento è riconosciuto da titolo, inizio e fine,
+  salvati solo come impronta cifrata. Anche l'avviso ad app chiusa usa la
+  stessa impronta e non si ripete dopo una sincronizzazione. I bordi tolti
+  prima restano validi; se l'evento cambia orario o titolo il bordo torna.
+
 ## 2.124.3 (build 321) — Avvisi Semble con gli orari davvero liberi
 
 - L'avviso ad app chiusa per un evento in orario Semble usa gli ultimi slot

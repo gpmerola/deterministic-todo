@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import 'agenda.dart';
 import 'semble_bookings.dart';
 import 'task.dart';
@@ -363,8 +367,17 @@ Set<String> sembleOverlaps(
 }
 
 /// One occurrence, for the amber edges the user removed by hand (build
-/// 307): its id and start, nothing else.
-String sembleOverlapKey(AgendaEntry entry) =>
+/// 322): a hash of its title, start and end ([AgendaEntry.key]). The phone's
+/// event ids change when some calendars (Outlook, Exchange) sync again, so
+/// the removed edge came back with the id-based key of build 307. Only the
+/// hash is stored, never the title.
+String sembleOverlapKey(AgendaEntry entry) => entry.key.isEmpty
+    ? sembleLegacyOverlapKey(entry)
+    : 'k:${sha256.convert(utf8.encode(entry.key))}';
+
+/// The id-based key of builds 307–321, still honoured for edges removed
+/// before build 322.
+String sembleLegacyOverlapKey(AgendaEntry entry) =>
     '${entry.instanceId}|${entry.start.millisecondsSinceEpoch}';
 
 /// Events not yet over, from [now] to [until] and inside the rules'

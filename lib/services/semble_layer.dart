@@ -208,14 +208,17 @@ class SembleLayer extends ChangeNotifier {
   Map<String, int> _ignored = const {};
 
   bool isIgnored(AgendaEntry entry) =>
-      _ignored.containsKey(sembleOverlapKey(entry));
+      _ignored.containsKey(sembleOverlapKey(entry)) ||
+      _ignored.containsKey(sembleLegacyOverlapKey(entry));
 
   Future<void> setIgnored(AgendaEntry entry, bool ignored) async {
     final next = await _settings.ignoredOverlaps();
     if (ignored) {
       next[sembleOverlapKey(entry)] = entry.end.millisecondsSinceEpoch;
     } else {
-      next.remove(sembleOverlapKey(entry));
+      next
+        ..remove(sembleOverlapKey(entry))
+        ..remove(sembleLegacyOverlapKey(entry));
     }
     await _settings.saveIgnoredOverlaps(next);
     _ignored = next;
