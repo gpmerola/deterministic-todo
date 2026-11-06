@@ -4,7 +4,7 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.124.3 / 321 (Web, APK diretti, Play interno). Todo Test: 2323
+- Stabile: 2.125.1 / 324 (Web, APK diretti, Play interno). Todo Test: 2324
   (branch `agent/semble-fallback`): Semble con riserva senza chiave; dalla
   315 barra Calendario di Oggi compatta (due righe al massimo).
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
@@ -15,6 +15,28 @@ fondo.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Release stabile 2.125.1 / 324 — 6 novembre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 16:07
+UTC). Primo tentativo con 2.125.0 / 323, run
+[42249404244](https://github.com/gpmerola/deterministic-todo/actions/runs/42249404244):
+Play interno ha accettato la 323, poi `deploy-web` è scaduto su GitHub Pages
+(`updating_pages` per 10 minuti, deploy annullato); APK diretti non
+pubblicati. Il rerun dei job falliti è stato annullato da Pages perché lo
+stesso commit era già stato annullato. Ripartito, come da runbook, con
+2.125.1 / 324 senza modifiche funzionali: `main` in fast-forward a
+`d6faa65b7687b06c75e7d8f145d5028abb6661b7`, run
+[42252890175](https://github.com/gpmerola/deterministic-todo/actions/runs/42252890175)
+verde in tutti gli otto job.
+
+- Web: `release-info.json` 2.125.1 / 324 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.125.1):
+  `v2.125.1` `Latest`; manifest con quattro APK e SHA-256 identici ai
+  digest degli asset.
+- Google Play interno: 323 e poi 324 accettate; propagazione non verificata.
+- Contenuto rispetto alla 321: bordo ambra tolto stabile (322),
+  disponibilità e blocchi singoli Semble dall'app (323).
 
 ## Release stabile 2.124.3 / 321 — 3 novembre 2026
 
