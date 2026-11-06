@@ -339,9 +339,13 @@ final class SembleTodoBlock {
     required this.date,
     required this.startTime,
     required this.endTime,
+    this.available = false,
   });
 
   final String id;
+
+  /// An extra availability rather than a block (build 323).
+  final bool available;
   final CivilDate date;
   final String startTime;
   final String endTime;
@@ -368,6 +372,7 @@ final class SembleTodoBlock {
     'date': '$date',
     'start': startTime,
     'end': endTime,
+    if (available) 'available': true,
   };
 
   static SembleTodoBlock? fromJson(Map<String, Object?> json) {
@@ -380,7 +385,13 @@ final class SembleTodoBlock {
         'end': final String end,
       }
           when date != null && time.hasMatch(start) && time.hasMatch(end) =>
-        SembleTodoBlock(id: id, date: date, startTime: start, endTime: end),
+        SembleTodoBlock(
+          id: id,
+          date: date,
+          startTime: start,
+          endTime: end,
+          available: json['available'] == true,
+        ),
       _ => null,
     };
   }

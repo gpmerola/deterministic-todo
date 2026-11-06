@@ -4,6 +4,18 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+## Disponibilità e blocchi singoli — build 323
+
+- `createUnavailability(available: true)` manda `unavailability: false` e
+  nessun `unavailabilityType`: una disponibilità in più di un giorno. Il
+  modulo «+ → Semble» sceglie tra le due; `SembleTodoBlock.available` lo
+  ricorda.
+- `SembleLayer.oneOffRules(today)` restituisce le regole senza ricorrenza
+  non finite; Impostazioni → Semble le elenca con i blocchi di Todo non
+  ancora letti e permette `deleteAvailability` dopo conferma. Le regole
+  ricorrenti (orario settimanale della clinica) non sono mai offerte per la
+  rimozione.
+
 ## Bordo ambra tolto stabile — build 322
 
 - `sembleOverlapKey` è ora `k:` + SHA-256 di `AgendaEntry.key` (titolo,

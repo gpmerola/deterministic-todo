@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../domain/semble_availability.dart' show SembleRule;
+import '../domain/semble_time.dart' show londonWallClock;
 import '../domain/task.dart';
 import '../services/semble_service.dart';
 import 'views/agenda_semble_layer.dart';
@@ -206,22 +208,38 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     await _reload();
   }
 
-  String _blockLabel(SembleTodoBlock block) {
-    final day = DateFormat('EEE d MMM', 'it').format(block.start);
-    final time = DateFormat.Hm('it');
-    return '$day · ${time.format(block.start)}–${time.format(block.end)}';
+  /// One-off availabilities and blocks to list (build 323): those Semble
+  /// returns, plus blocks created from Todo not yet among them.
+  List<_SembleSingle> _singles() {
+    final now = widget.now();
+    final today = _today;
+    final todoIds = {for (final block in blocks) block.id};
+    final fromRules = [
+      for (final rule in widget.layer.oneOffRules(today))
+        _SembleSingle.fromRule(rule, fromTodo: todoIds.contains(rule.id)),
+    ];
+    final seen = {for (final single in fromRules) single.id};
+    return [
+        ...fromRules,
+        for (final block in blocks)
+          if (!seen.contains(block.id)) _SembleSingle.fromTodo(block),
+      ].where((single) => single.end.isAfter(now)).toList()
+      ..sort((a, b) => a.start.compareTo(b.start));
   }
 
-  /// Removes a block created from Todo, after a confirmation (build 317).
-  Future<void> _removeBlock(SembleTodoBlock block) async {
+  /// Removes a one-off availability or block, after a confirmation (builds
+  /// 317, 323).
+  Future<void> _removeSingle(_SembleSingle single) async {
+    final what = single.available ? 'la disponibilità' : 'il blocco';
     final confirmed =
         await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('Rimuovere il blocco da Semble?'),
+            title: Text('Rimuovere $what da Semble?'),
             content: Text(
-              '${_blockLabel(block)}: in Semble tornerai disponibile in '
-              'questo orario.',
+              '${single.label}: in Semble '
+              '${single.available ? 'non sarai più prenotabile' : 'tornerai disponibile'}'
+              ' in questo orario.',
             ),
             actions: [
               TextButton(
@@ -246,14 +264,16 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     });
     String message;
     try {
-      await client.deleteUnavailability(key: key, id: block.id);
-      await widget.settings.removeTodoBlock(block.id);
-      message = 'Blocco rimosso da Semble.';
+      await client.deleteUnavailability(key: key, id: single.id);
+      await widget.settings.removeTodoBlock(single.id);
+      message = single.available
+          ? 'Disponibilità rimossa da Semble.'
+          : 'Blocco rimosso da Semble.';
       await widget.layer.reset(today: _today);
     } on SembleException catch (error) {
       message =
-          'Blocco non rimosso: ${error.message} Se l\'hai già tolto in '
-          'Semble, sparisce dall\'elenco alla prossima lettura.';
+          'Non rimosso: ${error.message} Se l\'hai già tolto in Semble, '
+          'sparisce dall\'elenco alla prossima lettura.';
     }
     await _reload();
     if (mounted) {
@@ -440,24 +460,35 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         ),
                       ),
                   ],
-                  if (blocks.isNotEmpty) ...[
-                    _heading(theme, 'Blocchi creati da Todo'),
-                    for (final block in blocks)
+                  if (_singles() case final singles
+                      when singles.isNotEmpty) ...[
+                    _heading(theme, 'Disponibilità e blocchi singoli'),
+                    for (final single in singles)
                       ListTile(
-                        key: ValueKey('semble-block-${block.id}'),
+                        key: ValueKey('semble-block-${single.id}'),
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.event_busy),
-                        title: Text(_blockLabel(block)),
+                        leading: Icon(
+                          single.available
+                              ? Icons.event_available
+                              : Icons.event_busy,
+                        ),
+                        title: Text(single.label),
                         subtitle: Text(
-                          'In Semble: ${block.startTime}–${block.endTime}, '
-                          'ora di Londra',
+                          '${single.available ? 'Disponibile' : 'Non disponibile'}'
+                          '${single.fromTodo ? ' · da Todo' : ''} · '
+                          'in Semble ${single.london}, ora di Londra',
                         ),
                         trailing: TextButton(
-                          key: ValueKey('semble-remove-${block.id}'),
-                          onPressed: busy ? null : () => _removeBlock(block),
+                          key: ValueKey('semble-remove-${single.id}'),
+                          onPressed: busy ? null : () => _removeSingle(single),
                           child: const Text('Rimuovi'),
                         ),
                       ),
+                    Text(
+                      'Per aggiungerne: Calendario → + → Semble. Gli orari '
+                      'settimanali ricorrenti si cambiano in Semble.',
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                   ExpansionTile(
                     key: const ValueKey('semble-connection'),
@@ -720,4 +751,69 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
       ],
     );
   }
+}
+
+/// A one-off availability or block shown in Settings (build 323).
+final class _SembleSingle {
+  const _SembleSingle({
+    required this.id,
+    required this.available,
+    required this.start,
+    required this.end,
+    required this.label,
+    required this.london,
+    required this.fromTodo,
+  });
+
+  factory _SembleSingle.fromRule(SembleRule rule, {required bool fromTodo}) {
+    DateTime at(CivilDate day, int minute) => londonWallClock(
+      DateTime.utc(day.year, day.month, day.day).add(Duration(minutes: minute)),
+    ).toLocal();
+    final lastDay = rule.endDate ?? rule.startDate;
+    final start = at(rule.startDate, rule.startMinute);
+    final end = at(lastDay, rule.endMinute);
+    final dayStart = at(rule.startDate, rule.startMinute);
+    final dayEnd = at(rule.startDate, rule.endMinute);
+    final days = DateFormat('EEE d MMM', 'it');
+    final time = DateFormat.Hm('it');
+    final range = lastDay == rule.startDate
+        ? days.format(start)
+        : '${days.format(start)} – ${days.format(end)}';
+    return _SembleSingle(
+      id: rule.id,
+      available: !rule.unavailability,
+      start: start,
+      end: end,
+      label: '$range · ${time.format(dayStart)}–${time.format(dayEnd)}',
+      london: '${_hm(rule.startMinute)}–${_hm(rule.endMinute)}',
+      fromTodo: fromTodo,
+    );
+  }
+
+  factory _SembleSingle.fromTodo(SembleTodoBlock block) {
+    final time = DateFormat.Hm('it');
+    return _SembleSingle(
+      id: block.id,
+      available: block.available,
+      start: block.start,
+      end: block.end,
+      label:
+          '${DateFormat('EEE d MMM', 'it').format(block.start)} · '
+          '${time.format(block.start)}–${time.format(block.end)}',
+      london: '${block.startTime}–${block.endTime}',
+      fromTodo: true,
+    );
+  }
+
+  static String _hm(int minute) =>
+      '${(minute ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minute % 60).toString().padLeft(2, '0')}';
+
+  final String id;
+  final bool available;
+  final DateTime start;
+  final DateTime end;
+  final String label;
+  final String london;
+  final bool fromTodo;
 }

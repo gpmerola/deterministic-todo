@@ -380,8 +380,12 @@ class AgendaEventFlows {
           initialCalendarId: initialCalendar,
           zoneLabel: zone,
           onSembleBlock: sembleBlock
-              ? (start, end) =>
-                    createSembleBlock(context, start: start, end: end)
+              ? (start, end, {bool available = false}) => createSembleBlock(
+                  context,
+                  start: start,
+                  end: end,
+                  available: available,
+                )
               : null,
         ),
       ),

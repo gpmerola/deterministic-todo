@@ -124,6 +124,20 @@ class SembleLayer extends ChangeNotifier {
   bool get active => _enabled && _first != null;
   bool get zoneMatches => _zoneMatches;
   int get ruleCount => _rules.length;
+
+  /// One-off availabilities and blocks not yet over by [today] (build 323),
+  /// from Semble or from the last read: the ones Settings can remove.
+  /// Recurring rules are the clinic's weekly schedule and are not offered.
+  List<SembleRule> oneOffRules(CivilDate today) =>
+      [
+        for (final rule in _rules)
+          if (rule.recurrence == null &&
+              (rule.endDate ?? rule.startDate).compareTo(today) >= 0)
+            rule,
+      ]..sort((a, b) {
+        final byDay = a.startDate.compareTo(b.startDate);
+        return byDay != 0 ? byDay : a.startMinute.compareTo(b.startMinute);
+      });
   int get bookingCount => _bookings.length;
 
   /// Applies the user's Semble bookings to the Calendar entries (see

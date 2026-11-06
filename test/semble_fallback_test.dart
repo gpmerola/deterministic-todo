@@ -792,7 +792,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Blocchi creati da Todo'), findsOne);
+      expect(find.text('Disponibilità e blocchi singoli'), findsOne);
       expect(find.textContaining('08:00–09:00, ora di Londra'), findsOne);
 
       await tester.tap(find.byKey(const ValueKey('semble-remove-b1')));
@@ -808,7 +808,7 @@ void main() {
       expect(deleted, ['b1']);
       expect(await settings.todoBlocks(), isEmpty);
       expect(find.text('Blocco rimosso da Semble.'), findsOne);
-      expect(find.text('Blocchi creati da Todo'), findsNothing);
+      expect(find.text('Disponibilità e blocchi singoli'), findsNothing);
     });
   });
 
@@ -922,6 +922,123 @@ void main() {
         greaterThan(9 * 60 + 30),
         reason: 'senza slot il verde viene dalle regole',
       );
+    });
+  });
+
+  group('disponibilità singole (build 323)', () {
+    setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+
+    test('una disponibilità parte senza tipo di indisponibilità', () async {
+      Map<String, Object?>? sent;
+      final client = SembleClient(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, Object?>;
+          sent = (body['variables'] as Map)['data'] as Map<String, Object?>;
+          return http.Response(
+            jsonEncode({
+              'data': {
+                'createAvailability': {
+                  'data': {'id': 'a1'},
+                },
+              },
+            }),
+            200,
+          );
+        }),
+      );
+      final start = DateTime.utc(2030, 11, 26, 9).toLocal();
+      final id = await client.createUnavailability(
+        key: 'k',
+        userId: 'u',
+        roomId: 'r',
+        start: start,
+        end: start.add(const Duration(hours: 1)),
+        available: true,
+      );
+      expect(id, 'a1');
+      expect(sent!['unavailability'], isFalse);
+      expect(sent!.containsKey('unavailabilityType'), isFalse);
+      expect(sent!['startTime'], '09:00');
+    });
+
+    testWidgets('le regole singole di Semble si possono togliere', (
+      tester,
+    ) async {
+      final settings = SembleSettings();
+      await settings.save(key: 'k', userId: 'user1', roomId: 'room1');
+      final deleted = <Object?>[];
+      final client = SembleClient(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, Object?>;
+          if (body['query'] == sembleDeleteBlockMutation) {
+            deleted.add((body['variables'] as Map)['id']);
+            return http.Response(
+              jsonEncode({
+                'data': {
+                  'deleteAvailability': {
+                    'data': {'id': 'x'},
+                  },
+                },
+              }),
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'data': {
+                'availabilityRules': {
+                  'data': [
+                    rule(),
+                    {
+                      'id': 'extra',
+                      'unavailability': false,
+                      'startDate': '2030-11-26',
+                      'endDate': null,
+                      'startTime': '09:00',
+                      'endTime': '10:00',
+                      'recurrence': null,
+                    },
+                  ],
+                },
+              },
+            }),
+            200,
+          );
+        }),
+      );
+      final layer = SembleLayer(
+        zoneShift: (_) => 0,
+        settings: settings,
+        client: client,
+      );
+      await layer.refresh(today: const CivilDate(2030, 11, 3));
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SembleSettingsView(
+            settings: settings,
+            layer: layer,
+            client: client,
+            now: () => DateTime(2030, 11, 3, 10),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // The weekly rule is the clinic's schedule: not offered.
+      expect(find.byKey(const ValueKey('semble-remove-r1')), findsNothing);
+      expect(
+        find.textContaining('Disponibile · in Semble 09:00–10:00'),
+        findsOne,
+      );
+      await tester.tap(find.byKey(const ValueKey('semble-remove-extra')));
+      await tester.pumpAndSettle();
+      expect(find.text('Rimuovere la disponibilità da Semble?'), findsOne);
+      await tester.tap(find.byKey(const ValueKey('semble-confirm-remove')));
+      await tester.pumpAndSettle();
+      expect(deleted, ['extra']);
+      expect(find.text('Disponibilità rimossa da Semble.'), findsOne);
     });
   });
 }

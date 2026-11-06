@@ -16,7 +16,8 @@ Future<bool> sembleBlockReady(SembleSettings settings) async {
 }
 
 /// Creates a Semble unavailability of type Other, without comment, for
-/// [start]–[end] (builds 298, 300). Called
+/// [start]–[end] (builds 298, 300), or with [available] an extra
+/// availability (build 323). Called
 /// only from the explicit "Blocca in Semble" button; the snackbar offers to
 /// delete exactly that block. Throws [SembleException] when Semble refuses,
 /// so the form can show why.
@@ -27,6 +28,7 @@ Future<void> createSembleBlock(
   SembleSettings? settings,
   SembleClient? client,
   SembleLayer? layer,
+  bool available = false,
 }) async {
   final store = settings ?? SembleSettings();
   final semble = client ?? SembleClient();
@@ -42,6 +44,7 @@ Future<void> createSembleBlock(
     roomId: config.roomId!,
     start: start,
     end: end,
+    available: available,
   );
   // Kept so Settings can remove it later (build 317).
   if (sembleBlockFor(start, end) case final block?) {
@@ -52,6 +55,7 @@ Future<void> createSembleBlock(
           date: block.date,
           startTime: block.startTime,
           endTime: block.endTime,
+          available: available,
         ),
       );
     } on Object {
@@ -67,7 +71,9 @@ Future<void> createSembleBlock(
   await refresh().catchError((Object _) {});
   messenger?.showSnackBar(
     SnackBar(
-      content: const Text('Bloccato in Semble.'),
+      content: Text(
+        available ? 'Disponibilità aggiunta in Semble.' : 'Bloccato in Semble.',
+      ),
       duration: const Duration(seconds: 8),
       // With an action Flutter keeps a snackbar until dismissed; this one
       // must go by itself (build 300).
@@ -80,7 +86,13 @@ Future<void> createSembleBlock(
             await store.removeTodoBlock(created).catchError((Object _) {});
             await refresh();
             messenger.showSnackBar(
-              const SnackBar(content: Text('Blocco Semble annullato.')),
+              SnackBar(
+                content: Text(
+                  available
+                      ? 'Disponibilità Semble annullata.'
+                      : 'Blocco Semble annullato.',
+                ),
+              ),
             );
           } on Object catch (error) {
             messenger.showSnackBar(

@@ -15,7 +15,8 @@ const sembleEndpoint = 'https://open.semble.io/graphql';
 ///   (availability rules), [sembleBookingsQuery] (bookings, without
 ///   patient data) and [sembleSlotsQuery] (free slots, build 318);
 /// writes, only on the user's tap: [sembleCreateBlockMutation] (an
-///   unavailability of type Other, build 297/300) and
+///   unavailability of type Other, build 297/300, or an extra availability,
+///   build 323) and
 ///   [sembleDeleteBlockMutation] (its Annulla).
 /// No `room` selection (forbidden for this key, `settingsGeneral`) and no
 /// comments: they may name patients.
@@ -244,6 +245,7 @@ class SembleClient {
 
   /// Creates a one-day unavailability from [start] to [end] (phone time,
   /// converted to London wall clock as Semble wants) and returns its id.
+  /// With [available] it is an extra availability instead (build 323).
   /// For one day Semble wants no `endDate`: it rejects one without a
   /// recurrence (tested on 23 October 2026).
   Future<String> createUnavailability({
@@ -254,18 +256,19 @@ class SembleClient {
     required DateTime end,
     SembleBlockType type = SembleBlockType.other,
     String? comment,
+    bool available = false,
   }) async {
     final block = sembleBlockFor(start, end);
     if (block == null) throw const FormatException('Orario non valido');
     final data = await _post(key, sembleCreateBlockMutation, {
       'data': {
-        'unavailability': true,
+        'unavailability': !available,
         'room': roomId,
         'user': userId,
         'startDate': '${block.date}',
         'startTime': block.startTime,
         'endTime': block.endTime,
-        'unavailabilityType': type.name,
+        if (!available) 'unavailabilityType': type.name,
         // No comment unless asked (build 300: the user wants none).
         'comment': ?comment,
       },

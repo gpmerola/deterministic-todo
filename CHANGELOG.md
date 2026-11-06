@@ -2,6 +2,17 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.125.0 (build 323) — Disponibilità e blocchi Semble dall'app
+
+- Nel Calendario, **+ → Semble** (prima «Blocco Semble») sceglie fra
+  **Non disponibile** e **Disponibile**: con giorno e orario crea in Semble
+  un blocco o una disponibilità in più, senza creare eventi nel telefono.
+- Impostazioni → Semble, sezione **Disponibilità e blocchi singoli**: elenca
+  le disponibilità e i blocchi di un solo giorno ancora da venire, sia quelli
+  creati da Todo sia quelli messi in Semble, ciascuno con **Rimuovi** dopo
+  una conferma. Gli orari settimanali ricorrenti non sono elencati: si
+  cambiano in Semble.
+
 ## 2.124.4 (build 322) — Il bordo ambra tolto resta tolto
 
 - «Togli il bordo ambra» ricordava l'evento con l'id del telefono, che per

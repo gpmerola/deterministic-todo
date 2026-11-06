@@ -38,8 +38,10 @@ class AgendaEventEditor extends StatefulWidget {
 
   /// Offered on a new event when Semble is set up (builds 297, 298): the
   /// "Blocco Semble" switch at the top turns the form into a block of the
-  /// chosen times in Semble instead of an event. Throws when Semble refuses.
-  final Future<void> Function(DateTime start, DateTime end)? onSembleBlock;
+  /// chosen times in Semble instead of an event; from build 323 it can also
+  /// add an extra availability ([available]). Throws when Semble refuses.
+  final Future<void> Function(DateTime start, DateTime end, {bool available})?
+  onSembleBlock;
 
   /// Title of the page when neither "Nuovo evento" nor "Modifica evento"
   /// fits, e.g. a copy edited in Todo only.
@@ -109,6 +111,9 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
   AgendaRepeat repeat = AgendaRepeat.none;
   DateTime? repeatUntil;
   bool blockMode = false;
+
+  /// In Semble mode: add an availability instead of a block (build 323).
+  bool sembleAvailable = false;
 
   /// Calendar, repeat, zone, place and notes stay folded until asked for
   /// (build 299), unless the event already uses them.
@@ -379,7 +384,7 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
       setState(
         () => error = !end.isAfter(start)
             ? 'La fine deve essere dopo l\'inizio.'
-            : 'Un blocco Semble deve stare in un solo giorno, ora di Londra.',
+            : 'In Semble l\'orario deve stare in un solo giorno, ora di Londra.',
       );
       return;
     }
@@ -388,13 +393,15 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
       error = null;
     });
     try {
-      await widget.onSembleBlock!(start, end);
+      await widget.onSembleBlock!(start, end, available: sembleAvailable);
     } on Object catch (failure) {
       if (!mounted) return;
       setState(() {
         saving = false;
         error = failure is SembleException
             ? failure.message
+            : sembleAvailable
+            ? 'Disponibilità non aggiunta: riprova.'
             : 'Blocco non creato: riprova.';
       });
       return;
@@ -425,6 +432,29 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
     final local = '${time(startTime)}–${time(endTime)}';
     final london = block == null ? null : '${block.startTime}–${block.endTime}';
     return [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: SegmentedButton<bool>(
+          key: const ValueKey('semble-block-kind'),
+          segments: const [
+            ButtonSegment(
+              value: false,
+              icon: Icon(Icons.event_busy),
+              label: Text('Non disponibile'),
+            ),
+            ButtonSegment(
+              value: true,
+              icon: Icon(Icons.event_available),
+              label: Text('Disponibile'),
+            ),
+          ],
+          selected: {sembleAvailable},
+          onSelectionChanged: (value) => setState(() {
+            sembleAvailable = value.single;
+            error = null;
+          }),
+        ),
+      ),
       if (error != null)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -463,8 +493,19 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
         ),
       const SizedBox(height: 12),
       Text(
-        'Tocca Blocca: in Semble risulterai non disponibile (Other) in questo '
-        'orario. Nel calendario del telefono non viene salvato niente.',
+        sembleAvailable
+            ? 'Tocca Aggiungi: in Semble risulterai disponibile e prenotabile '
+                  'in questo orario. Nel calendario del telefono non viene '
+                  'salvato niente.'
+            : 'Tocca Blocca: in Semble risulterai non disponibile (Other) in '
+                  'questo orario. Nel calendario del telefono non viene salvato '
+                  'niente.',
+        style: theme.textTheme.bodySmall,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Le disponibilità e i blocchi singoli si tolgono da Impostazioni → '
+        'Semble.',
         style: theme.textTheme.bodySmall,
       ),
     ];
@@ -627,7 +668,13 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
               TextButton(
                 key: const ValueKey('agenda-event-semble-block'),
                 onPressed: !ready || saving ? null : _sembleBlock,
-                child: Text(saving ? 'Invio…' : 'Blocca'),
+                child: Text(
+                  saving
+                      ? 'Invio…'
+                      : sembleAvailable
+                      ? 'Aggiungi'
+                      : 'Blocca',
+                ),
               )
             else
               TextButton(
@@ -662,7 +709,7 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
                       ButtonSegment(
                         value: true,
                         icon: Icon(Icons.event_busy),
-                        label: Text('Blocco Semble'),
+                        label: Text('Semble'),
                       ),
                     ],
                     selected: {blockMode},
