@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -36,6 +37,11 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
   final nameInput = TextEditingController();
   final roomInput = TextEditingController();
   final icalInput = TextEditingController();
+
+  /// Where the key is kept: the Android Keystore, or this browser only
+  /// (build 326); it is never synced with the account.
+  static String get _thisDevice =>
+      kIsWeb ? 'questo browser' : 'questo telefono';
   late final SembleClient client = widget.client ?? SembleClient();
   SembleConfig? config;
   bool busy = false;
@@ -136,7 +142,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
     setState(() {
       busy = false;
       status = failure == null
-          ? 'Salvato solo su questo telefono. Lette ${widget.layer.ruleCount} '
+          ? 'Salvato solo su $_thisDevice. Lette ${widget.layer.ruleCount} '
                 'regole di disponibilità.'
           : 'Salvato, ma la lettura non è riuscita: '
                 '${SembleException(failure).message}';
@@ -341,8 +347,8 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Eliminare la chiave Semble?'),
-            content: const Text(
-              'Chiave e User ID vengono cancellati da questo telefono e il '
+            content: Text(
+              'Chiave e User ID vengono cancellati da $_thisDevice e il '
               'Calendario smette di mostrare le disponibilità. La chiave resta '
               'valida in Semble finché un Manager non la revoca.',
             ),
@@ -452,9 +458,10 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'Il telefono non è nel fuso $sembleZone: orari, '
-                          'disponibilità e prenotazioni sono convertiti '
-                          'nell’ora del telefono.',
+                          '${kIsWeb ? 'Il browser' : 'Il telefono'} non è nel '
+                          'fuso $sembleZone: orari, disponibilità e '
+                          'prenotazioni sono convertiti nell’ora '
+                          '${kIsWeb ? 'del browser' : 'del telefono'}.',
                           key: const ValueKey('semble-zone'),
                           style: theme.textTheme.bodySmall,
                         ),
@@ -571,63 +578,66 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                       ),
                     ],
                   ),
-                  ExpansionTile(
-                    key: const ValueKey('semble-ical'),
-                    tilePadding: EdgeInsets.zero,
-                    childrenPadding: const EdgeInsets.only(bottom: 8),
-                    initiallyExpanded:
-                        !hasLink &&
-                        widget.layer.failure == SembleFailure.rejected,
-                    title: const Text('Riserva senza chiave'),
-                    subtitle: Text(
-                      hasLink
-                          ? 'Link iCal salvato'
-                          : 'Link iCal di Semble, per le visite',
-                    ),
-                    children: [
-                      Text(
-                        'Se la chiave manca o Semble la rifiuta, le visite '
-                        'arrivano dal link iCal del tuo calendario Semble '
-                        '(lo stesso che alimenta il calendario Google), '
-                        'senza aspettare Google. Senza link le visite '
-                        'restano quelle del calendario Google «Semble»; le '
-                        'disponibilità già lette restano nel Calendario, con '
-                        'la data dell\'ultima lettura.',
-                        style: theme.textTheme.bodySmall,
+                  // Not in the browser: the iCal feed's server sends no CORS
+                  // headers; only the API key works there (build 326).
+                  if (!kIsWeb)
+                    ExpansionTile(
+                      key: const ValueKey('semble-ical'),
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(bottom: 8),
+                      initiallyExpanded:
+                          !hasLink &&
+                          widget.layer.failure == SembleFailure.rejected,
+                      title: const Text('Riserva senza chiave'),
+                      subtitle: Text(
+                        hasLink
+                            ? 'Link iCal salvato'
+                            : 'Link iCal di Semble, per le visite',
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        key: const ValueKey('semble-ical-input'),
-                        controller: icalInput,
-                        obscureText: true,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        keyboardType: TextInputType.url,
-                        decoration: InputDecoration(
-                          labelText: hasLink
-                              ? 'Nuovo link iCal (facoltativo)'
-                              : 'Link iCal (https:// o webcal://)',
+                      children: [
+                        Text(
+                          'Se la chiave manca o Semble la rifiuta, le visite '
+                          'arrivano dal link iCal del tuo calendario Semble '
+                          '(lo stesso che alimenta il calendario Google), '
+                          'senza aspettare Google. Senza link le visite '
+                          'restano quelle del calendario Google «Semble»; le '
+                          'disponibilità già lette restano nel Calendario, con '
+                          'la data dell\'ultima lettura.',
+                          style: theme.textTheme.bodySmall,
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          FilledButton(
-                            key: const ValueKey('semble-ical-save'),
-                            onPressed: busy ? null : _saveLink,
-                            child: const Text('Salva link'),
+                        const SizedBox(height: 12),
+                        TextField(
+                          key: const ValueKey('semble-ical-input'),
+                          controller: icalInput,
+                          obscureText: true,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          keyboardType: TextInputType.url,
+                          decoration: InputDecoration(
+                            labelText: hasLink
+                                ? 'Nuovo link iCal (facoltativo)'
+                                : 'Link iCal (https:// o webcal://)',
                           ),
-                          if (hasLink)
-                            TextButton(
-                              key: const ValueKey('semble-ical-delete'),
-                              onPressed: busy ? null : _deleteLink,
-                              child: const Text('Elimina link'),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            FilledButton(
+                              key: const ValueKey('semble-ical-save'),
+                              onPressed: busy ? null : _saveLink,
+                              child: const Text('Salva link'),
                             ),
-                        ],
-                      ),
-                    ],
-                  ),
+                            if (hasLink)
+                              TextButton(
+                                key: const ValueKey('semble-ical-delete'),
+                                onPressed: busy ? null : _deleteLink,
+                                child: const Text('Elimina link'),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   if (status != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 12),

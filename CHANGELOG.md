@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.126.0 (build 326) — Semble anche nel browser
+
+- Nella web app compare **Impostazioni → Semble**: la chiave API si inserisce
+  una volta nel browser e resta salvata solo lì (spazio cifrato del browser),
+  come sul telefono resta nel Keystore. Non viene sincronizzata con l'account
+  né salvata in Supabase; ogni dispositivo ha la sua copia.
+- Con la chiave il Calendario web mostra disponibilità, visite e bordi ambra
+  come sul telefono; «+ → Semble» e «Blocca in Semble» funzionano anche dal
+  browser, perché parlano direttamente con Semble senza scrivere eventi nel
+  telefono.
+- Nel browser non c'è la riserva con link iCal: il server del feed non
+  consente letture da una pagina web. Avvisi di sovrapposizione, assistente AI e
+  stima lavoro privato restano solo su Android.
+
 ## 2.125.2 (build 325) — Descrizioni più lunghe e link che restano link
 
 - Nella lista l'anteprima della descrizione arriva a 6 righe (prima 3).

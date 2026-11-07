@@ -608,10 +608,11 @@ class SettingsView extends StatelessWidget {
           ),
         ),
       ),
-      if (isAndroidPlatform) ...[
+      if (sembleSupported) ...[
         const SettingsHeading('Calendario e lavoro'),
-        // Android only, like the Calendar layer it feeds (build 285).
-        if (isAndroidPlatform)
+        // Android (build 285) and browser (build 326), like the Calendar
+        // layer it feeds; the key never leaves the device that saved it.
+        if (sembleSupported)
           ListTile(
             key: const ValueKey('settings-semble'),
             leading: const Icon(Icons.event_available_outlined),

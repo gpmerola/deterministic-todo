@@ -4,6 +4,23 @@ Nome visibile «Calendario» dalla build 233. Identificatori di dominio, canali,
 chiavi SQLite e contratti Supabase restano `agenda`: nessuna migrazione dati
 legata alla rinomina.
 
+
+## Semble nel browser — build 326
+
+- `sembleSupported` (in `platform_runtime_*`) è vero su Android e sul web.
+  Impostazioni → Semble, il refresh di `SembleLayer` dopo il caricamento del
+  Calendario e i blocchi («+ → Semble», «Blocca in Semble») ne dipendono; i
+  blocchi non escludono più `writesViaPhone`, perché sono chiamate dirette a
+  Semble e non scrivono eventi nel telefono.
+- Sul web `SembleSettings` usa `flutter_secure_storage_web`: chiave e cache
+  restano nel browser, cifrate con WebCrypto, mai nell'account o in Supabase.
+  È meno protetto del Keystore (chi controlla quel profilo del browser può
+  leggerla); «Elimina chiave» la cancella da quel solo browser.
+- L'API `open.semble.io/graphql` risponde con `access-control-allow-origin: *`
+  e accetta `x-token` (verificato il 7 novembre 2026). Il link iCal non è
+  offerto sul web: `api.heydoc.co.uk`, dominio del feed, non invia
+  intestazioni CORS (verificato sulla radice, non sul feed privato).
+
 ## Disponibilità e blocchi singoli — build 323
 
 - `createUnavailability(available: true)` manda `unavailability: false` e

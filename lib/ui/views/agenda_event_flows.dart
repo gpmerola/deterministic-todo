@@ -228,7 +228,9 @@ class AgendaEventFlows {
   /// is, the time is no longer bookable and the button goes away.
   bool _canSembleBlock(AgendaEntry entry) {
     final layer = SembleLayer.shared;
-    if (service.writesViaPhone || !layer.canBlock) return false;
+    // A block is a direct Semble call, so the browser can send it too
+    // (build 326): no phone event is written.
+    if (!layer.canBlock) return false;
     if (entry.allDay || entry.isTask) return false;
     if (sembleBlockFor(entry.start, entry.end) == null) return false;
     return layer.overlapsFor(CivilDate.fromDateTime(entry.start), [
@@ -351,7 +353,7 @@ class AgendaEventFlows {
       await service.lastEventCalendar(),
       hidden: hidden,
     );
-    final sembleBlock = !service.writesViaPhone && SembleLayer.shared.canBlock;
+    final sembleBlock = SembleLayer.shared.canBlock;
     if (!context.mounted) return;
     final now = DateTime.now();
     final draft = await Navigator.of(context).push<AgendaEventDraft>(

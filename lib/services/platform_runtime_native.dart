@@ -7,6 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'memory_snapshot.dart';
 
 const bool isWebPlatform = false;
+
+/// Semble on the phone (key in the Android Keystore) and, from build 326, in
+/// the browser (key kept only in that browser).
+bool get sembleSupported => isAndroidPlatform;
 bool get isAndroidPlatform => Platform.isAndroid;
 String get operatingSystemName => Platform.operatingSystem;
 int get currentRssBytes => ProcessInfo.currentRss;

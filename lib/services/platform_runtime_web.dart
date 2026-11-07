@@ -4,6 +4,9 @@ import 'memory_snapshot.dart';
 
 const bool isWebPlatform = true;
 bool get isAndroidPlatform => false;
+
+/// Semble in the browser from build 326: the key stays in this browser only.
+bool get sembleSupported => true;
 String get operatingSystemName => 'web';
 int get currentRssBytes => 0;
 Future<MemorySnapshot?> readMemorySnapshot() async => null;

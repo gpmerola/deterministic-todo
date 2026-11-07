@@ -128,7 +128,7 @@ e altri tipi di appuntamento restano separati; nessun evento viene modificato.
 Su Android, **Calendario → ⋮ → Aggiungi alla schermata Home** propone un'icona
 che apre direttamente questa sezione, previa conferma del launcher.
 
-Con **Impostazioni → Semble** (Android, build 285) le viste Giorno, 3 giorni
+Con **Impostazioni → Semble** (Android dalla build 285, browser dalla 326) le viste Giorno, 3 giorni
 e Settimana mostrano dietro agli eventi le disponibilità impostate in Semble:
 verde dove si è prenotabili, righe grigie dove l'orario è bloccato. La
 barretta sotto la data nelle griglie (build 286) è stata tolta nella 301 su

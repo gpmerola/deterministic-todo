@@ -152,7 +152,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
     if (target == null || access != AgendaAccess.granted || !mounted) return;
     notifier!.value = null;
     final day = CivilDate.fromDateTime(target.start);
-    if (isAndroidPlatform) {
+    if (sembleSupported) {
       // The sheet offers the block only once the bands are known.
       await SembleLayer.shared.refresh(today: widget.today, zoneLabel: zone);
     }
@@ -245,16 +245,17 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
         unawaited(
           AgendaReminders(widget.service).foreground(requestPermission: true),
         );
-        // Semble layer (build 285): read after the events, never awaited.
-        if (result.access == AgendaAccess.granted) {
-          unawaited(
-            SembleLayer.shared.refresh(
-              today: widget.today,
-              zoneLabel: zone,
-              force: changed,
-            ),
-          );
-        }
+      }
+      // Semble layer (build 285, browser from 326): read after the events,
+      // never awaited.
+      if (sembleSupported && result.access == AgendaAccess.granted) {
+        unawaited(
+          SembleLayer.shared.refresh(
+            today: widget.today,
+            zoneLabel: zone,
+            force: changed,
+          ),
+        );
       }
     } catch (_) {
       // Deliberately not logged: messages may carry event details.
