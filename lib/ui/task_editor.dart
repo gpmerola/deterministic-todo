@@ -63,6 +63,9 @@ class _TaskEditorState extends State<TaskEditor> {
     _scheduleDraft();
   }
 
+  bool get _longNotes =>
+      notes.text.length > 120 || '\n'.allMatches(notes.text).length >= 3;
+
   void _onEditorTextChanged() {
     if (mounted) setState(() {});
   }
@@ -383,7 +386,16 @@ class _TaskEditorState extends State<TaskEditor> {
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 560,
-          maxHeight: widget.embedded ? double.infinity : 460,
+          // Compact (460 px) for a short description; a long one gets most
+          // of the screen: 460 px left about three lines of it visible.
+          maxHeight: widget.embedded
+              ? double.infinity
+              : _longNotes
+              ? (MediaQuery.sizeOf(context).height * 0.85).clamp(
+                  460.0,
+                  double.infinity,
+                )
+              : 460,
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -499,7 +511,9 @@ class _TaskEditorState extends State<TaskEditor> {
                         key: const ValueKey('task-editor-description'),
                         controller: notes,
                         minLines: 2,
-                        maxLines: 8,
+                        // Grows with the whole description: the sheet
+                        // scrolls instead of the field (was 8 lines).
+                        maxLines: null,
                         decoration: const InputDecoration(
                           hintText:
                               'Aggiungi una descrizione o incolla un link…',

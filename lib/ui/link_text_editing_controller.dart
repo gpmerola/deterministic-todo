@@ -67,7 +67,28 @@ class LinkTextEditingController extends TextEditingController {
         oldEnd = selected.end;
       }
       final delta = next.text.length - old.length;
+      final newEnd = oldEnd + delta;
+      final inserted = next.text.substring(prefix, newEnd);
       final adjusted = <TextLink>[];
+      final dropped = <TextLink>[];
+      // A link that the previous change removed and this one types back,
+      // identical and in the same place, is restored (see [_recentlyDropped]).
+      for (final link in _recentlyDropped) {
+        final at = link.start;
+        if (oldEnd == prefix &&
+            at >= prefix &&
+            at + link.label.length <= newEnd &&
+            next.text.substring(at, at + link.label.length) == link.label) {
+          adjusted.add(
+            TextLink(
+              link.label,
+              link.url,
+              start: at,
+              end: at + link.label.length,
+            ),
+          );
+        }
+      }
       for (final link in links) {
         var start = link.start;
         var end = link.end;
@@ -77,7 +98,20 @@ class LinkTextEditingController extends TextEditingController {
         } else if (prefix >= end) {
           /* Edit is after this link. */
         } else if (prefix <= start && oldEnd >= end) {
-          continue;
+          // The change rewrote the whole label. Android keyboards often
+          // rewrite the word around the caret even to add one space: keep
+          // the link while its label is still there, unchanged.
+          final at = _closestOccurrence(inserted, link.label, start - prefix);
+          if (at < 0) {
+            if (link.label.length > 1) {
+              dropped.add(
+                TextLink(link.label, link.url, start: prefix, end: prefix),
+              );
+            }
+            continue;
+          }
+          start = prefix + at;
+          end = start + link.label.length;
         } else if (prefix >= start && oldEnd <= end) {
           end += delta;
         } else {
@@ -94,11 +128,37 @@ class LinkTextEditingController extends TextEditingController {
           );
         }
       }
+      adjusted.sort((a, b) => a.start.compareTo(b.start));
+      final kept = <TextLink>[];
+      for (final link in adjusted) {
+        if (kept.isEmpty || kept.last.end <= link.start) kept.add(link);
+      }
       links
         ..clear()
-        ..addAll(adjusted);
+        ..addAll(kept);
+      _recentlyDropped = dropped;
     }
     super.value = next;
+  }
+
+  /// Links removed by the last text change, kept for one more change: some
+  /// keyboards delete a word and type it again in two steps, which must not
+  /// turn a link back into plain text. Explicit removals never land here.
+  List<TextLink> _recentlyDropped = const [];
+
+  static int _closestOccurrence(String text, String label, int preferred) {
+    if (label.isEmpty) return -1;
+    var best = -1;
+    for (
+      var at = text.indexOf(label);
+      at >= 0;
+      at = text.indexOf(label, at + 1)
+    ) {
+      if (best < 0 || (at - preferred).abs() < (best - preferred).abs()) {
+        best = at;
+      }
+    }
+    return best;
   }
 
   static String _plainText(String value) => markdownToPlainText(value);
@@ -183,58 +243,86 @@ class LinkTextEditingController extends TextEditingController {
       (link) => link.start < selection.end && link.end > selection.start,
     );
     if (links.length == before) return false;
+    _recentlyDropped = const [];
     notifyListeners();
     return true;
   }
 
   void removeLink(TextLink link) {
     links.remove(link);
+    _recentlyDropped = const [];
     notifyListeners();
   }
 
   void replaceMarkdown(String? markdown) {
     final value = markdown ?? '';
     links.clear();
+    _recentlyDropped = const [];
     text = _plainText(value);
     links.addAll(_extractLinks(value));
     selection = TextSelection.collapsed(offset: text.length);
   }
 
+  /// Linked words are underlined while editing too (from build 325): they
+  /// looked like plain text, so a kept link seemed lost.
   @override
   TextSpan buildTextSpan({
     required BuildContext context,
     TextStyle? style,
     required bool withComposing,
   }) {
-    if (!highlightSmartDates) return TextSpan(style: style, text: text);
-    const parser = QuickAddParser();
-    try {
-      parser.parse(text);
-    } on FormatException {
+    final dates = <TextRange>[];
+    if (highlightSmartDates) {
+      const parser = QuickAddParser();
+      try {
+        parser.parse(text);
+        for (final match in parser.recognizedSyntax(text)) {
+          dates.add(TextRange(start: match.start, end: match.end));
+        }
+      } on FormatException {
+        dates.clear();
+      }
+    }
+    final linked = [
+      for (final link in links)
+        if (link.start >= 0 && link.end <= text.length && link.start < link.end)
+          TextRange(start: link.start, end: link.end),
+    ];
+    if (dates.isEmpty && linked.isEmpty) {
       return TextSpan(style: style, text: text);
     }
-    final matches = parser.recognizedSyntax(text).toList();
-    if (matches.isEmpty) return TextSpan(style: style, text: text);
-    final highlighted = style?.copyWith(
-      color: Theme.of(context).colorScheme.onPrimaryContainer,
-      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+    final scheme = Theme.of(context).colorScheme;
+    final dateStyle = TextStyle(
+      color: scheme.onPrimaryContainer,
+      backgroundColor: scheme.primaryContainer,
       fontWeight: FontWeight.w600,
     );
-    final spans = <InlineSpan>[];
-    var cursor = 0;
-    for (final match in matches) {
-      if (cursor < match.start) {
-        spans.add(TextSpan(text: text.substring(cursor, match.start)));
-      }
-      spans.add(
-        TextSpan(
-          text: text.substring(match.start, match.end),
-          style: highlighted,
-        ),
-      );
-      cursor = match.end;
+    final linkStyle = TextStyle(
+      color: scheme.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: scheme.primary,
+    );
+    final cuts = <int>{0, text.length};
+    for (final range in [...dates, ...linked]) {
+      cuts
+        ..add(range.start)
+        ..add(range.end);
     }
-    if (cursor < text.length) spans.add(TextSpan(text: text.substring(cursor)));
+    final ordered = cuts.where((cut) => cut <= text.length).toList()..sort();
+    bool inside(List<TextRange> ranges, int at) =>
+        ranges.any((range) => range.start <= at && at < range.end);
+    final spans = <InlineSpan>[];
+    for (var index = 0; index + 1 < ordered.length; index++) {
+      final from = ordered[index];
+      final to = ordered[index + 1];
+      if (from == to) continue;
+      TextStyle? segment;
+      if (inside(dates, from)) segment = dateStyle;
+      if (inside(linked, from)) {
+        segment = segment == null ? linkStyle : segment.merge(linkStyle);
+      }
+      spans.add(TextSpan(text: text.substring(from, to), style: segment));
+    }
     return TextSpan(style: style, children: spans);
   }
 

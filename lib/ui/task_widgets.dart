@@ -1,7 +1,8 @@
 part of '../main.dart';
 
-/// Lines of description shown in lists; the editor always shows all of it.
-const notesPreviewLines = 3;
+/// Lines of description shown in lists (3 until build 324: too few, user
+/// request); the editor always shows all of it.
+const notesPreviewLines = 6;
 
 /// Description as shown in lists: blank lines and trailing spaces removed, so
 /// the preview lines carry content. The stored notes are never changed.

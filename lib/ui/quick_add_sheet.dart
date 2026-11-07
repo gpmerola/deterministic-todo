@@ -349,7 +349,8 @@ Future<void> showQuickAddSheet(
                       controller: notesController,
                       autofocus: true,
                       minLines: 1,
-                      maxLines: 3,
+                      // Grows with the text, then scrolls inside (was 3).
+                      maxLines: 10,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         hintText: 'Descrizione',

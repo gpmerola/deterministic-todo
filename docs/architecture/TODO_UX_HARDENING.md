@@ -5,8 +5,10 @@ Dalla build 189 appartenenza alle viste, Inbox e ricerca sono descritte in
 
 ## Anteprima della descrizione — build 188
 
-Gli elenchi mostrano fino a `notesPreviewLines` (3) righe della descrizione con
-ellissi. `notesPreview` rimuove soltanto righe vuote e spazi finali per la
+Gli elenchi mostrano fino a `notesPreviewLines` (6 dalla build 325, prima 3)
+righe della descrizione con ellissi. Nell'editor il campo descrizione non ha un
+limite di righe: il foglio resta compatto (460 px) per descrizioni brevi e sale
+all'85% dello schermo oltre 120 caratteri o tre a capo. `notesPreview` rimuove soltanto righe vuote e spazi finali per la
 visualizzazione; non modifica i dati né l'editor. Test in `test/widget_test.dart`.
 
 ## Comportamento
@@ -19,6 +21,9 @@ soltanto per gli elementi visibili, senza materializzare tutte le descrizioni.
 Sul desktop il salvataggio riuscito chiude il pannello dettagli. Descrizione
 sempre visibile, **Aggiungi link** senza selezione preventiva e nome facoltativo;
 i link incollati sono riconosciuti. Le etichette identiche mantengono URL distinti.
+Dalla build 325 un link sopravvive quando la tastiera riscrive in un solo passo
+l'intera parola che lo contiene, o la cancella e la riscrive subito identica;
+nel campo le parole collegate sono sottolineate. La rimozione resta esplicita.
 Le bozze dell'editor e della creazione rapida restano locali in `app_settings`,
 sono escluse dall'export e dal cloud, e vengono rimosse al salvataggio riuscito.
 L'editor salva dopo 300 ms di inattività e prima della chiusura; un errore di

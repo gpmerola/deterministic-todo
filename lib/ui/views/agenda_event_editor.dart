@@ -921,7 +921,8 @@ class _AgendaEventEditorState extends State<AgendaEventEditor>
                     TextField(
                       controller: notes,
                       minLines: 2,
-                      maxLines: 6,
+                      // The form is a ListView: show all the notes (was 6).
+                      maxLines: null,
                       decoration: const InputDecoration(
                         labelText: 'Note (facoltative)',
                         prefixIcon: Icon(Icons.notes),

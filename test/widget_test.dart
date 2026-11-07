@@ -1255,6 +1255,54 @@ void main() {
     await db.close();
   });
 
+  testWidgets(
+    'una descrizione lunga allarga il foglio e resta tutta visibile',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final repository = TaskRepository(db, deviceId: 'test-device');
+      final notes = List.generate(
+        10,
+        (index) => 'Riga ${index + 1}',
+      ).join('\n');
+      await repository.create('Descrizione lunga', notes: notes);
+      await tester.pumpWidget(TodoApp(repository: repository));
+      await tester.pump();
+
+      final preview = find.textContaining('Riga 1').first;
+      expect(
+        tester
+            .widget<RichText>(
+              find
+                  .descendant(of: preview, matching: find.byType(RichText))
+                  .first,
+            )
+            .maxLines,
+        6,
+      );
+      await tester.tap(find.text('Descrizione lunga'));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('task-editor-description')),
+      );
+      expect(field.maxLines, isNull);
+      expect(tester.getSize(find.byType(TaskEditor)).height, greaterThan(460));
+      expect(
+        tester
+            .getSize(find.byKey(const ValueKey('task-editor-description')))
+            .height,
+        greaterThan(200),
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+      await db.close();
+    },
+  );
+
   testWidgets('la modifica attività usa un foglio inferiore compatto', (
     tester,
   ) async {

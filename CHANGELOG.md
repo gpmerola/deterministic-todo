@@ -2,6 +2,19 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.125.2 (build 325) — Descrizioni più lunghe e link che restano link
+
+- Nella lista l'anteprima della descrizione arriva a 6 righe (prima 3).
+  Nell'editor dell'attività il campo descrizione cresce con il testo e il
+  pannello occupa fino all'85% dello schermo (prima 460 px, circa tre righe
+  visibili); nell'aggiunta rapida il campo arriva a 10 righe; nelle note
+  degli eventi del Calendario mostra tutto il testo (prima 6 righe).
+- Un link nella descrizione o nel titolo non torna più testo normale quando
+  la tastiera Android riscrive la parola attorno al cursore per aggiungere
+  uno spazio, o la cancella e la riscrive in due passi: il link resta finché
+  il suo testo è ancora lì, identico. Togliere un link resta esplicito.
+- Nell'editor le parole con un link sono sottolineate come nella lista.
+
 ## 2.125.1 (build 324) — Release stabile della 323
 
 - Nessuna modifica funzionale rispetto alla 323. Il 6 novembre 2026 la

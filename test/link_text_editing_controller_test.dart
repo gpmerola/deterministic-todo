@@ -3,6 +3,88 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'a keyboard rewriting the linked word to add a space keeps the link',
+    () {
+      final controller = LinkTextEditingController.fromMarkdown(
+        'Vedi [example.com › documento](https://example.com/documento)',
+      );
+      final before = controller.text;
+      // The keyboard replaces "Vedi example.com › documento" with the same
+      // words plus a space: the whole label sits inside the replaced range.
+      controller.value = TextEditingValue(
+        text: 'Vedi  example.com › documento ',
+        selection: TextSelection.collapsed(offset: before.length + 2),
+      );
+      expect(
+        controller.toMarkdown(),
+        'Vedi  [example.com › documento](https://example.com/documento) ',
+      );
+      controller.dispose();
+    },
+  );
+
+  test('a link deleted and typed back in two steps stays a link', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      'Leggi [Paper](https://example.com/paper) oggi',
+    );
+    // Step 1: the keyboard deletes the word around the caret...
+    controller.value = const TextEditingValue(
+      text: 'Leggi  oggi',
+      selection: TextSelection.collapsed(offset: 6),
+    );
+    expect(controller.links, isEmpty);
+    // ...step 2: and commits it again followed by a space.
+    controller.value = const TextEditingValue(
+      text: 'Leggi Paper  oggi',
+      selection: TextSelection.collapsed(offset: 12),
+    );
+    expect(
+      controller.toMarkdown(),
+      'Leggi [Paper](https://example.com/paper)  oggi',
+    );
+    controller.dispose();
+  });
+
+  test('a link deleted on purpose does not come back with other text', () {
+    final controller = LinkTextEditingController.fromMarkdown(
+      'Leggi [Paper](https://example.com/paper) oggi',
+    );
+    controller.value = const TextEditingValue(
+      text: 'Leggi  oggi',
+      selection: TextSelection.collapsed(offset: 6),
+    );
+    controller.value = const TextEditingValue(
+      text: 'Leggi Libro oggi',
+      selection: TextSelection.collapsed(offset: 11),
+    );
+    // A later edit that retypes the old label is not a restoration.
+    controller.value = const TextEditingValue(
+      text: 'Leggi Libro oggi Paper',
+      selection: TextSelection.collapsed(offset: 22),
+    );
+    expect(controller.links, isEmpty);
+    expect(controller.toMarkdown(), 'Leggi Libro oggi Paper');
+    controller.dispose();
+  });
+
+  test('a single space after a pasted link survives the next save', () {
+    final first = LinkTextEditingController.fromMarkdown('');
+    first.value = const TextEditingValue(
+      text: 'Nota https://example.com/documento',
+      selection: TextSelection.collapsed(offset: 34),
+    );
+    final saved = first.toMarkdown();
+    final reopened = LinkTextEditingController.fromMarkdown(saved);
+    reopened.value = TextEditingValue(
+      text: '${reopened.text} ',
+      selection: TextSelection.collapsed(offset: reopened.text.length + 1),
+    );
+    expect(reopened.toMarkdown(), '$saved ');
+    first.dispose();
+    reopened.dispose();
+  });
+
   test('pasting over a selection does not inherit a previous link', () {
     final controller = LinkTextEditingController.fromMarkdown(
       'Nota Web [example.com › documento](https://example.com/old)',
