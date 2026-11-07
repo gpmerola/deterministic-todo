@@ -4,7 +4,7 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.125.1 / 324 (Web, APK diretti, Play interno). Todo Test: 2324
+- Stabile: 2.125.2 / 325 (Web, APK diretti, Play interno). Todo Test: 2325
   (branch `agent/semble-fallback`): Semble con riserva senza chiave; dalla
   315 barra Calendario di Oggi compatta (due righe al massimo).
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
@@ -15,6 +15,21 @@ fondo.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Release stabile 2.125.2 / 325 — 7 novembre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 15:31
+UTC). `main` in fast-forward a `7d1e029024e043878da466537a4e69fb307f04d3`,
+run [42386834411](https://github.com/gpmerola/deterministic-todo/actions/runs/42386834411)
+verde in tutti gli otto job.
+
+- Web: `release-info.json` 2.125.2 / 325 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.125.2):
+  `v2.125.2` `Latest`, quattro APK più bundle e manifest.
+- Google Play interno: 325 caricata dal workflow; propagazione non verificata.
+- Contenuto rispetto alla 324: descrizioni più lunghe e link conservati
+  quando la tastiera riscrive la parola (vedi `CHANGELOG.md`). Collaudo sul
+  Galaxy non ancora eseguito: ADB non raggiungibile il 7 novembre.
 
 ## Release stabile 2.125.1 / 324 — 6 novembre 2026
 
