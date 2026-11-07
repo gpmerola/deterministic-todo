@@ -4,7 +4,7 @@ Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.125.2 / 325 (Web, APK diretti, Play interno). Todo Test: 2325
+- Stabile: 2.126.0 / 326 (Web, APK diretti, Play interno). Todo Test: 2326
   (branch `agent/semble-fallback`): Semble con riserva senza chiave; dalla
   315 barra Calendario di Oggi compatta (due righe al massimo).
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
@@ -15,6 +15,21 @@ fondo.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Release stabile 2.126.0 / 326 — 7 novembre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 15:55
+UTC). `main` in fast-forward a `a811d3faf1c37acede76d5bef12f9d4dfa82da4c`,
+run [42388757676](https://github.com/gpmerola/deterministic-todo/actions/runs/42388757676)
+verde in tutti gli otto job.
+
+- Web: `release-info.json` 2.126.0 / 326 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.126.0):
+  `v2.126.0` `Latest`, quattro APK più bundle e manifest.
+- Google Play interno: 326 caricata dal workflow; propagazione non verificata.
+- Contenuto rispetto alla 325: Semble nel browser con chiave salvata solo nel
+  browser. Provato su build web locale con chiave sintetica (salvataggio,
+  maschera, nessun testo in chiaro nel browser); non con la chiave reale.
 
 ## Release stabile 2.125.2 / 325 — 7 novembre 2026
 
