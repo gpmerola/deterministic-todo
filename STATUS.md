@@ -16,6 +16,22 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
+## Routine serale 2.127.0 / 327: verifiche del 11 novembre 2026
+
+Pubblicazione richiesta dall'utente. Spunta manuale immediata nell'editor e
+gruppo richiudibile in Oggi; preferenza locale per attività/serie inclusa nel
+backup JSON. Contratto in
+[TODO_PLANNING_MODEL](docs/architecture/TODO_PLANNING_MODEL.md).
+
+Superati `make check-generated`, `make check` (652 test Flutter, 3 saltati),
+formattazione e build Web release. Il caricamento iniziale delle preferenze
+mostra un indicatore; i test UI attendono la lettura asincrona e il test nuovo
+rilascia gli stream prima di chiudere SQLite. Nessuna modifica allo schema.
+
+Galaxy non raggiungibile tramite `s21-adb` (timeout su entrambi i trasporti):
+installazione e collaudo fisico ancora da eseguire. Esito della pubblicazione
+coordinata e verifica HTTPS da registrare dopo il completamento dei workflow.
+
 ## Release stabile 2.126.0 / 326 — 7 novembre 2026
 
 Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 15:55

@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.127.0 (build 327, non pubblicata) · Routine serale
+
+- In Oggi, soltanto le attività contrassegnate manualmente compaiono nel
+  gruppo «Routine serale», inizialmente chiuso e apribile con un tocco.
+  Le altre quotidiane restano nella lista normale. Nessun orario automatico.
+- Nell'editor, la spunta «Routine serale» salva subito una preferenza locale,
+  valida per tutta la serie e inclusa nei backup JSON. Non si sincronizza
+  tra dispositivi. Date, completamenti, ordine salvato e ricorrenza non cambiano.
+
 ## 2.126.0 (build 326) — Semble anche nel browser
 
 - Nella web app compare **Impostazioni → Semble**: la chiave API si inserisce

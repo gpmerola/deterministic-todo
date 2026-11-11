@@ -448,6 +448,10 @@ class _TaskEditorState extends State<TaskEditor> {
                       ),
                       const SizedBox(height: 6),
                       _compactActions(),
+                      EveningRoutineToggle(
+                        db: widget.repository.db,
+                        task: widget.task,
+                      ),
                       StreamBuilder<List<OutboxEntry>>(
                         stream:
                             (widget.repository.db.select(

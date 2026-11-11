@@ -109,7 +109,7 @@ void main() {
     await repository.create('Inbox personale');
 
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Backlog progetto'), findsNothing);
     expect(find.text('Inbox personale'), findsOneWidget);
@@ -135,7 +135,7 @@ void main() {
       showDate: today.toString(),
     );
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final overdueHeader = find.byKey(const ValueKey('today-group-overdue'));
     final currentHeader = find.byKey(const ValueKey('today-group-current'));
@@ -169,7 +169,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Oggi'), findsWidgets);
     expect(find.text('Inbox'), findsNothing);
@@ -203,7 +203,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
 
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
@@ -229,7 +229,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Comando universale'));
     await tester.pumpAndSettle();
@@ -258,7 +258,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Apri dettaglio');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Apri dettaglio'));
     await tester.pumpAndSettle();
@@ -294,7 +294,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     final id = await repository.create('Titolo iniziale');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Titolo iniziale'));
     await tester.pumpAndSettle();
@@ -328,7 +328,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Modifica senza interruzioni');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Modifica senza interruzioni'));
     await tester.pumpAndSettle();
@@ -366,7 +366,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
 
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final pageMotion = tester.widget<AnimatedSwitcher>(
       find.byKey(const ValueKey('page-motion')),
@@ -425,7 +425,7 @@ void main() {
     )..where((row) => row.id.equals(id))).getSingle();
     await repository.softDelete(task);
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cestino'));
@@ -459,7 +459,7 @@ void main() {
     )..where((row) => row.id.equals(id))).getSingle();
     await repository.softDelete(task);
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cestino'));
@@ -492,7 +492,7 @@ void main() {
       showDate: CivilDate.fromDateTime(DateTime.now()).toString(),
     );
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Attività senza data'));
@@ -531,7 +531,7 @@ void main() {
       notes: 'Methods paper [Paper1](https://example.com/paper)',
     );
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Update PhD'), findsOneWidget);
     expect(find.textContaining('Methods paper Paper1'), findsOneWidget);
@@ -572,7 +572,7 @@ void main() {
       notes: 'Latte\n\n- pane\n- uova\n- caffè',
     );
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final preview = tester.widget<RichText>(
       find.descendant(
@@ -598,7 +598,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Non eliminarmi');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.drag(find.text('Non eliminarmi'), const Offset(-700, 0));
     await tester.pumpAndSettle();
@@ -622,7 +622,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     final id = await repository.create('Cestinami');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.drag(find.text('Cestinami'), const Offset(-700, 0));
     // The swipe movement is 220 ms; the resize that follows lasts 260 ms.
@@ -665,7 +665,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Annuncio temporaneo');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.drag(find.text('Annuncio temporaneo'), const Offset(-700, 0));
     await tester.pumpAndSettle();
@@ -685,7 +685,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Chiudi annuncio');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.drag(find.text('Chiudi annuncio'), const Offset(-700, 0));
     await tester.pumpAndSettle();
@@ -706,7 +706,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Swipe sicuro');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final dismissible = tester.widget<Dismissible>(find.byType(Dismissible));
     expect(dismissible.direction, DismissDirection.endToStart);
@@ -739,7 +739,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Spunta protetta');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final gesture = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('completion-no-swipe-zone'))),
@@ -764,7 +764,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pumpAndSettle();
@@ -799,7 +799,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pump();
@@ -830,7 +830,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Elimina intuitivamente');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Azioni attività'));
     await tester.pumpAndSettle();
@@ -856,7 +856,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pump();
@@ -890,7 +890,7 @@ void main() {
     );
 
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.textContaining('ogni domenica'), findsOneWidget);
     expect(find.textContaining('Mostra'), findsNothing);
@@ -917,7 +917,7 @@ void main() {
     await repository.create('P1', priority: 4);
     await repository.create('P2', priority: 3);
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(
       tester.getTopLeft(find.text('P1')).dy,
@@ -944,7 +944,7 @@ void main() {
     final projectId = await repository.createProject('Casa');
     await repository.create('Pulizie', projectId: projectId);
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Progetti'));
     await tester.pumpAndSettle();
 
@@ -978,7 +978,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     final projectId = await repository.createProject('Casa');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Progetti'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Casa'));
@@ -1009,7 +1009,7 @@ void main() {
       final firstId = await repository.createProject('Primo');
       await repository.createProject('Secondo');
       await tester.pumpWidget(TodoApp(repository: repository));
-      await tester.pump();
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Progetti'));
       await tester.pumpAndSettle();
 
@@ -1052,7 +1052,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pumpAndSettle();
     expect(
@@ -1078,7 +1078,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pumpAndSettle();
 
@@ -1106,7 +1106,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Nuova attività'));
     await tester.pumpAndSettle();
@@ -1153,7 +1153,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     final taskId = await repository.create('Animami');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 50));
@@ -1186,7 +1186,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Completa rapidamente');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 450));
@@ -1216,7 +1216,7 @@ void main() {
       ).encode(),
     );
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 450));
@@ -1244,7 +1244,7 @@ void main() {
       itemKind: 'reference',
     );
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Riferimenti'), findsNothing);
     expect(find.text('Vecchio riferimento'), findsOneWidget);
@@ -1270,7 +1270,7 @@ void main() {
       ).join('\n');
       await repository.create('Descrizione lunga', notes: notes);
       await tester.pumpWidget(TodoApp(repository: repository));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final preview = find.textContaining('Riga 1').first;
       expect(
@@ -1314,7 +1314,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Apri editor');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Apri editor'));
     await tester.pumpAndSettle();
@@ -1374,7 +1374,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Riprogramma attività');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Riprogramma attività'));
     await tester.pumpAndSettle();
@@ -1421,7 +1421,7 @@ void main() {
     final repository = TaskRepository(db, deviceId: 'test-device');
     await repository.create('Riprogramma attività');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Riprogramma attività'));
     await tester.pumpAndSettle();
@@ -1503,7 +1503,7 @@ void main() {
         showDate: tomorrow,
       );
       await tester.pumpWidget(TodoApp(repository: repository));
-      await tester.pump();
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Prossime'));
       await tester.pumpAndSettle();
 
@@ -1529,7 +1529,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Prossime'));
     await tester.pump();
@@ -1557,7 +1557,7 @@ void main() {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final repository = TaskRepository(db, deviceId: 'test-device');
     await tester.pumpWidget(TodoApp(repository: repository));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('Salute dati'), findsNothing);
 
     await tester.tap(find.byTooltip('Impostazioni'));

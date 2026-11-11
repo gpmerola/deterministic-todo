@@ -31,7 +31,9 @@ class ImportPreview {
 /// Portable preferences only. Identity, sync receipts, purge markers, calendar
 /// mappings, maintenance timestamps, drafts and health data are never imported.
 bool isPortableTodoSetting(String key) =>
-    key == 'last_quick_project' || key.startsWith('project_view:');
+    key == 'last_quick_project' ||
+    key.startsWith('project_view:') ||
+    key.startsWith('evening_routine:');
 
 class _Backup {
   _Backup(this.tasks, this.projects, this.sections, this.settings, this.legacy);

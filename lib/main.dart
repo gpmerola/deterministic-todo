@@ -60,6 +60,7 @@ import 'ui/auto_backup_sheet.dart';
 import 'ui/completion_hold.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/daily_steps_sheet.dart';
+import 'ui/evening_routine_toggle.dart';
 import 'ui/link_text_editing_controller.dart';
 import 'ui/priority_color.dart';
 import 'ui/private_earnings_sheet.dart';

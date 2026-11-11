@@ -725,25 +725,38 @@ class TaskRepository {
     final status = isOpenStatus(task.status) && showDate != task.showDate
         ? legacyOpenStatus(showDate, CivilDate.fromDateTime(DateTime.now()))
         : null;
-    await _update(
-      task,
-      TasksCompanion(
-        title: Value(title.trim()),
-        status: status == null ? const Value.absent() : Value(status.name),
-        notes: Value(notes),
-        showDate: Value(showDate),
-        timeMinutes: const Value(null),
-        timeZone: const Value(null),
-        recurrence: Value(recurrence),
-        priority: priority == null ? const Value.absent() : Value(priority),
-        projectId: updateProject ? Value(projectId) : const Value.absent(),
-        sectionId: updateProject ? Value(sectionId) : const Value.absent(),
-        seriesId: Value(seriesId),
-        occurrenceKey: Value(
-          recurrence == null ? null : task.occurrenceKey ?? showDate,
+    await db.transaction(() async {
+      await _update(
+        task,
+        TasksCompanion(
+          title: Value(title.trim()),
+          status: status == null ? const Value.absent() : Value(status.name),
+          notes: Value(notes),
+          showDate: Value(showDate),
+          timeMinutes: const Value(null),
+          timeZone: const Value(null),
+          recurrence: Value(recurrence),
+          priority: priority == null ? const Value.absent() : Value(priority),
+          projectId: updateProject ? Value(projectId) : const Value.absent(),
+          sectionId: updateProject ? Value(sectionId) : const Value.absent(),
+          seriesId: Value(seriesId),
+          occurrenceKey: Value(
+            recurrence == null ? null : task.occurrenceKey ?? showDate,
+          ),
         ),
-      ),
-    );
+      );
+      // Keep the local presentation choice when this task becomes a series.
+      if (task.seriesId == null && seriesId != null) {
+        await db.customStatement(
+          'INSERT OR IGNORE INTO app_settings (key, value) '
+          'SELECT ?, value FROM app_settings WHERE key = ?',
+          ['evening_routine:$seriesId', 'evening_routine:${task.id}'],
+        );
+        await (db.delete(
+          db.appSettings,
+        )..where((row) => row.key.equals('evening_routine:${task.id}'))).go();
+      }
+    });
   }
 
   Future<int> generateCalendarOccurrences(Task task, CivilDate through) async {

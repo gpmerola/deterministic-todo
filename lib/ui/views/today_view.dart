@@ -2,28 +2,69 @@ import 'package:flutter/material.dart';
 
 import '../../data/local/database.dart';
 import '../../domain/task.dart';
+import '../../services/evening_routine.dart';
 
 /// Today: overdue items under their own header, then today's and Inbox items.
 /// [tasks] are already filtered by SQL and ordered.
-class TodayTaskList extends StatelessWidget {
+class TodayTaskList extends StatefulWidget {
   const TodayTaskList({
     required this.tasks,
     required this.today,
     required this.tileBuilder,
+    this.database,
     super.key,
   });
 
+  final AppDatabase? database;
   final List<Task> tasks;
   final String today;
   final Widget Function(Task task) tileBuilder;
 
   @override
-  Widget build(BuildContext context) {
+  State<TodayTaskList> createState() => _TodayTaskListState();
+}
+
+class _TodayTaskListState extends State<TodayTaskList> {
+  late Stream<Set<String>>? flags = widget.database == null
+      ? null
+      : EveningRoutine(widget.database!).watch();
+
+  @override
+  void didUpdateWidget(covariant TodayTaskList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.database != widget.database) {
+      flags = widget.database == null
+          ? null
+          : EveningRoutine(widget.database!).watch();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => flags == null
+      ? _list(const {})
+      : StreamBuilder<Set<String>>(
+          stream: flags,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData && !snapshot.hasError) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            // If preferences cannot be read, keep every task accessible.
+            return _list(snapshot.data ?? const {});
+          },
+        );
+
+  Widget _list(Set<String> eveningIds) {
+    final tasks = widget.tasks;
+    final today = widget.today;
+    final tileBuilder = widget.tileBuilder;
+    final evening = <Task>[];
     final overdue = <Task>[];
     final current = <Task>[];
     final daily = <Task>[];
     for (final task in tasks) {
-      if (task.recurrence == everyDayRecurrence) {
+      if (eveningIds.contains(EveningRoutine.identity(task))) {
+        evening.add(task);
+      } else if (task.recurrence == everyDayRecurrence) {
         daily.add(task);
       } else if (task.showDate != null && task.showDate!.compareTo(today) < 0) {
         overdue.add(task);
@@ -43,8 +84,17 @@ class TodayTaskList extends StatelessWidget {
     return ListView.builder(
       key: const PageStorageKey('task-list-today'),
       padding: const EdgeInsets.only(bottom: 96),
-      itemCount: rows.length,
+      itemCount: rows.length + (evening.isEmpty ? 0 : 1),
       itemBuilder: (_, index) {
+        if (index == rows.length) {
+          return ExpansionTile(
+            key: PageStorageKey('evening-routine-$today'),
+            leading: const Icon(Icons.bedtime_outlined),
+            title: const Text('Routine serale'),
+            subtitle: Text('${evening.length} attività'),
+            children: [for (final task in evening) tileBuilder(task)],
+          );
+        }
         final task = rows[index];
         if (task != null) return tileBuilder(task);
         if (index == 0 && overdue.isNotEmpty) {

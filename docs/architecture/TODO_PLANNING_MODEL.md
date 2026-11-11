@@ -117,6 +117,26 @@ quando ci sono anche attività correnti ordinarie. Arretrate resta separato;
 l'ordine relativo di ciascun gruppo e le posizioni salvate sono preservati.
 Test: `test/daily_reschedule_test.dart` e `test/task_views_test.dart`.
 
+## Routine serale (build 327)
+
+La spunta esplicita nell'editor salva immediatamente una preferenza di
+presentazione in `app_settings`, chiave `evening_routine:<seriesId o taskId>`.
+Non modifica date, ricorrenza, posizione o completamento e non genera outbox.
+La preferenza è locale al dispositivo, portabile con il backup JSON, non
+sincronizzata tramite Supabase. Se un'attività diventa ricorrente, la preferenza
+passa alla nuova serie nella stessa transazione del salvataggio.
+
+In Oggi le attività contrassegnate già appartenenti alla vista sono raccolte in
+fondo nel gruppo «Routine serale», inizialmente chiuso. Si apre/chiude a mano;
+il conteggio è neutro, nessun timer o apertura automatica. Lo stato di apertura
+è mantenuto durante la navigazione e si azzera nel nuovo giorno. Il gruppo
+scompare se vuoto. Le altre quotidiane mantengono la presentazione precedente.
+Progetti, Prossime e ricerca continuano a mostrare le attività normalmente.
+Se la lettura delle preferenze fallisce, le attività restano tutte accessibili.
+
+Test: `test/evening_routine_test.dart` (spunta, raggruppamento, riapertura
+SQLite, serie e backup), oltre alle regressioni delle viste esistenti.
+
 ## Struttura della shell
 
 `lib/main.dart` contiene avvio, tema, navigazione e layout della shell. Il

@@ -126,6 +126,7 @@ extension _ShellContent on _TaskShellState {
             )
           : navigation.section == AppSection.today
           ? TodayTaskList(
+              database: widget.repository.db,
               tasks: visible,
               today: today.toString(),
               tileBuilder: _taskTile,

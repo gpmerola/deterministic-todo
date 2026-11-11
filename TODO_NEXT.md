@@ -6,6 +6,12 @@ Solo voci **aperte**; riordinato il 17 ottobre 2026. Esiti in
 `docs/archive/`) e nella cronologia git di questo file. Leggere insieme
 ad `AGENTS.md` e [`docs/HANDOFF.md`](docs/HANDOFF.md) prima di modificare.
 
+## Consegna Routine serale
+
+Versione 2.127.0 / 327 verificata localmente: controlli completi superati.
+Pubblicazione autorizzata e in preparazione; esiti in [STATUS](STATUS.md).
+Resta il collaudo fisico sul Galaxy, non raggiungibile l'11 novembre 2026.
+
 ## Da fare con l'utente
 
 Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
