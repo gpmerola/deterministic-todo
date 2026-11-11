@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.127.0 (build 327, non pubblicata) · Routine serale
+## 2.127.0 (build 327) · Routine serale
 
 - In Oggi, soltanto le attività contrassegnate manualmente compaiono nel
   gruppo «Routine serale», inizialmente chiuso e apribile con un tocco.
