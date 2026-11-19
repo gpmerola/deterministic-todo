@@ -1,12 +1,12 @@
 # Stato corrente
 
-Aggiornato l’11 novembre 2026. Solo esiti validi oggi; la cronologia delle
+Aggiornato il 19 novembre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.127.0 / 327 (Web, APK diretti, Play interno). Todo Test: 2327
-  pubblicato sul manifest rolling; installazione sul Galaxy non verificata.
-  Routine serale manuale, con preferenza locale per attività/serie.
+- Stabile: 2.128.0 / 328 (Web, APK diretti, Play interno). Todo Test: 2328
+  installato via ADB sul Galaxy. Recupero rapido della sync, «tira giù per
+  aggiornare», stato Live e misura `remote_change_latency`.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era
@@ -16,7 +16,20 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
-## Sincronizzazione più pronta 2.128.0 / 328: 19 novembre 2026
+## Release stabile 2.128.0 / 328: Sincronizzazione più pronta, 19 novembre 2026
+
+Pubblicazione chiesta dall'utente dopo la verifica («poi pubblica e pusha»,
+messaggio delle 10:41 UTC). `main` in fast-forward a
+`73b94370d2950b4a13b33d42c857d161d25d7137` (PR 9 e commit di documentazione
+della 2.127.0 da `agent/semble-fallback`). Run
+[44508645433](https://github.com/gpmerola/deterministic-todo/actions/runs/44508645433)
+riuscito in tutti gli otto job.
+
+- Web: `release-info.json` 2.128.0 / 328 con lo stesso commit.
+- [APK diretti](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.128.0):
+  `v2.128.0` latest, quattro APK più bundle e manifest con gli stessi
+  identificativi.
+- Google Play interno: 328 caricata dal workflow; propagazione non verificata.
 
 Branch `agent/sync-fast-recovery`, da `main`. Finestra di recupero rapido di
 20 s (retry ogni 1 s) dopo ripresa, cambio di rete e avvio; «tira giù per
