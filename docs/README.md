@@ -39,7 +39,7 @@ Ogni estrazione futura deve preservare test e comportamento pubblico.
 
 - [Release coordinata](operations/RELEASE.md)
 - [Google Play](operations/GOOGLE_PLAY.md)
-- [ADB Wi-Fi/Tailscale e diagnostica Movimento](operations/ADB_WIFI.md)
+- [ADB (USB e Debug wireless) e diagnostica Movimento](operations/ADB_WIFI.md)
 - [Web](operations/WEB.md)
 - [Backup e recovery](operations/BACKUP_RECOVERY.md)
 - [Performance e aggiornamenti Android](ANDROID_PERFORMANCE_E_AGGIORNAMENTI.md)

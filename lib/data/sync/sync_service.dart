@@ -67,6 +67,10 @@ class SyncService {
   void _openFastRecovery() =>
       _fastRecoveryUntil = clock().add(fastRecoveryWindow);
 
+  /// Last return to the foreground ([start] or [resume] after a pause).
+  /// Remote rows sent before it are measured as catch-up, not as delay.
+  DateTime? _openedAt;
+
   @visibleForTesting
   bool get inFastRecovery {
     final until = _fastRecoveryUntil;
@@ -91,7 +95,9 @@ class SyncService {
     final latency = samples.summary(path, clock());
     if (latency == null || _disposed) return;
     logRemoteLatency(latency);
-    if (latency.count > 0) _remoteLatency.value = latency;
+    if (latency.count > 0 || latency.reopenCount > 0) {
+      _remoteLatency.value = latency;
+    }
   }
 
   /// Keeps `id=in.(...)` URLs well below common proxy limits.
@@ -303,6 +309,7 @@ class SyncService {
     // Started in background: [resume] performs the first check and timer.
     if (_paused) return;
     _openFastRecovery();
+    _openedAt = clock();
     if (client.auth.currentUser != null) {
       unawaited(_subscribeRealtime());
       unawaited(sync());
@@ -354,6 +361,7 @@ class SyncService {
     _paused = false;
     _flushUploads = false;
     _openFastRecovery();
+    _openedAt = clock();
     _startTimer();
     unawaited(_restoreRealtimeAndSync());
   }
@@ -485,6 +493,7 @@ class SyncService {
       final taskIds = queued['tasks']!.toList();
       final latency = RemoteLatencySamples(
         taskIds.isEmpty ? null : await _deviceId(),
+        openedAt: _openedAt,
       );
       for (var start = 0; start < taskIds.length; start += idBatchSize) {
         final remoteRows = await _requests.send(
@@ -1008,7 +1017,10 @@ class SyncService {
             version: overview?.taskVersion ?? taskFingerprintV1,
           );
     final buckets = changed?.buckets;
-    final latency = RemoteLatencySamples(await _deviceId());
+    final latency = RemoteLatencySamples(
+      await _deviceId(),
+      openedAt: _openedAt,
+    );
     for (final bucket in buckets ?? <String?>[null]) {
       await for (final page in remotePages(
         client,

@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.129.0 (build 329, non pubblicata) · Ritardo misurato onestamente
+
+- In Salute dati la riga «Arrivo ultima modifica da altro dispositivo»
+  distingue le modifiche arrivate con l'app aperta (vero ritardo della
+  sincronizzazione, in ms) da quelle fatte mentre l'app era chiusa: per
+  queste mostra «trovata alla riapertura, comparsa X ms dopo», cioè quanto
+  dopo il ritorno in primo piano è apparsa, senza contare il tempo in cui
+  l'app era chiusa. L'evento `remote_change_latency` e il provider ADB
+  aggiungono `reopen_count` e `reopen_median_ms`.
+
 ## 2.128.0 (build 328) · Sincronizzazione più pronta
 
 - Per circa 20 secondi dopo il ritorno in primo piano, un cambio di rete o

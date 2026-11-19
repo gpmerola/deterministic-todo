@@ -69,24 +69,24 @@ separatamente che il codice Drift generato sia aggiornato.
 ## Configurazione locale Mac / Galaxy S21
 
 Questa configurazione riguarda la macchina di collaudo, non i requisiti dell’app
-né della CI. Prima di usare ADB sul Galaxy eseguire `s21-adb`: verifica una vera
-risposta del telefono e ripristina il trasporto se necessario. Il LaunchAgent
-locale riconnette ogni 30 secondi e parte all’accesso dell’utente; non aggiungere
-questa automazione all’app. Usare il target esplicito:
+né della CI. Dal 19 novembre 2026 Tailscale è disinstallato: non esiste più un
+endpoint remoto e non va riproposto. ADB sul Galaxy funziona via USB
+autorizzata (seriale mostrato da `adb devices -l`; `make todo-test` lo usa da
+solo) oppure via Debug wireless sulla stessa rete Wi-Fi del Mac. Specificare
+sempre il target quando sono presenti più trasporti:
 
 ```sh
-adb -s '[fd7a:115c:a1e0::e736:ed30]:5555' shell
+adb devices -l
+adb -s <seriale-o-ip:porta> shell
 ```
 
-Preferire IPv6 Tailscale: IPv4 presenta timeout. Sul telefono Tailscale ha VPN
-sempre attiva ed esenzione dall’ottimizzazione batteria; collegamento e
-riconnessione sono stati verificati anche su rete mobile, con Wi-Fi spento.
-Dopo reboot Android potrebbe servire riattivare `adb tcpip 5555` da USB
-autorizzata o Debug wireless. Non configurare port forwarding o esposizione
+`s21-adb` e il LaunchAgent locale `local.s21-adb.reconnect` provano ancora gli
+indirizzi Tailscale e oggi falliscono con timeout: non indicano un guasto del
+telefono. Dopo reboot Android potrebbe servire riattivare `adb tcpip 5555` da
+USB autorizzata o Debug wireless. Non configurare port forwarding o esposizione
 Internet e non riavviare indiscriminatamente il server ADB condiviso.
 Leggere `docs/operations/ADB_WIFI.md` per configurazione, limiti, recovery e
-provenienza dei file locali. L’endpoint sopra è documentato su richiesta
-esplicita dell’utente; non aggiungere MAC, codici di pairing o credenziali.
+provenienza dei file locali. Non aggiungere MAC, codici di pairing o credenziali.
 
 ## Modulo movimento e Amazfit
 

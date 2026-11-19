@@ -77,7 +77,8 @@ Avvio locale/remoto e cache Calendario: [confini e verifiche](architecture/START
 
 - `make check` (analisi, test Flutter, strumenti, link documentazione, SQL) e
   `make check-generated` prima di ogni commit funzionale.
-- Todo Test (`.dev`): `make todo-test`, ADB via `s21-adb` e Tailscale
+- Todo Test (`.dev`): `make todo-test`, ADB via USB o Debug wireless (Tailscale
+  disinstallato il 19 novembre 2026)
   ([ADB_WIFI](operations/ADB_WIFI.md),
   [ANDROID_DEV_CHANNEL](operations/ANDROID_DEV_CHANNEL.md)). La build Play 121
   resta installata ma `disabled-user`: non riattivarla né disinstallarla.

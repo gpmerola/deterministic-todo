@@ -44,18 +44,30 @@ String realtimeLinkLabel(RealtimeLink link) => switch (link) {
   RealtimeLink.disconnected => 'Live non collegato',
 };
 
+/// Live delay first; changes sent while the app was closed are described
+/// by how soon they appeared after reopening, never as a sync delay.
 String remoteLatencyLabel(RemoteChangeLatency latency) {
-  final via = latency.path == RemoteChangePath.realtime
-      ? 'Realtime'
-      : 'controllo completo';
   final time = DateFormat(
     'HH:mm:ss',
     'it',
   ).format(latency.measuredAt.toLocal());
+  final reopen = latency.reopenCount == 0
+      ? null
+      : latency.reopenCount == 1
+      ? 'trovata alla riapertura, comparsa ${latency.reopenMedianMs} ms dopo'
+      : '${latency.reopenCount} trovate alla riapertura, comparse '
+            '${latency.reopenMedianMs} ms dopo';
+  if (latency.count == 0) {
+    return '${reopen![0].toUpperCase()}${reopen.substring(1)} · $time';
+  }
+  final via = latency.path == RemoteChangePath.realtime
+      ? 'Realtime'
+      : 'controllo completo';
   final many = latency.count > 1
       ? ' · max ${latency.maxMs} ms su ${latency.count}'
       : '';
-  return '${latency.medianMs} ms$many · via $via · $time';
+  return "Con l'app aperta: ${latency.medianMs} ms$many · via $via"
+      '${reopen == null ? '' : ' · altre $reopen'} · $time';
 }
 
 /// Next refresh of the relative age: every 10 s in the first minute, then

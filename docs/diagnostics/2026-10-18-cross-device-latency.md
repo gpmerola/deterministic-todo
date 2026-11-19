@@ -84,7 +84,13 @@ secondo, e l'app registra `remote_change_latency` (mediana e massimo tra
 `updated_at` del dispositivo che ha modificato e arrivo su questo). Lettura
 sul Galaxy: provider `todo_sync_debug`, campi `remote_latency_*`, oppure
 Salute dati. Il valore comprende lo sfasamento degli orologi; i negativi sono
-scartati. Prime misure reali ancora da raccogliere.
+scartati.
+
+Prima misura reale, 19 novembre: 3.562 ms con `path=full`, ma la modifica
+dal Web era stata fatta mentre l'app sul Galaxy era chiusa; il controllo alla
+ripresa l'aveva applicata circa 0,2 s dopo il ritorno in primo piano. Dalla
+build 329 questi casi sono riportati come «trovata alla riapertura» con il
+tempo dalla riapertura, separati dal ritardo con l'app aperta.
 
 Non provati sul telefono: il controllo al ritorno di focus (richiede la
 tendina in alto, da non toccare) e un fallimento transitorio reale alla

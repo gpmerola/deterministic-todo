@@ -125,7 +125,8 @@ class _DataHealthViewState extends State<DataHealthView> {
                         : _HealthRow(
                             ok: true,
                             icon: Icons.timer_outlined,
-                            title: 'Ritardo ultima modifica remota',
+                            title:
+                                'Arrivo ultima modifica da altro dispositivo',
                             value: remoteLatencyLabel(latency),
                           ),
                   ),

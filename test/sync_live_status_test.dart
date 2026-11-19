@@ -70,7 +70,7 @@ void main() {
           measuredAt: at,
         ),
       ),
-      '640 ms · via Realtime · 10:30:05',
+      "Con l'app aperta: 640 ms · via Realtime · 10:30:05",
     );
     expect(
       remoteLatencyLabel(
@@ -83,7 +83,36 @@ void main() {
           measuredAt: at,
         ),
       ),
-      '1200 ms · max 4100 ms su 3 · via controllo completo · 10:30:05',
+      "Con l'app aperta: 1200 ms · max 4100 ms su 3 · "
+      'via controllo completo · 10:30:05',
+    );
+  });
+
+  test('changes found on reopening are not presented as delay', () {
+    final at = DateTime(2026, 11, 19, 10, 30, 5);
+    RemoteChangeLatency latency({int count = 0, int reopen = 1}) =>
+        RemoteChangeLatency(
+          path: RemoteChangePath.full,
+          count: count,
+          medianMs: 700,
+          maxMs: 700,
+          ignored: 0,
+          measuredAt: at,
+          reopenCount: reopen,
+          reopenMedianMs: 480,
+        );
+    expect(
+      remoteLatencyLabel(latency()),
+      'Trovata alla riapertura, comparsa 480 ms dopo · 10:30:05',
+    );
+    expect(
+      remoteLatencyLabel(latency(reopen: 3)),
+      '3 trovate alla riapertura, comparse 480 ms dopo · 10:30:05',
+    );
+    expect(
+      remoteLatencyLabel(latency(count: 1)),
+      "Con l'app aperta: 700 ms · via controllo completo · altre trovata "
+      'alla riapertura, comparsa 480 ms dopo · 10:30:05',
     );
   });
 

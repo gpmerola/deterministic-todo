@@ -150,5 +150,7 @@ class DiagnosticLogService {
     'median_ms',
     'max_ms',
     'ignored',
+    'reopen_count',
+    'reopen_median_ms',
   };
 }

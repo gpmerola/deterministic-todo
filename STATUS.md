@@ -16,6 +16,14 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
+## Ritardo misurato onestamente 2.129.0 / 329: 19 novembre 2026
+
+Branch `agent/sync-latency-reopen`, da `main`. Salute dati separa le modifiche
+arrivate con l'app aperta da quelle trovate alla riapertura; campi
+`reopen_count`/`reopen_median_ms` nell'evento e nel provider ADB. Tailscale
+disinstallato dall'utente: AGENTS.md e
+[ADB_WIFI](docs/operations/ADB_WIFI.md) indicano ora solo USB e Debug wireless.
+
 ## Release stabile 2.128.0 / 328: Sincronizzazione più pronta, 19 novembre 2026
 
 Pubblicazione chiesta dall'utente dopo la verifica («poi pubblica e pusha»,

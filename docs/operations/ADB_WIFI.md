@@ -4,6 +4,16 @@ Questa procedura consente di leggere log e diagnostica del Galaxy S21 senza
 lasciare il telefono collegato via USB. Il pairing autorizza il Mac, mentre la
 connessione ADB è temporanea: sono due stati distinti.
 
+> **19 novembre 2026: Tailscale disinstallato dall'utente.** Il percorso
+> remoto descritto sotto (tailnet, indirizzi IPv6/IPv4 Tailscale, Debug
+> wireless via Tailscale) non è più disponibile ed è conservato solo come
+> storia. Oggi ADB funziona via USB autorizzata oppure via Debug wireless
+> sulla stessa rete Wi-Fi del Mac (sezione «In alternativa usare Debug
+> wireless»). `s21-adb` e il LaunchAgent `local.s21-adb.reconnect` provano
+> ancora gli indirizzi Tailscale: i loro timeout non indicano un guasto del
+> telefono. Il provider `todo_sync_debug` si legge allo stesso modo con
+> `adb -s <seriale> shell content query --uri ...`.
+
 ## Requisiti generali del progetto
 
 ADB serve solo al collaudo: l’app e la CI non richiedono Tailscale, un Mac o un
@@ -12,7 +22,7 @@ quando sono presenti più trasporti. Non riavviare indiscriminatamente il server
 ADB condiviso (`adb kill-server`) e non scollegare altri dispositivi.
 Non configurare port forwarding, Funnel o esposizione Internet di ADB.
 
-## Configurazione locale Mac / Samsung S21
+## Configurazione locale Mac / Samsung S21 (storica, fino al 19 novembre 2026)
 
 Configurazione del 12 settembre 2026, fornita e collaudata dall’utente.
 Sul Mac eseguire:
@@ -185,9 +195,9 @@ appena prima di ogni tocco e calcolare le coordinate su quella.
   Wireless debugging e l'eventuale isolamento client della rete guest.
 - `unauthorized`: sbloccare il telefono e verificare l'autorizzazione; se
   persiste, rimuovere soltanto il Mac da **Paired devices** e rifare il pairing.
-- VPN o rete guest: possono impedire la comunicazione locale. Una tailnet
-  Tailscale esplicitamente configurata è il percorso remoto supportato; non
-  esporre ADB direttamente su Internet.
+- VPN o rete guest: possono impedire la comunicazione locale. Dal 19 novembre
+  2026 non esiste un percorso remoto supportato (Tailscale disinstallato);
+  non esporre ADB direttamente su Internet.
 
 Per revocare l'accesso, rimuovere il Mac da **Wireless debugging → Paired
 devices** oppure disattivare completamente Wireless debugging.
@@ -265,6 +275,10 @@ Dalla build 328 i campi `remote_latency_at`, `remote_latency_path`
 `remote_latency_max_ms` e `remote_latency_ignored` riportano l'ultimo evento
 `remote_change_latency` con almeno un campione: ritardo tra l'invio di una
 modifica da un altro dispositivo e il suo arrivo qui, senza contenuti.
+Dalla build 329 `remote_latency_reopen_count` e
+`remote_latency_reopen_median_ms` contano a parte le modifiche fatte mentre
+l'app era chiusa e quanto dopo la riapertura sono comparse; gli altri campi
+riguardano solo le modifiche arrivate con l'app aperta.
 
 ## Aggiornamenti e firma del dispositivo di test
 

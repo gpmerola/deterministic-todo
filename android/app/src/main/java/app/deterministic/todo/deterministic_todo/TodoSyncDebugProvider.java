@@ -72,7 +72,8 @@ public final class TodoSyncDebugProvider extends ContentProvider {
                     if ("sync_failed".equals(name)) lastFailed = newer(lastFailed, event);
                     if ("sync_recovered".equals(name)) lastRecovered = newer(lastRecovered, event);
                     if ("remote_change_latency".equals(name)
-                        && event.optInt("count") > 0) lastLatency = newer(lastLatency, event);
+                        && (event.optInt("count") > 0 || event.optInt("reopen_count") > 0))
+                        lastLatency = newer(lastLatency, event);
                     if ("realtime_status".equals(name)
                         && !"subscribed".equals(event.optString("status"))) {
                         lastRealtimeProblem = newer(lastRealtimeProblem, event);
@@ -138,6 +139,8 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "remote_latency_median_ms", lastLatency, "median_ms");
         put(values, "remote_latency_max_ms", lastLatency, "max_ms");
         put(values, "remote_latency_ignored", lastLatency, "ignored");
+        put(values, "remote_latency_reopen_count", lastLatency, "reopen_count");
+        put(values, "remote_latency_reopen_median_ms", lastLatency, "reopen_median_ms");
         long[] apks = DownloadedApkCleanup.usage(DownloadedApkCleanup.directory(getContext()));
         android.content.SharedPreferences cleanup = DownloadedApkCleanup.prefs(getContext());
         values.put("downloaded_apk_files", apks[0]);

@@ -189,6 +189,12 @@ Test: `test/sync_resume_latency_test.dart`, `test/sync_foreground_test.dart`,
   ritardi oltre 10 minuti (dispositivo in pausa o offline, non propagazione)
   sono solo contati in `ignored`. La misura include lo sfasamento tra gli
   orologi dei due dispositivi.
+- Dalla build 329 le righe con `updated_at` precedente all'ultimo ritorno in
+  primo piano (`start()` o `resume()` dopo una pausa) non sono ritardi: la
+  modifica aspettava la riapertura. Sono contate in `reopen_count` con
+  `reopen_median_ms` = arrivo meno istante di riapertura; `count`,
+  `median_ms` e `max_ms` restano solo per le modifiche inviate con l'app
+  aperta.
 - Il gesto «tira giù per aggiornare» delle liste attività chiama
   `sync(freshSnapshot: true)` solo con un account e attende al massimo 8 s.
 

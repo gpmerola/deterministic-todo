@@ -197,6 +197,8 @@ void main() {
         'median_ms',
         'max_ms',
         'ignored',
+        'reopen_count',
+        'reopen_median_ms',
       });
       await sync.dispose();
       await sync.client.dispose();
@@ -246,6 +248,39 @@ void main() {
       await sync.dispose();
       await sync.client.dispose();
     });
+
+    test(
+      'changes sent while the app was closed count from the reopening',
+      () async {
+        await storeDeviceId();
+        final sync = await service();
+        sync.pause();
+        final reopened = now;
+        sync.resume(); // Back to the foreground: openedAt = now.
+        String id(int n) => '00000000-0000-4000-8000-0000000000${n}b';
+        server.tables['tasks']!
+          // Sent four minutes before reopening: catch-up, not delay.
+          ..[id(1)] = row(
+            id(1),
+            updatedAt: reopened.subtract(const Duration(minutes: 4)),
+          )
+          // Sent after reopening: live delay.
+          ..[id(2)] = row(
+            id(2),
+            updatedAt: reopened.add(const Duration(milliseconds: 100)),
+          );
+        now = reopened.add(const Duration(milliseconds: 600));
+        await sync.sync(freshSnapshot: true);
+        final latency = sync.remoteLatency.value!;
+        expect(latency.reopenCount, 1);
+        expect(latency.reopenMedianMs, 600);
+        expect(latency.count, 1);
+        expect(latency.medianMs, 500);
+        expect(latency.ignored, 0);
+        await sync.dispose();
+        await sync.client.dispose();
+      },
+    );
 
     test('summaries tolerate malformed stamps and report nothing for '
         'local rows', () {
