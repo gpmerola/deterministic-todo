@@ -24,8 +24,17 @@ Chiesto dall'utente con «Sì, procedi» al backup automatico su Supabase
 giornaliera del backup JSON 2 nell'account (ultime 14, solo se cambiata),
 ripristino da Impostazioni con anteprima e conferma;
 [contratto](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md#backup-nel-cloud-android-con-account-build-330).
-Migrazione additiva `202611190001_todo_cloud_backups.sql`: SHA-256 e
-applicazione in produzione registrati sotto quando eseguiti.
+Migrazione additiva `202611190001_todo_cloud_backups.sql` (SHA-256
+`e6590e8797bf091efd5b677598040cdaca25aa9ebca3a4a9f7834d04905fedc6`, nessun
+drop o alter su oggetti esistenti, verificato da
+`tools/sql-tests/todo_cloud_backups.mjs`) applicata dall'utente nel SQL Editor
+di produzione il 19 novembre 2026 alle 14:26 UTC: «Success. No rows returned».
+Superati `make check-generated` e `make check` (673 test Flutter, 3 saltati,
+SQL incluso il nuovo test). Todo Test 2330 installato via USB, dati
+conservati: dopo il ritorno in primo piano la prima copia è arrivata nel
+cloud alle 14:30 (966 KB non compressi, da questo dispositivo). Anteprima di
+ripristino dell'ultima copia aperta e annullata: 1134 attività invariate,
+nessuna da aggiungere o aggiornare; nessuna attività di prova scritta.
 
 ## Release stabile 2.129.0 / 329: ritardo misurato onestamente, 19 novembre 2026
 
