@@ -4,10 +4,10 @@ Aggiornato il 19 novembre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.129.0 / 329 (Web, APK diretti, Play interno). Todo Test: 2329
-  installato via ADB (USB) sul Galaxy. Recupero rapido della sync, «tira giù
-  per aggiornare», stato Live e misura del ritardo che separa app aperta e
-  riapertura. Tailscale disinstallato: ADB solo via USB o Debug wireless.
+- Stabile: 2.130.0 / 330 (Web, APK diretti, Play interno). Todo Test: 2330
+  installato via ADB (USB) sul Galaxy. Backup giornaliero nel cloud Supabase
+  (ultime 14 copie, ripristino da Impostazioni), migrazione applicata in
+  produzione. Tailscale disinstallato: ADB solo via USB o Debug wireless.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era
@@ -17,7 +17,16 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
-## Build 2.130.0 / 330: backup nel cloud, 19 novembre 2026
+## Release stabile 2.130.0 / 330: backup nel cloud, 19 novembre 2026
+
+`main` in fast-forward a `02388a0ba5f10bccc1748805a4ef4aa9d45669f9`
+([PR 11](https://github.com/gpmerola/deterministic-todo/pull/11)). Run
+[44544776040](https://github.com/gpmerola/deterministic-todo/actions/runs/44544776040)
+riuscito in tutti gli otto job. Web `release-info.json` e manifest APK
+riportano 2.130.0 / 330 con lo stesso commit;
+[release v2.130.0](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.130.0)
+latest con quattro APK, bundle e manifest. Play interno: 330 caricata dal
+workflow, propagazione non verificata.
 
 Chiesto dall'utente con «Sì, procedi» al backup automatico su Supabase
 (modifica del database di produzione). Branch `agent/cloud-backup`. Copia
