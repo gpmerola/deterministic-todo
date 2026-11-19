@@ -23,8 +23,12 @@ Branch `agent/sync-fast-recovery`, da `main`. Finestra di recupero rapido di
 aggiornare» sulle liste attività; stato «Live» del canale Realtime in
 Impostazioni e Salute dati; evento `remote_change_latency` e campi
 `remote_latency_*` nel provider ADB. Contratto in
-[TODO_SYNC_AND_HISTORY](docs/architecture/TODO_SYNC_AND_HISTORY.md). Esiti di
-verifica e collaudo sul Galaxy da registrare qui.
+[TODO_SYNC_AND_HISTORY](docs/architecture/TODO_SYNC_AND_HISTORY.md), PR #9.
+
+Superati `make check-generated` e `make check` (665 test Flutter, 3 saltati).
+`make todo-test`: Todo Test 2.128.0 / 2328 installato via ADB sul Galaxy
+senza perdita di dati e aperto. Collaudo fisico (riga Live, tira giù in Oggi,
+`remote_latency_*` dopo una modifica dal Web) ancora da fare con l'utente.
 
 ## Routine serale 2.127.0 / 327: verifiche del 11 novembre 2026
 
