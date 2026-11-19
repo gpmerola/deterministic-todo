@@ -93,6 +93,8 @@ class DiagnosticLogService {
     'log_schema',
     'session',
     'error_type',
+    'written',
+    'bytes',
     'error_code',
     'duration_ms',
     'request_count',

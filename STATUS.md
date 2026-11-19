@@ -17,6 +17,16 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
+## Build 2.130.0 / 330: backup nel cloud, 19 novembre 2026
+
+Chiesto dall'utente con «Sì, procedi» al backup automatico su Supabase
+(modifica del database di produzione). Branch `agent/cloud-backup`. Copia
+giornaliera del backup JSON 2 nell'account (ultime 14, solo se cambiata),
+ripristino da Impostazioni con anteprima e conferma;
+[contratto](docs/architecture/TODO_BACKUP_AND_LIFECYCLE.md#backup-nel-cloud-android-con-account-build-330).
+Migrazione additiva `202611190001_todo_cloud_backups.sql`: SHA-256 e
+applicazione in produzione registrati sotto quando eseguiti.
+
 ## Release stabile 2.129.0 / 329: ritardo misurato onestamente, 19 novembre 2026
 
 Pubblicazione chiesta dall'utente («fai tutto poi pubblish e push», messaggio

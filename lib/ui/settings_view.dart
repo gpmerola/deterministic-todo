@@ -10,12 +10,16 @@ class SettingsView extends StatelessWidget {
     this.syncClient,
     this.syncService,
     this.autoBackup,
+    this.cloudBackup,
     this.earnings,
     super.key,
   });
 
   /// Android only: weekly encrypted backups kept on this phone.
   final AutoBackupService? autoBackup;
+
+  /// Android with an account: daily copies in Supabase.
+  final CloudBackupService? cloudBackup;
   final PrivateEarningsService? earnings;
 
   final TaskRepository repository;
@@ -162,6 +166,36 @@ class SettingsView extends StatelessWidget {
                         'Nessuna modifica è stata salvata.'
                   : 'Ripristino non riuscito: il file non è un backup '
                         'leggibile. Nessuna modifica è stata salvata.',
+            ),
+            showCloseIcon: true,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showCloudBackups(
+    BuildContext context,
+    CloudBackupService backups,
+  ) async {
+    final choice = await showModalBottomSheet<CloudBackupEntry>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) =>
+          CloudBackupSheet(backups: backups, deviceId: repository.deviceId),
+    );
+    if (choice == null || !context.mounted) return;
+    try {
+      final source = await backups.read(choice);
+      if (context.mounted) await _previewAndImport(context, source);
+    } on Object {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ripristino dal cloud non riuscito. Nessuna modifica è stata '
+              'salvata.',
             ),
             showCloseIcon: true,
           ),
@@ -695,6 +729,14 @@ class SettingsView extends StatelessWidget {
               title: const Text('Backup automatici'),
               subtitle: const Text('Settimanali e cifrati, in Documenti'),
               onTap: () => _showAutoBackups(context, autoBackup!),
+            ),
+          if (cloudBackup != null)
+            ListTile(
+              key: const ValueKey('cloud-backups'),
+              leading: const Icon(Icons.cloud_sync_outlined),
+              title: const Text('Backup nel cloud'),
+              subtitle: const Text('Giornaliero, nel tuo account Supabase'),
+              onTap: () => _showCloudBackups(context, cloudBackup!),
             ),
           ListTile(
             leading: const Icon(Icons.task_alt_outlined),

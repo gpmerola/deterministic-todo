@@ -108,6 +108,48 @@ Nessuna nuova dipendenza: cifratura con JCA e Android Keystore in Java
 (`TodoBackupCipher`, `TodoBackupFiles`, `TodoBackupMediaStore`,
 `TodoBackupChannel`), compressione con `java.util.zip`.
 
+## Backup nel cloud (Android con account, build 330)
+
+Decisione dell'utente del 19 novembre 2026, che supera la scelta di build 255
+riportata sopra: oltre alla copia cifrata sul telefono, ogni giorno una copia
+del backup JSON 2 va nell'account Supabase dell'utente, così il ripristino non
+dipende dal telefono. Resta valido il limite già notato: è lo stesso fornitore
+della replica principale, quindi non protegge dalla perdita dell'account.
+
+**Server.** Migrazione additiva
+[`202611190001_todo_cloud_backups.sql`](../../supabase/migrations/202611190001_todo_cloud_backups.sql):
+tabella `todo_cloud_backups` (id, `seq` monotono, utente, dispositivo, hash dei
+contenuti, codifica, dimensione, `saved_at`, contenuto) con RLS in sola
+lettura per il proprietario e scritture revocate; l'unica scrittura è la RPC
+`save_todo_cloud_backup_v1`, `security definer`, che valida l'input, serializza
+i salvataggi dello stesso utente con un advisory lock, risponde `unchanged` se
+la copia più recente ha lo stesso hash e dopo l'inserimento elimina le copie
+dello stesso utente oltre le 14 più recenti. Elimina soltanto righe di questa
+tabella, mai attività, progetti o sincronizzazione. Limite 20 MB per copia
+compressa. Test: `tools/sql-tests/todo_cloud_backups.mjs` (additività, permessi,
+isolamento fra account, rotazione, validazione).
+
+**Client.** `CloudBackupService` parte solo dal lavoro di avvio e ritorno in
+primo piano già esistente: nessun timer, job o polling. Con un account
+collegato, una volta al giorno legge l'hash della copia più recente (una
+richiesta piccola) e carica una nuova copia soltanto se il contenuto, escluso
+`exported_at`, è cambiato. Il JSON è compresso con gzip e codificato base64 in
+un isolate oltre 64 KB. Un errore è registrato in `cloud_backup_failed_at` e
+ritentato dopo 6 ore. I log contengono solo `written` ed `error_type`.
+
+**Cifratura.** La copia non è cifrata con una chiave del telefono: quella
+chiave andrebbe persa proprio insieme al telefono, rendendo il backup inutile
+per il caso per cui esiste. La protezione è la stessa delle attività
+sincronizzate: RLS per utente, TLS e cifratura a riposo di Supabase.
+
+**Ripristino.** Impostazioni → Dati e manutenzione → Backup nel cloud mostra
+l'ultima copia (data, dimensione, se viene da questo o da un altro
+dispositivo), «Ripristina l'ultima copia», le copie precedenti e «Crea ora».
+Da qualsiasi telefono Android collegato allo stesso account la copia scelta
+passa dalla stessa anteprima e dalla stessa importazione transazionale del
+backup JSON, con conferma esplicita. Sul Web non è disponibile: non c'è
+`dart:io` per gzip e la copia Web è già la replica Supabase.
+
 ## Richieste e chiusura
 
 Ogni ciclo ordinario, pull Realtime e purge possiede uno `SyncRequestScope`,

@@ -13,6 +13,7 @@ extension _ShellContent on _TaskShellState {
           syncClient: widget.syncClient,
           syncService: widget.syncService,
           autoBackup: autoBackup,
+          cloudBackup: cloudBackup,
           earnings: isAndroidPlatform
               ? PrivateEarningsService(agendaService, semble: SembleSettings())
               : null,

@@ -2,7 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.129.0 (build 329, non pubblicata) · Ritardo misurato onestamente
+## 2.130.0 (build 330) · Backup nel cloud
+
+- Con un account collegato, il telefono salva ogni giorno una copia del
+  backup Todo nel tuo account Supabase, soltanto se qualcosa è cambiato;
+  restano le ultime 14 copie e vengono eliminate solo copie di backup più
+  vecchie, mai attività. Impostazioni → Dati e manutenzione → Backup nel
+  cloud mostra l'ultima copia e permette di ripristinarla, o una precedente,
+  da qualsiasi telefono collegato allo stesso account, con la consueta
+  anteprima e conferma. Protezione: RLS per utente come per le attività
+  sincronizzate, senza chiave locale. Richiede la migrazione
+  `202611190001_todo_cloud_backups.sql`; senza di essa il foglio dice che le
+  copie non sono raggiungibili e nient'altro cambia.
+
+## 2.129.0 (build 329) · Ritardo misurato onestamente
 
 - In Salute dati la riga «Arrivo ultima modifica da altro dispositivo»
   distingue le modifiche arrivate con l'app aperta (vero ritardo della

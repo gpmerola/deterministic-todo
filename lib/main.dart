@@ -38,6 +38,7 @@ import 'services/app_runtime.dart';
 import 'services/auto_backup_service.dart';
 import 'services/calendar_service.dart';
 import 'services/calendar_shortcut_service.dart';
+import 'services/cloud_backup_service.dart';
 import 'services/diagnostic_log_service.dart';
 import 'services/export_service.dart';
 import 'services/performance_monitor.dart';
@@ -57,6 +58,7 @@ import 'ui/ai_settings_view.dart';
 import 'ui/app_section.dart';
 import 'ui/app_undo.dart';
 import 'ui/auto_backup_sheet.dart';
+import 'ui/cloud_backup_sheet.dart';
 import 'ui/completion_hold.dart';
 import 'ui/daily_step_goal_indicator.dart';
 import 'ui/daily_steps_sheet.dart';
@@ -213,6 +215,9 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
       widget.enablePlatformServices && isAndroidPlatform
       ? AutoBackupService(widget.repository.db)
       : null;
+
+  /// Daily copy in the Supabase account; Android with an account only.
+  CloudBackupService? cloudBackup;
   late final steps = DailyStepsController(
     database: widget.repository.db,
     onGoalReached: _celebrateStepGoal,
@@ -287,6 +292,16 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
         ? AgendaPhoneSync(
             service: agendaService,
             client: widget.syncClient!,
+            deviceId: widget.repository.deviceId,
+          )
+        : null;
+    cloudBackup =
+        widget.enablePlatformServices &&
+            isAndroidPlatform &&
+            widget.syncClient != null
+        ? CloudBackupService(
+            widget.repository.db,
+            SupabaseCloudBackupRemote(widget.syncClient!),
             deviceId: widget.repository.deviceId,
           )
         : null;
@@ -395,6 +410,11 @@ class _TaskShellState extends State<TaskShell> with WidgetsBindingObserver {
     unawaited(
       foregroundJobs.run('backup', () async {
         await autoBackup?.runIfDue();
+      }, timeout: const Duration(minutes: 2)),
+    );
+    unawaited(
+      foregroundJobs.run('cloud_backup', () async {
+        await cloudBackup?.runIfDue();
       }, timeout: const Duration(minutes: 2)),
     );
     if (initial) {

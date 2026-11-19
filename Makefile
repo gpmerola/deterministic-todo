@@ -37,6 +37,7 @@ check-sql:
 	node tools/sql-tests/agenda_backup.mjs
 	node tools/sql-tests/agenda_requests.mjs
 	node tools/sql-tests/second_brain.mjs
+	node tools/sql-tests/todo_cloud_backups.mjs
 
 .PHONY: build-web
 build-web:
