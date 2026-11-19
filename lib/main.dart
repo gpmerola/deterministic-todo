@@ -74,6 +74,7 @@ import 'ui/shell/foreground_jobs.dart';
 import 'ui/shell/shell_navigation.dart';
 import 'ui/shell/sync_lifecycle.dart';
 import 'ui/sync_issues_view.dart';
+import 'ui/sync_live_status.dart';
 import 'ui/task_link_dialog.dart';
 import 'ui/todoist_link_text.dart';
 import 'ui/views/agenda_colors.dart';

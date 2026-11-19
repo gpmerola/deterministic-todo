@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/diagnostic_log_service.dart';
+
+/// State of the Realtime channel shown as «Live» in the interface.
+enum RealtimeLink { connected, connecting, disconnected }
 
 /// Transport lifecycle only. It never reads or writes Todo rows or outbox.
 class SyncConnection {
@@ -15,9 +19,13 @@ class SyncConnection {
     required this.onOnline,
     required this.onSubscribed,
     required this.onRecord,
-  });
+    Duration Function()? retryDelay,
+  }) : retryDelay = retryDelay ?? (() => const Duration(seconds: 2));
   final SupabaseClient client;
   final bool Function() isActive;
+
+  /// Pause before re-joining a channel that closed or failed.
+  final Duration Function() retryDelay;
   final void Function(AuthState) onAuth;
   final void Function() onOffline, onOnline, onSubscribed;
   final void Function(String, PostgresChangePayload) onRecord;
@@ -26,6 +34,12 @@ class SyncConnection {
   RealtimeChannel? _channel;
   Timer? _retry;
   bool _disposed = false;
+  final _link = ValueNotifier(RealtimeLink.disconnected);
+
+  /// Changes only on channel events: no timer or polling of its own.
+  ValueListenable<RealtimeLink> get link => _link;
+
+  void _setLink(RealtimeLink value) => _link.value = value;
 
   void start() {
     _auth ??= client.auth.onAuthStateChange.listen(onAuth);
@@ -58,6 +72,7 @@ class SyncConnection {
       );
     }
     _channel = channel;
+    _setLink(RealtimeLink.connecting);
     channel.subscribe((status, error) => unawaited(_status(channel, status)));
   }
 
@@ -77,10 +92,12 @@ class SyncConnection {
     if (!reconnect) {
       _retry?.cancel();
       _retry = null;
+      _setLink(RealtimeLink.connected);
       if (isActive()) onSubscribed();
       return;
     }
     _channel = null;
+    _setLink(RealtimeLink.disconnected);
     try {
       await client.removeChannel(channel);
     } on Object {
@@ -88,7 +105,7 @@ class SyncConnection {
     }
     if (_disposed || !isActive() || client.auth.currentUser == null) return;
     _retry?.cancel();
-    _retry = Timer(const Duration(seconds: 2), () {
+    _retry = Timer(retryDelay(), () {
       _retry = null;
       unawaited(subscribe());
     });
@@ -99,6 +116,7 @@ class SyncConnection {
     _retry = null;
     final channel = _channel;
     _channel = null;
+    _setLink(RealtimeLink.disconnected);
     if (channel != null) await client.removeChannel(channel);
   }
 
@@ -107,5 +125,6 @@ class SyncConnection {
     await _connectivity?.cancel();
     await _auth?.cancel();
     await disconnect();
+    // [link] is not disposed: widgets may still detach from it afterwards.
   }
 }

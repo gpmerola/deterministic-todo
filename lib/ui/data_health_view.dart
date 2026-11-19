@@ -101,6 +101,35 @@ class _DataHealthViewState extends State<DataHealthView> {
                     _ => 'Locale',
                   },
                 ),
+                if (syncService case final service?) ...[
+                  ValueListenableBuilder<RealtimeLink>(
+                    valueListenable: service.realtimeLink,
+                    builder: (context, link, _) => ListTile(
+                      leading: const Icon(Icons.bolt_outlined),
+                      title: const Text('Aggiornamenti in tempo reale'),
+                      subtitle: SyncLiveLine(service: service),
+                      trailing: Icon(
+                        link == RealtimeLink.connected
+                            ? Icons.check_circle
+                            : Icons.error_outline,
+                        color: link == RealtimeLink.connected
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                  ValueListenableBuilder<RemoteChangeLatency?>(
+                    valueListenable: service.remoteLatency,
+                    builder: (context, latency, _) => latency == null
+                        ? const SizedBox.shrink()
+                        : _HealthRow(
+                            ok: true,
+                            icon: Icons.timer_outlined,
+                            title: 'Ritardo ultima modifica remota',
+                            value: remoteLatencyLabel(latency),
+                          ),
+                  ),
+                ],
                 _HealthRow(
                   ok: sync?.alignment?.aligned ?? true,
                   icon: Icons.compare_arrows,

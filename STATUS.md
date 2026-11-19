@@ -16,6 +16,16 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
+## Sincronizzazione più pronta 2.128.0 / 328: 19 novembre 2026
+
+Branch `agent/sync-fast-recovery`, da `main`. Finestra di recupero rapido di
+20 s (retry ogni 1 s) dopo ripresa, cambio di rete e avvio; «tira giù per
+aggiornare» sulle liste attività; stato «Live» del canale Realtime in
+Impostazioni e Salute dati; evento `remote_change_latency` e campi
+`remote_latency_*` nel provider ADB. Contratto in
+[TODO_SYNC_AND_HISTORY](docs/architecture/TODO_SYNC_AND_HISTORY.md). Esiti di
+verifica e collaudo sul Galaxy da registrare qui.
+
 ## Routine serale 2.127.0 / 327: verifiche del 11 novembre 2026
 
 Pubblicazione richiesta dall'utente. Spunta manuale immediata nell'editor e

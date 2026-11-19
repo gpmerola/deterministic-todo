@@ -2,10 +2,17 @@ part of '../main.dart';
 
 /// A transient failure with an automatic retry already scheduled is not
 /// alarming yet. Repeated failures, conflicts and rejections stay red.
-bool isBriefSyncRetry(SyncSnapshot snapshot) =>
-    snapshot.phase == SyncPhase.error &&
-    snapshot.retryAt != null &&
-    snapshot.consecutiveFailures <= 3;
+/// Retries a second apart belong to the fast recovery window after a resume
+/// or network change and stay calm however many there are.
+bool isBriefSyncRetry(SyncSnapshot snapshot) {
+  final retryAt = snapshot.retryAt;
+  final failedAt = snapshot.lastFailure;
+  return snapshot.phase == SyncPhase.error &&
+      retryAt != null &&
+      (snapshot.consecutiveFailures <= 3 ||
+          (failedAt != null &&
+              retryAt.difference(failedAt) <= const Duration(seconds: 1)));
+}
 
 /// Plain Italian for a failed sync. Network failures say what happens next;
 /// the technical class stays in the debug provider and diagnostics.
@@ -237,6 +244,7 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
                   : Icons.cloud_done_outlined,
             ),
             title: Text(_syncLabel(sync)),
+            subtitle: service == null ? null : SyncLiveLine(service: service),
             trailing: PopupMenuButton<String>(
               tooltip: 'Gestisci collegamento',
               onSelected: (value) async {

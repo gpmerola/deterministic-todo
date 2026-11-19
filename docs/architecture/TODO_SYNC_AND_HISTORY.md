@@ -165,6 +165,35 @@ Test: `test/sync_resume_latency_test.dart`, `test/sync_foreground_test.dart`,
 `test/sync_service_test.dart`. Esiti in
 [diagnostica](../diagnostics/2026-10-18-cross-device-latency.md).
 
+### Recupero rapido e misura della latenza · build 328
+
+- `resume()` dopo una vera pausa, un cambio di rete (`_onNetworkChanged`) e
+  `start()` in primo piano aprono una finestra di 20 s
+  (`fastRecoveryWindow`). Dentro la finestra ogni errore transitorio ritenta
+  dopo `fastRetryDelay` (1 s) e il passo di `syncRetryDelay` non avanza;
+  fuori dalla finestra il backoff riparte dal suo primo passo. Un successo
+  azzera passo e conteggio. Anche `SyncConnection` ricollega il canale
+  Realtime dopo 1 s invece di 2 durante la finestra. Il conteggio
+  `consecutiveFailures` cresce comunque; la UI presenta come passeggero un
+  errore con retry entro 1 s (finestra) oppure fino a 3 fallimenti.
+  Orologio, durata e passo sono iniettabili per i test.
+- `SyncConnection.link` (`RealtimeLink`: collegato, in collegamento, non
+  collegato) cambia solo sugli eventi del canale; nessun timer o polling.
+- `mergeRemoteBatch` restituisce a richiesta le righe davvero nuove (assenti
+  in locale o con versione più alta, non le ri-applicazioni a pari versione).
+  Per quelle di un altro `device_id`, sul percorso Realtime per ID e nel
+  controllo completo, si misura arrivo della risposta meno `updated_at`
+  (istante d'invio sul dispositivo che ha modificato) e si registra
+  `remote_change_latency` con `path`, `count`, `median_ms`, `max_ms` e
+  `ignored`. Valori negativi (sfasamento degli orologi), stampi malformati e
+  ritardi oltre 10 minuti (dispositivo in pausa o offline, non propagazione)
+  sono solo contati in `ignored`. La misura include lo sfasamento tra gli
+  orologi dei due dispositivi.
+- Il gesto «tira giù per aggiornare» delle liste attività chiama
+  `sync(freshSnapshot: true)` solo con un account e attende al massimo 8 s.
+
+Test: `test/sync_fast_recovery_test.dart`, `test/sync_live_status_test.dart`.
+
 ### Pausa indipendente dai frame — build 186
 
 Con la 2185 installata a schermo spento, il registro eventi Android mostra

@@ -47,6 +47,23 @@ extension _ShellContent on _TaskShellState {
         ),
       );
     }
+    return _withPullToSync(_taskContent(all, loaded: loaded));
+  }
+
+  /// Pull-to-refresh on task lists runs one fresh check; without a sync
+  /// service (or account, see [pullToSync]) the gesture is not offered.
+  Widget _withPullToSync(Widget child) {
+    final service = widget.syncService;
+    if (service == null) return child;
+    return RefreshIndicator(
+      key: const ValueKey('pull-to-sync'),
+      onRefresh: () => pullToSync(service),
+      child: child,
+    );
+  }
+
+  /// Task sections: Today, Inbox, Upcoming, Completed, projects and lists.
+  Widget _taskContent(List<Task> all, {required bool loaded}) {
     if (navigation.section == AppSection.projects) {
       return ProjectsView(
         repository: widget.repository,
@@ -118,11 +135,14 @@ extension _ShellContent on _TaskShellState {
       child: visible.isEmpty && !loaded
           ? SizedBox.shrink(key: ValueKey('loading-${navigation.section.name}'))
           : visible.isEmpty
-          ? EmptyViewLabel(
-              navigation.section == AppSection.completed
-                  ? 'Nessuna attività completata'
-                  : 'Nessuna attività',
-              key: ValueKey('empty-${navigation.section.name}'),
+          ? _scrollableForPull(
+              EmptyViewLabel(
+                navigation.section == AppSection.completed
+                    ? 'Nessuna attività completata'
+                    : 'Nessuna attività',
+                key: ValueKey('empty-${navigation.section.name}'),
+              ),
+              key: ValueKey('empty-pull-${navigation.section.name}'),
             )
           : navigation.section == AppSection.today
           ? TodayTaskList(
@@ -187,6 +207,21 @@ extension _ShellContent on _TaskShellState {
     );
     if (mounted) _update(() {});
   }
+
+  /// An empty list still answers the pull gesture (only offered with sync).
+  Widget _scrollableForPull(Widget child, {Key? key}) =>
+      widget.syncService == null
+      ? child
+      : LayoutBuilder(
+          key: key,
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: child,
+            ),
+          ),
+        );
 
   Widget _taskTile(Task task) => TaskTile(
     key: ValueKey(task.id),

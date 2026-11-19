@@ -260,6 +260,12 @@ background `agenda_bg_last_retry_cause`/`_reason`/`_at`, `agenda_bg_retries`
 esempio `mirror_error_network=2`) e `agenda_bg_joined_runs` (job uniti a un
 lavoro identico già in corso).
 
+Dalla build 328 i campi `remote_latency_at`, `remote_latency_path`
+(`realtime` o `full`), `remote_latency_count`, `remote_latency_median_ms`,
+`remote_latency_max_ms` e `remote_latency_ignored` riportano l'ultimo evento
+`remote_change_latency` con almeno un campione: ritardo tra l'invio di una
+modifica da un altro dispositivo e il suo arrivo qui, senza contenuti.
+
 ## Aggiornamenti e firma del dispositivo di test
 
 Il canale operativo del Galaxy è **Todo Test**, package `.dev`, con firma

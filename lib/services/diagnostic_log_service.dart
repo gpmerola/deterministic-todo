@@ -145,5 +145,10 @@ class DiagnosticLogService {
     'automatic',
     'interaction',
     'outcome',
+    // remote_change_latency: values and counts only, never row content.
+    'path',
+    'median_ms',
+    'max_ms',
+    'ignored',
   };
 }

@@ -2,6 +2,25 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.128.0 (build 328, non pubblicata) · Sincronizzazione più pronta
+
+- Per circa 20 secondi dopo il ritorno in primo piano, un cambio di rete o
+  l'avvio, un errore di rete passeggero viene ritentato ogni secondo invece
+  di attendere 3, 10 o 30 secondi; anche il canale in tempo reale si
+  ricollega dopo 1 s invece di 2. Fuori da questa finestra resta il backoff
+  di prima. Versioni, coda di invio e ricevute non cambiano.
+- Tirando giù le liste delle attività (Oggi, Inbox, Prossimi, progetti e le
+  altre viste di attività) parte un controllo con il server. Senza account
+  il gesto non fa nulla e l'elenco resta quello salvato sul dispositivo;
+  l'indicatore del gesto attende al massimo 8 secondi.
+- Impostazioni e Salute dati mostrano lo stato del canale in tempo reale
+  («Live», «Live in collegamento…», «Live non collegato») con «aggiornato
+  X fa», ricalcolato solo mentre la schermata è aperta.
+- Nuova misura del ritardo reale delle modifiche arrivate da un altro
+  dispositivo: evento diagnostico `remote_change_latency` (percorso, numero,
+  mediana e massimo in ms, valori scartati), ultimo valore in Salute dati e
+  nel provider ADB `todo_sync_debug`. Nessun titolo o contenuto.
+
 ## 2.127.0 (build 327, non pubblicata) · Routine serale
 
 - In Oggi, soltanto le attività contrassegnate manualmente compaiono nel

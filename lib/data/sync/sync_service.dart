@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, ValueNotifier, visibleForTesting;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/task.dart' show LogicalVersion;
@@ -12,6 +13,7 @@ import 'project_sync_writer.dart';
 import 'purge_batch_merge.dart';
 import 'realtime_versions.dart';
 import 'remote_batch_merge.dart';
+import 'remote_latency.dart';
 import 'sync_connection.dart';
 import 'sync_overview.dart';
 import 'sync_policy.dart';
@@ -21,6 +23,8 @@ import 'task_fingerprints.dart';
 import 'task_sync_writer.dart';
 
 export 'realtime_versions.dart';
+export 'remote_latency.dart';
+export 'sync_connection.dart' show RealtimeLink;
 export 'sync_policy.dart';
 export 'sync_status.dart';
 
@@ -39,6 +43,56 @@ class SyncService {
 
   @visibleForTesting
   Duration focusRefreshAfter = const Duration(seconds: 30);
+
+  /// After a return from pause, a network change or [start], transient
+  /// failures retry every [fastRetryDelay] for this long instead of climbing
+  /// the backoff: the radio or VPN is usually back within seconds, and the
+  /// other device's edit should then appear at once. Outside the window the
+  /// ordinary [syncRetryDelay] steps apply.
+  @visibleForTesting
+  Duration fastRecoveryWindow = const Duration(seconds: 20);
+
+  @visibleForTesting
+  Duration fastRetryDelay = const Duration(seconds: 1);
+
+  /// Wall clock for the recovery window and latency samples.
+  @visibleForTesting
+  DateTime Function() clock = () => DateTime.now().toUtc();
+
+  DateTime? _fastRecoveryUntil;
+
+  /// Step of [syncRetryDelay]; it does not advance inside the window.
+  int _backoffStep = 0;
+
+  void _openFastRecovery() =>
+      _fastRecoveryUntil = clock().add(fastRecoveryWindow);
+
+  @visibleForTesting
+  bool get inFastRecovery {
+    final until = _fastRecoveryUntil;
+    return until != null && clock().isBefore(until);
+  }
+
+  final _remoteLatency = ValueNotifier<RemoteChangeLatency?>(null);
+
+  /// Last measured delay of remote task changes with at least one sample.
+  ValueListenable<RemoteChangeLatency?> get remoteLatency => _remoteLatency;
+
+  /// Realtime channel state («Live»); changes only on channel events.
+  ValueListenable<RealtimeLink> get realtimeLink => _connection.link;
+
+  String? _localDeviceId;
+
+  Future<String?> _deviceId() async => _localDeviceId ??= (await (db.select(
+    db.appSettings,
+  )..where((row) => row.key.equals('device_id'))).getSingleOrNull())?.value;
+
+  void _reportLatency(RemoteLatencySamples samples, RemoteChangePath path) {
+    final latency = samples.summary(path, clock());
+    if (latency == null || _disposed) return;
+    logRemoteLatency(latency);
+    if (latency.count > 0) _remoteLatency.value = latency;
+  }
 
   /// Keeps `id=in.(...)` URLs well below common proxy limits.
   static const idBatchSize = 100;
@@ -185,6 +239,8 @@ class SyncService {
     onOnline: _onNetworkChanged,
     onSubscribed: () => unawaited(sync(freshSnapshot: true)),
     onRecord: _queueRealtimeChange,
+    retryDelay: () =>
+        inFastRecovery ? fastRetryDelay : const Duration(seconds: 2),
   );
 
   /// A network that comes back or changes (Wi-Fi, mobile, VPN) gets a full
@@ -195,6 +251,8 @@ class SyncService {
     _retryTimer?.cancel();
     _retryTimer = null;
     _consecutiveFailures = 0;
+    _backoffStep = 0;
+    _openFastRecovery();
     unawaited(_subscribeRealtime());
     unawaited(sync());
   }
@@ -244,6 +302,7 @@ class SyncService {
     });
     // Started in background: [resume] performs the first check and timer.
     if (_paused) return;
+    _openFastRecovery();
     if (client.auth.currentUser != null) {
       unawaited(_subscribeRealtime());
       unawaited(sync());
@@ -294,6 +353,7 @@ class SyncService {
     }
     _paused = false;
     _flushUploads = false;
+    _openFastRecovery();
     _startTimer();
     unawaited(_restoreRealtimeAndSync());
   }
@@ -423,6 +483,9 @@ class SyncService {
       }
       final changedTasks = <String>{};
       final taskIds = queued['tasks']!.toList();
+      final latency = RemoteLatencySamples(
+        taskIds.isEmpty ? null : await _deviceId(),
+      );
       for (var start = 0; start < taskIds.length; start += idBatchSize) {
         final remoteRows = await _requests.send(
           client
@@ -430,10 +493,20 @@ class SyncService {
               .select()
               .inFilter('id', taskIds.skip(start).take(idBatchSize).toList()),
         );
+        final arrivedAt = clock();
+        final newer = <Map<String, dynamic>>[];
         changedTasks.addAll(
-          await mergeRemoteBatch(db, 'tasks', remoteRows, _requests),
+          await mergeRemoteBatch(
+            db,
+            'tasks',
+            remoteRows,
+            _requests,
+            newer: newer,
+          ),
         );
+        latency.add(newer, arrivedAt);
       }
+      _reportLatency(latency, RemoteChangePath.realtime);
       if (!_disposed && changedTasks.isNotEmpty) {
         _remoteTaskChanges.add(changedTasks);
       }
@@ -632,6 +705,7 @@ class SyncService {
       timer.stop();
       final recoveredFailures = _consecutiveFailures;
       _consecutiveFailures = 0;
+      _backoffStep = 0;
       _retryTimer?.cancel();
       _retryTimer = null;
       if (recoveredFailures > 0) _lastRecoveryAt = now;
@@ -934,6 +1008,7 @@ class SyncService {
             version: overview?.taskVersion ?? taskFingerprintV1,
           );
     final buckets = changed?.buckets;
+    final latency = RemoteLatencySamples(await _deviceId());
     for (final bucket in buckets ?? <String?>[null]) {
       await for (final page in remotePages(
         client,
@@ -941,12 +1016,16 @@ class SyncService {
         scope: _requests,
         idPrefix: bucket,
       )) {
+        final arrivedAt = clock();
         enter(SyncStage.taskMerge, remoteCount);
-        await mergeRemoteBatch(db, 'tasks', page, _requests);
+        final newer = <Map<String, dynamic>>[];
+        await mergeRemoteBatch(db, 'tasks', page, _requests, newer: newer);
+        latency.add(newer, arrivedAt);
         remoteCount += page.length;
         enter(SyncStage.taskPull, remoteCount);
       }
     }
+    _reportLatency(latency, RemoteChangePath.full);
     if (repair) await markRemoteNullRepaired(db);
     if (changed != null) {
       divergedBuckets = await unresolvedTaskBuckets(
@@ -1070,7 +1149,10 @@ class SyncService {
   Duration? _scheduleRetry() {
     if (_disposed || _paused || client.auth.currentUser == null) return null;
     _retryTimer?.cancel();
-    final delay = syncRetryDelay(_consecutiveFailures++);
+    final delay = inFastRecovery
+        ? fastRetryDelay
+        : syncRetryDelay(_backoffStep++);
+    _consecutiveFailures++;
     _retryTimer = Timer(delay, () {
       _retryTimer = null;
       if (!_disposed && !_paused) unawaited(sync());

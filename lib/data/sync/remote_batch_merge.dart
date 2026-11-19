@@ -16,12 +16,15 @@ import 'task_sync_writer.dart';
 /// recurrence or completion would never reach an existing local row. An equal
 /// version is re-applied too: the same stamp must mean the same content, and
 /// this repairs rows diverged by that omission (unchanged rows record nothing).
+/// [newer], when given, receives the written rows that were absent locally or
+/// carried a strictly higher version: genuine news, not equal re-applications.
 Future<Set<String>> mergeRemoteBatch(
   AppDatabase db,
   String table,
   List<Map<String, dynamic>> rows,
-  SyncRequestScope scope,
-) async {
+  SyncRequestScope scope, {
+  List<Map<String, dynamic>>? newer,
+}) async {
   if (rows.isEmpty) return {};
   if (!const {'tasks', 'projects', 'project_sections'}.contains(table)) {
     throw ArgumentError('Invalid sync table');
@@ -57,6 +60,7 @@ Future<Set<String>> mergeRemoteBatch(
         .get();
     final purged = markers.map((r) => r.read<String>('key')).toSet();
     final changed = <Map<String, dynamic>>[];
+    final news = <Map<String, dynamic>>[];
     var highest = 0;
     for (final raw in rows) {
       final id = raw['id'] as String;
@@ -66,17 +70,20 @@ Future<Set<String>> mergeRemoteBatch(
         continue;
       }
       final old = local[id];
-      if (old != null &&
-          domain.LogicalVersion(counter, raw['device_id'] as String).compareTo(
-                domain.LogicalVersion(
-                  old.read<int>('logical_version'),
-                  old.read<String>('device_id'),
-                ),
-              ) <
-              0) {
-        continue;
-      }
+      final order = old == null
+          ? 1
+          : domain.LogicalVersion(
+              counter,
+              raw['device_id'] as String,
+            ).compareTo(
+              domain.LogicalVersion(
+                old.read<int>('logical_version'),
+                old.read<String>('device_id'),
+              ),
+            );
+      if (order < 0) continue;
       changed.add(raw);
+      if (order > 0) news.add(raw);
     }
     final counter = await (db.select(
       db.appSettings,
@@ -124,6 +131,7 @@ Future<Set<String>> mergeRemoteBatch(
       });
     }
     scope.check();
+    newer?.addAll(news);
     return changed.map((r) => r['id'] as String).toSet();
   });
 }

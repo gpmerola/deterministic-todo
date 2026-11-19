@@ -75,6 +75,17 @@ Tailscale da parte dell'utente il primo controllo è riuscito in 59 ms. Nessun
 retry può superare un DNS guasto; il backoff più breve serve ai fallimenti
 transitori di pochi secondi.
 
+## Aggiornamento del 19 novembre 2026, build 328
+
+Restavano due vuoti: dopo il primo fallimento i retry salivano comunque a 3,
+10 e 30 s, e non esisteva una misura end to end. Dalla build 328 per 20 s
+dopo ripresa, cambio di rete o avvio ogni errore transitorio ritenta ogni
+secondo, e l'app registra `remote_change_latency` (mediana e massimo tra
+`updated_at` del dispositivo che ha modificato e arrivo su questo). Lettura
+sul Galaxy: provider `todo_sync_debug`, campi `remote_latency_*`, oppure
+Salute dati. Il valore comprende lo sfasamento degli orologi; i negativi sono
+scartati. Prime misure reali ancora da raccogliere.
+
 Non provati sul telefono: il controllo al ritorno di focus (richiede la
 tendina in alto, da non toccare) e un fallimento transitorio reale alla
 ripresa.
