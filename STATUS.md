@@ -4,9 +4,10 @@ Aggiornato il 19 novembre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.128.0 / 328 (Web, APK diretti, Play interno). Todo Test: 2328
-  installato via ADB sul Galaxy. Recupero rapido della sync, «tira giù per
-  aggiornare», stato Live e misura `remote_change_latency`.
+- Stabile: 2.129.0 / 329 (Web, APK diretti, Play interno). Todo Test: 2329
+  installato via ADB (USB) sul Galaxy. Recupero rapido della sync, «tira giù
+  per aggiornare», stato Live e misura del ritardo che separa app aperta e
+  riapertura. Tailscale disinstallato: ADB solo via USB o Debug wireless.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era
@@ -16,7 +17,21 @@ fondo.
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
 
-## Ritardo misurato onestamente 2.129.0 / 329: 19 novembre 2026
+## Release stabile 2.129.0 / 329: ritardo misurato onestamente, 19 novembre 2026
+
+Pubblicazione chiesta dall'utente («fai tutto poi pubblish e push», messaggio
+delle 11:09 UTC). `main` in fast-forward a
+`4df9759b7abeffe64c2c9f188930580fef25a2a5`
+([PR 10](https://github.com/gpmerola/deterministic-todo/pull/10)). Run
+[44513008359](https://github.com/gpmerola/deterministic-todo/actions/runs/44513008359)
+riuscito in tutti gli otto job. Web `release-info.json` e manifest APK
+riportano 2.129.0 / 329 con lo stesso commit;
+[release v2.129.0](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.129.0)
+latest con quattro APK, bundle e manifest. Play interno: 329 caricata dal
+workflow, propagazione non verificata. Superati `make check-generated` e
+`make check` (667 test Flutter, 3 saltati). Todo Test 2329 installato via USB:
+provider `healthy`, Realtime `subscribed`, nuovi campi presenti; la
+distinzione su una modifica reale non è ancora stata osservata.
 
 Branch `agent/sync-latency-reopen`, da `main`. Salute dati separa le modifiche
 arrivate con l'app aperta da quelle trovate alla riapertura; campi
