@@ -1,12 +1,12 @@
 # Stato corrente
 
-Aggiornato il 25 ottobre 2026. Solo esiti validi oggi; la cronologia delle
+Aggiornato l’11 novembre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.126.0 / 326 (Web, APK diretti, Play interno). Todo Test: 2326
-  (branch `agent/semble-fallback`): Semble con riserva senza chiave; dalla
-  315 barra Calendario di Oggi compatta (due righe al massimo).
+- Stabile: 2.127.0 / 327 (Web, APK diretti, Play interno). Todo Test: 2327
+  pubblicato sul manifest rolling; installazione sul Galaxy non verificata.
+  Routine serale manuale, con preferenza locale per attività/serie.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era
@@ -27,24 +27,51 @@ Impostazioni e Salute dati; evento `remote_change_latency` e campi
 
 Superati `make check-generated` e `make check` (665 test Flutter, 3 saltati).
 `make todo-test`: Todo Test 2.128.0 / 2328 installato via ADB sul Galaxy
-senza perdita di dati e aperto. Collaudo fisico (riga Live, tira giù in Oggi,
-`remote_latency_*` dopo una modifica dal Web) ancora da fare con l'utente.
+senza perdita di dati e aperto.
 
-## Routine serale 2.127.0 / 327: verifiche del 11 novembre 2026
+Collaudo sul Galaxy (ADB via USB, 19 novembre, senza leggere contenuti dal
+provider): l'utente ha modificato un'attività dal Web e ha visto 3.562 ms in
+Salute dati. Il provider riporta `remote_latency_path=full`, un campione:
+la modifica è arrivata con il controllo completo alla ripresa dell'app
+(ferma dalle 10:36:18, ripresa alle 10:40:58; canale `subscribed` alle
+10:40:57,66, misura alle 10:40:57,87, controllo concluso alle 10:40:58,12).
+Quei 3,5 s comprendono quindi il tempo in cui l'app era chiusa, non un ritardo
+della sincronizzazione, che a ripresa ha impiegato circa mezzo secondo.
+Orologio del Galaxy avanti di circa 0,3 s rispetto al Mac. Riga «Live ·
+aggiornato X fa» visibile in Impostazioni e Salute dati; «tira giù» in Oggi
+ha avviato un controllo (una richiesta, 1.038 ms). Il percorso Realtime con
+l'app aperta non è ancora stato misurato su modifica reale.
 
-Pubblicazione richiesta dall'utente. Spunta manuale immediata nell'editor e
-gruppo richiudibile in Oggi; preferenza locale per attività/serie inclusa nel
-backup JSON. Contratto in
-[TODO_PLANNING_MODEL](docs/architecture/TODO_PLANNING_MODEL.md).
+## Release stabile 2.127.0 / 327: Routine serale, 11 novembre 2026
+
+Pubblicazione e fast-forward di `main` confermati esplicitamente dall'utente.
+Commit sorgente `814562a43e99420bef49c5285188ffc1d08e9ec5`,
+[PR 7](https://github.com/gpmerola/deterministic-todo/pull/7) integrata.
+Run [43047387138](https://github.com/gpmerola/deterministic-todo/actions/runs/43047387138)
+riuscito in tutti gli otto job. Web HTTPS e manifest APK confermano versione,
+build e commit; la verifica CI conferma parità e hash degli asset.
+[Release v2.127.0](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.127.0)
+con APK separati per ABI, fallback universale e bundle. Play interno ha accettato
+la build 327; propagazione al singolo tester non verificata.
+
+Todo Test consegnato con `make todo-test` sul manifest rolling e poi dalla
+pipeline rapida [43047101602](https://github.com/gpmerola/deterministic-todo/actions/runs/43047101602),
+riuscita. Manifest dev verificato con build 327 e lo stesso commit sorgente.
+Galaxy non raggiungibile tramite `s21-adb` (timeout su entrambi i trasporti):
+installazione e collaudo fisico ancora da eseguire.
 
 Superati `make check-generated`, `make check` (652 test Flutter, 3 saltati),
-formattazione e build Web release. Il caricamento iniziale delle preferenze
-mostra un indicatore; i test UI attendono la lettura asincrona e il test nuovo
-rilascia gli stream prima di chiudere SQLite. Nessuna modifica allo schema.
+formattazione, controllo dei segreti nei file modificati e build Web release.
+CI Verify [43047163833](https://github.com/gpmerola/deterministic-todo/actions/runs/43047163833)
+riuscita. In Chrome con profilo temporaneo, rete limitata e dati sintetici:
+creazione/modifica persistono dopo chiusura normale e forzata; sul sito HTTPS
+pubblicato spunta, raggruppamento, espansione, riapertura di Chrome e refresh
+conservano la routine. Nessun account o dato reale usato nel collaudo.
 
-Galaxy non raggiungibile tramite `s21-adb` (timeout su entrambi i trasporti):
-installazione e collaudo fisico ancora da eseguire. Esito della pubblicazione
-coordinata e verifica HTTPS da registrare dopo il completamento dei workflow.
+Il caricamento iniziale delle preferenze mostra un indicatore; i test UI
+attendono la lettura asincrona. Preferenza locale per attività/serie, inclusa
+nel backup JSON; nessuna modifica allo schema. Contratto in
+[TODO_PLANNING_MODEL](docs/architecture/TODO_PLANNING_MODEL.md).
 
 ## Release stabile 2.126.0 / 326 — 7 novembre 2026
 

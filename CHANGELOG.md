@@ -2,7 +2,7 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
-## 2.128.0 (build 328, non pubblicata) · Sincronizzazione più pronta
+## 2.128.0 (build 328) · Sincronizzazione più pronta
 
 - Per circa 20 secondi dopo il ritorno in primo piano, un cambio di rete o
   l'avvio, un errore di rete passeggero viene ritentato ogni secondo invece
@@ -21,7 +21,7 @@ Cronologia delle modifiche distribuite, dalla più recente.
   mediana e massimo in ms, valori scartati), ultimo valore in Salute dati e
   nel provider ADB `todo_sync_debug`. Nessun titolo o contenuto.
 
-## 2.127.0 (build 327, non pubblicata) · Routine serale
+## 2.127.0 (build 327) · Routine serale
 
 - In Oggi, soltanto le attività contrassegnate manualmente compaiono nel
   gruppo «Routine serale», inizialmente chiuso e apribile con un tocco.
