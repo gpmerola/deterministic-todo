@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.133.0 (build 336) · Telecomando essenziale
+
+- Schermata semplificata: pad, Indietro, Home, volume e muto, scorciatoie
+  YouTube, Netflix, Prime Video e Google Play, campo di testo. Stato,
+  velocità della rete, volume e «Dimentica il box» stanno nelle impostazioni
+  del telecomando (ingranaggio); in alto compare una striscia solo se la
+  connessione ha un problema.
+- Icona del telecomando in Oggi accanto al contapassi, oltre alla voce in
+  Impostazioni.
+- Corretto il crash all'uscita dal telecomando: la chiusura del socket
+  arrivava dopo lo spegnimento della sessione.
+- Provato e scartato il telecomando via Bluetooth (build 334–335, mai
+  pubblicate come stabili): il box non accetta l'abbinamento con un telefono.
+
 ## 2.131.2 (build 333) · Telecomando più reattivo
 
 - Tenendo premuti frecce e volume il box ripete il tasto finché non lo si

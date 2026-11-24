@@ -105,6 +105,13 @@ public class MessagesTest {
         assertFalse(LanAddress.isPrivate(null));
     }
 
+    @Test public void appShortcutsUseFixedLinks() {
+        assertEquals(RemoteApp.NETFLIX, RemoteApp.parse("netflix"));
+        assertNull(RemoteApp.parse("https://evil.example"));
+        assertEquals("d205190a1768747470733a2f2f7777772e796f75747562652e636f6d",
+            Hex.of(RemoteMessages.appLink(RemoteApp.YOUTUBE.link)));
+    }
+
     @Test public void commandsParseCaseInsensitively() {
         assertEquals(RemoteCommand.VOLUME_UP, RemoteCommand.parse("volume_up"));
         assertNull(RemoteCommand.parse("reboot"));

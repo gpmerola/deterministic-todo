@@ -9,12 +9,12 @@ fondo.
   (ultime 14 copie, ripristino da Impostazioni), migrazione applicata in
   produzione. Tailscale disinstallato: ADB solo via USB o Debug wireless.
 - 24 novembre 2026, branch `agent/h96-remote`: telecomando TV H96 Max
-  ([H96_REMOTE](docs/architecture/H96_REMOTE.md)). Todo Test 2333 installato
-  via ADB (USB). Con la 332 abbinamento e comandi riusciti sul Galaxy; tasti
-  lenti per la rete Wi-Fi del box (ping 2,4–3,8 s). La 333 (tasti tenuti
-  premuti, Wi-Fi lock, stato fisso) è da provare. `make check`: tutto verde tranne
-  `semble_fallback_test.dart` («riserva senza chiave…»), che fallisce
-  identico anche senza queste modifiche.
+  ([H96_REMOTE](docs/architecture/H96_REMOTE.md)). Todo Test 2336 installato
+  via ADB (USB): schermata essenziale con scorciatoie app, icona in Oggi,
+  crash all'uscita corretto. Abbinamento e comandi Wi-Fi provati sul Galaxy
+  con la 332–333 («molto migliorato»); Bluetooth provato e scartato (il box
+  non accetta l'abbinamento). Link delle scorciatoie da confermare a vista.
+  `semble_fallback_test.dart` fallisce anche senza queste modifiche.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era

@@ -103,6 +103,19 @@ public class RemoteSessionTest {
         assertEquals(RemoteSession.State.IDLE, session.state());
     }
 
+    @Test public void lateClosureAfterShutdownDoesNotThrow() throws Exception {
+        RemoteSession session = session();
+        session.start();
+        drain();
+        session.stop();
+        drain();
+        executor.shutdown();
+        // The socket reader thread reports the closure after the executor is gone.
+        transports.get(0).listener.onClosed(new IOException("socket closed"));
+        transports.get(0).listener.onMessage(START);
+        assertFalse(session.send(RemoteCommand.OK));
+    }
+
     private final class FakeTransport implements TvTransport {
         final List<byte[]> sent = new ArrayList<>();
         Listener listener;

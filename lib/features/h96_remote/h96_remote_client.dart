@@ -129,6 +129,10 @@ class H96RemoteClient {
       }) ??
       false;
 
+  /// Opens YOUTUBE, NETFLIX, PRIME_VIDEO or GOOGLE_PLAY on the box.
+  Future<bool> launch(String app) async =>
+      await _channel.invokeMethod<bool>('launch', {'app': app}) ?? false;
+
   Future<bool> sendText(String text) async =>
       await _channel.invokeMethod<bool>('sendText', {'text': text}) ?? false;
 

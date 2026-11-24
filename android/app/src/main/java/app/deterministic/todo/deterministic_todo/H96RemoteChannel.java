@@ -62,6 +62,7 @@ public final class H96RemoteChannel {
                 case "send" -> result.success(remote.send(call.argument("command")));
                 case "hold" -> result.success(remote.hold(call.argument("command"),
                     Boolean.TRUE.equals(call.argument("start"))));
+                case "launch" -> result.success(remote.launch(call.argument("app")));
                 case "sendText" -> result.success(remote.sendText(call.argument("text")));
                 case "forget" -> { remote.forget(); result.success(null); }
                 default -> result.notImplemented();

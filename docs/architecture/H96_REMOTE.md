@@ -2,7 +2,7 @@
 
 Telecomando per il TV Box H96 Max dentro Todo, introdotto nella build 331.
 È una funzione isolata: si accende e si spegne con un flag, si rimuove
-cancellando due cartelle e cinque righe, e il modulo nativo può diventare
+cancellando due cartelle e poche righe, e il modulo nativo può diventare
 un'app autonoma (repository `h96-remote`) senza modifiche al protocollo.
 
 ## Fase 0: compatibilità verificata (24 novembre 2026)
@@ -74,6 +74,11 @@ testate sulla JVM.
 - Il testo viene inviato solo con «Invia» e sostituisce il contenuto del
   campo attivo sulla TV; «Cancella» e «Invio» mandano i tasti corrispondenti.
   Gli appunti non vengono mai letti.
+- Scorciatoie app (`RemoteApp`): link fissi aperti dal box con l'app
+  installata (YouTube `https://www.youtube.com`, Netflix
+  `https://www.netflix.com/title`, Prime Video `https://app.primevideo.com`,
+  Google Play `market://launcher`). Dal canale arriva solo il nome della
+  scorciatoia, mai un link arbitrario.
 - Funzioni chieste al box: ping, tasti, IME, accensione, volume, link app.
   La voce non è richiesta: nessun microfono, nessun audio esce dal telefono.
 
@@ -99,7 +104,7 @@ testate sulla JVM.
 ## Accendere, spegnere, rimuovere, estrarre
 
 Spegnere: compilare con `--dart-define=H96_REMOTE=false`. La voce in
-Impostazioni sparisce e il codice nativo resta inattivo (nessuna chiamata).
+Impostazioni e l'icona in Oggi spariscono e il codice nativo resta inattivo (nessuna chiamata).
 Riaccendere: togliere il define (il valore predefinito è acceso).
 
 Rimuovere del tutto:
@@ -107,8 +112,10 @@ Rimuovere del tutto:
 1. cancellare `lib/features/h96_remote/`, `android/h96remote/`,
    `test/h96_remote_test.dart` e
    `android/app/src/main/java/app/deterministic/todo/deterministic_todo/H96RemoteChannel.java`;
-2. togliere da `lib/main.dart` l'import `features/h96_remote/h96_remote.dart`
-   e da `lib/ui/settings_view.dart` il blocco `if (h96RemoteAvailable)`;
+2. togliere da `lib/main.dart` l'import `features/h96_remote/h96_remote.dart`,
+   da `lib/ui/settings_view.dart` il blocco `if (h96RemoteAvailable)` e da
+   `lib/ui/shell/shell_layout.dart` il blocco `H96RemoteAction` (icona in
+   Oggi);
 3. togliere `H96RemoteChannel.register(...)` dai tre `MainActivity.kt`
    (`direct`, `dev`, `play`);
 4. togliere `include(":h96remote")` da `android/settings.gradle.kts` e
@@ -133,6 +140,18 @@ metodi. Il protocollo, i test e questo documento si spostano invariati.
   Android, ricerca, invio tasti e testo solo da pronto, disconnessione.
 - Collaudo reale: Galaxy S21 con Todo Test e box sulla stessa Wi-Fi.
 
+## Bluetooth: provato e scartato (24 novembre 2026)
+
+Con il Wi-Fi del box lento è stato provato un secondo trasporto Bluetooth
+HID (telefono come tastiera e telecomando consumer, `BluetoothHidDevice`,
+build 334–335 di Todo Test). Il profilo HID Device c'è sul Galaxy (Android
+15), ma «Add accessory» sul box elenca solo dispositivi con classe periferica
+e non vede il telefono; l'abbinamento avviato dal telefono arriva alla
+finestra di conferma sulla TV, che però non accetta la conferma né dal
+telecomando fisico né da quello Wi-Fi, e fallisce dopo circa 25 s. Senza
+permessi di sistema non c'è via d'uscita: codice rimosso per tenere il modulo
+leggero. Il trasporto resta sostituibile tramite `TvTransport`.
+
 ## Collaudo sul Galaxy (24 novembre 2026)
 
 Build 331: abbinamento sempre fallito per la chiave Keystore senza
@@ -145,7 +164,7 @@ migliora la parte dell'app.
 
 ## Limiti noti
 
-Non ancora: touchpad e puntatore, scorciatoie app, dettatura, risveglio dallo
+Non ancora: touchpad e puntatore, dettatura, risveglio dallo
 standby (il comando POWER esiste ma non è nella UI), ripetizione a pressione
 lunga. Il collegamento Wi-Fi del box può introdurre secondi di ritardo che
 l'app non può eliminare: con il cavo Ethernet il problema sparisce.

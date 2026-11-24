@@ -196,6 +196,12 @@ public final class H96RemoteController {
         return parsed != null && session != null && session.hold(parsed, start);
     }
 
+    /** Opens an app shortcut; only the fixed links in {@link RemoteApp} can be sent. */
+    public boolean launch(String app) {
+        RemoteApp parsed = RemoteApp.parse(app);
+        return parsed != null && session != null && session.launch(parsed.link);
+    }
+
     public boolean sendText(String text) {
         return text != null && session != null && session.sendText(text);
     }

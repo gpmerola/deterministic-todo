@@ -1,6 +1,7 @@
 package app.deterministic.todo.h96remote;
 
 import java.io.IOException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -57,7 +58,7 @@ public final class RemoteSession {
     }
 
     public void start() {
-        executor.execute(() -> {
+        post(() -> {
             if (running) return;
             running = true;
             attempts = 0;
@@ -66,7 +67,7 @@ public final class RemoteSession {
     }
 
     public void stop() {
-        executor.execute(() -> {
+        post(() -> {
             running = false;
             generation++;
             closeTransport();
@@ -94,7 +95,7 @@ public final class RemoteSession {
 
     private boolean sendIfReady(byte[] payload, String text) {
         if (state != State.READY) return false;
-        executor.execute(() -> {
+        return post(() -> {
             if (state != State.READY || transport == null) return;
             try {
                 transport.send(text != null ? protocol.text(text) : payload);
@@ -103,7 +104,19 @@ public final class RemoteSession {
                 transport.close();
             }
         });
-        return true;
+    }
+
+    /**
+     * Runs on the session thread; false when the session was stopped and its executor shut
+     * down. The socket reader may report a closure after that, which must not crash the app.
+     */
+    private boolean post(Runnable task) {
+        try {
+            executor.execute(task);
+            return true;
+        } catch (RejectedExecutionException e) {
+            return false;
+        }
     }
 
     private void connect(State connectingState) {
@@ -117,11 +130,11 @@ public final class RemoteSession {
         try {
             next.open(new TvTransport.Listener() {
                 @Override public void onMessage(byte[] payload) {
-                    executor.execute(() -> handle(current, payload));
+                    post(() -> handle(current, payload));
                 }
 
                 @Override public void onClosed(Exception cause) {
-                    executor.execute(() -> closed(current, cause));
+                    post(() -> closed(current, cause));
                 }
             });
             transport = next;
@@ -171,9 +184,13 @@ public final class RemoteSession {
         long delay = RETRY_DELAYS_MS[attempts++];
         int current = generation;
         setState(State.RECONNECTING, failure);
-        executor.schedule(() -> {
-            if (current == generation) connect(State.RECONNECTING);
-        }, delay, TimeUnit.MILLISECONDS);
+        try {
+            executor.schedule(() -> {
+                if (current == generation) connect(State.RECONNECTING);
+            }, delay, TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException ignored) {
+            // The session was stopped meanwhile.
+        }
     }
 
     private void fail(Failure failure) {

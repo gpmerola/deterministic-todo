@@ -167,6 +167,10 @@ extension _ShellLayout on _TaskShellState {
                                       ),
                                 ),
                               ),
+                            // Isolated feature (docs/architecture/H96_REMOTE.md).
+                            if (widget.enablePlatformServices &&
+                                navigation.section == AppSection.today)
+                              const H96RemoteAction(),
                             if (widget.syncService != null)
                               SyncStatusAction(
                                 service: widget.syncService!,

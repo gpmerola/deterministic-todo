@@ -29,7 +29,7 @@ void main() {
         'discover' => [
           {'name': 'RK3518', 'host': '192.168.1.2'},
         ],
-        'send' || 'sendText' || 'hold' => true,
+        'send' || 'sendText' || 'hold' || 'launch' => true,
         _ => null,
       };
     });
@@ -96,8 +96,8 @@ void main() {
     await nativeEvent('state', {'state': 'READY', 'failure': 'NONE'});
     await nativeEvent('volume', {'level': 3, 'max': 15, 'muted': false});
     await tester.pump();
-    expect(find.text('Connesso a H96 di prova'), findsOneWidget);
-    expect(find.text('Volume 3 su 15'), findsOneWidget);
+    // Connected: no banner, the controls are enough.
+    expect(find.byKey(const ValueKey('h96-status')), findsNothing);
 
     await tester.tap(find.text('OK'));
     await tester.pump();
@@ -137,16 +137,42 @@ void main() {
     expect(calls.where((c) => c.method == 'send'), isEmpty);
   });
 
-  testWidgets('a slow link is shown under the status', (tester) async {
+  testWidgets('app shortcuts open the chosen app', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: H96RemotePage()));
     await tester.pumpAndSettle();
     await nativeEvent('state', {'state': 'READY', 'failure': 'NONE'});
-    await nativeEvent('latency', {'millis': 300});
     await tester.pump();
-    expect(find.byKey(const ValueKey('h96-slow')), findsNothing);
+    for (final label in ['YouTube', 'Netflix', 'Prime', 'Play']) {
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+      await tester.pump();
+    }
+    expect(calls.where((c) => c.method == 'launch').map((c) => c.arguments), [
+      {'app': 'YOUTUBE'},
+      {'app': 'NETFLIX'},
+      {'app': 'PRIME_VIDEO'},
+      {'app': 'GOOGLE_PLAY'},
+    ]);
+  });
+
+  testWidgets('settings show box, link speed, volume and forget', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: H96RemotePage()));
+    await tester.pumpAndSettle();
+    await nativeEvent('state', {'state': 'READY', 'failure': 'NONE'});
     await nativeEvent('latency', {'millis': 3200});
+    await nativeEvent('volume', {'level': 3, 'max': 15, 'muted': false});
     await tester.pump();
-    expect(find.byKey(const ValueKey('h96-slow')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('h96-settings')));
+    await tester.pumpAndSettle();
+    expect(find.text('Connesso a H96 di prova'), findsOneWidget);
+    expect(
+      find.text('Apertura connessione 3200 ms: rete lenta'),
+      findsOneWidget,
+    );
+    expect(find.text('Volume 3 su 15'), findsOneWidget);
+    expect(find.byKey(const ValueKey('h96-forget')), findsOneWidget);
   });
 
   testWidgets('leaving the page disconnects', (tester) async {

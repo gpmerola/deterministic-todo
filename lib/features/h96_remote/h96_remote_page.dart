@@ -206,17 +206,14 @@ class _H96RemotePageState extends State<H96RemotePage>
       valueListenable: _client.status,
       builder: (context, status, _) => Scaffold(
         appBar: AppBar(
-          title: const Text('Telecomando TV'),
+          title: const Text('Telecomando'),
           actions: [
             if (status.paired)
-              PopupMenuButton<String>(
-                onSelected: (_) => _forget(),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'forget',
-                    child: Text('Dimentica il box'),
-                  ),
-                ],
+              IconButton(
+                key: const ValueKey('h96-settings'),
+                tooltip: 'Impostazioni del telecomando',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => _openSettings(status),
               ),
           ],
         ),
@@ -273,139 +270,165 @@ class _H96RemotePageState extends State<H96RemotePage>
   }
 
   Widget _remote(BuildContext context, H96Status status) {
-    // The status stays pinned above the scrolling controls.
+    final ready = status.ready;
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: _StatusBar(
+        // Only shown when something needs attention.
+        if (!ready)
+          _ConnectionBanner(
             status: status,
             onRetry: _client.connect,
             onRepair: _forget,
           ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: [
+              _DirectionPad(enabled: ready, onPressed: _press, onHold: _hold),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _RemoteButton(
+                    icon: Icons.arrow_back,
+                    label: 'Indietro',
+                    enabled: ready,
+                    onPressed: () => _press('BACK'),
+                  ),
+                  _RemoteButton(
+                    icon: Icons.home_outlined,
+                    label: 'Home',
+                    enabled: ready,
+                    onPressed: () => _press('HOME'),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  _RemoteButton(
+                    icon: Icons.volume_down,
+                    label: 'Volume giù',
+                    enabled: ready,
+                    onPressed: () => _press('VOLUME_DOWN'),
+                    onHold: (start) => _hold('VOLUME_DOWN', start),
+                  ),
+                  _RemoteButton(
+                    icon: status.muted ? Icons.volume_off : Icons.volume_mute,
+                    label: 'Muto',
+                    enabled: ready,
+                    onPressed: () => _press('MUTE'),
+                  ),
+                  _RemoteButton(
+                    icon: Icons.volume_up,
+                    label: 'Volume su',
+                    enabled: ready,
+                    onPressed: () => _press('VOLUME_UP'),
+                    onHold: (start) => _hold('VOLUME_UP', start),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  for (final (app, label) in _apps)
+                    _AppButton(
+                      label: label,
+                      enabled: ready,
+                      onPressed: () => _launch(app),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                key: const ValueKey('h96-text'),
+                controller: _text,
+                enabled: ready,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendText(),
+                decoration: InputDecoration(
+                  hintText: 'Scrivi sulla TV',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    tooltip: 'Invia alla TV',
+                    icon: const Icon(Icons.send),
+                    onPressed: ready ? _sendText : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        Expanded(child: _controls(context, status)),
       ],
     );
   }
 
-  Widget _controls(BuildContext context, H96Status status) {
-    final ready = status.ready;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        _DirectionPad(enabled: ready, onPressed: _press, onHold: _hold),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _RemoteButton(
-                icon: Icons.arrow_back,
-                label: 'Indietro',
-                enabled: ready,
-                onPressed: () => _press('BACK'),
+  static const _apps = [
+    ('YOUTUBE', 'YouTube'),
+    ('NETFLIX', 'Netflix'),
+    ('PRIME_VIDEO', 'Prime'),
+    ('GOOGLE_PLAY', 'Play'),
+  ];
+
+  Future<void> _launch(String app) async {
+    unawaited(HapticFeedback.selectionClick());
+    final sent = await _client.launch(app);
+    if (!sent && mounted) _snack('Telecomando non connesso');
+  }
+
+  Future<void> _openSettings(H96Status status) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => ValueListenableBuilder<H96Status>(
+        valueListenable: _client.status,
+        builder: (context, status, _) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.tv),
+                title: Text(status.name.isEmpty ? 'Box' : status.name),
+                subtitle: Text(status.host),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _RemoteButton(
-                icon: Icons.home_outlined,
-                label: 'Home',
-                enabled: ready,
-                onPressed: () => _press('HOME'),
+              ListTile(
+                leading: Icon(
+                  status.ready ? Icons.check_circle_outline : Icons.link_off,
+                ),
+                title: Text(_stateLabel(status)),
+                subtitle: status.ready && status.latencyMs > 0
+                    ? Text(
+                        'Apertura connessione ${status.latencyMs} ms'
+                        '${status.latencyMs >= _slowLinkMs ? ': rete lenta' : ''}',
+                      )
+                    : null,
+                trailing: status.ready
+                    ? null
+                    : TextButton(
+                        onPressed: _client.connect,
+                        child: const Text('Riprova'),
+                      ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _RemoteButton(
-                icon: Icons.volume_down,
-                label: 'Volume giù',
-                enabled: ready,
-                onPressed: () => _press('VOLUME_DOWN'),
-                onHold: (start) => _hold('VOLUME_DOWN', start),
+              if (status.volumeLevel >= 0 && status.volumeMax > 0)
+                ListTile(
+                  leading: const Icon(Icons.volume_up_outlined),
+                  title: Text(
+                    'Volume ${status.volumeLevel} su ${status.volumeMax}'
+                    '${status.muted ? ', muto' : ''}',
+                  ),
+                ),
+              ListTile(
+                key: const ValueKey('h96-forget'),
+                leading: const Icon(Icons.link_off),
+                title: const Text('Dimentica il box'),
+                subtitle: const Text('Per abbinarlo di nuovo con un codice'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _forget();
+                },
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _RemoteButton(
-                icon: status.muted ? Icons.volume_off : Icons.volume_mute,
-                label: 'Muto',
-                enabled: ready,
-                onPressed: () => _press('MUTE'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _RemoteButton(
-                icon: Icons.volume_up,
-                label: 'Volume su',
-                enabled: ready,
-                onPressed: () => _press('VOLUME_UP'),
-                onHold: (start) => _hold('VOLUME_UP', start),
-              ),
-            ),
-          ],
-        ),
-        if (status.volumeLevel >= 0 && status.volumeMax > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'Volume ${status.volumeLevel} su ${status.volumeMax}'
-              '${status.muted ? ', muto' : ''}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        const SizedBox(height: 24),
-        TextField(
-          key: const ValueKey('h96-text'),
-          controller: _text,
-          enabled: ready,
-          minLines: 1,
-          maxLines: 3,
-          textInputAction: TextInputAction.send,
-          onSubmitted: (_) => _sendText(),
-          decoration: InputDecoration(
-            labelText: 'Testo per il campo attivo sulla TV',
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
-              tooltip: 'Invia alla TV',
-              icon: const Icon(Icons.send),
-              onPressed: ready ? _sendText : null,
-            ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: ready ? () => _press('DELETE') : null,
-                icon: const Icon(Icons.backspace_outlined),
-                label: const Text('Cancella'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: ready ? () => _press('ENTER') : null,
-                icon: const Icon(Icons.keyboard_return),
-                label: const Text('Invio'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            IconButton(
-              tooltip: 'Svuota',
-              onPressed: _text.clear,
-              icon: const Icon(Icons.clear),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
@@ -414,8 +437,21 @@ class _H96RemotePageState extends State<H96RemotePage>
 /// the H96 Max); above this the link is visibly slow.
 const _slowLinkMs = 1500;
 
-class _StatusBar extends StatelessWidget {
-  const _StatusBar({
+String _stateLabel(H96Status status) {
+  final name = status.name.isEmpty ? 'box' : status.name;
+  return switch (status.state) {
+    H96ConnectionState.ready => 'Connesso a $name',
+    H96ConnectionState.connecting => 'Connessione…',
+    H96ConnectionState.reconnecting => 'Riconnessione…',
+    H96ConnectionState.failed when status.failure == H96Failure.notPaired =>
+      'Abbinamento non più valido',
+    H96ConnectionState.failed => 'Box non raggiungibile',
+    H96ConnectionState.idle => 'Non connesso',
+  };
+}
+
+class _ConnectionBanner extends StatelessWidget {
+  const _ConnectionBanner({
     required this.status,
     required this.onRetry,
     required this.onRepair,
@@ -427,67 +463,30 @@ class _StatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final name = status.name.isEmpty ? 'box' : status.name;
-    final (IconData icon, Color color, String text) = switch (status.state) {
-      H96ConnectionState.ready => (
-        Icons.check_circle,
-        scheme.primary,
-        'Connesso a $name',
-      ),
-      H96ConnectionState.connecting => (
-        Icons.sync,
-        scheme.outline,
-        'Connessione…',
-      ),
-      H96ConnectionState.reconnecting => (
-        Icons.sync,
-        scheme.tertiary,
-        'Riconnessione…',
-      ),
-      H96ConnectionState.failed => (
-        Icons.error_outline,
-        scheme.error,
-        status.failure == H96Failure.notPaired
-            ? 'Abbinamento non più valido'
-            : 'Box non raggiungibile',
-      ),
-      H96ConnectionState.idle => (
-        Icons.link_off,
-        scheme.outline,
-        'Non connesso',
-      ),
-    };
-    final slow = status.ready && status.latencyMs >= _slowLinkMs;
-    return Row(
-      children: [
-        Icon(
-          slow ? Icons.network_check : icon,
-          color: slow ? scheme.tertiary : color,
+    final failed = status.state == H96ConnectionState.failed;
+    final notPaired = status.failure == H96Failure.notPaired;
+    return Material(
+      color: failed
+          ? Theme.of(context).colorScheme.errorContainer
+          : Theme.of(context).colorScheme.surfaceContainerHigh,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _stateLabel(status),
+                key: const ValueKey('h96-status'),
+              ),
+            ),
+            if (failed)
+              TextButton(
+                onPressed: notPaired ? onRepair : onRetry,
+                child: Text(notPaired ? 'Abbina di nuovo' : 'Riprova'),
+              ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(text, key: const ValueKey('h96-status')),
-              if (slow)
-                Text(
-                  'Rete lenta verso il box: i tasti possono arrivare in ritardo',
-                  key: const ValueKey('h96-slow'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-            ],
-          ),
-        ),
-        if (status.state == H96ConnectionState.failed)
-          status.failure == H96Failure.notPaired
-              ? TextButton(
-                  onPressed: onRepair,
-                  child: const Text('Abbina di nuovo'),
-                )
-              : TextButton(onPressed: onRetry, child: const Text('Riprova')),
-      ],
+      ),
     );
   }
 }
@@ -546,8 +545,7 @@ class _DirectionPad extends StatelessWidget {
   }
 }
 
-/// Wraps a button so that holding it sends a long press the box repeats
-/// itself, and releasing it ends the repetition. A quick tap stays a tap.
+/// Holding sends a long press the box repeats itself; a quick tap stays a tap.
 class _Holdable extends StatelessWidget {
   const _Holdable({required this.enabled, required this.child, this.onHold});
 
@@ -642,13 +640,45 @@ class _RemoteButton extends StatelessWidget {
   final ValueChanged<bool>? onHold;
 
   @override
-  Widget build(BuildContext context) => _Holdable(
-    enabled: enabled,
-    onHold: onHold,
-    child: FilledButton.tonal(
-      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-      onPressed: enabled ? onPressed : null,
-      child: Tooltip(message: label, child: Icon(icon)),
+  Widget build(BuildContext context) => Expanded(
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: _Holdable(
+        enabled: enabled,
+        onHold: onHold,
+        child: FilledButton.tonal(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+          onPressed: enabled ? onPressed : null,
+          child: Tooltip(message: label, child: Icon(icon)),
+        ),
+      ),
+    ),
+  );
+}
+
+class _AppButton extends StatelessWidget {
+  const _AppButton({
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+        ),
+        onPressed: enabled ? onPressed : null,
+        child: Text(label, maxLines: 1, overflow: TextOverflow.fade),
+      ),
     ),
   );
 }
