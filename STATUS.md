@@ -8,6 +8,13 @@ fondo.
   installato via ADB (USB) sul Galaxy. Backup giornaliero nel cloud Supabase
   (ultime 14 copie, ripristino da Impostazioni), migrazione applicata in
   produzione. Tailscale disinstallato: ADB solo via USB o Debug wireless.
+- 24 novembre 2026, branch `agent/h96-remote`: Todo Test 2.131.0 / 2331 con
+  il telecomando TV H96 Max ([H96_REMOTE](docs/architecture/H96_REMOTE.md))
+  pubblicato sul manifest rolling da `make todo-test` (Galaxy non collegato
+  via ADB). Fase 0 sul box reale riuscita dal Mac; collaudo sul Galaxy da
+  fare. `make check`: tutto verde tranne
+  `semble_fallback_test.dart` («riserva senza chiave…»), che fallisce
+  identico anche senza queste modifiche.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era

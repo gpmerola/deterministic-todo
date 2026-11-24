@@ -12,6 +12,13 @@ Pubblicazione completata e verificata: esiti in [STATUS](STATUS.md).
 Resta il collaudo fisico sul Galaxy, non raggiungibile l'11 novembre 2026:
 aggiornare Todo Test e provare la spunta nell'editor e il gruppo in Oggi.
 
+## Collaudo Telecomando TV (build 331)
+
+Aggiornare Todo Test sul Galaxy, Impostazioni → Casa → Telecomando TV:
+ricerca del box, abbinamento con il codice, frecce, OK, Home, Indietro,
+volume, testo con accenti, uscita e rientro (riconnessione). Conferma
+anche che la chiave Keystore funziona con TLS 1.3 verso il box.
+
 ## Da fare con l'utente
 
 Richiedono il telefono, il Chrome reale o dati reali: non eseguirle da soli.
