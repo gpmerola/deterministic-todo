@@ -15,6 +15,8 @@ fondo.
   con la 332–333 («molto migliorato»); Bluetooth provato e scartato (il box
   non accetta l'abbinamento). Link delle scorciatoie da confermare a vista.
   `semble_fallback_test.dart` fallisce anche senza queste modifiche.
+  Build 2337: icona ✨ tolta dalla barra e Impostazioni snellite, installata
+  via ADB e controllata a schermo.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era

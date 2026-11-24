@@ -177,14 +177,9 @@ extension _ShellLayout on _TaskShellState {
                                 repository: widget.repository,
                               ),
                             if (navigation.section != AppSection.settings) ...[
-                              if (widget.enablePlatformServices &&
-                                  isAndroidPlatform)
-                                IconButton(
-                                  key: const ValueKey('ai-capture-open'),
-                                  tooltip: 'Assistente: scrivi o detta',
-                                  onPressed: _openAiCapture,
-                                  icon: const Icon(Icons.auto_awesome),
-                                ),
+                              // ✨ removed from the bar at the user's request
+                              // (build 337); still reachable where onCapture
+                              // is offered.
                               IconButton(
                                 tooltip: 'Comando universale',
                                 onPressed: _showUniversalCommand,

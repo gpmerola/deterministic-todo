@@ -302,11 +302,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Copiare la chiave Semble?'),
-            content: const Text(
-              'Chi ha la chiave può leggere disponibilità e prenotazioni '
-              'della clinica. Incollala solo dove ti serve: gli appunti si '
-              'svuotano tra un minuto.',
-            ),
+            content: const Text('Gli appunti si svuotano tra un minuto.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -348,9 +344,7 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
           builder: (dialogContext) => AlertDialog(
             title: const Text('Eliminare la chiave Semble?'),
             content: Text(
-              'Chiave e User ID vengono cancellati da $_thisDevice e il '
-              'Calendario smette di mostrare le disponibilità. La chiave resta '
-              'valida in Semble finché un Manager non la revoca.',
+              'Chiave e User ID vengono cancellati da $_thisDevice.',
             ),
             actions: [
               TextButton(
@@ -440,11 +434,6 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                       key: const ValueKey('semble-conflict-alerts'),
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Avvisa per eventi in orario Semble'),
-                      subtitle: const Text(
-                        'Notifica quando arriva un evento in un orario '
-                        'prenotabile, anche ad app chiusa. Mostra solo giorno '
-                        'e ora.',
-                      ),
                       value: alerts,
                       onChanged: busy
                           ? null
@@ -491,11 +480,6 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                           child: const Text('Rimuovi'),
                         ),
                       ),
-                    Text(
-                      'Per aggiungerne: Calendario → + → Semble. Gli orari '
-                      'settimanali ricorrenti si cambiano in Semble.',
-                      style: theme.textTheme.bodySmall,
-                    ),
                   ],
                   ExpansionTile(
                     key: const ValueKey('semble-connection'),
@@ -522,9 +506,6 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         autocorrect: false,
                         decoration: const InputDecoration(
                           labelText: 'Il tuo cognome in Semble',
-                          helperText:
-                              'Riconosce le tue prenotazioni: DNA nella stima '
-                              'e visite nuove nel Calendario',
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -595,17 +576,6 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                             : 'Link iCal di Semble, per le visite',
                       ),
                       children: [
-                        Text(
-                          'Se la chiave manca o Semble la rifiuta, le visite '
-                          'arrivano dal link iCal del tuo calendario Semble '
-                          '(lo stesso che alimenta il calendario Google), '
-                          'senza aspettare Google. Senza link le visite '
-                          'restano quelle del calendario Google «Semble»; le '
-                          'disponibilità già lette restano nel Calendario, con '
-                          'la data dell\'ultima lettura.',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
                         TextField(
                           key: const ValueKey('semble-ical-input'),
                           controller: icalInput,
@@ -646,28 +616,6 @@ class _SembleSettingsViewState extends State<SembleSettingsView> {
                         key: const ValueKey('semble-status'),
                       ),
                     ),
-                  ExpansionTile(
-                    key: const ValueKey('semble-privacy'),
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text('Cosa legge e cosa scrive'),
-                    children: [
-                      Text(
-                        'Legge date e orari delle regole di disponibilità e, '
-                        'delle prenotazioni, orario, tipo, medico ed esito '
-                        '(arrivo o DNA): mai i dati dei pazienti. Scrive in '
-                        'Semble solo quando tocchi «Blocca» (un orario non '
-                        'disponibile, tipo Other) o il suo «Annulla». Con il '
-                        'cognome impostato le tue prenotazioni nuove compaiono '
-                        'nel Calendario prima che arrivino dal calendario '
-                        'Google alimentato da Semble. Con il link iCal legge '
-                        'del feed solo orario, titolo e annullamento. Chiave, '
-                        'link e ultime disponibilità lette restano cifrati su questo '
-                        'telefono: non vanno nei backup, nei log né su '
-                        'Supabase.',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),

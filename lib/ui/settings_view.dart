@@ -594,7 +594,6 @@ class SettingsView extends StatelessWidget {
       ListTile(
         leading: const Icon(Icons.inbox_outlined),
         title: const Text('Attività senza data'),
-        subtitle: const Text('Visualizza e rimuovi gli elementi Inbox'),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => showModalBottomSheet<void>(
           context: context,
@@ -642,8 +641,8 @@ class SettingsView extends StatelessWidget {
           ),
         ),
       ),
+      const SettingsHeading('Strumenti'),
       if (sembleSupported) ...[
-        const SettingsHeading('Calendario e lavoro'),
         // Android (build 285) and browser (build 326), like the Calendar
         // layer it feeds; the key never leaves the device that saved it.
         if (sembleSupported)
@@ -651,9 +650,6 @@ class SettingsView extends StatelessWidget {
             key: const ValueKey('settings-semble'),
             leading: const Icon(Icons.event_available_outlined),
             title: const Text('Semble'),
-            subtitle: const Text(
-              'Disponibilità, visite e blocchi nel Calendario',
-            ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -684,7 +680,6 @@ class SettingsView extends StatelessWidget {
             key: const ValueKey('settings-ai'),
             leading: const Icon(Icons.auto_awesome_outlined),
             title: const Text('Assistente AI'),
-            subtitle: const Text('Chiave API (DeepSeek o Claude)'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -694,11 +689,7 @@ class SettingsView extends StatelessWidget {
           ),
       ],
       // Isolated feature: lib/features/h96_remote (docs/architecture/H96_REMOTE.md).
-      if (h96RemoteAvailable) ...[
-        const SettingsHeading('Casa'),
-        const H96RemoteSettingsTile(),
-      ],
-      const SettingsHeading('Movimento'),
+      if (h96RemoteAvailable) const H96RemoteSettingsTile(),
       ListTile(
         leading: const Icon(Icons.track_changes_outlined),
         title: const Text('Obiettivo passi'),
@@ -732,7 +723,6 @@ class SettingsView extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.enhanced_encryption_outlined),
               title: const Text('Backup automatici'),
-              subtitle: const Text('Settimanali e cifrati, in Documenti'),
               onTap: () => _showAutoBackups(context, autoBackup!),
             ),
           if (cloudBackup != null)
@@ -740,7 +730,6 @@ class SettingsView extends StatelessWidget {
               key: const ValueKey('cloud-backups'),
               leading: const Icon(Icons.cloud_sync_outlined),
               title: const Text('Backup nel cloud'),
-              subtitle: const Text('Giornaliero, nel tuo account Supabase'),
               onTap: () => _showCloudBackups(context, cloudBackup!),
             ),
           ListTile(
@@ -751,13 +740,11 @@ class SettingsView extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.fact_check_outlined),
             title: const Text('Verifica con export Todoist'),
-            subtitle: const Text('Solo lettura: confronta i conteggi'),
             onTap: () => _verifyTodoist(context),
           ),
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text('Storico attività'),
-            subtitle: const Text('Versioni precedenti e sincronizzazione'),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => ActivityHistoryView(repository: repository),

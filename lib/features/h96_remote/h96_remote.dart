@@ -53,7 +53,6 @@ class H96RemoteSettingsTile extends StatelessWidget {
       key: const ValueKey('settings-h96-remote'),
       leading: const Icon(Icons.settings_remote_outlined),
       title: const Text('Telecomando TV'),
-      subtitle: const Text('TV Box H96 Max sulla Wi-Fi di casa'),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(
         context,

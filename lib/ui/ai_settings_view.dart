@@ -101,8 +101,7 @@ class _AiSettingsViewState extends State<AiSettingsView> {
           builder: (dialogContext) => AlertDialog(
             title: const Text('Eliminare la chiave?'),
             content: const Text(
-              'La chiave viene cancellata da questo telefono. Per revocarla '
-              'del tutto, eliminala anche dalla console del fornitore.',
+              'La chiave viene cancellata da questo telefono.',
             ),
             actions: [
               TextButton(
@@ -136,12 +135,7 @@ class _AiSettingsViewState extends State<AiSettingsView> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 Text(
-                  'La chiave resta cifrata solo su questo telefono: non va '
-                  'nei backup, nei log né su Supabase. La usa ✨ Assistente: '
-                  'solo quando premi «Interpreta» invia al fornitore il tuo '
-                  'testo, i nomi di progetti e calendari e titolo e orario '
-                  'dei prossimi eventi. Nulla viene creato senza la tua '
-                  'revisione.',
+                  'La chiave resta cifrata su questo telefono.',
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),

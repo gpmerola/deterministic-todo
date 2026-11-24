@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.133.1 (build 337) · Meno ingombro
+
+- Tolta l'icona ✨ Assistente dalla barra in alto (su richiesta).
+- Impostazioni più snelle: niente sottotitoli descrittivi, sezioni
+  «Attività», «Strumenti» (Semble, Stima, Assistente AI, Telecomando TV,
+  Obiettivo passi) e «Dati». Nelle pagine Assistente AI e Semble via i
+  paragrafi informativi e la sezione «Cosa legge e cosa scrive»; restano solo
+  i comandi e le conferme essenziali.
+
 ## 2.133.0 (build 336) · Telecomando essenziale
 
 - Schermata semplificata: pad, Indietro, Home, volume e muto, scorciatoie
