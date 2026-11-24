@@ -2,6 +2,23 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.131.2 (build 333) · Telecomando più reattivo
+
+- Tenendo premuti frecce e volume il box ripete il tasto finché non lo si
+  lascia, come col telecomando fisico.
+- Pulsanti del pad più grandi e stato della connessione sempre visibile in
+  alto; se la connessione al box è lenta compare «Rete lenta verso il box».
+- Mentre la schermata è aperta il Wi-Fi del telefono resta fuori dal
+  risparmio energetico (blocco a bassa latenza, rilasciato uscendo); dopo
+  una caduta il primo tentativo di riconnessione è immediato.
+
+## 2.131.1 (build 332) · Correzioni abbinamento
+
+- La chiave del telefono ora permette la firma RSA-PSS richiesta dal box con
+  TLS 1.3: con la 331 l'abbinamento falliva sempre sul telefono.
+- Attesa di connessione 8 s e un secondo tentativo automatico se il box è
+  lento a rispondere; errore TLS distinto da box non raggiungibile.
+
 ## 2.131.0 (build 331) · Telecomando TV
 
 - Nuova voce Impostazioni → Casa → Telecomando TV, solo su Android: comanda

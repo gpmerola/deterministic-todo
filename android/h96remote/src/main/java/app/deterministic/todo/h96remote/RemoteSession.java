@@ -21,9 +21,13 @@ public final class RemoteSession {
         void onState(State state, Failure failure);
 
         void onVolume(RemoteProtocol.Volume volume);
+
+        /** Time from TCP connect to TLS ready: a rough measure of the link to the box. */
+        default void onHandshake(long millis) {}
     }
 
-    static final long[] RETRY_DELAYS_MS = {1000, 2000, 4000, 8000, 8000};
+    /** The first retry is immediate: most drops are a single lost Wi-Fi burst. */
+    static final long[] RETRY_DELAYS_MS = {0, 1000, 2000, 4000, 8000, 8000};
 
     private final TvTransport.Factory factory;
     private final String host;
@@ -75,6 +79,11 @@ public final class RemoteSession {
         return sendIfReady(RemoteMessages.key(command), null);
     }
 
+    /** Start or end a held key. Ending is sent even while reconnecting is not possible. */
+    public boolean hold(RemoteCommand command, boolean start) {
+        return sendIfReady(RemoteMessages.hold(command, start), null);
+    }
+
     public boolean sendText(String text) {
         return sendIfReady(null, text);
     }
@@ -104,6 +113,7 @@ public final class RemoteSession {
         setState(connectingState, Failure.NONE);
         protocol = new RemoteProtocol();
         TvTransport next = factory.create(host, port);
+        long began = System.nanoTime();
         try {
             next.open(new TvTransport.Listener() {
                 @Override public void onMessage(byte[] payload) {
@@ -115,6 +125,7 @@ public final class RemoteSession {
                 }
             });
             transport = next;
+            listener.onHandshake((System.nanoTime() - began) / 1_000_000);
         } catch (SSLException e) {
             next.close();
             fail(Failure.NOT_PAIRED);

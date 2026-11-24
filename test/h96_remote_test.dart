@@ -29,7 +29,7 @@ void main() {
         'discover' => [
           {'name': 'RK3518', 'host': '192.168.1.2'},
         ],
-        'send' || 'sendText' => true,
+        'send' || 'sendText' || 'hold' => true,
         _ => null,
       };
     });
@@ -104,6 +104,8 @@ void main() {
     final send = calls.lastWhere((c) => c.method == 'send');
     expect(send.arguments, {'command': 'OK'});
 
+    await tester.ensureVisible(find.byTooltip('Invia alla TV'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('h96-text')), 'Città €');
     await tester.tap(find.byTooltip('Invia alla TV'));
     await tester.pump();
@@ -114,6 +116,37 @@ void main() {
     await tester.pump();
     expect(find.text('Abbinamento non più valido'), findsOneWidget);
     expect(find.text('Abbina di nuovo'), findsOneWidget);
+  });
+
+  testWidgets('holding an arrow starts and ends a long press', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: H96RemotePage()));
+    await tester.pumpAndSettle();
+    await nativeEvent('state', {'state': 'READY', 'failure': 'NONE'});
+    await tester.pump();
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.keyboard_arrow_down)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    await gesture.up();
+    await tester.pump();
+    final holds = calls.where((c) => c.method == 'hold').toList();
+    expect(holds.map((c) => c.arguments), [
+      {'command': 'DOWN', 'start': true},
+      {'command': 'DOWN', 'start': false},
+    ]);
+    expect(calls.where((c) => c.method == 'send'), isEmpty);
+  });
+
+  testWidgets('a slow link is shown under the status', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: H96RemotePage()));
+    await tester.pumpAndSettle();
+    await nativeEvent('state', {'state': 'READY', 'failure': 'NONE'});
+    await nativeEvent('latency', {'millis': 300});
+    await tester.pump();
+    expect(find.byKey(const ValueKey('h96-slow')), findsNothing);
+    await nativeEvent('latency', {'millis': 3200});
+    await tester.pump();
+    expect(find.byKey(const ValueKey('h96-slow')), findsOneWidget);
   });
 
   testWidgets('leaving the page disconnects', (tester) async {

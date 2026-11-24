@@ -65,7 +65,12 @@ testate sulla JVM.
   cambiato, una sola ricerca mDNS trova il nuovo indirizzo; il pin conferma
   che è lo stesso box.
 - I comandi sono inviati solo nello stato pronto e mai accodati: una
-  riconnessione non può ripetere un tasto.
+  riconnessione non può ripetere un tasto. Tenendo premuti frecce e volume
+  si inviano `START_LONG` e, al rilascio o all'uscita, `END_LONG`: è il box
+  a ripetere il tasto, quindi non parte una raffica di messaggi.
+- Mentre la schermata è aperta si tiene un `WifiLock` a bassa latenza
+  (`WAKE_LOCK`), rilasciato alla disconnessione. Il tempo di apertura della
+  connessione è mostrato come «Rete lenta» sopra 1,5 s.
 - Il testo viene inviato solo con «Invia» e sostituisce il contenuto del
   campo attivo sulla TV; «Cancella» e «Invio» mandano i tasti corrispondenti.
   Gli appunti non vengono mai letti.
@@ -128,9 +133,19 @@ metodi. Il protocollo, i test e questo documento si spostano invariati.
   Android, ricerca, invio tasti e testo solo da pronto, disconnessione.
 - Collaudo reale: Galaxy S21 con Todo Test e box sulla stessa Wi-Fi.
 
+## Collaudo sul Galaxy (24 novembre 2026)
+
+Build 331: abbinamento sempre fallito per la chiave Keystore senza
+decifratura raw, necessaria a Conscrypt per RSA-PSS con TLS 1.3 (corretto
+nella 332, alias `h96remote_client_v2`). Build 332: abbinamento e comandi
+riusciti; tasti a volte poco reattivi. Misura via ADB: ping telefono → box
+2,4–3,8 s contro 50 ms verso il router, poi box irraggiungibile anche dal
+Mac. La lentezza dipende soprattutto dal collegamento Wi-Fi del box; la 333
+migliora la parte dell'app.
+
 ## Limiti noti
 
 Non ancora: touchpad e puntatore, scorciatoie app, dettatura, risveglio dallo
 standby (il comando POWER esiste ma non è nella UI), ripetizione a pressione
-lunga. La compatibilità della chiave Keystore con TLS 1.3 verso il box va
-confermata sul Galaxy (sul Mac la prova usa una chiave software).
+lunga. Il collegamento Wi-Fi del box può introdurre secondi di ritardo che
+l'app non può eliminare: con il cavo Ethernet il problema sparisce.

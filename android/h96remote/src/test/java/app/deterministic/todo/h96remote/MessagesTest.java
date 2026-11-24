@@ -28,6 +28,11 @@ public class MessagesTest {
             Hex.of(RemoteMessages.text("Città €", 5, 7)));
     }
 
+    @Test public void heldKeysUseLongPressDirections() {
+        assertEquals("520408131001", Hex.of(RemoteMessages.hold(RemoteCommand.UP, true)));
+        assertEquals("520408131002", Hex.of(RemoteMessages.hold(RemoteCommand.UP, false)));
+    }
+
     @Test public void requestedFeaturesExcludeVoice() {
         assertEquals(615, RemoteMessages.REQUESTED_FEATURES);
         assertEquals(0, RemoteMessages.REQUESTED_FEATURES & (1 << 3));

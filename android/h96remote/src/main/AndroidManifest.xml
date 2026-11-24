@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- LAN only: TLS to the TV box on ports 6466/6467, mDNS discovery via NsdManager. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Low-latency Wi-Fi lock, held only while the remote screen is open. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 </manifest>

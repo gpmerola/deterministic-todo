@@ -25,6 +25,8 @@ public final class RemoteMessages {
     static final int REQUESTED_FEATURES =
         FEATURE_PING | FEATURE_KEY | FEATURE_IME | FEATURE_POWER | FEATURE_VOLUME | FEATURE_APP_LINK;
 
+    static final int DIRECTION_START_LONG = 1;
+    static final int DIRECTION_END_LONG = 2;
     static final int DIRECTION_SHORT = 3;
 
     private RemoteMessages() {}
@@ -48,9 +50,18 @@ public final class RemoteMessages {
     }
 
     public static byte[] key(RemoteCommand command) {
+        return key(command, DIRECTION_SHORT);
+    }
+
+    /** Press-and-hold: the box repeats the key itself until END_LONG, like a physical remote. */
+    public static byte[] hold(RemoteCommand command, boolean start) {
+        return key(command, start ? DIRECTION_START_LONG : DIRECTION_END_LONG);
+    }
+
+    private static byte[] key(RemoteCommand command, int direction) {
         return new ProtoWriter().message(F_KEY_INJECT, new ProtoWriter()
             .varint(1, command.keyCode)
-            .varint(2, DIRECTION_SHORT)).toByteArray();
+            .varint(2, direction)).toByteArray();
     }
 
     /** Replaces the focused text field's content with {@code text}, cursor at the end. */

@@ -18,9 +18,17 @@ import java.util.Date;
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
 
-/** RSA client key generated inside the Android Keystore; the private key never leaves it. */
+/**
+ * RSA client key generated inside the Android Keystore; the private key never leaves it.
+ *
+ * <p>For TLS 1.3 the box needs an RSA-PSS signature. Conscrypt pads it itself and asks the
+ * Keystore for a raw RSA operation ("RSA/ECB/NoPadding" decrypt), so the key must also allow
+ * decryption without padding. Build 331 created the key without it ("_v1") and the handshake
+ * failed; the alias changed so phones get a usable key.
+ */
 public final class KeyStoreIdentity implements ClientIdentity {
-    static final String ALIAS = "h96remote_client_v1";
+    static final String ALIAS = "h96remote_client_v2";
+    private static final String OBSOLETE_ALIAS = "h96remote_client_v1";
     private static final String PROVIDER = "AndroidKeyStore";
 
     @Override
@@ -49,6 +57,7 @@ public final class KeyStoreIdentity implements ClientIdentity {
             KeyStore store = KeyStore.getInstance(PROVIDER);
             store.load(null);
             if (store.containsAlias(ALIAS)) store.deleteEntry(ALIAS);
+            if (store.containsAlias(OBSOLETE_ALIAS)) store.deleteEntry(OBSOLETE_ALIAS);
         } catch (Exception ignored) {
             // Nothing to revoke.
         }
@@ -62,16 +71,20 @@ public final class KeyStoreIdentity implements ClientIdentity {
             throw new GeneralSecurityException(e);
         }
         if (store.containsAlias(ALIAS)) return store;
+        if (store.containsAlias(OBSOLETE_ALIAS)) store.deleteEntry(OBSOLETE_ALIAS);
         Calendar end = Calendar.getInstance();
         end.add(Calendar.YEAR, 10);
         KeyPairGenerator generator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, PROVIDER);
         generator.initialize(new KeyGenParameterSpec.Builder(ALIAS,
-                KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
+                KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY
+                    | KeyProperties.PURPOSE_DECRYPT)
             .setKeySize(2048)
             .setDigests(KeyProperties.DIGEST_NONE, KeyProperties.DIGEST_SHA256,
                 KeyProperties.DIGEST_SHA384, KeyProperties.DIGEST_SHA512)
             .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1,
                 KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setRandomizedEncryptionRequired(false)
             .setCertificateSubject(new X500Principal("CN=atvremote"))
             .setCertificateSerialNumber(BigInteger.ONE)
             .setCertificateNotBefore(new Date())

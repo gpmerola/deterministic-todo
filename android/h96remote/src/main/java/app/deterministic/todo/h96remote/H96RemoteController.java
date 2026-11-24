@@ -30,6 +30,9 @@ public final class H96RemoteController {
         void onState(String state, String failure);
 
         void onVolume(int level, int max, boolean muted);
+
+        /** Milliseconds to open the encrypted connection; high values mean a weak link. */
+        void onLatency(long millis);
     }
 
     public interface Result<T> {
@@ -47,6 +50,7 @@ public final class H96RemoteController {
     private ScheduledExecutorService sessionExecutor;
     private RemoteSession session;
     private boolean rediscovered;
+    private android.net.wifi.WifiManager.WifiLock wifiLock;
 
     // Pairing state, confined to pairingExecutor.
     private PairingSession pairing;
@@ -92,19 +96,40 @@ public final class H96RemoteController {
         pairingExecutor.execute(() -> {
             closePairing();
             try {
-                pairingTrust = new PinningTrustManager(null);
-                TlsTransport transport = new TlsTransport(host, PAIRING_PORT,
-                    TlsContexts.factory(identity, pairingTrust));
-                pairing = new PairingSession(transport, clientName());
-                pairing.start();
+                startPairingSession(host);
                 pairingHost = host;
                 pairingName = name == null || name.isEmpty() ? host : name;
                 post(() -> result.ok(null));
-            } catch (IOException | GeneralSecurityException e) {
+            } catch (javax.net.ssl.SSLException | GeneralSecurityException e) {
+                logFailure("pairing", e);
+                closePairing();
+                post(() -> result.error("tls_failed"));
+            } catch (IOException e) {
+                logFailure("pairing", e);
                 closePairing();
                 post(() -> result.error("unreachable"));
             }
         });
+    }
+
+    /** One retry for plain network errors: a sleeping box may miss the first attempt. */
+    private void startPairingSession(String host) throws IOException, GeneralSecurityException {
+        for (int attempt = 1; ; attempt++) {
+            pairingTrust = new PinningTrustManager(null);
+            TlsTransport transport = new TlsTransport(host, PAIRING_PORT,
+                TlsContexts.factory(identity, pairingTrust));
+            pairing = new PairingSession(transport, clientName());
+            try {
+                pairing.start();
+                return;
+            } catch (javax.net.ssl.SSLException e) {
+                throw e;
+            } catch (IOException e) {
+                closePairing();
+                if (attempt >= 2) throw e;
+                logFailure("pairing attempt", e);
+            }
+        }
     }
 
     public void finishPairing(String code, Result<Void> result) {
@@ -130,6 +155,7 @@ public final class H96RemoteController {
                 closePairing();
                 post(() -> result.error("bad_code"));
             } catch (IOException | GeneralSecurityException | ClassCastException e) {
+                logFailure("finish", e);
                 closePairing();
                 post(() -> result.error("pairing_failed"));
             }
@@ -148,10 +174,12 @@ public final class H96RemoteController {
         }
         disconnect();
         rediscovered = false;
+        acquireWifiLock();
         startSession(box);
     }
 
     public void disconnect() {
+        releaseWifiLock();
         if (session != null) session.stop();
         session = null;
         if (sessionExecutor != null) sessionExecutor.shutdown();
@@ -161,6 +189,11 @@ public final class H96RemoteController {
     public boolean send(String command) {
         RemoteCommand parsed = RemoteCommand.parse(command);
         return parsed != null && session != null && session.send(parsed);
+    }
+
+    public boolean hold(String command, boolean start) {
+        RemoteCommand parsed = RemoteCommand.parse(command);
+        return parsed != null && session != null && session.hold(parsed, start);
     }
 
     public boolean sendText(String text) {
@@ -192,6 +225,10 @@ public final class H96RemoteController {
 
             @Override public void onVolume(RemoteProtocol.Volume volume) {
                 post(() -> events.onVolume(volume.level, volume.max, volume.muted));
+            }
+
+            @Override public void onHandshake(long millis) {
+                post(() -> events.onLatency(millis));
             }
         });
         owner[0] = next;
@@ -227,6 +264,31 @@ public final class H96RemoteController {
         boolean flag = rediscovered;
         disconnect();
         rediscovered = flag;
+        acquireWifiLock();
+    }
+
+    /**
+     * While the remote screen is open, keep the phone's Wi-Fi out of power saving so key
+     * presses leave at once. Android honours the low-latency lock only in the foreground with
+     * the screen on, and it is released as soon as the screen closes or the app is paused.
+     */
+    @SuppressWarnings("deprecation") // WIFI_MODE_FULL_HIGH_PERF is the fallback below API 29.
+    private void acquireWifiLock() {
+        if (wifiLock != null) return;
+        android.net.wifi.WifiManager wifi =
+            (android.net.wifi.WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        if (wifi == null) return;
+        int mode = Build.VERSION.SDK_INT >= 29
+            ? android.net.wifi.WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            : android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
+        wifiLock = wifi.createWifiLock(mode, "h96remote");
+        wifiLock.setReferenceCounted(false);
+        wifiLock.acquire();
+    }
+
+    private void releaseWifiLock() {
+        if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
+        wifiLock = null;
     }
 
     private void closePairing() {
@@ -235,6 +297,13 @@ public final class H96RemoteController {
         pairingTrust = null;
         pairingHost = null;
         pairingName = null;
+    }
+
+    /** Exception class and its cause class only: never hosts, codes or typed text. */
+    static void logFailure(String step, Exception e) {
+        Throwable cause = e.getCause();
+        android.util.Log.w("H96Remote", step + " failed: " + e.getClass().getSimpleName()
+            + (cause == null ? "" : " <- " + cause.getClass().getSimpleName()));
     }
 
     private void post(Runnable runnable) {

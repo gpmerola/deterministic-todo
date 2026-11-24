@@ -24,6 +24,7 @@ class H96Status {
     this.volumeLevel = -1,
     this.volumeMax = 0,
     this.muted = false,
+    this.latencyMs = 0,
   });
 
   final bool paired;
@@ -34,6 +35,9 @@ class H96Status {
   final int volumeLevel;
   final int volumeMax;
   final bool muted;
+
+  /// Time the last connection took to open; 0 when unknown.
+  final int latencyMs;
 
   bool get ready => state == H96ConnectionState.ready;
 
@@ -46,6 +50,7 @@ class H96Status {
     int? volumeLevel,
     int? volumeMax,
     bool? muted,
+    int? latencyMs,
   }) => H96Status(
     paired: paired ?? this.paired,
     name: name ?? this.name,
@@ -55,6 +60,7 @@ class H96Status {
     volumeLevel: volumeLevel ?? this.volumeLevel,
     volumeMax: volumeMax ?? this.volumeMax,
     muted: muted ?? this.muted,
+    latencyMs: latencyMs ?? this.latencyMs,
   );
 }
 
@@ -93,7 +99,8 @@ class H96RemoteClient {
     ];
   }
 
-  /// Throws [PlatformException] with code `invalid_host` or `unreachable`.
+  /// Throws [PlatformException] with code `invalid_host`, `tls_failed` or
+  /// `unreachable`.
   Future<void> startPairing(String host, {String name = ''}) =>
       _channel.invokeMethod('startPairing', {'host': host, 'name': name});
 
@@ -113,6 +120,14 @@ class H96RemoteClient {
   /// Returns false when the command was dropped because the box is not ready.
   Future<bool> send(String command) async =>
       await _channel.invokeMethod<bool>('send', {'command': command}) ?? false;
+
+  /// Starts or ends a held key; the box repeats it until the end.
+  Future<bool> hold(String command, {required bool start}) async =>
+      await _channel.invokeMethod<bool>('hold', {
+        'command': command,
+        'start': start,
+      }) ??
+      false;
 
   Future<bool> sendText(String text) async =>
       await _channel.invokeMethod<bool>('sendText', {'text': text}) ?? false;
@@ -141,6 +156,10 @@ class H96RemoteClient {
           volumeLevel: args['level'] as int? ?? -1,
           volumeMax: args['max'] as int? ?? 0,
           muted: args['muted'] == true,
+        );
+      case 'latency':
+        status.value = status.value.copyWith(
+          latencyMs: args['millis'] as int? ?? 0,
         );
     }
   }

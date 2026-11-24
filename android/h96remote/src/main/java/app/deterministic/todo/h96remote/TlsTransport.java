@@ -12,7 +12,8 @@ import javax.net.ssl.SSLSocketFactory;
 
 /** TLS socket with a reader thread. Writes are serialized; nothing is queued while closed. */
 public final class TlsTransport implements TvTransport {
-    static final int CONNECT_TIMEOUT_MS = 4000;
+    /** The box's Wi-Fi power saving can delay the first ARP reply by several seconds. */
+    static final int CONNECT_TIMEOUT_MS = 8000;
     /** The box pings every 5 s; three missed pings mean the link is gone. */
     static final int READ_TIMEOUT_MS = 16000;
 

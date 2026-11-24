@@ -45,13 +45,17 @@ class _H96RemotePageState extends State<H96RemotePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_client.status.value.paired) return;
-    if (state == AppLifecycleState.paused) _client.disconnect();
+    if (state == AppLifecycleState.paused) {
+      _releaseHeld();
+      _client.disconnect();
+    }
     if (state == AppLifecycleState.resumed) _client.connect();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _releaseHeld();
     _client.disconnect();
     _client.cancelPairing();
     if (widget.client == null) _client.dispose();
@@ -69,6 +73,25 @@ class _H96RemotePageState extends State<H96RemotePage>
     unawaited(HapticFeedback.selectionClick());
     final sent = await _client.send(command);
     if (!sent && mounted) _snack('Telecomando non connesso');
+  }
+
+  /// Keys currently held, so leaving the screen always ends the repetition.
+  final Set<String> _held = {};
+
+  void _hold(String command, bool start) {
+    if (start) {
+      unawaited(HapticFeedback.mediumImpact());
+      _held.add(command);
+    } else if (!_held.remove(command)) {
+      return;
+    }
+    unawaited(_client.hold(command, start: start));
+  }
+
+  void _releaseHeld() {
+    for (final command in _held.toList()) {
+      _hold(command, false);
+    }
   }
 
   Future<void> _sendText() async {
@@ -131,11 +154,11 @@ class _H96RemotePageState extends State<H96RemotePage>
     } on PlatformException catch (error) {
       if (mounted) {
         setState(() => _busy = false);
-        _snack(
-          error.code == 'invalid_host'
-              ? 'Usa un indirizzo della rete di casa'
-              : 'Box non raggiungibile su questa Wi-Fi',
-        );
+        _snack(switch (error.code) {
+          'invalid_host' => 'Usa un indirizzo della rete di casa',
+          'tls_failed' => 'Il box ha rifiutato la connessione cifrata',
+          _ => 'Box non raggiungibile su questa Wi-Fi',
+        });
       }
       return;
     }
@@ -250,13 +273,28 @@ class _H96RemotePageState extends State<H96RemotePage>
   }
 
   Widget _remote(BuildContext context, H96Status status) {
+    // The status stays pinned above the scrolling controls.
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: _StatusBar(
+            status: status,
+            onRetry: _client.connect,
+            onRepair: _forget,
+          ),
+        ),
+        Expanded(child: _controls(context, status)),
+      ],
+    );
+  }
+
+  Widget _controls(BuildContext context, H96Status status) {
     final ready = status.ready;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        _StatusBar(status: status, onRetry: _client.connect, onRepair: _forget),
-        const SizedBox(height: 16),
-        _DirectionPad(enabled: ready, onPressed: _press),
+        _DirectionPad(enabled: ready, onPressed: _press, onHold: _hold),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -288,6 +326,7 @@ class _H96RemotePageState extends State<H96RemotePage>
                 label: 'Volume giù',
                 enabled: ready,
                 onPressed: () => _press('VOLUME_DOWN'),
+                onHold: (start) => _hold('VOLUME_DOWN', start),
               ),
             ),
             const SizedBox(width: 12),
@@ -306,6 +345,7 @@ class _H96RemotePageState extends State<H96RemotePage>
                 label: 'Volume su',
                 enabled: ready,
                 onPressed: () => _press('VOLUME_UP'),
+                onHold: (start) => _hold('VOLUME_UP', start),
               ),
             ),
           ],
@@ -370,6 +410,10 @@ class _H96RemotePageState extends State<H96RemotePage>
   }
 }
 
+/// A healthy LAN opens the encrypted connection in about 0.3 s (measured on
+/// the H96 Max); above this the link is visibly slow.
+const _slowLinkMs = 1500;
+
 class _StatusBar extends StatelessWidget {
   const _StatusBar({
     required this.status,
@@ -414,11 +458,28 @@ class _StatusBar extends StatelessWidget {
         'Non connesso',
       ),
     };
+    final slow = status.ready && status.latencyMs >= _slowLinkMs;
     return Row(
       children: [
-        Icon(icon, color: color),
+        Icon(
+          slow ? Icons.network_check : icon,
+          color: slow ? scheme.tertiary : color,
+        ),
         const SizedBox(width: 8),
-        Expanded(child: Text(text, key: const ValueKey('h96-status'))),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(text, key: const ValueKey('h96-status')),
+              if (slow)
+                Text(
+                  'Rete lenta verso il box: i tasti possono arrivare in ritardo',
+                  key: const ValueKey('h96-slow'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
+          ),
+        ),
         if (status.state == H96ConnectionState.failed)
           status.failure == H96Failure.notPaired
               ? TextButton(
@@ -431,11 +492,18 @@ class _StatusBar extends StatelessWidget {
   }
 }
 
+typedef _Hold = void Function(String command, bool start);
+
 class _DirectionPad extends StatelessWidget {
-  const _DirectionPad({required this.enabled, required this.onPressed});
+  const _DirectionPad({
+    required this.enabled,
+    required this.onPressed,
+    required this.onHold,
+  });
 
   final bool enabled;
   final void Function(String command) onPressed;
+  final _Hold onHold;
 
   @override
   Widget build(BuildContext context) {
@@ -444,8 +512,12 @@ class _DirectionPad extends StatelessWidget {
       label: label,
       enabled: enabled,
       onPressed: () => onPressed(command),
+      onHold: (start) => onHold(command, start),
     );
-    const gap = SizedBox(width: 72, height: 72);
+    const gap = SizedBox(
+      width: _RoundButton.size + 8,
+      height: _RoundButton.size + 8,
+    );
     return Column(
       children: [
         Row(
@@ -474,20 +546,46 @@ class _DirectionPad extends StatelessWidget {
   }
 }
 
+/// Wraps a button so that holding it sends a long press the box repeats
+/// itself, and releasing it ends the repetition. A quick tap stays a tap.
+class _Holdable extends StatelessWidget {
+  const _Holdable({required this.enabled, required this.child, this.onHold});
+
+  final bool enabled;
+  final ValueChanged<bool>? onHold;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final hold = onHold;
+    if (hold == null || !enabled) return child;
+    return GestureDetector(
+      onLongPressStart: (_) => hold(true),
+      onLongPressEnd: (_) => hold(false),
+      onLongPressCancel: () => hold(false),
+      child: child,
+    );
+  }
+}
+
 class _RoundButton extends StatelessWidget {
   const _RoundButton({
     required this.label,
     required this.enabled,
     required this.onPressed,
+    this.onHold,
     this.icon,
     this.filled = false,
   });
+
+  static const double size = 76;
 
   final IconData? icon;
   final String label;
   final bool enabled;
   final bool filled;
   final VoidCallback onPressed;
+  final ValueChanged<bool>? onHold;
 
   @override
   Widget build(BuildContext context) {
@@ -497,24 +595,28 @@ class _RoundButton extends StatelessWidget {
       child: Semantics(
         button: true,
         label: label,
-        child: Material(
-          color: filled
-              ? scheme.primaryContainer
-              : scheme.surfaceContainerHighest,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: enabled ? onPressed : null,
-            child: SizedBox(
-              width: 64,
-              height: 64,
-              child: Center(
-                child: icon == null
-                    ? Text(
-                        label,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      )
-                    : Icon(icon, size: 36),
+        child: _Holdable(
+          enabled: enabled,
+          onHold: onHold,
+          child: Material(
+            color: filled
+                ? scheme.primaryContainer
+                : scheme.surfaceContainerHighest,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: enabled ? onPressed : null,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Center(
+                  child: icon == null
+                      ? Text(
+                          label,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        )
+                      : Icon(icon, size: 40),
+                ),
               ),
             ),
           ),
@@ -530,18 +632,24 @@ class _RemoteButton extends StatelessWidget {
     required this.label,
     required this.enabled,
     required this.onPressed,
+    this.onHold,
   });
 
   final IconData icon;
   final String label;
   final bool enabled;
   final VoidCallback onPressed;
+  final ValueChanged<bool>? onHold;
 
   @override
-  Widget build(BuildContext context) => FilledButton.tonal(
-    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-    onPressed: enabled ? onPressed : null,
-    child: Tooltip(message: label, child: Icon(icon)),
+  Widget build(BuildContext context) => _Holdable(
+    enabled: enabled,
+    onHold: onHold,
+    child: FilledButton.tonal(
+      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+      onPressed: enabled ? onPressed : null,
+      child: Tooltip(message: label, child: Icon(icon)),
+    ),
   );
 }
 
