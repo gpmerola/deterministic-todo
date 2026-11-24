@@ -1,0 +1,248 @@
+package app.deterministic.todo.h96remote;
+
+import android.content.Context;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.interfaces.RSAPublicKey;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+/**
+ * Facade for the host app: the only class a UI bridge needs. Callbacks run on the main thread.
+ * Nothing starts until the UI asks: no work at app start, no background service.
+ * Typed text is passed straight to the socket and never logged or stored.
+ */
+public final class H96RemoteController {
+    public static final int REMOTE_PORT = 6466;
+    public static final int PAIRING_PORT = 6467;
+
+    public interface Events {
+        void onState(String state, String failure);
+
+        void onVolume(int level, int max, boolean muted);
+    }
+
+    public interface Result<T> {
+        void ok(T value);
+
+        void error(String code);
+    }
+
+    private final Context context;
+    private final Events events;
+    private final BoxStore store;
+    private final ClientIdentity identity = new KeyStoreIdentity();
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final ExecutorService pairingExecutor = Executors.newSingleThreadExecutor();
+    private ScheduledExecutorService sessionExecutor;
+    private RemoteSession session;
+    private boolean rediscovered;
+
+    // Pairing state, confined to pairingExecutor.
+    private PairingSession pairing;
+    private PinningTrustManager pairingTrust;
+    private String pairingHost;
+    private String pairingName;
+
+    public H96RemoteController(Context context, Events events) {
+        this.context = context.getApplicationContext();
+        this.events = events;
+        this.store = new BoxStore(this.context);
+    }
+
+    public Map<String, Object> status() {
+        BoxStore.Box box = store.load();
+        Map<String, Object> value = new HashMap<>();
+        value.put("paired", box != null);
+        value.put("name", box == null ? "" : box.name);
+        value.put("host", box == null ? "" : box.host);
+        value.put("state", session == null ? RemoteSession.State.IDLE.name() : session.state().name());
+        return value;
+    }
+
+    public void discover(Result<List<Map<String, Object>>> result) {
+        BoxDiscovery.run(context, boxes -> {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (BoxDiscovery.Found box : boxes) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("name", box.name);
+                item.put("host", box.host);
+                list.add(item);
+            }
+            result.ok(list);
+        });
+    }
+
+    /** Makes the TV show a pairing code. */
+    public void startPairing(String host, String name, Result<Void> result) {
+        if (!LanAddress.isPrivate(host)) {
+            result.error("invalid_host");
+            return;
+        }
+        pairingExecutor.execute(() -> {
+            closePairing();
+            try {
+                pairingTrust = new PinningTrustManager(null);
+                TlsTransport transport = new TlsTransport(host, PAIRING_PORT,
+                    TlsContexts.factory(identity, pairingTrust));
+                pairing = new PairingSession(transport, clientName());
+                pairing.start();
+                pairingHost = host;
+                pairingName = name == null || name.isEmpty() ? host : name;
+                post(() -> result.ok(null));
+            } catch (IOException | GeneralSecurityException e) {
+                closePairing();
+                post(() -> result.error("unreachable"));
+            }
+        });
+    }
+
+    public void finishPairing(String code, Result<Void> result) {
+        pairingExecutor.execute(() -> {
+            if (pairing == null || pairingTrust == null || pairingTrust.seen() == null) {
+                post(() -> result.error("no_pairing"));
+                return;
+            }
+            try {
+                X509Certificate server = pairingTrust.seen();
+                byte[] secret = PairingSecret.compute(code, identity.publicKey(),
+                    (RSAPublicKey) server.getPublicKey());
+                if (secret == null) {
+                    // Wrong code: keep the session open so the user can retype it.
+                    post(() -> result.error("bad_code"));
+                    return;
+                }
+                pairing.finish(secret);
+                store.save(pairingHost, pairingName, PinningTrustManager.fingerprint(server));
+                closePairing();
+                post(() -> result.ok(null));
+            } catch (PairingSession.BadSecretException e) {
+                closePairing();
+                post(() -> result.error("bad_code"));
+            } catch (IOException | GeneralSecurityException | ClassCastException e) {
+                closePairing();
+                post(() -> result.error("pairing_failed"));
+            }
+        });
+    }
+
+    public void cancelPairing() {
+        pairingExecutor.execute(this::closePairing);
+    }
+
+    public void connect() {
+        BoxStore.Box box = store.load();
+        if (box == null) {
+            events.onState(RemoteSession.State.FAILED.name(), RemoteSession.Failure.NOT_PAIRED.name());
+            return;
+        }
+        disconnect();
+        rediscovered = false;
+        startSession(box);
+    }
+
+    public void disconnect() {
+        if (session != null) session.stop();
+        session = null;
+        if (sessionExecutor != null) sessionExecutor.shutdown();
+        sessionExecutor = null;
+    }
+
+    public boolean send(String command) {
+        RemoteCommand parsed = RemoteCommand.parse(command);
+        return parsed != null && session != null && session.send(parsed);
+    }
+
+    public boolean sendText(String text) {
+        return text != null && session != null && session.sendText(text);
+    }
+
+    /** Forgets the box and deletes this phone's key, so the pairing cannot be reused. */
+    public void forget() {
+        disconnect();
+        cancelPairing();
+        store.clear();
+        KeyStoreIdentity.delete();
+    }
+
+    private void startSession(BoxStore.Box box) {
+        sessionExecutor = Executors.newSingleThreadScheduledExecutor();
+        PinningTrustManager trust = new PinningTrustManager(box.pin);
+        RemoteSession[] owner = new RemoteSession[1];
+        RemoteSession next = new RemoteSession((host, port) -> {
+            try {
+                return new TlsTransport(host, port, TlsContexts.factory(identity, trust));
+            } catch (GeneralSecurityException e) {
+                throw new IllegalStateException(e);
+            }
+        }, box.host, REMOTE_PORT, sessionExecutor, new RemoteSession.Listener() {
+            @Override public void onState(RemoteSession.State state, RemoteSession.Failure failure) {
+                post(() -> onSessionState(owner[0], state, failure));
+            }
+
+            @Override public void onVolume(RemoteProtocol.Volume volume) {
+                post(() -> events.onVolume(volume.level, volume.max, volume.muted));
+            }
+        });
+        owner[0] = next;
+        session = next;
+        next.start();
+    }
+
+    private void onSessionState(RemoteSession owner, RemoteSession.State state, RemoteSession.Failure failure) {
+        if (owner != session) return;
+        if (state == RemoteSession.State.FAILED && failure == RemoteSession.Failure.UNREACHABLE && !rediscovered) {
+            // The box may have a new DHCP address: look it up once; the pin still proves identity.
+            rediscovered = true;
+            events.onState(RemoteSession.State.RECONNECTING.name(), failure.name());
+            BoxDiscovery.run(context, boxes -> {
+                BoxStore.Box box = store.load();
+                if (box == null || owner != session) return;
+                for (BoxDiscovery.Found found : boxes) {
+                    if (!found.host.equals(box.host)) {
+                        store.updateHost(found.host);
+                        disconnectKeepingFlag();
+                        startSession(store.load());
+                        return;
+                    }
+                }
+                events.onState(state.name(), failure.name());
+            });
+            return;
+        }
+        events.onState(state.name(), failure.name());
+    }
+
+    private void disconnectKeepingFlag() {
+        boolean flag = rediscovered;
+        disconnect();
+        rediscovered = flag;
+    }
+
+    private void closePairing() {
+        if (pairing != null) pairing.close();
+        pairing = null;
+        pairingTrust = null;
+        pairingHost = null;
+        pairingName = null;
+    }
+
+    private void post(Runnable runnable) {
+        main.post(runnable);
+    }
+
+    private static String clientName() {
+        String model = Build.MODEL == null ? "" : Build.MODEL.trim();
+        return model.isEmpty() ? "Todo remote" : "Todo · " + model;
+    }
+}

@@ -26,3 +26,4 @@ plugins {
 
 include(":app")
 include(":runtracker")
+include(":h96remote")

@@ -35,7 +35,8 @@ Le Sessioni amministrative (build 264–267) sono state rimosse nella build 268
 su richiesta dell'utente; il progetto «Amministrazione» resta un progetto
 normale. Codice e contratto nel tag `archive/admin-sessions-b267`.
 
-Funzioni accessorie: assistente ✨ ([AI_ASSISTANT](architecture/AI_ASSISTANT.md))
+Funzioni accessorie: telecomando TV H96 Max ([H96_REMOTE](architecture/H96_REMOTE.md)),
+assistente ✨ ([AI_ASSISTANT](architecture/AI_ASSISTANT.md))
 e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
 
 ## Struttura del codice
@@ -64,6 +65,8 @@ e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
   ([confini](architecture/TODO_UX_HARDENING.md)).
 - `android/app` — canali nativi Calendario, scorciatoia Home, debug provider.
 - `android/runtracker` — contapassi (Room + Recording API, nessun GPS/BLE).
+- `android/h96remote` + `lib/features/h96_remote/` — telecomando TV isolato
+  dietro flag, rimovibile ([H96_REMOTE](architecture/H96_REMOTE.md)).
 - `supabase/migrations/` — applicate a mano solo dopo consenso specifico;
   test in `tools/sql-tests/`.
 - `web/` — `drift_worker.js` e `sqlite3.wasm` compilati: vanno rigenerati

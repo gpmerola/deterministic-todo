@@ -693,6 +693,11 @@ class SettingsView extends StatelessWidget {
             ),
           ),
       ],
+      // Isolated feature: lib/features/h96_remote (docs/architecture/H96_REMOTE.md).
+      if (h96RemoteAvailable) ...[
+        const SettingsHeading('Casa'),
+        const H96RemoteSettingsTile(),
+      ],
       const SettingsHeading('Movimento'),
       ListTile(
         leading: const Icon(Icons.track_changes_outlined),

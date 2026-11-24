@@ -9,5 +9,6 @@ class MainActivity : CalendarShortcutActivity() {
         RuntimeMetricsChannel.register(flutterEngine)
         TodoBackupChannel.register(this, flutterEngine)
         AgendaChannel.register(this, flutterEngine)
+        H96RemoteChannel.register(this, flutterEngine)
     }
 }

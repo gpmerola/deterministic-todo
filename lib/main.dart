@@ -25,6 +25,7 @@ import 'domain/quick_add_metadata.dart';
 import 'domain/quick_add_parser.dart';
 import 'domain/task.dart';
 import 'domain/task_planning.dart';
+import 'features/h96_remote/h96_remote.dart';
 import 'services/agenda_phone_sync.dart';
 import 'services/agenda_reminders.dart';
 import 'services/agenda_service.dart';

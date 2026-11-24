@@ -88,6 +88,16 @@ Internet e non riavviare indiscriminatamente il server ADB condiviso.
 Leggere `docs/operations/ADB_WIFI.md` per configurazione, limiti, recovery e
 provenienza dei file locali. Non aggiungere MAC, codici di pairing o credenziali.
 
+## Telecomando TV (H96 Remote)
+
+Il telecomando del TV Box H96 Max resta confinato in `android/h96remote`
+(Java puro, senza dipendenze), nel ponte `H96RemoteChannel.java` e in
+`lib/features/h96_remote/`, con unico punto di ingresso in Impostazioni e
+flag `H96_REMOTE`. Non farlo dipendere dal dominio Todo, da SQLite o da
+Supabase; nessun lavoro all'avvio o in background, nessun log del testo
+digitato, solo rete locale. Procedura di rimozione ed estrazione in
+`docs/architecture/H96_REMOTE.md`.
+
 ## Modulo movimento e Amazfit
 
 Dalla build 190 resta attivo solo il conteggio quotidiano dei passi del

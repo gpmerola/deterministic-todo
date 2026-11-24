@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.131.0 (build 331) · Telecomando TV
+
+- Nuova voce Impostazioni → Casa → Telecomando TV, solo su Android: comanda
+  il TV Box H96 Max sulla stessa Wi-Fi con frecce, OK, Indietro, Home,
+  volume e muto, e scrive nel campo di testo attivo sulla TV (accenti e
+  simboli compresi) con invio esplicito, più Cancella e Invio. Il box si
+  trova da solo in rete o si inserisce l'indirizzo; la prima volta si digita
+  il codice mostrato sulla TV. Usa il protocollo ufficiale Android TV,
+  cifrato, solo in rete locale, con chiave nell'Android Keystore e
+  certificato del box fissato dopo l'abbinamento. Nessun lavoro all'avvio né
+  in background, nessun log del testo, nessuna nuova dipendenza. Modulo
+  isolato, spegnibile con `--dart-define=H96_REMOTE=false` e rimovibile
+  ([architettura](docs/architecture/H96_REMOTE.md)).
+
 ## 2.130.0 (build 330) · Backup nel cloud
 
 - Con un account collegato, il telefono salva ogni giorno una copia del

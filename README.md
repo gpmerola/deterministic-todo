@@ -84,6 +84,11 @@ Puoi assegnarle di nuovo una data dal pulsante **Data**.
 - export esplicito verso Google Calendar esclusivamente su Android.
 - contapassi Android isolato: passi del telefono tramite la Recording API
   locale e obiettivo giornaliero, in un archivio Room separato.
+- telecomando per il TV Box H96 Max (solo Android, Impostazioni → Casa):
+  frecce, OK, Home, Indietro, volume e testo sul campo attivo della TV tramite
+  il protocollo Android TV sulla Wi-Fi di casa; modulo isolato, spegnibile con
+  `--dart-define=H96_REMOTE=false`
+  ([architettura](docs/architecture/H96_REMOTE.md)).
 
 Nell’inserimento rapido, l’anteprima, il colore della priorità e i menu
 mostrano gli stessi valori, anche quando scrivi `p1` o `#Nome progetto` nel
@@ -350,6 +355,7 @@ Struttura canonica:
 - `web/`: shell browser e asset SQLite WebAssembly;
 - `android/`: client Android;
 - `android/runtracker/`: contapassi nativo (Recording API) e database Room;
+- `android/h96remote/` e `lib/features/h96_remote/`: telecomando TV isolato;
 - `supabase/migrations/`: schema remoto e RLS;
 
 ## Dati, privacy e limiti

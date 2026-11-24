@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- LAN only: TLS to the TV box on ports 6466/6467, mDNS discovery via NsdManager. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
