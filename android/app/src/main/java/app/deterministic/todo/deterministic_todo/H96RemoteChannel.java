@@ -73,6 +73,7 @@ public final class H96RemoteChannel {
                     remote.lightChoose(call.argument("host"), call.argument("mac"));
                     result.success(null);
                 }
+                case "openWizApp" -> result.success(remote.openWizApp(activity));
                 case "lightForget" -> { remote.lightForget(); result.success(null); }
                 case "lightCommand" -> {
                     Map<String, Object> args = call.arguments();

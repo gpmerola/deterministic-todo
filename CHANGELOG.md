@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.134.2 (build 340) · Luce a portata di mano
+
+- Icona lampadina in Oggi, accanto al telecomando: apre subito i controlli
+  della luce in un foglio compatto.
+- Fuori dalla Wi-Fi di casa la luce non è raggiungibile in locale (WiZ non
+  offre un accesso pubblico al proprio cloud): il foglio lo dice e offre
+  «Apri WiZ», che passa all'app ufficiale, funzionante anche in rete mobile.
+
 ## 2.134.0 (build 338) · Luce WiZ nel telecomando
 
 - In fondo al telecomando la sezione Luce comanda una lampadina WiZ sulla

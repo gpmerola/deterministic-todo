@@ -10,6 +10,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'h96_light_card.dart';
 import 'h96_remote_page.dart';
 
 /// Compile-time switch for the whole feature.
@@ -24,20 +25,32 @@ bool get h96RemoteAvailable =>
     !kIsWeb &&
     defaultTargetPlatform == TargetPlatform.android;
 
-/// Quick entry in the Today app bar, next to the step counter.
+/// Quick entries in the Today app bar, next to the step counter: the light
+/// sheet and the remote.
 class H96RemoteAction extends StatelessWidget {
   const H96RemoteAction({super.key});
 
   @override
   Widget build(BuildContext context) {
     if (!h96RemoteAvailable) return const SizedBox.shrink();
-    return IconButton(
-      key: const ValueKey('h96-remote-open'),
-      tooltip: 'Telecomando TV',
-      icon: const Icon(Icons.settings_remote_outlined),
-      onPressed: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const H96RemotePage())),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: const ValueKey('h96-light-open'),
+          tooltip: 'Luce',
+          icon: const Icon(Icons.lightbulb_outline),
+          onPressed: () => H96LightSheet.show(context),
+        ),
+        IconButton(
+          key: const ValueKey('h96-remote-open'),
+          tooltip: 'Telecomando TV',
+          icon: const Icon(Icons.settings_remote_outlined),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const H96RemotePage()),
+          ),
+        ),
+      ],
     );
   }
 }

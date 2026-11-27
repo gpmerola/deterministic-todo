@@ -31,7 +31,12 @@ void main() {
         'discover' => [
           {'name': 'RK3518', 'host': '192.168.1.2'},
         ],
-        'send' || 'sendText' || 'hold' || 'launch' || 'lightCommand' => true,
+        'send' ||
+        'sendText' ||
+        'hold' ||
+        'launch' ||
+        'lightCommand' ||
+        'openWizApp' => true,
         'lightState' => light,
         _ => null,
       };
@@ -214,6 +219,21 @@ void main() {
       {'kind': 'power', 'on': true},
       {'kind': 'white', 'kelvin': 2700},
     ]);
+  });
+
+  testWidgets('away from home the card offers the WiZ app', (tester) async {
+    light = {'known': true, 'reachable': false};
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(appBar: null, body: H96RemoteAction())),
+    );
+    await tester.tap(find.byKey(const ValueKey('h96-light-open')));
+    await tester.pumpAndSettle();
+    expect(find.text('Fuori dalla Wi-Fi di casa'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('h96-open-wiz')));
+    await tester.pump();
+    expect(calls.map((c) => c.method), contains('openWizApp'));
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('leaving the page disconnects', (tester) async {

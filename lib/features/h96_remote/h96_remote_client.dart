@@ -250,6 +250,10 @@ extension H96LightControl on H96RemoteClient {
 
   Future<void> forgetLight() => _channel.invokeMethod('lightForget');
 
+  /// Opens the official WiZ app (works away from home); false if missing.
+  Future<bool> openWizApp() async =>
+      await _channel.invokeMethod<bool>('openWizApp') ?? false;
+
   /// Returns true when the bulb acknowledged the command.
   Future<bool> lightCommand(
     String kind, [

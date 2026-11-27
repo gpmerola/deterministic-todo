@@ -65,6 +65,15 @@ class _H96LightCardState extends State<H96LightCard> {
     }
   }
 
+  Future<void> _openWiz() async {
+    final opened = await widget.client.openWizApp();
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('App WiZ non installata')));
+    }
+  }
+
   Future<void> _connect() async {
     setState(() => _busy = true);
     List<H96Bulb> bulbs;
@@ -157,13 +166,19 @@ class _H96LightCardState extends State<H96LightCard> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                light.reachable ? 'Luce' : 'Luce non raggiungibile',
+                light.reachable ? 'Luce' : 'Fuori dalla Wi-Fi di casa',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
-            if (!light.reachable)
-              TextButton(onPressed: _refresh, child: const Text('Riprova'))
-            else
+            if (!light.reachable) ...[
+              TextButton(onPressed: _refresh, child: const Text('Riprova')),
+              // Away from home only the official app (cloud) can reach it.
+              FilledButton.tonal(
+                key: const ValueKey('h96-open-wiz'),
+                onPressed: _openWiz,
+                child: const Text('Apri WiZ'),
+              ),
+            ] else
               Switch(
                 key: const ValueKey('h96-light-switch'),
                 value: light.on,
@@ -185,8 +200,8 @@ class _H96LightCardState extends State<H96LightCard> {
           onChangeEnd: light.reachable ? _onSlideEnd : null,
         ),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 8,
+          runSpacing: 8,
           alignment: WrapAlignment.center,
           children: [
             for (final (label, color, args) in _presets)
@@ -202,8 +217,8 @@ class _H96LightCardState extends State<H96LightCard> {
                         }
                       : null,
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: color,
                       shape: BoxShape.circle,
@@ -219,4 +234,39 @@ class _H96LightCardState extends State<H96LightCard> {
       ],
     );
   }
+}
+
+/// Light controls on their own, opened from the Today bar.
+class H96LightSheet extends StatefulWidget {
+  const H96LightSheet({super.key});
+
+  static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (_) => const H96LightSheet(),
+  );
+
+  @override
+  State<H96LightSheet> createState() => _H96LightSheetState();
+}
+
+class _H96LightSheetState extends State<H96LightSheet> {
+  final _client = H96RemoteClient();
+
+  @override
+  void dispose() {
+    _client.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [H96LightCard(client: _client)],
+      ),
+    ),
+  );
 }

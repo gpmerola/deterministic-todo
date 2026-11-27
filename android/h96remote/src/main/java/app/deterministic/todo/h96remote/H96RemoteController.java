@@ -258,6 +258,17 @@ public final class H96RemoteController {
         lightPrefs().edit().putString("wiz_host", host).putString("wiz_mac", mac == null ? "" : mac).apply();
     }
 
+    static final String WIZ_PACKAGE = "com.wizconnected.wiz2";
+
+    /** Opens the official WiZ app, which works through its cloud on mobile data. */
+    public boolean openWizApp(android.app.Activity activity) {
+        android.content.Intent intent =
+            activity.getPackageManager().getLaunchIntentForPackage(WIZ_PACKAGE);
+        if (intent == null) return false;
+        activity.startActivity(intent);
+        return true;
+    }
+
     public void lightForget() {
         lightPrefs().edit().remove("wiz_host").remove("wiz_mac").apply();
     }

@@ -114,7 +114,7 @@ Rimuovere del tutto:
 1. cancellare `lib/features/h96_remote/`, `android/h96remote/`,
    `test/h96_remote_test.dart` e
    `android/app/src/main/java/app/deterministic/todo/deterministic_todo/H96RemoteChannel.java`;
-2. togliere da `lib/main.dart` l'import `features/h96_remote/h96_remote.dart`,
+2. (l'icona di Oggi include lampadina e telecomando) togliere da `lib/main.dart` l'import `features/h96_remote/h96_remote.dart`,
    da `lib/ui/settings_view.dart` il blocco `if (h96RemoteAvailable)` e da
    `lib/ui/shell/shell_layout.dart` il blocco `H96RemoteAction` (icona in
    Oggi);
@@ -156,6 +156,12 @@ e MAC della lampadina nelle preferenze `h96_remote`; se l'indirizzo cambia la
 si ritrova per MAC. Cursore con anteprima a non più di cinque comandi al
 secondo. Indipendente dalla connessione alla TV; nessun lavoro all'avvio o in
 background. Solo indirizzi LAN privati.
+
+Dalla build 340 l'icona lampadina in Oggi apre gli stessi controlli in un
+foglio. Fuori casa (rete mobile) il comando locale è impossibile e WiZ non ha
+un'API cloud pubblica: il foglio mostra «Fuori dalla Wi-Fi di casa» e «Apri
+WiZ», che lancia `com.wizconnected.wiz2` (dichiarato in `<queries>` del
+modulo). Verificato sul Galaxy in rete mobile: il pulsante apre l'app WiZ.
 
 ## Bluetooth: provato e scartato (24 novembre 2026)
 
