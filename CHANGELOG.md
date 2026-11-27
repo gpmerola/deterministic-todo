@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.134.0 (build 338) · Luce WiZ nel telecomando
+
+- In fondo al telecomando la sezione Luce comanda una lampadina WiZ sulla
+  Wi-Fi di casa: accensione, intensità e otto colori (tre bianchi e cinque
+  colori). «Collega la lampadina WiZ» la trova in rete; serve «Consenti
+  comunicazione locale» nell'app WiZ. Comunicazione diretta in LAN, senza
+  cloud. «Dimentica la lampadina» nelle impostazioni del telecomando.
+
 ## 2.133.1 (build 337) · Meno ingombro
 
 - Tolta l'icona ✨ Assistente dalla barra in alto (su richiesta).

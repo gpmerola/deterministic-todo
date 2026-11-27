@@ -90,7 +90,8 @@ provenienza dei file locali. Non aggiungere MAC, codici di pairing o credenziali
 
 ## Telecomando TV (H96 Remote)
 
-Il telecomando del TV Box H96 Max resta confinato in `android/h96remote`
+Il telecomando del TV Box H96 Max, con la sezione Luce per la lampadina WiZ
+(UDP locale), resta confinato in `android/h96remote`
 (Java puro, senza dipendenze), nel ponte `H96RemoteChannel.java` e in
 `lib/features/h96_remote/`, con punti di ingresso solo in Impostazioni e
 nell'icona di Oggi, e flag `H96_REMOTE`. Non farlo dipendere dal dominio Todo, da SQLite o da

@@ -64,10 +64,34 @@ public final class H96RemoteChannel {
                     Boolean.TRUE.equals(call.argument("start"))));
                 case "launch" -> result.success(remote.launch(call.argument("app")));
                 case "sendText" -> result.success(remote.sendText(call.argument("text")));
+                case "lightState" -> remote.lightState(mapResult(result));
+                case "lightDiscover" -> remote.lightDiscover(new H96RemoteController.Result<List<Map<String, Object>>>() {
+                    @Override public void ok(List<Map<String, Object>> value) { result.success(value); }
+                    @Override public void error(String code) { result.error(code, code, null); }
+                });
+                case "lightChoose" -> {
+                    remote.lightChoose(call.argument("host"), call.argument("mac"));
+                    result.success(null);
+                }
+                case "lightForget" -> { remote.lightForget(); result.success(null); }
+                case "lightCommand" -> {
+                    Map<String, Object> args = call.arguments();
+                    remote.lightCommand((String) args.get("kind"), args, new H96RemoteController.Result<Boolean>() {
+                        @Override public void ok(Boolean value) { result.success(value); }
+                        @Override public void error(String code) { result.error(code, code, null); }
+                    });
+                }
                 case "forget" -> { remote.forget(); result.success(null); }
                 default -> result.notImplemented();
             }
         });
+    }
+
+    private static H96RemoteController.Result<Map<String, Object>> mapResult(MethodChannel.Result result) {
+        return new H96RemoteController.Result<Map<String, Object>>() {
+            @Override public void ok(Map<String, Object> value) { result.success(value); }
+            @Override public void error(String code) { result.error(code, code, null); }
+        };
     }
 
     private static H96RemoteController.Result<Void> voidResult(MethodChannel.Result result) {

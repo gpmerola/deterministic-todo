@@ -52,6 +52,10 @@ public final class H96RemoteController {
     private boolean rediscovered;
     private android.net.wifi.WifiManager.WifiLock wifiLock;
 
+    // WiZ light: independent of the TV session, own thread, created on first use.
+    private final WizClient wiz = new WizClient();
+    private ExecutorService lightExecutor;
+
     // Pairing state, confined to pairingExecutor.
     private PairingSession pairing;
     private PinningTrustManager pairingTrust;
@@ -204,6 +208,121 @@ public final class H96RemoteController {
 
     public boolean sendText(String text) {
         return text != null && session != null && session.sendText(text);
+    }
+
+    // --- WiZ light -------------------------------------------------------------------
+
+    /** State of the chosen bulb: {known, reachable, host, on, dimming, r, g, b, kelvin}. */
+    public void lightState(Result<Map<String, Object>> result) {
+        light(() -> {
+            android.content.SharedPreferences prefs = lightPrefs();
+            String host = prefs.getString("wiz_host", null);
+            Map<String, Object> value = new HashMap<>();
+            value.put("known", host != null);
+            value.put("reachable", false);
+            if (host == null) return value;
+            WizProtocol.Pilot pilot = pilot(host);
+            if (pilot == null) {
+                // DHCP may have moved the bulb: find it again by its MAC address.
+                String mac = prefs.getString("wiz_mac", "");
+                for (WizClient.Found found : wiz.discover(1500).values()) {
+                    if (!mac.isEmpty() && mac.equals(found.pilot.mac)) {
+                        host = found.host;
+                        prefs.edit().putString("wiz_host", host).apply();
+                        pilot = found.pilot;
+                        break;
+                    }
+                }
+            }
+            value.put("host", host);
+            if (pilot != null) putPilot(value, pilot);
+            return value;
+        }, result);
+    }
+
+    public void lightDiscover(Result<List<Map<String, Object>>> result) {
+        light(() -> {
+            List<Map<String, Object>> list = new ArrayList<>();
+            for (WizClient.Found found : wiz.discover(2000).values()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("host", found.host);
+                item.put("mac", found.pilot.mac);
+                list.add(item);
+            }
+            return list;
+        }, result);
+    }
+
+    public void lightChoose(String host, String mac) {
+        if (host == null || !LanAddress.isPrivate(host)) return;
+        lightPrefs().edit().putString("wiz_host", host).putString("wiz_mac", mac == null ? "" : mac).apply();
+    }
+
+    public void lightForget() {
+        lightPrefs().edit().remove("wiz_host").remove("wiz_mac").apply();
+    }
+
+    /** kind is power, dimming, color or white; returns true when the bulb acknowledged. */
+    public void lightCommand(String kind, Map<String, Object> args, Result<Boolean> result) {
+        String json;
+        switch (kind == null ? "" : kind) {
+            case "power" -> json = WizProtocol.power(Boolean.TRUE.equals(args.get("on")));
+            case "dimming" -> json = WizProtocol.dimming(intArg(args, "value", 100));
+            case "color" -> json = WizProtocol.color(intArg(args, "r", 255), intArg(args, "g", 255),
+                intArg(args, "b", 255));
+            case "white" -> json = WizProtocol.white(intArg(args, "kelvin", 2700));
+            default -> {
+                result.error("invalid_command");
+                return;
+            }
+        }
+        light(() -> {
+            String host = lightPrefs().getString("wiz_host", null);
+            return host != null && WizProtocol.isSuccess(wiz.request(host, json));
+        }, result);
+    }
+
+    private interface LightTask<T> {
+        T run() throws IOException;
+    }
+
+    private <T> void light(LightTask<T> task, Result<T> result) {
+        if (lightExecutor == null) lightExecutor = Executors.newSingleThreadExecutor();
+        lightExecutor.execute(() -> {
+            try {
+                T value = task.run();
+                post(() -> result.ok(value));
+            } catch (IOException e) {
+                post(() -> result.error("unreachable"));
+            }
+        });
+    }
+
+    private WizProtocol.Pilot pilot(String host) {
+        try {
+            return WizProtocol.parsePilot(wiz.request(host, WizProtocol.getPilot()));
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static void putPilot(Map<String, Object> value, WizProtocol.Pilot pilot) {
+        value.put("reachable", true);
+        value.put("on", pilot.on);
+        value.put("dimming", pilot.dimming);
+        value.put("r", pilot.r);
+        value.put("g", pilot.g);
+        value.put("b", pilot.b);
+        value.put("kelvin", pilot.kelvin);
+    }
+
+    private static int intArg(Map<String, Object> args, String key, int fallback) {
+        Object value = args.get(key);
+        return value instanceof Number number ? number.intValue() : fallback;
+    }
+
+    private android.content.SharedPreferences lightPrefs() {
+        return context.getSharedPreferences("h96_remote", Context.MODE_PRIVATE);
     }
 
     /** Forgets the box and deletes this phone's key, so the pairing cannot be reused. */

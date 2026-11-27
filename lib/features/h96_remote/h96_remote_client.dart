@@ -185,3 +185,84 @@ class H96RemoteClient {
     _ => H96Failure.none,
   };
 }
+
+/// State of the WiZ bulb, as last reported over the LAN.
+class H96Light {
+  const H96Light({
+    this.known = false,
+    this.reachable = false,
+    this.on = false,
+    this.dimming = 100,
+  });
+
+  /// A bulb has been chosen on this phone.
+  final bool known;
+  final bool reachable;
+  final bool on;
+  final int dimming;
+
+  H96Light copyWith({bool? on, int? dimming}) => H96Light(
+    known: known,
+    reachable: reachable,
+    on: on ?? this.on,
+    dimming: dimming ?? this.dimming,
+  );
+}
+
+/// One bulb found on the LAN.
+class H96Bulb {
+  const H96Bulb({required this.host, required this.mac});
+
+  final String host;
+  final String mac;
+}
+
+/// WiZ light over the same channel; independent of the TV connection.
+extension H96LightControl on H96RemoteClient {
+  Future<H96Light> lightState() async {
+    final value = await _channel.invokeMapMethod<String, Object?>('lightState');
+    if (value == null) return const H96Light();
+    final dimming = value['dimming'] as int? ?? -1;
+    return H96Light(
+      known: value['known'] == true,
+      reachable: value['reachable'] == true,
+      on: value['on'] == true,
+      dimming: dimming < 10 ? 100 : dimming,
+    );
+  }
+
+  Future<List<H96Bulb>> discoverLights() async {
+    final list =
+        await _channel.invokeListMethod<Object?>('lightDiscover') ?? [];
+    return [
+      for (final item in list.whereType<Map<Object?, Object?>>())
+        H96Bulb(
+          host: item['host'] as String? ?? '',
+          mac: item['mac'] as String? ?? '',
+        ),
+    ];
+  }
+
+  Future<void> chooseLight(H96Bulb bulb) => _channel.invokeMethod(
+    'lightChoose',
+    {'host': bulb.host, 'mac': bulb.mac},
+  );
+
+  Future<void> forgetLight() => _channel.invokeMethod('lightForget');
+
+  /// Returns true when the bulb acknowledged the command.
+  Future<bool> lightCommand(
+    String kind, [
+    Map<String, Object> args = const {},
+  ]) async {
+    try {
+      return await _channel.invokeMethod<bool>('lightCommand', {
+            'kind': kind,
+            ...args,
+          }) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+}

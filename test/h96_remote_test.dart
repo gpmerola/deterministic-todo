@@ -13,10 +13,12 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late List<MethodCall> calls;
   late bool paired;
+  Map<String, Object?>? light;
 
   setUp(() {
     calls = [];
     paired = true;
+    light = null;
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       return switch (call.method) {
@@ -29,7 +31,8 @@ void main() {
         'discover' => [
           {'name': 'RK3518', 'host': '192.168.1.2'},
         ],
-        'send' || 'sendText' || 'hold' || 'launch' => true,
+        'send' || 'sendText' || 'hold' || 'launch' || 'lightCommand' => true,
+        'lightState' => light,
         _ => null,
       };
     });
@@ -173,6 +176,44 @@ void main() {
     );
     expect(find.text('Volume 3 su 15'), findsOneWidget);
     expect(find.byKey(const ValueKey('h96-forget')), findsOneWidget);
+  });
+
+  testWidgets('without a bulb the light card offers to connect one', (
+    tester,
+  ) async {
+    light = {'known': false, 'reachable': false};
+    await tester.pumpWidget(const MaterialApp(home: H96RemotePage()));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('h96-light-connect')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Collega la lampadina WiZ'), findsOneWidget);
+  });
+
+  testWidgets('light switch and colour presets send commands', (tester) async {
+    light = {'known': true, 'reachable': true, 'on': false, 'dimming': 60};
+    await tester.pumpWidget(const MaterialApp(home: H96RemotePage()));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('h96-light-switch')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('h96-light-switch')));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Calda'));
+    await tester.pump();
+    final commands = calls
+        .where((c) => c.method == 'lightCommand')
+        .map((c) => c.arguments)
+        .toList();
+    expect(commands, [
+      {'kind': 'power', 'on': true},
+      {'kind': 'white', 'kelvin': 2700},
+    ]);
   });
 
   testWidgets('leaving the page disconnects', (tester) async {

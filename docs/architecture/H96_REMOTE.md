@@ -39,12 +39,14 @@ android/h96remote/                     modulo Gradle, Java puro, zero dipendenze
   PinningTrustManager, TlsContexts,    identità e pin del certificato
   ClientIdentity, KeyStoreIdentity
   BoxStore, BoxDiscovery, LanAddress   preferenze, mDNS, solo indirizzi LAN
+  WizProtocol, WizClient               lampadina WiZ via UDP locale
   H96RemoteController                  unica facciata per l'host
 android/app/.../H96RemoteChannel.java  ponte MethodChannel, controller pigro
 lib/features/h96_remote/               UI Flutter e client del canale
   h96_remote.dart                      flag e unico punto di ingresso
   h96_remote_client.dart               client del canale
   h96_remote_page.dart                 schermata
+  h96_light_card.dart                  sezione Luce (WiZ)
 ```
 
 Livelli separati come da proposta: UI (Flutter) → sessione e comandi
@@ -139,6 +141,21 @@ metodi. Il protocollo, i test e questo documento si spostano invariati.
 - `flutter test test/h96_remote_test.dart`: flag, voce nascosta fuori da
   Android, ricerca, invio tasti e testo solo da pronto, disconnessione.
 - Collaudo reale: Galaxy S21 con Todo Test e box sulla stessa Wi-Fi.
+
+## Luce WiZ (build 338, 27 novembre 2026)
+
+Nella stessa schermata, sezione Luce per una lampadina WiZ: accensione,
+intensità (10–100%) e otto preset (bianchi 2700, 4000 e 6500 K; rosso,
+arancio, verde, blu, viola). Protocollo locale WiZ: JSON su UDP porta 38899,
+nessun cloud, nessuna autenticazione; richiede «Consenti comunicazione
+locale» nell'app WiZ. `WizProtocol` (puro, testato sulla JVM) costruisce e
+legge i messaggi, `WizClient` li invia: ricerca con un solo `getPilot` in
+broadcast (finestra di 2 s, su richiesta), comandi con una risposta attesa
+400 ms e un solo reinvio, innocuo perché i comandi sono assoluti. Indirizzo
+e MAC della lampadina nelle preferenze `h96_remote`; se l'indirizzo cambia la
+si ritrova per MAC. Cursore con anteprima a non più di cinque comandi al
+secondo. Indipendente dalla connessione alla TV; nessun lavoro all'avvio o in
+background. Solo indirizzi LAN privati.
 
 ## Bluetooth: provato e scartato (24 novembre 2026)
 

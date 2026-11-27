@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'h96_light_card.dart';
 import 'h96_remote_client.dart';
 
 /// Remote screen. Connects while visible, disconnects when left or when the
@@ -265,9 +266,17 @@ class _H96RemotePageState extends State<H96RemotePage>
               subtitle: Text(box.host),
               onTap: _busy ? null : () => _pair(box),
             ),
+        const Divider(height: 48),
+        H96LightCard(
+          key: ValueKey('h96-light-$_lightGeneration'),
+          client: _client,
+        ),
       ],
     );
   }
+
+  /// Bumped to rebuild the light card after forgetting the bulb.
+  int _lightGeneration = 0;
 
   Widget _remote(BuildContext context, H96Status status) {
     final ready = status.ready;
@@ -354,6 +363,11 @@ class _H96RemotePageState extends State<H96RemotePage>
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              H96LightCard(
+                key: ValueKey('h96-light-$_lightGeneration'),
+                client: _client,
+              ),
             ],
           ),
         ),
@@ -381,8 +395,8 @@ class _H96RemotePageState extends State<H96RemotePage>
       builder: (context) => ValueListenableBuilder<H96Status>(
         valueListenable: _client.status,
         builder: (context, status, _) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: ListView(
+            shrinkWrap: true,
             children: [
               ListTile(
                 leading: const Icon(Icons.tv),
@@ -415,6 +429,16 @@ class _H96RemotePageState extends State<H96RemotePage>
                     '${status.muted ? ', muto' : ''}',
                   ),
                 ),
+              ListTile(
+                key: const ValueKey('h96-forget-light'),
+                leading: const Icon(Icons.lightbulb_outline),
+                title: const Text('Dimentica la lampadina'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _client.forgetLight();
+                  if (mounted) setState(() => _lightGeneration++);
+                },
+              ),
               ListTile(
                 key: const ValueKey('h96-forget'),
                 leading: const Icon(Icons.link_off),
