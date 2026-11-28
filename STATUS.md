@@ -1,10 +1,10 @@
 # Stato corrente
 
-Aggiornato il 19 novembre 2026. Solo esiti validi oggi; la cronologia delle
+Aggiornato il 28 novembre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.130.0 / 330 (Web, APK diretti, Play interno). Todo Test: 2330
+- Stabile: 2.135.0 / 344 (Web, APK diretti, Play interno), 28 novembre 2026. Todo Test: 2330
   installato via ADB (USB) sul Galaxy. Backup giornaliero nel cloud Supabase
   (ultime 14 copie, ripristino da Impostazioni), migrazione applicata in
   produzione. Tailscale disinstallato: ADB solo via USB o Debug wireless.
@@ -32,6 +32,19 @@ fondo.
 - Galaxy S21: Todo Test (`.dev`) è il solo client operativo; la build Play
   121 resta installata ma `disabled-user`.
 - Voci aperte e collaudi con l'utente: [TODO_NEXT](TODO_NEXT.md).
+
+## Release stabile 2.135.0 / 344: telecomando, luce e Impostazioni essenziali, 28 novembre 2026
+
+Pubblicazione autorizzata con `PUBBLICA` (messaggio dell'utente delle 15:39
+UTC). `main` in fast-forward a `f29f8b30f06daedf6934633fdf22ae98809122cb`
+([PR 12](https://github.com/gpmerola/deterministic-todo/pull/12)). Run
+[46161043921](https://github.com/gpmerola/deterministic-todo/actions/runs/46161043921)
+riuscito in tutti gli otto job. Web `release-info.json` riporta 2.135.0 / 344
+con lo stesso commit;
+[release v2.135.0](https://github.com/gpmerola/deterministic-todo-releases/releases/tag/v2.135.0)
+latest con quattro APK, bundle e manifest. Play interno: 344 caricata dal
+workflow, propagazione non verificata. Contenuto rispetto alla 330 nel
+[CHANGELOG](CHANGELOG.md) (build 331–344).
 
 ## Release stabile 2.130.0 / 330: backup nel cloud, 19 novembre 2026
 
