@@ -82,6 +82,12 @@ class SyncService {
   /// Last measured delay of remote task changes with at least one sample.
   ValueListenable<RemoteChangeLatency?> get remoteLatency => _remoteLatency;
 
+  final _resumeCheckMs = ValueNotifier<int?>(null);
+
+  /// Milliseconds from the last return to the foreground to its first
+  /// finished full check, i.e. remote changes on screen (build 344).
+  ValueListenable<int?> get resumeCheckMs => _resumeCheckMs;
+
   /// Realtime channel state («Live»); changes only on channel events.
   ValueListenable<RealtimeLink> get realtimeLink => _connection.link;
 
@@ -368,6 +374,10 @@ class SyncService {
 
   DateTime? _lastFocusRefresh;
 
+  /// Return to the foreground waiting for its first successful full check.
+  DateTime? _resumeCheckFrom;
+  int? _resumeFirstMs;
+
   void _refreshIfStale() {
     if (!_started ||
         _inFlight != null ||
@@ -402,12 +412,18 @@ class SyncService {
   Future<void> _restoreRealtimeAndSync() async {
     if (_disposed || _paused || client.auth.currentUser == null) return;
     final resumedAt = clock();
+    _resumeCheckFrom = resumedAt;
+    _resumeFirstMs = null;
     final check = sync().whenComplete(() {
       if (_disposed) return;
       unawaited(
         DiagnosticLogService.instance.event(
           'resume_check',
-          fields: {'total_ms': clock().difference(resumedAt).inMilliseconds},
+          fields: {
+            'first_ms': ?_resumeFirstMs,
+            'total_ms': clock().difference(resumedAt).inMilliseconds,
+            'realtime': _connection.link.value.name,
+          },
         ),
       );
     });
@@ -750,6 +766,14 @@ class SyncService {
           alignment: _alignment,
         ),
       );
+      // First full check after a return to the foreground: the moment the
+      // remote changes are on screen (build 344).
+      final resumedAt = _resumeCheckFrom;
+      if (resumedAt != null && pullAll) {
+        _resumeCheckFrom = null;
+        _resumeFirstMs = clock().difference(resumedAt).inMilliseconds;
+        _resumeCheckMs.value = _resumeFirstMs;
+      }
       unawaited(
         DiagnosticLogService.instance.event(
           'sync_completed',

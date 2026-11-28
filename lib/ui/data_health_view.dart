@@ -118,6 +118,18 @@ class _DataHealthViewState extends State<DataHealthView> {
                       ),
                     ),
                   ),
+                  ValueListenableBuilder<int?>(
+                    valueListenable: service.resumeCheckMs,
+                    builder: (context, ms, _) => ms == null
+                        ? const SizedBox.shrink()
+                        : _HealthRow(
+                            key: const ValueKey('health-resume-check'),
+                            ok: ms < 2000,
+                            icon: Icons.restart_alt,
+                            title: 'Ultima riapertura',
+                            value: 'Dati aggiornati in $ms ms',
+                          ),
+                  ),
                   ValueListenableBuilder<RemoteChangeLatency?>(
                     valueListenable: service.remoteLatency,
                     builder: (context, latency, _) => latency == null
@@ -299,6 +311,7 @@ class _HealthRow extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.value,
+    super.key,
   });
 
   final bool ok;

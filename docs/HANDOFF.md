@@ -35,7 +35,8 @@ Le Sessioni amministrative (build 264–267) sono state rimosse nella build 268
 su richiesta dell'utente; il progetto «Amministrazione» resta un progetto
 normale. Codice e contratto nel tag `archive/admin-sessions-b267`.
 
-Funzioni accessorie: telecomando TV H96 Max ([H96_REMOTE](architecture/H96_REMOTE.md)),
+Funzioni accessorie: telecomando TV H96 Max e luce WiZ, dalle icone in Oggi
+([H96_REMOTE](architecture/H96_REMOTE.md)),
 assistente ✨ ([AI_ASSISTANT](architecture/AI_ASSISTANT.md))
 e copia privata su Drive ([SECOND_BRAIN](operations/SECOND_BRAIN.md)).
 

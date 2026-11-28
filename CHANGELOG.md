@@ -2,6 +2,20 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.135.0 (build 344) · Fuso discreto e diagnostica di riapertura
+
+- Sulle griglie del Calendario il fuso compare solo come scarto («UTC»,
+  «UTC+1»), più tenue e senza icona; il nome completo resta nel modulo
+  dell'evento.
+- Salute dati mostra «Ultima riapertura · Dati aggiornati in N ms», cioè il
+  tempo dal ritorno nell'app al primo controllo completo con il server. Via
+  ADB anche `resume_check_first_ms` e `resume_check_realtime`.
+- Corretto un test Semble che dipendeva dalla data reale e falliva dopo la
+  fine di novembre (orologio ora fissato nel test); `make check` torna verde.
+- Release stabile che raccoglie le build 331–344: telecomando TV e luce WiZ
+  (icone in Oggi), Impostazioni essenziali con meno testo, icona ✨ tolta dalla
+  barra, riapertura più rapida.
+
 ## 2.134.5 (build 343) · Riapertura senza attese
 
 - Alla riapertura il controllo con il server parte subito, senza aspettare

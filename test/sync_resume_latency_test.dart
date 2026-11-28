@@ -52,6 +52,13 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
     expect(realtime.joins, 2);
+    // The first full check after the resume is measured for Salute dati.
+    final measured = Stopwatch()..start();
+    while (sync.resumeCheckMs.value == null &&
+        measured.elapsed.inSeconds < 15) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(sync.resumeCheckMs.value, isNotNull);
     expect(realtime.leaves, greaterThanOrEqualTo(1));
     await sync.dispose();
     await client.dispose();

@@ -144,7 +144,9 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "remote_latency_reopen_count", lastLatency, "reopen_count");
         put(values, "remote_latency_reopen_median_ms", lastLatency, "reopen_median_ms");
         put(values, "resume_check_at", lastResumeCheck, "timestamp");
+        put(values, "resume_check_first_ms", lastResumeCheck, "first_ms");
         put(values, "resume_check_total_ms", lastResumeCheck, "total_ms");
+        put(values, "resume_check_realtime", lastResumeCheck, "realtime");
         long[] apks = DownloadedApkCleanup.usage(DownloadedApkCleanup.directory(getContext()));
         android.content.SharedPreferences cleanup = DownloadedApkCleanup.prefs(getContext());
         values.put("downloaded_apk_files", apks[0]);

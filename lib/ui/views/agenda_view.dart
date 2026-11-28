@@ -582,7 +582,7 @@ class _AgendaViewState extends State<AgendaView> with WidgetsBindingObserver {
       zone == null
           // Not yet known while the first load runs.
           ? (loading ? 'Fuso…' : 'Fuso non riconosciuto')
-          : shortZoneLabel(zone!),
+          : compactZoneLabel(zone!),
       ?widget.service.mirrorLabel,
     ].join(' · ');
     final backup = AgendaBackup.current;

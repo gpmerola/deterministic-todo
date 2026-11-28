@@ -1103,6 +1103,8 @@ void main() {
 
   test('fuso e nomi brevi per l intestazione e le proposte', () {
     expect(shortZoneLabel('Europe/London · UTC+1'), 'London · UTC+1');
+    expect(compactZoneLabel('Europe/London · UTC+1'), 'UTC+1');
+    expect(compactZoneLabel('Europe/London'), 'London');
     expect(
       shortZoneLabel('America/Argentina/Buenos_Aires · UTC−3'),
       'Buenos Aires · UTC−3',
@@ -1678,7 +1680,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('agenda-mode-twoWeeks')));
     await tester.pumpAndSettle();
     expect(find.text('5 – 18 ottobre 2026'), findsOneWidget);
-    expect(find.text('London · UTC+1'), findsOneWidget);
+    expect(find.text('UTC+1'), findsOneWidget);
     expect(find.text('Supervisione'), findsOneWidget);
     expect(find.text('Ward round'), findsOneWidget);
     expect(find.text('8:30'), findsOneWidget);

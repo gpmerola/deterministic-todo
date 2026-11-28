@@ -154,7 +154,10 @@ class DiagnosticLogService {
     'ignored',
     'reopen_count',
     'reopen_median_ms',
-    // resume_check: time from foreground to the first finished check.
+    // resume_check: foreground → first finished full check (changes on
+    // screen) and → all reopening checks done; live channel state.
+    'first_ms',
     'total_ms',
+    'realtime',
   };
 }

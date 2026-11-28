@@ -342,17 +342,21 @@ void main() {
       const calendars = [
         AgendaCalendar(id: 'semble', name: 'Semble', accountName: ''),
       ];
-      final gone = DateTime.now().add(const Duration(days: 3));
-      final adjusted = layer.adjustEntries(calendars, const {})!([
-        AgendaEntry(
-          instanceId: 'gone',
-          calendarIds: const ['semble'],
-          title: "Follow-up 30'",
-          start: gone,
-          end: gone.add(const Duration(minutes: 30)),
-          allDay: false,
-        ),
-      ]);
+      // Pinned clock: the feed window starts at thu29, so "three days from
+      // the real today" left it once the calendar moved on (fixed build 344).
+      final now = DateTime(2026, 10, 29, 12);
+      final gone = now.add(const Duration(days: 3));
+      final adjusted =
+          layer.adjustEntries(calendars, const {}, now: () => now)!([
+            AgendaEntry(
+              instanceId: 'gone',
+              calendarIds: const ['semble'],
+              title: "Follow-up 30'",
+              start: gone,
+              end: gone.add(const Duration(minutes: 30)),
+              allDay: false,
+            ),
+          ]);
       expect(adjusted.map((e) => e.instanceId), isNot(contains('gone')));
 
       await settings.deleteIcalLink();

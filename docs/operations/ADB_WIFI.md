@@ -281,7 +281,11 @@ l'app era chiusa e quanto dopo la riapertura sono comparse; gli altri campi
 riguardano solo le modifiche arrivate con l'app aperta.
 Dalla build 343 `resume_check_at` e `resume_check_total_ms` riportano il
 tempo dal ritorno in primo piano alla fine dei controlli di riapertura,
-compreso quello che parte quando il canale live torna attivo. Misure del
+compreso quello che parte quando il canale live torna attivo. Dalla build
+344 `resume_check_first_ms` è il tempo fino al primo controllo completo
+riuscito (dati remoti a schermo, mostrato anche in Salute dati come «Ultima
+riapertura») e `resume_check_realtime` lo stato del canale live a fine
+riapertura. Misure del
 28 novembre 2026 sul Galaxy in Wi-Fi: riapertura 0,4–0,6 s complessivi con
 0,1 s di rete; una modifica fatta dal computer ad app chiusa compare 0,3 s
 dopo la riapertura; avvio a freddo con primo controllo concluso entro 0,9 s.

@@ -748,6 +748,13 @@ String shortZoneLabel(String label) {
   return [city, ...parts.skip(1)].join(' · ');
 }
 
+/// "UTC+1" from "Europe/London · UTC+1": the discreet grid label (build
+/// 344). The full IANA zone stays in the event editor.
+String compactZoneLabel(String label) {
+  final parts = label.split(' · ');
+  return parts.length > 1 ? parts.skip(1).join(' · ') : shortZoneLabel(label);
+}
+
 /// "sennar.pierp" from "sennar.pierp@gmail.com"; other names unchanged.
 String shortCalendarName(String name) {
   final at = name.indexOf('@');

@@ -256,12 +256,11 @@ class AgendaZoneLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
+    // Discreet since build 344: offset only, no icon, faded.
+    final muted = theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.public, size: 13, color: muted),
-        const SizedBox(width: 4),
         Flexible(
           child: Text(
             text,

@@ -144,8 +144,9 @@ class SembleLayer extends ChangeNotifier {
   /// [sembleAdjustEntries]); null when there is nothing to apply.
   List<AgendaEntry> Function(List<AgendaEntry> merged)? adjustEntries(
     List<AgendaCalendar> calendars,
-    Set<String> hiddenCalendarIds,
-  ) {
+    Set<String> hiddenCalendarIds, {
+    DateTime Function() now = DateTime.now,
+  }) {
     _sembleCalendarIds = {
       for (final calendar in calendars)
         if (isSembleCalendar(calendar)) calendar.id,
@@ -164,6 +165,7 @@ class SembleLayer extends ChangeNotifier {
       calendars: calendars,
       hiddenCalendarIds: hiddenCalendarIds,
       feedUntil: feedUntil,
+      now: now(),
     );
   }
 

@@ -1024,7 +1024,10 @@ dell'evento elenca «Si sovrappone a:» con orari e titoli.
   telefono.
 - **Leggibilità.**
   - Nell'intestazione il fuso è abbreviato («London · UTC+1», il nome IANA
-    completo resta nel dettaglio e nella vista giorno).
+    completo resta nel dettaglio e nella vista giorno). Dalla build 344
+    sulle griglie compare solo lo scarto («UTC», «UTC+1»), tenue e senza
+    icona, su richiesta dell'utente; il nome IANA completo resta nel modulo
+    dell'evento.
   - Il menu della vista mostra icona, nome breve e freccia («Mese ▾»).
   - Sabato e domenica hanno una tinta leggera nelle griglie.
 
