@@ -160,10 +160,7 @@ class _ActivityHistoryViewState extends State<ActivityHistoryView> {
       children: [
         const Padding(
           padding: EdgeInsets.all(16),
-          child: Text(
-            'Ultimi 90 giorni su questo dispositivo, a partire da questo aggiornamento. '
-            'Le versioni restano locali; i log diagnostici non includono questi contenuti.',
-          ),
+          child: Text('Ultimi 90 giorni su questo dispositivo'),
         ),
         for (final row in rows)
           ListTile(

@@ -2,6 +2,15 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.134.3 (build 341) · Meno testo nelle schermate
+
+- Stima lavoro privato: restano importi, dettaglio, non valorizzati, DNA e
+  ora dell'ultimo calcolo; le note su regole, calendari e tariffario sono
+  solo nella documentazione ([AGENDA](docs/architecture/AGENDA.md#stima-lavoro-privato--build-258)).
+- Backup automatici, Backup nel cloud, Backup del Calendario, Storico
+  attività e collegamento dell'account: introduzioni ridotte a una riga o
+  tolte. Restano le conferme prima di sostituire o cancellare dati.
+
 ## 2.134.2 (build 340) · Luce a portata di mano
 
 - Icona lampadina in Oggi, accanto al telecomando: apre subito i controlli

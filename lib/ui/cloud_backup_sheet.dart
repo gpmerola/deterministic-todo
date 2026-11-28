@@ -67,13 +67,7 @@ class _CloudBackupSheetState extends State<CloudBackupSheet> {
           children: [
             const ListTile(
               title: Text('Backup nel cloud'),
-              subtitle: Text(
-                'Una copia al giorno nel tuo account Supabase, solo se '
-                'qualcosa è cambiato; restano le ultime '
-                '${CloudBackupService.keep}. È protetta come le attività '
-                'sincronizzate e si ripristina da qualsiasi telefono '
-                'collegato allo stesso account.',
-              ),
+              subtitle: Text('Giornalieri, nel tuo account'),
             ),
             if (!snapshot.hasData)
               const Center(child: CircularProgressIndicator())

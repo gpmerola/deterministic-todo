@@ -504,6 +504,18 @@ risulta ancora in revisione; assessment ADHD C&A escluso perché manca una fee
 documentata. Tipi e durate non riconosciuti sono contati come
 non valorizzati. Nessuna estrapolazione per prestazioni fuori calendario.
 
+Dalla build 341 la scheda mostra solo importi, dettaglio, non valorizzati,
+DNA/cancellazioni e l'ora del calcolo. Le note prima visibili in app restano
+valide qui: mese scelto (corrente o uno dei 3 precedenti) per data di inizio;
+calendari OPUK, Semble e heydoc anche se nascosti; annullati e assenze
+esclusi; con chiave e cognome Semble le visite Semble vengono dalle
+prenotazioni; il previsto assume che gli appuntamenti si svolgano; tariffario
+di settembre 2026, ADHD con valutazione e feedback separati e report
+incluso, minori come adulti da confermare con OPUK, ASD e tipi non
+riconosciuti esclusi, prestazioni fuori calendario non comprese, copie con
+titoli diversi possono essere contate due volte; importi lordi stimati, non
+incassi confermati.
+
 ## Palette dedicata — build 237
 
 `AgendaPalette` applica al solo Calendario superfici neutre (chiare o ardesia),

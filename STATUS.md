@@ -18,7 +18,9 @@ fondo.
   Build 2337: icona ✨ tolta dalla barra e Impostazioni snellite, installata
   via ADB e controllata a schermo. Build 2338–2340: luce WiZ in LAN (l'utente
   conferma che funziona), icona lampadina in Oggi e «Apri WiZ» fuori casa
-  (verificato in rete mobile).
+  (verificato in rete mobile). Build 2341 (meno testo in Stima, backup,
+  storico, account) pubblicata sul manifest rolling, non controllata a
+  schermo: il Galaxy non era collegato via ADB.
 - 2 novembre 2026: nuova chiave API Semble inserita in Todo Test e accettata
   (Impostazioni → Semble sul Galaxy: 36 regole dal 26 ottobre al 2 febbraio,
   20 prenotazioni nelle prossime 4 settimane). La chiave precedente era

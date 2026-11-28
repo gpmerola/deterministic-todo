@@ -68,12 +68,7 @@ class _AutoBackupSheetState extends State<AutoBackupSheet> {
           children: [
             const ListTile(
               title: Text('Backup automatici'),
-              subtitle: Text(
-                'Una copia cifrata a settimana in Documenti/Todo backup, '
-                'solo se qualcosa è cambiato; restano le ultime '
-                '${AutoBackupService.keep}. Su un altro telefono serve il '
-                'codice di ripristino.',
-              ),
+              subtitle: Text('Settimanali, in Documenti/Todo backup'),
             ),
             if (snapshot.hasError || snapshot.data?.unavailable == true)
               const ListTile(title: Text('Stato non disponibile'))
@@ -175,9 +170,8 @@ Future<void> showRecoveryCodeDialog(
       children: [
         Text(
           first
-              ? 'Salvalo nel gestore password. Senza questo codice i backup '
-                    'non si possono aprire su un altro telefono o dopo una '
-                    'reinstallazione.'
+              ? 'Salvalo nel gestore password: serve per aprire i backup su '
+                    'un altro telefono.'
               : 'Lo stesso codice vale per tutti i backup di questa '
                     'installazione.',
         ),

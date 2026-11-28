@@ -274,10 +274,7 @@ class _SyncAccountCardState extends State<SyncAccountCard> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Usa lo stesso account personale su ogni dispositivo. '
-              'Non sarà richiesto un accesso quotidiano.',
-            ),
+            const Text('Stesso account su ogni dispositivo.'),
             const SizedBox(height: 12),
             TextField(
               controller: email,

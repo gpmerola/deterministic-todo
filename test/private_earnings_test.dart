@@ -353,7 +353,7 @@ void main() {
       expect(find.text('Totale previsto del mese'), findsOneWidget);
       expect(find.text('£235.00'), findsOneWidget);
       expect(find.textContaining('Finora + £170.00'), findsOneWidget);
-      expect(find.textContaining('Importi lordi stimati'), findsOneWidget);
+      expect(find.text('Stime lorde'), findsOneWidget);
       await tester.ensureVisible(find.text('Ancora programmati'));
       await tester.tap(find.text('Ancora programmati'));
       await tester.pumpAndSettle();

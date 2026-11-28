@@ -54,10 +54,7 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
     key: const ValueKey('earnings-unpriced'),
     tilePadding: EdgeInsets.zero,
     title: const Text('Non valorizzati'),
-    subtitle: Text(
-      '${result.unpricedEntries.length} eventi senza prezzo: tipo non '
-      'riconosciuto, ASD o durata diversa dal tariffario',
-    ),
+    subtitle: Text('${result.unpricedEntries.length} eventi senza prezzo'),
     children: [
       for (final entry in result.unpricedEntries)
         Padding(
@@ -160,7 +157,6 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                 money(result.pence),
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const Text('Solo appuntamenti già terminati'),
               if (_monthsBack == 0) ...[
                 const SizedBox(height: 16),
                 const Text('Totale previsto del mese'),
@@ -168,12 +164,10 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                   money(result.monthPence),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                Text(
-                  'Finora + ${money(result.scheduledPence)} da appuntamenti già programmati, inclusi quelli in corso',
-                ),
+                Text('Finora + ${money(result.scheduledPence)} programmati'),
               ],
               const SizedBox(height: 12),
-              const Text('Importi lordi stimati · non incassi confermati'),
+              const Text('Stime lorde'),
               breakdown('Dettaglio finora', result.counts, result.unpriced),
               if (_monthsBack == 0)
                 breakdown(
@@ -196,20 +190,6 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                     ].join(' · '),
                   ),
                 ),
-              if (result.sembleVisits case final visits?)
-                Text(
-                  'Visite Semble lette direttamente da Semble: $visits '
-                  '(tipo, orario ed esito dalle prenotazioni).',
-                  key: const ValueKey('earnings-semble-visits'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                )
-              else if (result.sembleMatched case final semble?)
-                Text(
-                  'Esiti Semble trovati per ${semble.matched} di '
-                  '${semble.checked} visite del calendario Semble.',
-                  key: const ValueKey('earnings-semble-matched'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
               if (result.sembleProblem case final problem?)
                 Text(
                   problem,
@@ -217,12 +197,10 @@ class _PrivateEarningsSheetState extends State<PrivateEarningsSheet> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               const SizedBox(height: 12),
+              // Rules and limits: docs/architecture/AGENDA.md (build 258).
               Text(
-                'Solo il mese scelto (il corrente o uno dei 3 precedenti), secondo la data di inizio degli appuntamenti. Calcolato al ${DateFormat('d MMMM, HH:mm', 'it').format(result.asOf)}. Calendari OPUK / Semble / heydoc, anche se nascosti in agenda. Annullati e assenze esclusi; con chiave e cognome Semble le visite Semble vengono dalle prenotazioni, con DNA e cancellazioni. Il previsto assume che gli appuntamenti programmati si svolgano.',
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Tariffario settembre 2026. ADHD: valutazione e feedback separati; report incluso; minori come adulti, da confermare con OPUK. ASD e tipi non riconosciuti esclusi. Prestazioni fuori calendario non comprese. Copie con titoli diversi possono essere contate due volte.',
+                'Aggiornata alle ${DateFormat('HH:mm', 'it').format(result.asOf)}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
             const SizedBox(height: 12),
