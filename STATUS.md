@@ -4,7 +4,7 @@ Aggiornato il 28 novembre 2026. Solo esiti validi oggi; la cronologia delle
 versioni è in [CHANGELOG](CHANGELOG.md), gli esiti più vecchi negli archivi in
 fondo.
 
-- Stabile: 2.135.0 / 344 (Web, APK diretti, Play interno), 28 novembre 2026. Todo Test: 2330
+- Stabile: 2.135.0 / 344 (Web, APK diretti, Play interno), 28 novembre 2026. Todo Test: 2344
   installato via ADB (USB) sul Galaxy. Backup giornaliero nel cloud Supabase
   (ultime 14 copie, ripristino da Impostazioni), migrazione applicata in
   produzione. Tailscale disinstallato: ADB solo via USB o Debug wireless.
