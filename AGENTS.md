@@ -93,8 +93,8 @@ provenienza dei file locali. Non aggiungere MAC, codici di pairing o credenziali
 Il telecomando del TV Box H96 Max, con la sezione Luce per la lampadina WiZ
 (UDP locale), resta confinato in `android/h96remote`
 (Java puro, senza dipendenze), nel ponte `H96RemoteChannel.java` e in
-`lib/features/h96_remote/`, con punti di ingresso solo in Impostazioni e
-nell'icona di Oggi, e flag `H96_REMOTE`. Non farlo dipendere dal dominio Todo, da SQLite o da
+`lib/features/h96_remote/`, con punto di ingresso solo nelle icone di Oggi
+(lampadina e telecomando), e flag `H96_REMOTE`. Non farlo dipendere dal dominio Todo, da SQLite o da
 Supabase; nessun lavoro all'avvio o in background, nessun log del testo
 digitato, solo rete locale. Procedura di rimozione ed estrazione in
 `docs/architecture/H96_REMOTE.md`.

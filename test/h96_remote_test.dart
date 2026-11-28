@@ -68,12 +68,12 @@ void main() {
     expect(H96RemoteClient.parseFailure('NOT_PAIRED'), H96Failure.notPaired);
   });
 
-  testWidgets('settings tile is hidden off Android', (tester) async {
+  testWidgets('Today icons are hidden off Android', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: H96RemoteSettingsTile())),
+      const MaterialApp(home: Scaffold(body: H96RemoteAction())),
     );
-    expect(find.byType(ListTile), findsNothing);
+    expect(find.byType(IconButton), findsNothing);
     debugDefaultTargetPlatformOverride = null;
   });
 

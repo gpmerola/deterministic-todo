@@ -1562,6 +1562,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Impostazioni'));
     await tester.pump();
+    // Folded with the other rarely used tools (build 342).
+    await tester.scrollUntilVisible(find.text('Dati e manutenzione'), 300);
+    await tester.tap(find.text('Dati e manutenzione'));
+    await tester.pumpAndSettle();
     expect(find.text('Salute dati'), findsOneWidget);
     await tester.pumpWidget(
       MaterialApp(

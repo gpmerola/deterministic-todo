@@ -105,8 +105,7 @@ testate sulla JVM.
 
 ## Accendere, spegnere, rimuovere, estrarre
 
-Spegnere: compilare con `--dart-define=H96_REMOTE=false`. La voce in
-Impostazioni e l'icona in Oggi spariscono e il codice nativo resta inattivo (nessuna chiamata).
+Spegnere: compilare con `--dart-define=H96_REMOTE=false`. Le icone in Oggi spariscono e il codice nativo resta inattivo (nessuna chiamata).
 Riaccendere: togliere il define (il valore predefinito è acceso).
 
 Rimuovere del tutto:
@@ -115,7 +114,7 @@ Rimuovere del tutto:
    `test/h96_remote_test.dart` e
    `android/app/src/main/java/app/deterministic/todo/deterministic_todo/H96RemoteChannel.java`;
 2. (l'icona di Oggi include lampadina e telecomando) togliere da `lib/main.dart` l'import `features/h96_remote/h96_remote.dart`,
-   da `lib/ui/settings_view.dart` il blocco `if (h96RemoteAvailable)` e da
+   da
    `lib/ui/shell/shell_layout.dart` il blocco `H96RemoteAction` (icona in
    Oggi);
 3. togliere `H96RemoteChannel.register(...)` dai tre `MainActivity.kt`

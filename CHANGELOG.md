@@ -2,6 +2,16 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.134.4 (build 342) · Impostazioni essenziali
+
+- In vista restano solo account, aggiornamenti, Attività (completate,
+  senza data, cestino) e Strumenti (Semble, Stima lavoro privato, Obiettivo
+  passi). Salute dati e Assistente AI passano in «Dati e manutenzione»,
+  chiuso per impostazione predefinita, insieme a backup, import/export e
+  diagnostica.
+- La voce Telecomando TV esce dalle Impostazioni: si apre dall'icona in Oggi,
+  accanto alla lampadina.
+
 ## 2.134.3 (build 341) · Meno testo nelle schermate
 
 - Stima lavoro privato: restano importi, dettaglio, non valorizzati, DNA e

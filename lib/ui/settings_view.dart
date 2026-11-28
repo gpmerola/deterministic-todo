@@ -623,24 +623,6 @@ class SettingsView extends StatelessWidget {
               TrashView(repository: repository, syncService: syncService),
         ),
       ),
-      ListTile(
-        leading: const Icon(Icons.health_and_safety_outlined),
-        title: const Text('Salute dati'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          useSafeArea: true,
-          showDragHandle: true,
-          builder: (_) => SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.72,
-            child: DataHealthView(
-              repository: repository,
-              syncService: syncService,
-            ),
-          ),
-        ),
-      ),
       const SettingsHeading('Strumenti'),
       if (sembleSupported) ...[
         // Android (build 285) and browser (build 326), like the Calendar
@@ -674,22 +656,7 @@ class SettingsView extends StatelessWidget {
               builder: (_) => PrivateEarningsSheet(service: earnings!),
             ),
           ),
-        // Android only: the key lives in the Android Keystore.
-        if (isAndroidPlatform)
-          ListTile(
-            key: const ValueKey('settings-ai'),
-            leading: const Icon(Icons.auto_awesome_outlined),
-            title: const Text('Assistente AI'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => AiSettingsView(settings: AiSettings()),
-              ),
-            ),
-          ),
       ],
-      // Isolated feature: lib/features/h96_remote (docs/architecture/H96_REMOTE.md).
-      if (h96RemoteAvailable) const H96RemoteSettingsTile(),
       ListTile(
         leading: const Icon(Icons.track_changes_outlined),
         title: const Text('Obiettivo passi'),
@@ -699,11 +666,43 @@ class SettingsView extends StatelessWidget {
         trailing: const Icon(Icons.edit_outlined),
         onTap: () => _editDailyStepGoal(context),
       ),
-      const SettingsHeading('Dati'),
+      const SizedBox(height: 12),
+      // Rarely used tools and maintenance, folded (build 342).
       ExpansionTile(
         leading: const Icon(Icons.storage_outlined),
         title: const Text('Dati e manutenzione'),
         children: [
+          ListTile(
+            leading: const Icon(Icons.health_and_safety_outlined),
+            title: const Text('Salute dati'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
+              builder: (_) => SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.72,
+                child: DataHealthView(
+                  repository: repository,
+                  syncService: syncService,
+                ),
+              ),
+            ),
+          ),
+          // Android only: the key lives in the Android Keystore.
+          if (isAndroidPlatform)
+            ListTile(
+              key: const ValueKey('settings-ai'),
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: const Text('Assistente AI'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => AiSettingsView(settings: AiSettings()),
+                ),
+              ),
+            ),
           ListTile(
             leading: const Icon(Icons.file_download_outlined),
             title: const Text('Esporta backup'),

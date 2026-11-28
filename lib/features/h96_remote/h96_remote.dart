@@ -1,7 +1,6 @@
 /// H96 Remote: Android TV remote for the H96 Max box, kept as an isolated feature.
 ///
-/// The rest of the app touches it only through [H96RemoteSettingsTile] and
-/// [H96RemoteAction].
+/// The rest of the app touches it only through [H96RemoteAction] (Today bar).
 /// Switch off with `--dart-define=H96_REMOTE=false`; remove by deleting this
 /// folder, `android/h96remote` and the lines listed in
 /// docs/architecture/H96_REMOTE.md.
@@ -51,25 +50,6 @@ class H96RemoteAction extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// The entry shown in Settings; empty when unavailable.
-class H96RemoteSettingsTile extends StatelessWidget {
-  const H96RemoteSettingsTile({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (!h96RemoteAvailable) return const SizedBox.shrink();
-    return ListTile(
-      key: const ValueKey('settings-h96-remote'),
-      leading: const Icon(Icons.settings_remote_outlined),
-      title: const Text('Telecomando TV'),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const H96RemotePage())),
     );
   }
 }
