@@ -279,6 +279,12 @@ Dalla build 329 `remote_latency_reopen_count` e
 `remote_latency_reopen_median_ms` contano a parte le modifiche fatte mentre
 l'app era chiusa e quanto dopo la riapertura sono comparse; gli altri campi
 riguardano solo le modifiche arrivate con l'app aperta.
+Dalla build 343 `resume_check_at` e `resume_check_total_ms` riportano il
+tempo dal ritorno in primo piano alla fine dei controlli di riapertura,
+compreso quello che parte quando il canale live torna attivo. Misure del
+28 novembre 2026 sul Galaxy in Wi-Fi: riapertura 0,4–0,6 s complessivi con
+0,1 s di rete; una modifica fatta dal computer ad app chiusa compare 0,3 s
+dopo la riapertura; avvio a freddo con primo controllo concluso entro 0,9 s.
 
 ## Aggiornamenti e firma del dispositivo di test
 

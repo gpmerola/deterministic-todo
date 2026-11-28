@@ -51,6 +51,7 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         JSONObject lastRecovered = null;
         JSONObject lastRealtimeProblem = null;
         JSONObject lastLatency = null;
+        JSONObject lastResumeCheck = null;
         List<File> files = new ArrayList<>();
         collectDiagnosticFiles(getContext().getFilesDir(), files);
         File dataRoot = getContext().getFilesDir().getParentFile();
@@ -71,6 +72,7 @@ public final class TodoSyncDebugProvider extends ContentProvider {
                     if ("sync_completed".equals(name)) lastCompleted = newer(lastCompleted, event);
                     if ("sync_failed".equals(name)) lastFailed = newer(lastFailed, event);
                     if ("sync_recovered".equals(name)) lastRecovered = newer(lastRecovered, event);
+                    if ("resume_check".equals(name)) lastResumeCheck = newer(lastResumeCheck, event);
                     if ("remote_change_latency".equals(name)
                         && (event.optInt("count") > 0 || event.optInt("reopen_count") > 0))
                         lastLatency = newer(lastLatency, event);
@@ -141,6 +143,8 @@ public final class TodoSyncDebugProvider extends ContentProvider {
         put(values, "remote_latency_ignored", lastLatency, "ignored");
         put(values, "remote_latency_reopen_count", lastLatency, "reopen_count");
         put(values, "remote_latency_reopen_median_ms", lastLatency, "reopen_median_ms");
+        put(values, "resume_check_at", lastResumeCheck, "timestamp");
+        put(values, "resume_check_total_ms", lastResumeCheck, "total_ms");
         long[] apks = DownloadedApkCleanup.usage(DownloadedApkCleanup.directory(getContext()));
         android.content.SharedPreferences cleanup = DownloadedApkCleanup.prefs(getContext());
         values.put("downloaded_apk_files", apks[0]);

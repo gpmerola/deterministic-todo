@@ -395,11 +395,26 @@ class SyncService {
     return operation;
   }
 
+  /// The server check starts at once (build 343): it does not need the live
+  /// channel, while the old channel's removal can hang on a socket Android
+  /// froze in background. The check that the new subscription runs covers
+  /// any change made between this read and the channel going live.
   Future<void> _restoreRealtimeAndSync() async {
+    if (_disposed || _paused || client.auth.currentUser == null) return;
+    final resumedAt = clock();
+    final check = sync().whenComplete(() {
+      if (_disposed) return;
+      unawaited(
+        DiagnosticLogService.instance.event(
+          'resume_check',
+          fields: {'total_ms': clock().difference(resumedAt).inMilliseconds},
+        ),
+      );
+    });
     await _realtimeRemoval;
     if (_disposed || _paused || client.auth.currentUser == null) return;
     await _subscribeRealtime();
-    if (!_disposed && !_paused) await sync();
+    await check;
   }
 
   void _startTimer() {

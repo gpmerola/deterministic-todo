@@ -2,6 +2,14 @@
 
 Cronologia delle modifiche distribuite, dalla più recente.
 
+## 2.134.5 (build 343) · Riapertura senza attese
+
+- Alla riapertura il controllo con il server parte subito, senza aspettare
+  la chiusura del vecchio canale live, che dopo il background può restare
+  appesa; il controllo eseguito quando il canale torna attivo copre le
+  modifiche arrivate nel frattempo. Nuovi campi ADB `resume_check_at` e
+  `resume_check_total_ms` (solo tempi).
+
 ## 2.134.4 (build 342) · Impostazioni essenziali
 
 - In vista restano solo account, aggiornamenti, Attività (completate,
